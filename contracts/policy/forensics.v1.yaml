@@ -1,0 +1,127 @@
+# Kredibel forensic checks — version 1
+# Which checks run, and their thresholds. Semantics: docs/08-risk-engine.md §2–§3.
+# A check runs only if its code is listed under `enabled` (P1 checks are switched on when built).
+
+version: 1
+id: forensics.v1
+
+enabled:
+  # P0
+  - E01_LOW_EXTRACTION_AGREEMENT
+  - E02_EXTRACTION_FAILED
+  - E03_UNCERTAIN_TYPE
+  - E05_PARTY_UNCLEAR
+  - A01_RUNNING_BALANCE_BREAK
+  - A02_OPENING_CLOSING_MISMATCH
+  - A04_INVOICE_TOTAL_MISMATCH
+  - M01_EDITING_SOFTWARE_PRODUCER
+  - M02_MODIFIED_AFTER_CREATION
+  - M03_MULTIPLE_REVISIONS
+  - M04_FONT_ANOMALY_IN_VALUES
+  - M06_IMAGE_ONLY
+  - X01_STATEMENT_DISCONTINUITY
+  - X05_ACCOUNT_HOLDER_MISMATCH
+  - X06_UNDECLARED_ACCOUNT
+  - R01_UNMATCHED_SALES_INVOICES
+  - R02_REVENUE_INFLATION
+  - C01_LOW_DSCR
+  - C02_NEGATIVE_BALANCE_DAYS
+  - B01_GAMBLING_INDICATORS
+  - B04_RETURNED_ITEMS
+  # P1 — uncomment as each is implemented
+  # - S01_EMBEDDED_INSTRUCTIONS
+  # - E04_MULTIPLE_ACCOUNTS
+  # - A03_PRINTED_TOTALS_MISMATCH
+  # - A05_TAX_RATE_INCONSISTENT
+  # - M05_COVERED_TEXT
+  # - V01_VISUAL_EDIT_SUSPECTED
+  # - X02_PERIOD_GAP
+  # - X03_DUPLICATE_CONTENT
+  # - X04_INVOICE_NUMBER_REUSED
+  # - X07_TAX_ID_MISMATCH
+  # - R03_PAID_BEFORE_ISSUE
+  # - C03_VOLATILE_INFLOWS
+  # - C04_WINDOW_DRESSING
+  # - B02_P2P_LENDING_DEPENDENCE
+  # - B03_ROUND_TRIPPING
+  # - B05_CASH_HEAVY_INFLOWS
+  # - B06_CUSTOMER_CONCENTRATION
+  # - B07_RELATED_PARTY_FLOWS
+
+arithmetic:
+  balanceToleranceMinor: 100        # 1.00 currency unit
+  invoiceLineToleranceMinor: 100
+  vatRates: ["0.11", "0.12"]
+  vatToleranceAbs: "0.005"
+
+structure:
+  # Generic, configurable patterns for consumer editing tools in Producer/Creator. Weak signal alone.
+  editorProducerPatterns:
+    - '(?i)pdf ?editor'
+    - '(?i)online ?pdf'
+    - '(?i)\bword\b'
+    - '(?i)libreoffice|openoffice'
+    - '(?i)photoshop|gimp|canva'
+    - '(?i)\bpypdf\b'
+  modifiedAfterCreationMinutes: 10
+  fontAnomaly:
+    majorityShare: "0.90"           # a font used by ≥90% of a numeric column's values is "normal"
+    minValuesInColumn: 5
+
+visual:
+  maxSeverityUncorroborated: MEDIUM
+  corroborationIou: "0.3"
+  renderDpi: 150
+
+crossDocument:
+  holderNameMinScore: 80            # rapidfuzz token_set_ratio, against applicant names and declared holders
+  continuityToleranceMinor: 100
+  undeclaredAccountSeverity: LOW    # X06; only when the applicant declared at least one account
+
+profile:                            # applicant profile intelligence (spec 014)
+  relatedPartyNameMinScore: 90      # counterparty ↔ declared related party
+  relatedPartyInflowShare: "0.10"   # B07 when inflows from related parties ≥ 10% of operating inflows
+  relatedPartyOutflowShare: "0.20"  # or outflows to them ≥ 20% of operating outflows
+  keyCounterpartyMinShare: "0.10"   # KEY_CLIENT / KEY_SUPPLIER suggestions at ≥ 10% of the flow
+  keyCounterpartyMax: 5             # at most 5 suggestions per role per run
+
+verification:                       # AI reader vs witness (docs/07 §6)
+  descriptionMinScore: 85           # rapidfuzz partial_ratio
+  textLayerMinChars: 40
+  textLayerMinPrintableShare: "0.80"
+  blankPageWhiteShare: "0.995"
+
+reconciliation:
+  verificationRatioMedium: "0.8"
+  verificationRatioHigh: "0.5"
+  revenueInflationRatio: "1.5"
+  paidBeforeIssueDays: 3
+
+cashflow:
+  dscrMedium: "1.25"
+  dscrHigh: "1.0"
+  negativeDaysThreshold: 3
+  inflowCvThreshold: "0.5"
+  windowDressing:
+    lastDays: 3
+    firstDays: 5
+    minShareOfMonthlyInflow: "0.3"
+    minReversalShare: "0.9"
+
+behaviour:
+  gamblingMinCount: 1
+  returnedItemsMedium: 1
+  returnedItemsHigh: 3
+  p2pMinMonths: 3
+  roundTrip:
+    maxDays: 2
+    amountTolerance: "0.02"
+    minOccurrences: 2
+  cashHeavyShare: "0.5"
+  concentrationShare: "0.5"
+
+verdict:
+  integrityCategories: [SCREENING, EXTRACTION, ARITHMETIC, STRUCTURE, VISUAL]
+  tamperedCodes: [A01_RUNNING_BALANCE_BREAK, A02_OPENING_CLOSING_MISMATCH, M03_MULTIPLE_REVISIONS]
+  suspiciousMediumCount: 2
+  scoreWeights: { CRITICAL: 40, HIGH: 20, MEDIUM: 8, LOW: 2, INFO: 0 }

@@ -1,0 +1,41 @@
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Environment & secrets (never commit)
+.env
+.env.*
+!.env.example
+*.pem
+*-key.json
+service-account*.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.hypothesis/
+
+# Node / frontend
+node_modules/
+frontend/dist/
+frontend/coverage/
+frontend/test-results/
+frontend/playwright-report/
+
+# Generated
+frontend/src/shared/api/schema.d.ts
+tools/synthetic/out/*
+!tools/synthetic/out/demo/
+backend/evals/reports/*.json
+
+# Firebase / gcloud local state
+.firebase/
+firebase-debug.log

@@ -1,0 +1,2183 @@
+openapi: 3.1.0
+info:
+  title: Kredibel API
+  version: 1.0.0
+  description: |
+    REST API for Kredibel, an agentic SME credit analyst. Normative contract for the backend
+    (FastAPI) and the frontend (generated TypeScript types). See docs/10-api-contract.md for
+    conventions. All /api routes except /api/health require a Firebase ID token.
+servers:
+  - url: /
+tags:
+  - name: system
+  - name: workspace
+  - name: applicants
+  - name: cases
+  - name: documents
+  - name: analysis
+  - name: review
+  - name: assistant
+  - name: internal
+security:
+  - firebase: []
+
+paths:
+  /api/health:
+    get:
+      tags: [system]
+      operationId: getHealth
+      security: []
+      responses:
+        "200":
+          description: Service is alive
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Health" }
+
+  /api/me:
+    get:
+      tags: [system]
+      operationId: getMe
+      description: |
+        Works for any signed-in user. A user without a workspace gets `orgId: null` and
+        `needsWorkspace: true`; every other /api route then returns 403 WORKSPACE_REQUIRED.
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Me" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /api/policy:
+    get:
+      tags: [system]
+      operationId: getPolicy
+      description: Active scorecard policy with the workspace's policy overrides applied, read-only (P1).
+      responses:
+        "200":
+          description: Policy document as JSON
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Policy" }
+        "401": { $ref: "#/components/responses/Problem" }
+
+  /api/plans:
+    get:
+      tags: [workspace]
+      operationId: listPlans
+      description: Plan catalog and UI languages from contracts/plans.v1.yaml. Works without a workspace.
+      responses:
+        "200":
+          description: Plans (AVAILABLE and COMING_SOON) and languages
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PlanCatalog" }
+        "401": { $ref: "#/components/responses/Problem" }
+
+  /api/workspaces:
+    post:
+      tags: [workspace]
+      operationId: createWorkspace
+      description: |
+        Create a workspace for a signed-in user who has none. Starts the free trial, makes the caller
+        `admin`, and sets the Firebase custom claims. The client must refresh its ID token afterwards.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WorkspaceCreate" }
+      responses:
+        "201":
+          description: Workspace created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Workspace" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/workspace:
+    get:
+      tags: [workspace]
+      operationId: getWorkspace
+      responses:
+        "200":
+          description: The caller's workspace with plan state, settings and usage
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Workspace" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+    patch:
+      tags: [workspace]
+      operationId: updateWorkspace
+      description: |
+        Admin only for profile and language; admin or risk_lead for policyOverrides (P1). Only
+        languages with status `available` are accepted.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WorkspaceUpdate" }
+      responses:
+        "200":
+          description: Updated workspace
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Workspace" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/workspace/members:
+    get:
+      tags: [workspace]
+      operationId: listMembers
+      description: Members of the workspace and pending invites (P1).
+      responses:
+        "200":
+          description: Members and invites
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MemberList" }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /api/workspace/invites:
+    post:
+      tags: [workspace]
+      operationId: createInvite
+      description: Admin only (P1). Counts against the plan's seats.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InviteCreate" }
+      responses:
+        "201":
+          description: Invite created (nothing is emailed; the invitee signs in with that email)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Invite" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/workspace/members/{uid}:
+    parameters:
+      - name: uid
+        in: path
+        required: true
+        schema: { type: string }
+    delete:
+      tags: [workspace]
+      operationId: removeMember
+      description: Admin only (P1). The last admin cannot be removed.
+      responses:
+        "204": { description: Removed }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /api/invites/{inviteId}/accept:
+    parameters:
+      - name: inviteId
+        in: path
+        required: true
+        schema: { type: string, pattern: "^ivt_[0-9A-HJKMNP-TV-Z]{26}$" }
+    post:
+      tags: [workspace]
+      operationId: acceptInvite
+      description: |
+        P1. Works without a workspace. The caller's verified email must equal the invite's email.
+        Sets the custom claims; the client refreshes its ID token.
+      responses:
+        "200":
+          description: Joined
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Me" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /api/applicants:
+    post:
+      tags: [applicants]
+      operationId: createApplicant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ApplicantCreate" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Applicant" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+    get:
+      tags: [applicants]
+      operationId: listApplicants
+      parameters:
+        - name: q
+          in: query
+          description: Prefix search on the display name (case-insensitive)
+          schema: { type: string, maxLength: 60 }
+        - name: type
+          in: query
+          schema: { $ref: "#/components/schemas/ApplicantType" }
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        "200":
+          description: Page of applicants, most recently updated first
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApplicantList" }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /api/applicants/{applicantId}:
+    parameters:
+      - $ref: "#/components/parameters/ApplicantId"
+    get:
+      tags: [applicants]
+      operationId: getApplicant
+      responses:
+        "200":
+          description: Applicant profile
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Applicant" }
+        "404": { $ref: "#/components/responses/Problem" }
+    patch:
+      tags: [applicants]
+      operationId: updateApplicant
+      description: Edit profile fields. The type (individual or company) cannot change.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ApplicantUpdate" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Applicant" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/applicants/{applicantId}/bank-accounts:
+    parameters:
+      - $ref: "#/components/parameters/ApplicantId"
+    post:
+      tags: [applicants]
+      operationId: addBankAccount
+      description: The full account number is accepted here, stored only as a mask plus a hash.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BankAccountInput" }
+      responses:
+        "201":
+          description: Added
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BankAccount" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/applicants/{applicantId}/bank-accounts/{accountId}:
+    parameters:
+      - $ref: "#/components/parameters/ApplicantId"
+      - name: accountId
+        in: path
+        required: true
+        schema: { type: string, pattern: "^acc_[0-9a-f]{16}$" }
+    delete:
+      tags: [applicants]
+      operationId: removeBankAccount
+      responses:
+        "204": { description: Removed }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/applicants/{applicantId}/related-parties:
+    parameters:
+      - $ref: "#/components/parameters/ApplicantId"
+    post:
+      tags: [applicants]
+      operationId: addRelatedParty
+      description: Beneficial owners, directors, shareholders, guarantors, signatories.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RelatedPartyInput" }
+      responses:
+        "201":
+          description: Added
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RelatedParty" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/applicants/{applicantId}/related-parties/{partyId}:
+    parameters:
+      - $ref: "#/components/parameters/ApplicantId"
+      - name: partyId
+        in: path
+        required: true
+        schema: { type: string, pattern: "^rp_[0-9a-f]{16}$" }
+    delete:
+      tags: [applicants]
+      operationId: removeRelatedParty
+      responses:
+        "204": { description: Removed }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/applicants/{applicantId}/suggestions:
+    parameters:
+      - $ref: "#/components/parameters/ApplicantId"
+    get:
+      tags: [applicants]
+      operationId: listSuggestions
+      parameters:
+        - name: status
+          in: query
+          schema: { $ref: "#/components/schemas/SuggestionStatus" }
+      responses:
+        "200":
+          description: AI-detected profile suggestions with evidence
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/ProfileSuggestion" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/applicants/{applicantId}/suggestions/{suggestionId}:
+    parameters:
+      - $ref: "#/components/parameters/ApplicantId"
+      - name: suggestionId
+        in: path
+        required: true
+        schema: { type: string, pattern: "^sug_[0-9a-f]{16}$" }
+    patch:
+      tags: [applicants]
+      operationId: decideSuggestion
+      description: Accept (writes the value into the profile) or reject. Both write an applicant event.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SuggestionDecision" }
+      responses:
+        "200":
+          description: Decided
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProfileSuggestion" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /api/applicants/{applicantId}/events:
+    parameters:
+      - $ref: "#/components/parameters/ApplicantId"
+    get:
+      tags: [applicants]
+      operationId: listApplicantEvents
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        "200":
+          description: Applicant audit events, newest first
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EventPage" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/cases:
+    post:
+      tags: [cases]
+      operationId: createCase
+      description: Checks the plan (casesPerMonth, trial) before creating. Takes an existing applicantId or an inline applicant.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CaseCreate" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Case" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+    get:
+      tags: [cases]
+      operationId: listCases
+      parameters:
+        - name: status
+          in: query
+          schema: { $ref: "#/components/schemas/CaseStatus" }
+        - name: applicantId
+          in: query
+          schema: { type: string }
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        "200":
+          description: Page of cases, newest first
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CaseList" }
+        "401": { $ref: "#/components/responses/Problem" }
+
+  /api/cases/{caseId}:
+    parameters:
+      - $ref: "#/components/parameters/CaseId"
+    get:
+      tags: [cases]
+      operationId: getCase
+      responses:
+        "200":
+          description: Case
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Case" }
+        "404": { $ref: "#/components/responses/Problem" }
+    patch:
+      tags: [cases]
+      operationId: updateCase
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CaseUpdate" }
+      responses:
+        "200":
+          description: Updated case
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Case" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/cases/{caseId}/documents:
+    parameters:
+      - $ref: "#/components/parameters/CaseId"
+    post:
+      tags: [documents]
+      operationId: uploadDocument
+      description: |
+        Validates against the plan (fileSizeMb, pagesPerDocument, documentsPerCase), stores the original,
+        splits it into pages and triages each page (text layer usable, blank). With `split=auto` (P1), a
+        PDF longer than pagesPerDocument is cut into parts that each become a document.
+      parameters:
+        - name: split
+          in: query
+          schema: { type: string, enum: [none, auto], default: none }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  contentMediaType: application/octet-stream
+      responses:
+        "201":
+          description: Uploaded (one document, or several parts with split=auto)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UploadResult" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "413": { $ref: "#/components/responses/Problem" }
+        "415": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+    get:
+      tags: [documents]
+      operationId: listDocuments
+      responses:
+        "200":
+          description: Documents of the case
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Document" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/cases/{caseId}/documents/{docId}:
+    parameters:
+      - $ref: "#/components/parameters/CaseId"
+      - $ref: "#/components/parameters/DocId"
+    get:
+      tags: [documents]
+      operationId: getDocument
+      responses:
+        "200":
+          description: Document
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Document" }
+        "404": { $ref: "#/components/responses/Problem" }
+    patch:
+      tags: [documents]
+      operationId: updateDocumentType
+      description: Override the classified document type (P1). Requires a new analysis run.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [docType]
+              properties:
+                docType: { $ref: "#/components/schemas/DocType" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Document" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+    delete:
+      tags: [documents]
+      operationId: deleteDocument
+      responses:
+        "204": { description: Removed }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /api/cases/{caseId}/documents/{docId}/file:
+    parameters:
+      - $ref: "#/components/parameters/CaseId"
+      - $ref: "#/components/parameters/DocId"
+    get:
+      tags: [documents]
+      operationId: getDocumentFile
+      responses:
+        "200":
+          description: Original file
+          content:
+            application/pdf: {}
+            image/png: {}
+            image/jpeg: {}
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/cases/{caseId}/documents/{docId}/pages/{pageNo}:
+    parameters:
+      - $ref: "#/components/parameters/CaseId"
+      - $ref: "#/components/parameters/DocId"
+      - name: pageNo
+        in: path
+        required: true
+        schema: { type: integer, minimum: 1 }
+      - name: variant
+        in: query
+        schema: { type: string, enum: [full, thumb], default: full }
+    get:
+      tags: [documents]
+      operationId: getDocumentPage
+      responses:
+        "200":
+          description: Rendered page
+          content:
+            image/png: {}
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/cases/{caseId}/analysis-runs:
+    parameters:
+      - $ref: "#/components/parameters/CaseId"
+    post:
+      tags: [analysis]
+      operationId: startAnalysisRun
+      description: |
+        Checks the trial, runsPerDay and aiSpendUsdPerMonth, and reserves the case's uncached pages
+        against extractedPagesPerMonth in one transaction (403 PLAN_LIMIT_REACHED / TRIAL_EXPIRED).
+      responses:
+        "202":
+          description: Run queued
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RunCreated" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "429":
+          description: RUN_QUOTA_EXCEEDED (org daily quota or per-user rate limit)
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
+        "503":
+          description: RUNS_DISABLED (kill switch)
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
+
+  /api/cases/{caseId}/analysis-runs/{runId}:
+    parameters:
+      - $ref: "#/components/parameters/CaseId"
+      - name: runId
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      tags: [analysis]
+      operationId: getAnalysisRun
+      responses:
+        "200":
+          description: Run
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Run" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/cases/{caseId}/analysis:
+    parameters:
+      - $ref: "#/components/parameters/CaseId"
+    get:
+      tags: [analysis]
+      operationId: getAnalysis
+      responses:
+        "200":
+          description: Results of the current run
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Analysis" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /api/cases/{caseId}/findings:
+    parameters:
+      - $ref: "#/components/parameters/CaseId"
+    get:
+      tags: [analysis]
+      operationId: listFindings
+      parameters:
+        - name: severity
+          in: query
+          schema: { $ref: "#/components/schemas/Severity" }
+        - name: category
+          in: query
+          schema: { $ref: "#/components/schemas/FindingCategory" }
+        - name: docId
+          in: query
+          schema: { type: string }
+        - name: status
+          in: query
+          schema: { $ref: "#/components/schemas/FindingStatus" }
+      responses:
+        "200":
+          description: Findings of the current run, most severe first
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Finding" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/cases/{caseId}/findings/{findingId}:
+    parameters:
+      - $ref: "#/components/parameters/CaseId"
+      - name: findingId
+        in: path
+        required: true
+        schema: { type: string }
+    patch:
+      tags: [review]
+      operationId: updateFinding
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FindingUpdate" }
+      responses:
+        "200":
+          description: Updated finding
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Finding" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/cases/{caseId}/transactions:
+    parameters:
+      - $ref: "#/components/parameters/CaseId"
+    get:
+      tags: [analysis]
+      operationId: listTransactions
+      parameters:
+        - name: docId
+          in: query
+          schema: { type: string }
+        - name: month
+          in: query
+          schema: { type: string, pattern: "^\\d{4}-\\d{2}$" }
+        - name: category
+          in: query
+          schema: { $ref: "#/components/schemas/Category" }
+        - name: riskTag
+          in: query
+          schema: { $ref: "#/components/schemas/RiskTag" }
+        - name: q
+          in: query
+          description: Case-insensitive substring of description or counterparty
+          schema: { type: string, maxLength: 100 }
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        "200":
+          description: Page of transactions, by date
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TransactionPage" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/cases/{caseId}/transactions/{txId}:
+    parameters:
+      - $ref: "#/components/parameters/CaseId"
+      - name: txId
+        in: path
+        required: true
+        schema: { type: string }
+    patch:
+      tags: [review]
+      operationId: recategorizeTransaction
+      description: Analyst override of a transaction's category (P1). Marks the analysis stale.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [category]
+              properties:
+                category: { $ref: "#/components/schemas/Category" }
+                riskTags:
+                  type: array
+                  items: { $ref: "#/components/schemas/RiskTag" }
+      responses:
+        "200":
+          description: Updated transaction
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Transaction" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /api/cases/{caseId}/invoices:
+    parameters:
+      - $ref: "#/components/parameters/CaseId"
+    get:
+      tags: [analysis]
+      operationId: listInvoices
+      parameters:
+        - name: kind
+          in: query
+          schema: { type: string, enum: [SALES, PURCHASE, TAX] }
+      responses:
+        "200":
+          description: Invoices with match status
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Invoice" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/cases/{caseId}/counterparties:
+    parameters:
+      - $ref: "#/components/parameters/CaseId"
+    get:
+      tags: [analysis]
+      operationId: listCounterparties
+      description: Clients, suppliers and other parties derived by the current run.
+      parameters:
+        - name: role
+          in: query
+          schema: { $ref: "#/components/schemas/CounterpartyRole" }
+      responses:
+        "200":
+          description: Counterparties, largest flow first
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CounterpartyList" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /api/cases/{caseId}/memo:
+    parameters:
+      - $ref: "#/components/parameters/CaseId"
+    get:
+      tags: [analysis]
+      operationId: getMemo
+      responses:
+        "200":
+          description: Memo
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Memo" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+    put:
+      tags: [review]
+      operationId: updateMemo
+      description: Save analyst edits (P1). The grounding guard re-runs on save.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sections]
+              properties:
+                sections:
+                  type: array
+                  items: { $ref: "#/components/schemas/MemoSection" }
+      responses:
+        "200":
+          description: Saved memo with fresh grounding result
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Memo" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /api/cases/{caseId}/decision:
+    parameters:
+      - $ref: "#/components/parameters/CaseId"
+    post:
+      tags: [review]
+      operationId: recordDecision
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DecisionRequest" }
+      responses:
+        "200":
+          description: Case after the decision
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Case" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/cases/{caseId}/info-request/draft:
+    parameters:
+      - $ref: "#/components/parameters/CaseId"
+    post:
+      tags: [review]
+      operationId: draftInfoRequest
+      description: |
+        P1. Drafts a borrower-facing information request (missing coverage, doubtful documents) from
+        the current run's findings. Returned for the analyst to copy; nothing is sent.
+      responses:
+        "200":
+          description: Draft letter
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [subject, body]
+                properties:
+                  subject: { type: string }
+                  body: { type: string, description: Plain text; no internal finding codes }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /api/cases/{caseId}/events:
+    parameters:
+      - $ref: "#/components/parameters/CaseId"
+    get:
+      tags: [review]
+      operationId: listEvents
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        "200":
+          description: Audit events, newest first
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EventPage" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/cases/{caseId}/assistant/messages:
+    parameters:
+      - $ref: "#/components/parameters/CaseId"
+    get:
+      tags: [assistant]
+      operationId: listAssistantMessages
+      responses:
+        "200":
+          description: Conversation for the current user and case
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/AssistantMessage" }
+        "404": { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [assistant]
+      operationId: askAssistant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text: { type: string, minLength: 1, maxLength: 2000 }
+      responses:
+        "200":
+          description: Assistant reply
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AssistantMessage" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /tasks/analyze-case:
+    post:
+      tags: [internal]
+      operationId: runAnalyzeCaseTask
+      description: Worker only. Invoked by Cloud Tasks with an OIDC token. Not mounted on kredibel-web.
+      security:
+        - cloudTasksOidc: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AnalyzeCaseTask" }
+      responses:
+        "200":
+          description: Done, already done, or stale
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  skipped: { type: string, enum: [stale, finished] }
+        "500":
+          description: Failed; Cloud Tasks will retry
+
+components:
+  securitySchemes:
+    firebase:
+      type: http
+      scheme: bearer
+      bearerFormat: Firebase ID token (JWT)
+    cloudTasksOidc:
+      type: http
+      scheme: bearer
+      bearerFormat: Google-signed OIDC token (verified by Cloud Run IAM)
+
+  parameters:
+    CaseId:
+      name: caseId
+      in: path
+      required: true
+      schema: { type: string, pattern: "^case_[0-9A-HJKMNP-TV-Z]{26}$" }
+    ApplicantId:
+      name: applicantId
+      in: path
+      required: true
+      schema: { type: string, pattern: "^apl_[0-9A-HJKMNP-TV-Z]{26}$" }
+    DocId:
+      name: docId
+      in: path
+      required: true
+      schema: { type: string, pattern: "^doc_[0-9A-HJKMNP-TV-Z]{26}$" }
+    Limit:
+      name: limit
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+    Cursor:
+      name: cursor
+      in: query
+      schema: { type: string }
+
+  responses:
+    Problem:
+      description: Error (RFC 9457)
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+
+  schemas:
+    # ---------- primitives ----------
+    Money:
+      type: object
+      required: [amount, currency]
+      properties:
+        amount: { type: string, pattern: "^-?\\d+\\.\\d{2}$", examples: ["1250000.00"] }
+        currency: { type: string, minLength: 3, maxLength: 3, examples: ["IDR"] }
+    BBox:
+      type: object
+      description: Normalized to the page, origin top-left, 0..1
+      required: [x0, y0, x1, y1]
+      properties:
+        x0: { type: number, minimum: 0, maximum: 1 }
+        y0: { type: number, minimum: 0, maximum: 1 }
+        x1: { type: number, minimum: 0, maximum: 1 }
+        y1: { type: number, minimum: 0, maximum: 1 }
+    EvidenceRef:
+      type: object
+      properties:
+        docId: { type: string }
+        page: { type: integer, minimum: 1 }
+        bbox: { $ref: "#/components/schemas/BBox" }
+        txId: { type: string }
+        invoiceId: { type: string }
+        factId: { type: string }
+        label: { type: string }
+    Provenance:
+      type: object
+      required: [docId, page, sources, status]
+      properties:
+        docId: { type: string }
+        page: { type: integer }
+        bbox: { $ref: "#/components/schemas/BBox" }
+        sources:
+          type: array
+          description: Sources that agree on the chosen value. DOCAI = Form/Invoice Parser (escalation or thorough mode).
+          items: { $ref: "#/components/schemas/ReadingSource" }
+        status: { type: string, enum: [AGREED, CONFLICT, SINGLE_SOURCE, MISSING] }
+        raw:
+          type: object
+          additionalProperties: { type: [string, "null"] }
+
+    # ---------- enums ----------
+    Role: { type: string, enum: [analyst, risk_lead, admin] }
+    ReadingSource: { type: string, enum: [GEMINI, TEXT_LAYER, OCR, DOCAI] }
+    ApplicantType: { type: string, enum: [INDIVIDUAL, COMPANY] }
+    LegalForm: { type: string, enum: [LIMITED_COMPANY, PARTNERSHIP, COOPERATIVE, OTHER] }
+    PlanStatus: { type: string, enum: [AVAILABLE, COMING_SOON] }
+    SubscriptionStatus: { type: string, enum: [TRIALING, TRIAL_EXPIRED, ACTIVE] }
+    SuggestionStatus: { type: string, enum: [PENDING, ACCEPTED, REJECTED, CONFLICT] }
+    SuggestionField:
+      type: string
+      enum: [BANK_ACCOUNT, TAX_ID, ADDRESS, LEGAL_NAME, RELATED_PARTY, KEY_CLIENT, KEY_SUPPLIER]
+    CounterpartyRole:
+      type: string
+      enum: [CLIENT, SUPPLIER, LENDER, OWN_ACCOUNT, RELATED_PARTY, GOVERNMENT, OTHER_PAYEE, OTHER_PAYER]
+    CaseStatus:
+      type: string
+      enum: [DRAFT, PROCESSING, READY_FOR_REVIEW, ESCALATED, APPROVED, DECLINED, INFO_REQUESTED, FAILED]
+    DocType:
+      type: string
+      enum: [BANK_STATEMENT, SALES_INVOICE, PURCHASE_INVOICE, TAX_INVOICE, RECEIPT, OTHER, UNKNOWN]
+    DocStatus:
+      type: string
+      enum: [UPLOADED, SCREENING, INSPECTING, CLASSIFYING, EXTRACTING, CHECKING, DONE, SKIPPED, FAILED, QUARANTINED]
+    Verdict: { type: string, enum: [CLEAN, SUSPICIOUS, TAMPERED, UNVERIFIABLE] }
+    Severity: { type: string, enum: [CRITICAL, HIGH, MEDIUM, LOW, INFO] }
+    FindingCategory:
+      type: string
+      enum: [SCREENING, EXTRACTION, ARITHMETIC, STRUCTURE, VISUAL, CROSS_DOCUMENT, RECONCILIATION, CASHFLOW, BEHAVIOURAL]
+    FindingStatus: { type: string, enum: [OPEN, ACKNOWLEDGED, DISMISSED] }
+    CashflowClass: { type: string, enum: [OPERATING, INVESTING, FINANCING, NON_CASH, UNCLASSIFIED] }
+    Category:
+      type: string
+      enum:
+        - SALES_RECEIPT
+        - OTHER_OPERATING_INCOME
+        - SUPPLIER_PAYMENT
+        - PAYROLL
+        - RENT
+        - UTILITIES
+        - TAX_PAYMENT
+        - BANK_FEES
+        - OTHER_OPERATING_EXPENSE
+        - ASSET_SALE
+        - ASSET_PURCHASE
+        - LOAN_DISBURSEMENT
+        - OWNER_CAPITAL
+        - LOAN_REPAYMENT
+        - OWNER_DRAWING
+        - INTERNAL_TRANSFER
+        - REVERSAL
+        - UNKNOWN
+    RiskTag:
+      type: string
+      enum: [GAMBLING, CRYPTO, P2P_LENDING, CASH_DEPOSIT, CASH_WITHDRAWAL, RETURNED_ITEM, ROUND_TRIP]
+    Recommendation: { type: string, enum: [APPROVE, APPROVE_WITH_CONDITIONS, REFER, DECLINE] }
+    Grade: { type: string, enum: [A, B, C, D, E] }
+    DecisionOutcome: { type: string, enum: [APPROVE, DECLINE, REQUEST_INFO, ESCALATE] }
+
+    # ---------- system ----------
+    Health:
+      type: object
+      required: [status, version]
+      properties:
+        status: { type: string, enum: [ok] }
+        version: { type: string }
+        role: { type: string, enum: [web, worker] }
+    Me:
+      type: object
+      required: [uid, orgId, needsWorkspace]
+      properties:
+        uid: { type: string }
+        email: { type: string }
+        displayName: { type: string }
+        orgId: { type: [string, "null"] }
+        role: { $ref: "#/components/schemas/Role" }
+        needsWorkspace: { type: boolean, description: "true when the user has no workspace yet" }
+        language: { type: string, enum: [en], default: en }
+        workspace:
+          type: [object, "null"]
+          properties:
+            name: { type: string }
+            planId: { type: string }
+            subscriptionStatus: { $ref: "#/components/schemas/SubscriptionStatus" }
+            trialEndsAt: { type: [string, "null"], format: date-time }
+        pendingInvites:
+          type: array
+          description: P1. Invites addressed to the user's verified email.
+          items:
+            type: object
+            properties:
+              inviteId: { type: string }
+              workspaceName: { type: string }
+              role: { $ref: "#/components/schemas/Role" }
+    Policy:
+      type: object
+      description: Parsed contents of contracts/policy/scorecard.v1.yaml
+      required: [version]
+      properties:
+        version: { type: integer }
+      additionalProperties: true
+    Problem:
+      type: object
+      required: [title, status, code]
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        code: { type: string }
+        instance: { type: string }
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field: { type: string }
+              message: { type: string }
+      additionalProperties: true
+
+    # ---------- workspace & plans ----------
+    PlanLimits:
+      type: object
+      properties:
+        seats: { type: integer }
+        casesPerMonth: { type: integer }
+        documentsPerCase: { type: integer }
+        pagesPerDocument: { type: integer }
+        fileSizeMb: { type: integer }
+        extractedPagesPerMonth: { type: integer }
+        runsPerDay: { type: integer }
+        aiSpendUsdPerMonth: { type: string, pattern: "^\\d+\\.\\d{2}$" }
+    Plan:
+      type: object
+      required: [id, label, status, highlights]
+      properties:
+        id: { type: string, examples: [free_trial] }
+        label: { type: string }
+        status: { $ref: "#/components/schemas/PlanStatus" }
+        priceLabel: { type: string }
+        trialDays: { type: [integer, "null"] }
+        highlights:
+          type: array
+          items: { type: string }
+        limits: { $ref: "#/components/schemas/PlanLimits" }
+        features:
+          type: object
+          additionalProperties: true
+    Language:
+      type: object
+      required: [code, label, status]
+      properties:
+        code: { type: string, examples: [en] }
+        label: { type: string }
+        status: { type: string, enum: [available, coming_soon] }
+    PlanCatalog:
+      type: object
+      required: [plans, languages]
+      properties:
+        plans:
+          type: array
+          items: { $ref: "#/components/schemas/Plan" }
+        languages:
+          type: array
+          items: { $ref: "#/components/schemas/Language" }
+    PolicyOverrides:
+      type: object
+      description: P1. Bounded by policyOverrideBounds in contracts/plans.v1.yaml.
+      properties:
+        assumedAnnualRate: { type: string, pattern: "^0\\.\\d{2,4}$" }
+        targetDscr: { type: string, pattern: "^\\d\\.\\d{2}$" }
+        requiredMonths: { type: integer, minimum: 3, maximum: 12 }
+        minMonths: { type: integer, minimum: 1, maximum: 12 }
+    UsageSummary:
+      type: object
+      properties:
+        month: { type: string, pattern: "^\\d{4}-\\d{2}$" }
+        casesCreated: { type: integer }
+        extractedPages: { type: integer, description: "Pages reserved or read this month, cache hits excluded" }
+        runsToday: { type: integer }
+        aiSpendUsd: { type: string }
+        seatsUsed: { type: integer }
+    SubscriptionState:
+      type: object
+      required: [planId, status]
+      properties:
+        planId: { type: string }
+        status: { $ref: "#/components/schemas/SubscriptionStatus" }
+        trialStartedAt: { type: [string, "null"], format: date-time }
+        trialEndsAt: { type: [string, "null"], format: date-time }
+        daysLeft: { type: [integer, "null"] }
+        limits: { $ref: "#/components/schemas/PlanLimits" }
+    WorkspaceCreate:
+      type: object
+      required: [name, country, timezone]
+      properties:
+        name: { type: string, minLength: 2, maxLength: 80 }
+        country: { type: string, enum: [ID], description: "More markets are coming soon" }
+        timezone: { type: string, enum: [Asia/Jakarta, Asia/Makassar, Asia/Jayapura] }
+    WorkspaceUpdate:
+      type: object
+      properties:
+        name: { type: string, minLength: 2, maxLength: 80 }
+        timezone: { type: string, enum: [Asia/Jakarta, Asia/Makassar, Asia/Jayapura] }
+        defaultLanguage: { type: string, enum: [en] }
+        policyOverrides: { $ref: "#/components/schemas/PolicyOverrides" }
+    Workspace:
+      type: object
+      required: [orgId, name, country, timezone, defaultLanguage, currency, subscription, createdAt]
+      properties:
+        orgId: { type: string }
+        name: { type: string }
+        country: { type: string }
+        timezone: { type: string }
+        defaultLanguage: { type: string, enum: [en] }
+        currency: { type: string, enum: [IDR] }
+        policyVersion: { type: string }
+        policyOverrides: { $ref: "#/components/schemas/PolicyOverrides" }
+        subscription: { $ref: "#/components/schemas/SubscriptionState" }
+        usage: { $ref: "#/components/schemas/UsageSummary" }
+        createdAt: { type: string, format: date-time }
+    Member:
+      type: object
+      required: [uid, role]
+      properties:
+        uid: { type: string }
+        email: { type: string }
+        displayName: { type: string }
+        role: { $ref: "#/components/schemas/Role" }
+        joinedAt: { type: string, format: date-time }
+    InviteCreate:
+      type: object
+      required: [email, role]
+      properties:
+        email: { type: string, format: email }
+        role: { $ref: "#/components/schemas/Role" }
+    Invite:
+      type: object
+      required: [inviteId, email, role, status]
+      properties:
+        inviteId: { type: string }
+        email: { type: string }
+        role: { $ref: "#/components/schemas/Role" }
+        status: { type: string, enum: [PENDING, ACCEPTED, REVOKED, EXPIRED] }
+        expiresAt: { type: string, format: date-time }
+    MemberList:
+      type: object
+      required: [members, invites]
+      properties:
+        members:
+          type: array
+          items: { $ref: "#/components/schemas/Member" }
+        invites:
+          type: array
+          items: { $ref: "#/components/schemas/Invite" }
+
+    # ---------- applicants ----------
+    Address:
+      type: object
+      properties:
+        line1: { type: string, maxLength: 160 }
+        line2: { type: string, maxLength: 160 }
+        city: { type: string, maxLength: 80 }
+        province: { type: string, maxLength: 80 }
+        postalCode: { type: string, maxLength: 12 }
+        country: { type: string, minLength: 2, maxLength: 2, examples: [ID] }
+    IndividualProfile:
+      type: object
+      required: [fullName, industry]
+      properties:
+        fullName: { type: string, minLength: 2, maxLength: 120 }
+        tradingName: { type: string, maxLength: 120, description: "For sole traders, e.g. a shop name" }
+        occupation: { type: string, maxLength: 120 }
+        industry: { type: string, minLength: 2, maxLength: 120 }
+        yearsOperating: { type: integer, minimum: 0, maximum: 100 }
+        idLast4: { type: string, pattern: "^\\d{4}$", description: "Last 4 digits of the national ID only" }
+    CompanyProfile:
+      type: object
+      required: [legalName, legalForm, industry, yearsOperating]
+      properties:
+        legalName: { type: string, minLength: 2, maxLength: 160 }
+        tradingName: { type: string, maxLength: 120 }
+        legalForm: { $ref: "#/components/schemas/LegalForm" }
+        registrationNumber: { type: string, maxLength: 40 }
+        taxId: { type: string, maxLength: 32 }
+        industry: { type: string, minLength: 2, maxLength: 120 }
+        yearsOperating: { type: integer, minimum: 0, maximum: 100 }
+        website: { type: string, maxLength: 200 }
+    Contact:
+      type: object
+      properties:
+        email: { type: string, format: email }
+        phone: { type: string, maxLength: 32 }
+    BankAccountInput:
+      type: object
+      required: [bankName, accountNumber, holderName]
+      properties:
+        bankName: { type: string, minLength: 2, maxLength: 120 }
+        accountNumber: { type: string, pattern: "^[0-9 -]{6,34}$", writeOnly: true, description: "Never returned; stored as mask + hash" }
+        holderName: { type: string, minLength: 2, maxLength: 160 }
+        currency: { type: string, default: IDR }
+        purpose: { type: string, enum: [OPERATING, PAYROLL, SAVINGS, OTHER], default: OPERATING }
+    BankAccount:
+      type: object
+      required: [accountId, bankName, accountMasked, holderName, source]
+      properties:
+        accountId: { type: string }
+        bankName: { type: string }
+        accountMasked: { type: string, examples: ["••••4821"] }
+        holderName: { type: string }
+        currency: { type: string }
+        purpose: { type: string, enum: [OPERATING, PAYROLL, SAVINGS, OTHER] }
+        source: { type: string, enum: [DECLARED, DETECTED] }
+        addedAt: { type: string, format: date-time }
+    RelatedPartyInput:
+      type: object
+      required: [name, kind, roles]
+      properties:
+        name: { type: string, minLength: 2, maxLength: 160 }
+        kind: { type: string, enum: [INDIVIDUAL, COMPANY] }
+        roles:
+          type: array
+          minItems: 1
+          items: { type: string, enum: [BENEFICIAL_OWNER, DIRECTOR, SHAREHOLDER, GUARANTOR, AUTHORIZED_SIGNATORY] }
+        ownershipPct: { type: string, pattern: "^\\d{1,3}(\\.\\d{1,2})?$" }
+        idLast4: { type: string, pattern: "^\\d{4}$" }
+    RelatedParty:
+      allOf:
+        - $ref: "#/components/schemas/RelatedPartyInput"
+        - type: object
+          required: [partyId, source]
+          properties:
+            partyId: { type: string }
+            source: { type: string, enum: [DECLARED, DETECTED] }
+    ApplicantCreate:
+      type: object
+      description: Exactly one of `individual` (type INDIVIDUAL) or `company` (type COMPANY) is required.
+      required: [type]
+      properties:
+        type: { $ref: "#/components/schemas/ApplicantType" }
+        individual: { $ref: "#/components/schemas/IndividualProfile" }
+        company: { $ref: "#/components/schemas/CompanyProfile" }
+        address: { $ref: "#/components/schemas/Address" }
+        contact: { $ref: "#/components/schemas/Contact" }
+        bankAccounts:
+          type: array
+          maxItems: 10
+          items: { $ref: "#/components/schemas/BankAccountInput" }
+        relatedParties:
+          type: array
+          maxItems: 20
+          items: { $ref: "#/components/schemas/RelatedPartyInput" }
+    ApplicantUpdate:
+      type: object
+      properties:
+        individual: { $ref: "#/components/schemas/IndividualProfile" }
+        company: { $ref: "#/components/schemas/CompanyProfile" }
+        address: { $ref: "#/components/schemas/Address" }
+        contact: { $ref: "#/components/schemas/Contact" }
+    Applicant:
+      type: object
+      required: [applicantId, type, displayName, bankAccounts, relatedParties, createdAt, updatedAt]
+      properties:
+        applicantId: { type: string }
+        type: { $ref: "#/components/schemas/ApplicantType" }
+        displayName: { type: string }
+        individual: { $ref: "#/components/schemas/IndividualProfile" }
+        company: { $ref: "#/components/schemas/CompanyProfile" }
+        address: { $ref: "#/components/schemas/Address" }
+        contact: { $ref: "#/components/schemas/Contact" }
+        bankAccounts:
+          type: array
+          items: { $ref: "#/components/schemas/BankAccount" }
+        relatedParties:
+          type: array
+          items: { $ref: "#/components/schemas/RelatedParty" }
+        aliases:
+          type: array
+          description: Accepted alternative names (e.g. the spelling printed on statements)
+          items: { type: string }
+        keyCounterparties:
+          type: array
+          description: P1. Accepted key clients and suppliers
+          items:
+            type: object
+            properties:
+              name: { type: string }
+              role: { type: string, enum: [CLIENT, SUPPLIER] }
+              lastSharePct: { type: string }
+              acceptedAt: { type: string, format: date-time }
+        pendingSuggestions: { type: integer }
+        caseCount: { type: integer }
+        createdBy: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    ApplicantSummary:
+      type: object
+      required: [applicantId, type, displayName, industry]
+      properties:
+        applicantId: { type: string }
+        type: { $ref: "#/components/schemas/ApplicantType" }
+        displayName: { type: string }
+        legalForm: { $ref: "#/components/schemas/LegalForm" }
+        industry: { type: string }
+        yearsOperating: { type: [integer, "null"] }
+    ApplicantList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Applicant" }
+        nextCursor: { type: [string, "null"] }
+    ProfileSuggestion:
+      type: object
+      required: [suggestionId, field, display, confidence, evidence, status, createdAt]
+      properties:
+        suggestionId: { type: string }
+        field: { $ref: "#/components/schemas/SuggestionField" }
+        value:
+          type: object
+          description: Field-specific, e.g. {bankName, accountMasked, holderName} or {taxId}
+          additionalProperties: true
+        display: { type: string, examples: ["Archipelago Commerce Bank ••••4821, holder SUNRISE COFFEE ROASTERS"] }
+        confidence: { type: string, enum: [HIGH, MEDIUM, LOW] }
+        basis: { type: string, description: "Short reason, e.g. 'Statement header, agreed by both readings'" }
+        evidence:
+          type: array
+          items: { $ref: "#/components/schemas/EvidenceRef" }
+        sourceCaseId: { type: string }
+        sourceRunId: { type: string }
+        status: { $ref: "#/components/schemas/SuggestionStatus" }
+        conflictWith: { type: [string, "null"], description: "The profile value it disagrees with" }
+        decidedBy: { type: [string, "null"] }
+        decidedAt: { type: [string, "null"], format: date-time }
+        createdAt: { type: string, format: date-time }
+    SuggestionDecision:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [ACCEPTED, REJECTED] }
+        reason: { type: string, maxLength: 500 }
+        relatedPartyRoles:
+          type: array
+          description: Required when accepting a RELATED_PARTY suggestion (the analyst names the role)
+          items: { type: string, enum: [BENEFICIAL_OWNER, DIRECTOR, SHAREHOLDER, GUARANTOR, AUTHORIZED_SIGNATORY] }
+    Counterparty:
+      type: object
+      required: [counterpartyId, name, roles, txCount]
+      properties:
+        counterpartyId: { type: string }
+        name: { type: string }
+        aliases:
+          type: array
+          items: { type: string }
+        kind: { type: string, enum: [PERSON, BUSINESS, GOVERNMENT, BANK, UNKNOWN] }
+        roles:
+          type: array
+          items: { $ref: "#/components/schemas/CounterpartyRole" }
+        inflow: { $ref: "#/components/schemas/Money" }
+        outflow: { $ref: "#/components/schemas/Money" }
+        txCount: { type: integer }
+        firstDate: { type: string, format: date }
+        lastDate: { type: string, format: date }
+        invoiceCount: { type: integer }
+        invoiced: { $ref: "#/components/schemas/Money" }
+        matched: { $ref: "#/components/schemas/Money" }
+        shareOfOperatingInflow: { type: [string, "null"] }
+        source: { type: string, enum: [RULE, MODEL, INVOICE, PROFILE] }
+        sampleTxIds:
+          type: array
+          items: { type: string }
+    CounterpartyList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Counterparty" }
+        summary:
+          type: object
+          properties:
+            clients: { type: integer }
+            suppliers: { type: integer }
+            topClientShare: { type: [string, "null"] }
+
+    # ---------- cases ----------
+    LoanRequest:
+      type: object
+      required: [amount, tenorMonths, purpose]
+      properties:
+        amount: { $ref: "#/components/schemas/Money" }
+        tenorMonths: { type: integer, minimum: 1, maximum: 120 }
+        purpose: { type: string, minLength: 3, maxLength: 500 }
+        installmentOverride: { $ref: "#/components/schemas/Money" }
+    CaseCreate:
+      type: object
+      description: Give either `applicantId` (existing applicant) or `applicant` (created in the same call).
+      required: [request]
+      properties:
+        applicantId: { type: string }
+        applicant: { $ref: "#/components/schemas/ApplicantCreate" }
+        request: { $ref: "#/components/schemas/LoanRequest" }
+    CaseUpdate:
+      type: object
+      description: Applicant details are edited through /api/applicants; the case snapshot refreshes while DRAFT.
+      properties:
+        request: { $ref: "#/components/schemas/LoanRequest" }
+    CaseProgress:
+      type: object
+      properties:
+        stage: { type: string }
+        pct: { type: integer, minimum: 0, maximum: 100 }
+        message: { type: string }
+        updatedAt: { type: string, format: date-time }
+    CaseSummaryBlock:
+      type: object
+      properties:
+        score: { type: integer, minimum: 0, maximum: 100 }
+        grade: { $ref: "#/components/schemas/Grade" }
+        recommendation: { $ref: "#/components/schemas/Recommendation" }
+        hardStops:
+          type: array
+          items: { type: string }
+        worstVerdict: { $ref: "#/components/schemas/Verdict" }
+        openFindings:
+          type: object
+          properties:
+            critical: { type: integer }
+            high: { type: integer }
+            medium: { type: integer }
+            low: { type: integer }
+    Decision:
+      type: object
+      required: [outcome, decidedBy, decidedAt]
+      properties:
+        outcome: { $ref: "#/components/schemas/DecisionOutcome" }
+        reason: { type: string }
+        conditions:
+          type: array
+          items: { type: string }
+        decidedBy: { type: string }
+        decidedByRole: { $ref: "#/components/schemas/Role" }
+        decidedAt: { type: string, format: date-time }
+        overrodeRecommendation: { type: boolean }
+    Case:
+      type: object
+      required: [caseId, reference, status, applicant, request, counts, createdAt, updatedAt]
+      properties:
+        caseId: { type: string }
+        reference: { type: string, examples: ["KRD-8F3K2Q"] }
+        status: { $ref: "#/components/schemas/CaseStatus" }
+        applicant: { $ref: "#/components/schemas/ApplicantSummary" }
+        request: { $ref: "#/components/schemas/LoanRequest" }
+        counts:
+          type: object
+          properties:
+            documents: { type: integer }
+            documentsDone: { type: integer }
+            documentsFailed: { type: integer }
+        currentRunId: { type: [string, "null"] }
+        progress: { $ref: "#/components/schemas/CaseProgress" }
+        summary: { $ref: "#/components/schemas/CaseSummaryBlock" }
+        decision: { $ref: "#/components/schemas/Decision" }
+        policyVersion: { type: string }
+        createdBy: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    CaseListItem:
+      type: object
+      required: [caseId, reference, status, applicantId, applicantName, applicantType, amount, createdAt]
+      properties:
+        caseId: { type: string }
+        reference: { type: string }
+        status: { $ref: "#/components/schemas/CaseStatus" }
+        applicantId: { type: string }
+        applicantName: { type: string }
+        applicantType: { $ref: "#/components/schemas/ApplicantType" }
+        amount: { $ref: "#/components/schemas/Money" }
+        grade: { $ref: "#/components/schemas/Grade" }
+        recommendation: { $ref: "#/components/schemas/Recommendation" }
+        openFindings:
+          type: object
+          properties:
+            critical: { type: integer }
+            high: { type: integer }
+        createdAt: { type: string, format: date-time }
+    CaseList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/CaseListItem" }
+        nextCursor: { type: [string, "null"] }
+
+    # ---------- documents ----------
+    DocClassification:
+      type: object
+      properties:
+        docType: { $ref: "#/components/schemas/DocType" }
+        confidence: { type: number }
+        language: { type: string }
+        issuerName: { type: [string, "null"] }
+        counterpartyName: { type: [string, "null"] }
+        periodHint: { type: [string, "null"] }
+        reasons:
+          type: array
+          items: { type: string }
+    StatementMeta:
+      type: object
+      properties:
+        bankName: { type: string }
+        accountHolder: { type: string }
+        accountMasked: { type: string, examples: ["••••1234"] }
+        periodStart: { type: string, format: date }
+        periodEnd: { type: string, format: date }
+        opening: { $ref: "#/components/schemas/Money" }
+        closing: { $ref: "#/components/schemas/Money" }
+        provenance:
+          type: object
+          additionalProperties: { $ref: "#/components/schemas/Provenance" }
+    Document:
+      type: object
+      required: [docId, fileName, contentType, sizeBytes, pageCount, status, docType, uploadedAt]
+      properties:
+        docId: { type: string }
+        fileName: { type: string }
+        contentType: { type: string, enum: [application/pdf, image/png, image/jpeg] }
+        sizeBytes: { type: integer }
+        pageCount: { type: integer }
+        sha256: { type: string }
+        status: { $ref: "#/components/schemas/DocStatus" }
+        docType: { $ref: "#/components/schemas/DocType" }
+        classification: { $ref: "#/components/schemas/DocClassification" }
+        screening:
+          type: object
+          properties:
+            verdict: { type: string, enum: [CLEAN, INJECTION_SUSPECTED, ERROR, SKIPPED] }
+            quarantined: { type: boolean }
+        pdf:
+          type: object
+          properties:
+            producer: { type: [string, "null"] }
+            creator: { type: [string, "null"] }
+            creationDate: { type: [string, "null"] }
+            modDate: { type: [string, "null"] }
+            revisions: { type: integer }
+            hasTextLayer: { type: boolean }
+        extraction:
+          type: object
+          properties:
+            method: { type: string, enum: [AI_TEXT_LAYER, AI_OCR, AI_MIXED, AI_ONLY, WITNESS_ONLY, THOROUGH] }
+            agreement: { type: string }
+            fieldsCompared: { type: integer }
+            fieldsAgreed: { type: integer }
+            pagesTextLayer: { type: integer }
+            pagesOcr: { type: integer }
+            pagesEscalated: { type: integer }
+            witnessOnlyRows: { type: integer }
+        statementMeta: { $ref: "#/components/schemas/StatementMeta" }
+        invoiceId: { type: [string, "null"] }
+        integrity:
+          type: object
+          properties:
+            verdict: { $ref: "#/components/schemas/Verdict" }
+            score: { type: integer, minimum: 0, maximum: 100 }
+            findingIds:
+              type: array
+              items: { type: string }
+        sourceUploadId: { type: [string, "null"], description: "P1: set on parts created by split=auto" }
+        partOf: { type: [string, "null"], examples: ["part 2 of 3"] }
+        pages:
+          type: array
+          items:
+            type: object
+            properties:
+              pageNo: { type: integer }
+              width: { type: integer }
+              height: { type: integer }
+              textLayer: { type: string, enum: [USABLE, UNUSABLE, NONE] }
+              blank: { type: boolean }
+              witness: { type: [string, "null"], enum: [TEXT_LAYER, OCR, null] }
+              agreement: { type: [string, "null"] }
+              escalated: { type: boolean }
+        error:
+          type: object
+          properties:
+            code: { type: string }
+            message: { type: string }
+        uploadedBy: { type: string }
+        uploadedAt: { type: string, format: date-time }
+
+    UploadResult:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          description: One document, or the parts created by split=auto (P1)
+          items: { $ref: "#/components/schemas/Document" }
+
+    # ---------- analysis ----------
+    RunCreated:
+      type: object
+      required: [runId, status]
+      properties:
+        runId: { type: string }
+        status: { type: string, enum: [QUEUED] }
+    RunStage:
+      type: object
+      required: [name, status]
+      properties:
+        name: { type: string }
+        status: { type: string, enum: [PENDING, RUNNING, DONE, SKIPPED, FAILED] }
+        startedAt: { type: [string, "null"], format: date-time }
+        finishedAt: { type: [string, "null"], format: date-time }
+        durationMs: { type: [integer, "null"] }
+        model: { type: [string, "null"] }
+        tokensIn: { type: [integer, "null"] }
+        tokensOut: { type: [integer, "null"] }
+        note: { type: [string, "null"] }
+    Run:
+      type: object
+      required: [runId, status, queuedAt, stages]
+      properties:
+        runId: { type: string }
+        status: { type: string, enum: [QUEUED, RUNNING, SUCCEEDED, FAILED] }
+        trigger: { type: string, enum: [ANALYST, RETRY] }
+        requestedBy: { type: string }
+        queuedAt: { type: string, format: date-time }
+        startedAt: { type: [string, "null"], format: date-time }
+        finishedAt: { type: [string, "null"], format: date-time }
+        stages:
+          type: array
+          items: { $ref: "#/components/schemas/RunStage" }
+        promptVersions: { type: object, additionalProperties: { type: string } }
+        modelVersions: { type: object, additionalProperties: { type: string } }
+        policyVersion: { type: string }
+        usage:
+          type: object
+          properties:
+            pagesRead: { type: integer, description: "Pages sent to the AI reader (cache hits excluded)" }
+            pagesCached: { type: integer }
+            ocrPages: { type: integer }
+            parserPages: { type: integer, description: "Form/Invoice Parser pages (escalation, thorough)" }
+            geminiTokensIn: { type: integer }
+            geminiTokensOut: { type: integer }
+            estimatedUsd: { type: string }
+        error:
+          type: object
+          properties:
+            code: { type: string }
+            message: { type: string }
+    MonthlyFlow:
+      type: object
+      required: [month, operatingInflow, operatingOutflow, nocf, cads, adb, negativeDays]
+      properties:
+        month: { type: string, pattern: "^\\d{4}-\\d{2}$" }
+        operatingInflow: { $ref: "#/components/schemas/Money" }
+        operatingOutflow: { $ref: "#/components/schemas/Money" }
+        ownerDrawings: { $ref: "#/components/schemas/Money" }
+        debtService: { $ref: "#/components/schemas/Money" }
+        nocf: { $ref: "#/components/schemas/Money" }
+        cads: { $ref: "#/components/schemas/Money" }
+        adb: { $ref: "#/components/schemas/Money" }
+        minBalance: { $ref: "#/components/schemas/Money" }
+        negativeDays: { type: integer }
+        byCategory:
+          type: object
+          additionalProperties: { $ref: "#/components/schemas/Money" }
+    Fact:
+      type: object
+      required: [id, label, value, unit]
+      properties:
+        id: { type: string, examples: ["fact:dscr_proxy"] }
+        label: { type: string }
+        value: { type: [string, "null"], description: Decimal string }
+        unit: { type: string, examples: [IDR, ratio, months, days, percent] }
+        inputs:
+          type: array
+          items: { type: string }
+    ScoreComponent:
+      type: object
+      required: [id, weight, points, contribution]
+      properties:
+        id: { type: string }
+        weight: { type: integer }
+        metric: { type: string }
+        value: { type: [string, "null"] }
+        points: { type: integer }
+        contribution: { type: number }
+    HardStop:
+      type: object
+      required: [id, recommendation]
+      properties:
+        id: { type: string }
+        recommendation: { $ref: "#/components/schemas/Recommendation" }
+        reason: { type: string }
+    Analysis:
+      type: object
+      required: [runId, coverage, monthly, facts, scorecard, recommendation]
+      properties:
+        runId: { type: string }
+        computedAt: { type: string, format: date-time }
+        coverage:
+          type: object
+          properties:
+            months:
+              type: array
+              items: { type: string }
+            start: { type: string, format: date }
+            end: { type: string, format: date }
+            accountsMasked:
+              type: array
+              items: { type: string }
+        monthly:
+          type: array
+          items: { $ref: "#/components/schemas/MonthlyFlow" }
+        facts:
+          type: array
+          items: { $ref: "#/components/schemas/Fact" }
+        scorecard:
+          type: object
+          required: [score, grade, components, hardStops]
+          properties:
+            score: { type: integer }
+            grade: { $ref: "#/components/schemas/Grade" }
+            components:
+              type: array
+              items: { $ref: "#/components/schemas/ScoreComponent" }
+            hardStops:
+              type: array
+              items: { $ref: "#/components/schemas/HardStop" }
+        recommendation:
+          type: object
+          required: [outcome]
+          properties:
+            outcome: { $ref: "#/components/schemas/Recommendation" }
+            conditions:
+              type: array
+              items: { type: string }
+            proposedInstallment: { $ref: "#/components/schemas/Money" }
+            maxSupportableInstallment: { $ref: "#/components/schemas/Money" }
+            maxSupportableAmount: { $ref: "#/components/schemas/Money" }
+        reconciliation:
+          type: object
+          properties:
+            salesInvoiced: { $ref: "#/components/schemas/Money" }
+            salesMatched: { $ref: "#/components/schemas/Money" }
+            ratio: { type: [string, "null"] }
+            counts:
+              type: object
+              properties:
+                matched: { type: integer }
+                partial: { type: integer }
+                unmatched: { type: integer }
+                notDue: { type: integer }
+    Finding:
+      type: object
+      required: [findingId, runId, code, category, severity, title, evidence, detectedBy, status]
+      properties:
+        findingId: { type: string }
+        runId: { type: string }
+        code: { type: string, examples: [A01_RUNNING_BALANCE_BREAK] }
+        category: { $ref: "#/components/schemas/FindingCategory" }
+        severity: { $ref: "#/components/schemas/Severity" }
+        title: { type: string }
+        facts:
+          type: object
+          additionalProperties: { type: string }
+        explanation: { type: [string, "null"] }
+        evidence:
+          type: array
+          items: { $ref: "#/components/schemas/EvidenceRef" }
+        detectedBy: { type: string, enum: [RULE, MODEL, MODEL_ARMOR] }
+        corroboratedBy:
+          type: array
+          items: { type: string }
+        status: { $ref: "#/components/schemas/FindingStatus" }
+        statusReason: { type: [string, "null"] }
+        statusChangedBy: { type: [string, "null"] }
+        statusChangedAt: { type: [string, "null"], format: date-time }
+        docId: { type: [string, "null"] }
+        createdAt: { type: string, format: date-time }
+    FindingUpdate:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [ACKNOWLEDGED, DISMISSED] }
+        reason: { type: string, maxLength: 1000 }
+    Transaction:
+      type: object
+      required: [txId, docId, rowIndex, page, date, description, direction, amount, cashflowClass, category, riskTags]
+      properties:
+        txId: { type: string }
+        docId: { type: string }
+        accountMasked: { type: string }
+        rowIndex: { type: integer }
+        page: { type: integer }
+        date: { type: string, format: date }
+        month: { type: string }
+        description: { type: string }
+        counterparty: { type: [string, "null"] }
+        direction: { type: string, enum: [CREDIT, DEBIT] }
+        amount: { $ref: "#/components/schemas/Money" }
+        balanceAfter: { $ref: "#/components/schemas/Money" }
+        consensusStatus: { type: string, enum: [AGREED, CONFLICT, SINGLE_SOURCE] }
+        bbox: { $ref: "#/components/schemas/BBox" }
+        cashflowClass: { $ref: "#/components/schemas/CashflowClass" }
+        category: { $ref: "#/components/schemas/Category" }
+        riskTags:
+          type: array
+          items: { $ref: "#/components/schemas/RiskTag" }
+        categorizedBy: { type: string, enum: [RULE, MODEL, ANALYST] }
+        categoryConfidence: { type: [string, "null"] }
+        matchedInvoiceIds:
+          type: array
+          items: { type: string }
+    TransactionPage:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Transaction" }
+        nextCursor: { type: [string, "null"] }
+    InvoiceLine:
+      type: object
+      properties:
+        description: { type: string }
+        quantity: { type: [string, "null"] }
+        unitPrice: { $ref: "#/components/schemas/Money" }
+        amount: { $ref: "#/components/schemas/Money" }
+    Invoice:
+      type: object
+      required: [invoiceId, docId, kind, total, match]
+      properties:
+        invoiceId: { type: string }
+        docId: { type: string }
+        kind: { type: string, enum: [SALES, PURCHASE, TAX] }
+        invoiceNumber: { type: [string, "null"] }
+        issuerName: { type: [string, "null"] }
+        buyerName: { type: [string, "null"] }
+        issueDate: { type: [string, "null"], format: date }
+        dueDate: { type: [string, "null"], format: date }
+        subtotal: { $ref: "#/components/schemas/Money" }
+        tax: { $ref: "#/components/schemas/Money" }
+        total: { $ref: "#/components/schemas/Money" }
+        lines:
+          type: array
+          items: { $ref: "#/components/schemas/InvoiceLine" }
+        provenance:
+          type: object
+          additionalProperties: { $ref: "#/components/schemas/Provenance" }
+        match:
+          type: object
+          required: [status]
+          properties:
+            status: { type: string, enum: [MATCHED, PARTIAL, UNMATCHED, NOT_DUE] }
+            method: { type: string, enum: [EXACT, NET_OF_TAX, SPLIT, PARTIAL, NONE] }
+            txIds:
+              type: array
+              items: { type: string }
+            matchedAmount: { $ref: "#/components/schemas/Money" }
+            score: { type: [number, "null"] }
+    MemoSection:
+      type: object
+      required: [key, title, bodyMarkdown]
+      properties:
+        key:
+          type: string
+          enum: [summary, business, cashflow, integrity, revenue, risks, recommendation]
+        title: { type: string }
+        bodyMarkdown:
+          type: string
+          description: Markdown with citation markers like [[fact:dscr_proxy]], [[finding:fnd_…]], [[doc:doc_…#p2]]
+    Memo:
+      type: object
+      required: [runId, status, sections, grounding]
+      properties:
+        runId: { type: string }
+        status: { type: string, enum: [DRAFT, EDITED, FINAL] }
+        sections:
+          type: array
+          items: { $ref: "#/components/schemas/MemoSection" }
+        grounding:
+          type: object
+          required: [status]
+          properties:
+            status: { type: string, enum: [VERIFIED, UNVERIFIED] }
+            problems:
+              type: array
+              items:
+                type: object
+                properties:
+                  sectionKey: { type: string }
+                  sentence: { type: string }
+                  number: { type: string }
+                  reason: { type: string }
+            checkedAt: { type: string, format: date-time }
+        model: { type: string }
+        promptVersion: { type: string }
+        attempts: { type: integer }
+        editedBy: { type: [string, "null"] }
+        editedAt: { type: [string, "null"], format: date-time }
+        finalizedAt: { type: [string, "null"], format: date-time }
+
+    # ---------- review ----------
+    DecisionRequest:
+      type: object
+      required: [outcome]
+      properties:
+        outcome: { $ref: "#/components/schemas/DecisionOutcome" }
+        reason: { type: string, maxLength: 2000 }
+        conditions:
+          type: array
+          items: { type: string, maxLength: 300 }
+    Event:
+      type: object
+      required: [eventId, type, actor, at]
+      properties:
+        eventId: { type: string }
+        type:
+          type: string
+          enum:
+            - CASE_CREATED
+            - CASE_UPDATED
+            - DOCUMENT_UPLOADED
+            - DOCUMENT_REMOVED
+            - RUN_QUEUED
+            - RUN_STARTED
+            - RUN_SUCCEEDED
+            - RUN_FAILED
+            - FINDING_ACKNOWLEDGED
+            - FINDING_DISMISSED
+            - TRANSACTION_RECATEGORIZED
+            - MEMO_EDITED
+            - DECISION_RECORDED
+            # applicant events (GET /api/applicants/{id}/events)
+            - APPLICANT_CREATED
+            - APPLICANT_UPDATED
+            - BANK_ACCOUNT_ADDED
+            - BANK_ACCOUNT_REMOVED
+            - RELATED_PARTY_ADDED
+            - RELATED_PARTY_REMOVED
+            - SUGGESTION_ACCEPTED
+            - SUGGESTION_REJECTED
+        actor:
+          type: object
+          required: [type]
+          properties:
+            type: { type: string, enum: [USER, SYSTEM] }
+            uid: { type: string }
+            role: { $ref: "#/components/schemas/Role" }
+        at: { type: string, format: date-time }
+        data:
+          type: object
+          additionalProperties: true
+    EventPage:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Event" }
+        nextCursor: { type: [string, "null"] }
+
+    # ---------- assistant ----------
+    AssistantMessage:
+      type: object
+      required: [messageId, role, text, createdAt]
+      properties:
+        messageId: { type: string }
+        role: { type: string, enum: [USER, ASSISTANT] }
+        text: { type: string }
+        citations:
+          type: array
+          items: { type: string, description: "Resolved citation marker, e.g. fact:dscr_proxy" }
+        createdAt: { type: string, format: date-time }
+
+    # ---------- internal ----------
+    AnalyzeCaseTask:
+      type: object
+      required: [orgId, caseId, runId]
+      properties:
+        orgId: { type: string }
+        caseId: { type: string }
+        runId: { type: string }

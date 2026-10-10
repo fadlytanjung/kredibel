@@ -1,0 +1,153 @@
+# Kredibel scorecard policy — version 1
+# Illustrative, transparent policy for the prototype. A lender calibrates weights and bands on its
+# own repayment outcomes. Loaded and validated at startup (backend/app/domain/policy.py).
+# Semantics: docs/08-risk-engine.md §5–§7.
+
+version: 1
+id: scorecard.v1
+currency: IDR
+
+pricing:
+  assumedAnnualRate: "0.18"      # used for the annuity installment when no override is given
+  targetDscr: "1.25"             # for max supportable installment / amount
+
+extraction:
+  minAgreement: "0.90"           # below → E01 and verdict at best UNVERIFIABLE
+  escalateBelow: "0.90"          # P1: pages below this are re-read by a Document AI parser (docs/07 §6.4)
+
+coverage:
+  requiredMonths: 6
+  minMonths: 3                   # below → hard stop INSUFFICIENT_COVERAGE
+
+reconciliation:
+  defaultTermsDays: 30
+  graceDays: 30
+  maxWithholding: "0.02"
+  minMatchScore: "0.75"
+  amountToleranceAbs: "1000.00"
+  amountToleranceRel: "0.005"
+
+components:
+  - id: repayment_capacity
+    label: Repayment capacity
+    weight: 30
+    metric: dscr_proxy
+    direction: higher_is_better
+    bands:
+      - { min: "2.0", points: 100 }
+      - { min: "1.5", points: 80 }
+      - { min: "1.25", points: 60 }
+      - { min: "1.0", points: 30 }
+      - { min: null, points: 0 }
+    whenMissing: 0
+
+  - id: cashflow_stability
+    label: Cash-flow stability
+    weight: 20
+    metric: inflow_cv
+    direction: lower_is_better
+    bands:
+      - { max: "0.2", points: 100 }
+      - { max: "0.35", points: 75 }
+      - { max: "0.5", points: 50 }
+      - { max: "0.8", points: 25 }
+      - { max: null, points: 0 }
+    penalties:
+      - { metric: negative_days_total, pointsPerUnit: -5 }
+    floor: 0
+    whenMissing: 0
+
+  - id: liquidity_buffer
+    label: Liquidity buffer
+    weight: 15
+    metric: liquidity_buffer
+    direction: higher_is_better
+    bands:
+      - { min: "3", points: 100 }
+      - { min: "2", points: 75 }
+      - { min: "1", points: 50 }
+      - { min: "0.5", points: 25 }
+      - { min: null, points: 0 }
+    whenMissing: 0
+
+  - id: revenue_verification
+    label: Revenue verification
+    weight: 15
+    metric: revenue_verification_ratio
+    direction: higher_is_better
+    bands:
+      - { min: "0.9", points: 100 }
+      - { min: "0.75", points: 75 }
+      - { min: "0.5", points: 40 }
+      - { min: null, points: 0 }
+    whenMissing: 50              # no sales invoices supplied
+
+  - id: document_integrity
+    label: Document integrity
+    weight: 20
+    metric: worst_document_verdict
+    map:
+      CLEAN: 100
+      UNVERIFIABLE: 50
+      SUSPICIOUS: 20
+      TAMPERED: 0
+    whenMissing: 50
+
+grades:
+  - { min: 80, grade: A }
+  - { min: 65, grade: B }
+  - { min: 50, grade: C }
+  - { min: 35, grade: D }
+  - { min: 0, grade: E }
+
+recommendationByGrade:
+  A: APPROVE
+  B: APPROVE_WITH_CONDITIONS
+  C: REFER
+  D: DECLINE
+  E: DECLINE
+
+# Hard-stop predicates: anyDocumentVerdict, anyFindingCode, metricBelow.
+# metricBelow never fires when the metric is missing (e.g. no sales invoices were supplied).
+# Order of severity used to combine recommendations (most severe wins).
+recommendationOrder: [APPROVE, APPROVE_WITH_CONDITIONS, REFER, DECLINE]
+
+hardStops:
+  - id: TAMPERED_DOCUMENT
+    when: { anyDocumentVerdict: TAMPERED }
+    recommendation: DECLINE
+    reason: "At least one document shows deterministic evidence of tampering. Refer to fraud review."
+  - id: SUSPICIOUS_DOCUMENT
+    when: { anyDocumentVerdict: SUSPICIOUS }
+    recommendation: REFER
+    reason: "At least one document shows signs of manipulation that need manual review."
+  - id: EMBEDDED_INSTRUCTIONS
+    when: { anyFindingCode: S01_EMBEDDED_INSTRUCTIONS }
+    recommendation: REFER
+    reason: "A document contains hidden instructions aimed at automated review."
+  - id: REVENUE_NOT_EVIDENCED
+    when: { metricBelow: { metric: revenue_verification_ratio, value: "0.5" } }
+    recommendation: REFER
+    reason: "Less than half of the invoiced sales can be matched to bank inflows."
+  - id: DSCR_BELOW_ONE
+    when: { metricBelow: { metric: dscr_proxy, value: "1.0" } }
+    recommendation: DECLINE
+    reason: "Cash available for debt service does not cover existing debt plus the proposed installment."
+  - id: HOLDER_MISMATCH
+    when: { anyFindingCode: X05_ACCOUNT_HOLDER_MISMATCH }
+    recommendation: REFER
+    reason: "Statement account holder does not match the applicant or any declared account holder."
+  - id: INSUFFICIENT_COVERAGE
+    when: { metricBelow: { metric: coverage_months, value: "3" } }
+    recommendation: REFER
+    reason: "Fewer months of statements than the policy minimum."
+
+# Conditions proposed for APPROVE_WITH_CONDITIONS, per component scoring below the threshold.
+conditions:
+  threshold: 60
+  templates:
+    repayment_capacity: "Reduce the amount to the maximum supportable: {max_supportable_amount}."
+    cashflow_stability: "Provide monthly bank statements for the first 6 months of the facility."
+    liquidity_buffer: "Maintain a minimum balance of one installment ({proposed_installment}) in the disbursement account."
+    revenue_verification: "Provide payment evidence for unmatched sales invoices before disbursement."
+    document_integrity: "Obtain statements directly from the bank (e-statement or bank-certified copy)."

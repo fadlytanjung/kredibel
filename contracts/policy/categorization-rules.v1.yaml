@@ -1,0 +1,92 @@
+# Kredibel categorization rules — version 1 (English)
+# Evaluated in order; first match wins. Applied after the internal-transfer rule and before the model.
+# Semantics: docs/08-risk-engine.md §4. Patterns are Python regular expressions, case-insensitive,
+# matched against the normalized description (and counterparty when present).
+# direction: in | out | either. category: null means "leave the category to the model, only add tags".
+# Local-language descriptions for other markets are added later as separate market-pack files (P2).
+
+version: 1
+id: categorization-rules.v1
+language: en
+
+rules:
+  - id: payroll
+    pattern: '\b(PAYROLL|SALARY|SALARIES|WAGES)\b'
+    direction: out
+    category: PAYROLL
+
+  - id: utilities
+    pattern: '\b(ELECTRICITY|WATER BILL|INTERNET|TELEPHONE|PHONE BILL|UTILITY|UTILITIES)\b'
+    direction: out
+    category: UTILITIES
+
+  - id: tax
+    pattern: '\b(VAT PAYMENT|TAX PAYMENT|INCOME TAX|WITHHOLDING TAX|TAX OFFICE)\b'
+    direction: out
+    category: TAX_PAYMENT
+
+  - id: bank_fees
+    pattern: '\b(ADMIN FEE|ADMINISTRATION FEE|TRANSFER FEE|SERVICE CHARGE|STAMP DUTY|BANK CHARGE)\b'
+    direction: out
+    category: BANK_FEES
+
+  - id: rent
+    pattern: '\b(RENT|LEASE)\b'
+    direction: out
+    category: RENT
+
+  - id: p2p_lending
+    pattern: '\b(ONLINE LOAN|P2P|PAYDAY|QUICKCASH|QUICK CASH|INSTANT LOAN)\b'
+    direction: out
+    category: LOAN_REPAYMENT
+    riskTags: [P2P_LENDING]
+
+  - id: loan_repayment
+    pattern: '\b(LOAN INSTALLMENT|LOAN INSTALMENT|INSTALLMENT|INSTALMENT|LOAN REPAYMENT|LOAN PAYMENT)\b'
+    direction: out
+    category: LOAN_REPAYMENT
+
+  - id: loan_disbursement
+    pattern: '\b(LOAN DISBURSEMENT|DISBURSEMENT)\b'
+    direction: in
+    category: LOAN_DISBURSEMENT
+
+  - id: gambling
+    pattern: '\b(SLOT|CASINO|JACKPOT|BETTING|BET|LOTTERY|GAMBLING|POKER)\b'
+    direction: out
+    category: OWNER_DRAWING
+    riskTags: [GAMBLING]
+
+  - id: crypto
+    pattern: '\b(CRYPTO|BITCOIN|BTC|USDT|ETHEREUM)\b'
+    direction: either
+    category: null
+    riskTags: [CRYPTO]
+
+  - id: returned_item
+    pattern: '\b(RETURNED|REJECTED|REVERSAL|BOUNCED|CORRECTION|CHARGEBACK)\b'
+    direction: either
+    category: REVERSAL
+    riskTags: [RETURNED_ITEM]
+
+  - id: cash_deposit
+    pattern: '\b(CASH DEPOSIT|CASH DEP)\b'
+    direction: in
+    category: null
+    riskTags: [CASH_DEPOSIT]
+
+  - id: cash_withdrawal
+    pattern: '\b(CASH WITHDRAWAL|ATM WITHDRAWAL|ATM WD)\b'
+    direction: out
+    category: null
+    riskTags: [CASH_WITHDRAWAL]
+
+  - id: interest_income
+    pattern: '\b(INTEREST CREDIT|INTEREST)\b'
+    direction: in
+    category: OTHER_OPERATING_INCOME
+
+# The model categorizes whatever is left (and fills category where a rule only added tags).
+model:
+  batchSize: 100
+  minConfidence: "0.5"           # below → UNKNOWN

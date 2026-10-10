@@ -1,0 +1,30 @@
+rules_version = '2';
+
+// Kredibel — Firestore security rules.
+// Clients read their own organization's data (used for realtime progress); every write goes through
+// the API, whose Admin SDK bypasses these rules. See docs/09-data-model.md §6.
+// Deploy with `firebase deploy --only firestore` and verify the released ruleset (docs/16 §7).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function inOrg(orgId) {
+      return request.auth != null
+        && request.auth.token.orgId is string
+        && request.auth.token.orgId == orgId;
+    }
+
+    // The org document and everything beneath it.
+    match /orgs/{orgId}/{document=**} {
+      allow read: if inOrg(orgId);
+      allow write: if false;
+    }
+
+    // Server-only data (account-number hashes for matching, sign-up counters) lives under
+    // /orgPrivate/{orgId}/… and /system/…, which no client rule allows.
+
+    // Deny everything else.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

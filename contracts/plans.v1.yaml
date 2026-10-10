@@ -1,0 +1,80 @@
+# Kredibel plans — version 1
+# Plan catalog and entitlements. Loaded and validated at startup (backend/app/domain/plans.py).
+# Semantics: docs/specs/013-workspace-and-plans/spec.md and ADR-011.
+# Only plans with status AVAILABLE can be assigned. COMING_SOON plans are shown, disabled, with no price.
+# Global env guardrails (RUNS_ENABLED, RUN_QUOTA_PER_ORG_PER_DAY, SIGNUP_MODE, MAX_WORKSPACES) apply on top.
+
+version: 1
+id: plans.v1
+defaultPlan: free_trial
+
+plans:
+  - id: free_trial
+    label: Free trial
+    status: AVAILABLE
+    priceLabel: "Free for 30 days"
+    trialDays: 30
+    afterTrial: READ_ONLY            # cases stay readable and decidable; no new cases, uploads or runs
+    limits:
+      seats: 3                       # members including the admin
+      casesPerMonth: 15              # cases created per calendar month (UTC)
+      documentsPerCase: 20
+      pagesPerDocument: 20
+      fileSizeMb: 20
+      extractedPagesPerMonth: 300    # pages sent to the AI reader; cache hits are not counted
+      runsPerDay: 5                  # also capped by RUN_QUOTA_PER_ORG_PER_DAY
+      aiSpendUsdPerMonth: "5.00"     # estimated from metered usage (docs/21 §3); blocks new runs when reached
+    features:
+      extractionMode: adaptive       # adaptive | thorough (docs/07 §5)
+      escalation: true               # P1; re-read low-agreement pages with a Document AI parser
+      escalationPagesPerCase: 10
+      caseAssistant: true            # P1, when built
+      policyOverrides: true          # P1
+      memberInvites: true            # P1
+      languages: [en]
+    highlights:
+      - "Every analysis feature in the prototype"
+      - "Up to 3 team members"
+      - "300 extracted pages per month"
+
+  - id: starter
+    label: Starter
+    status: COMING_SOON
+    priceLabel: "Pricing announced later"
+    highlights:
+      - "More cases and pages per month"
+      - "Up to 10 team members"
+      - "Email support"
+
+  - id: professional
+    label: Professional
+    status: COMING_SOON
+    priceLabel: "Pricing announced later"
+    highlights:
+      - "Thorough mode: a Document AI parser reads every page too"
+      - "Policy packs per product line"
+      - "Audit export"
+
+  - id: enterprise
+    label: Enterprise
+    status: COMING_SOON
+    priceLabel: "Contact us later"
+    highlights:
+      - "In-region processing (data residency)"
+      - "Single sign-on"
+      - "Custom limits and support"
+
+# Languages offered in the UI. Only `available` ones can be selected.
+languages:
+  - { code: en, label: "English", status: available }
+  - { code: id, label: "Bahasa Indonesia", status: coming_soon }
+  - { code: ms, label: "Bahasa Melayu", status: coming_soon }
+  - { code: th, label: "ไทย (Thai)", status: coming_soon }
+  - { code: vi, label: "Tiếng Việt", status: coming_soon }
+
+# Bounds for workspace credit-policy overrides (P1). Keys refer to contracts/policy/scorecard.v1.yaml.
+policyOverrideBounds:
+  pricing.assumedAnnualRate: { min: "0.06", max: "0.36" }
+  pricing.targetDscr: { min: "1.00", max: "2.00" }
+  coverage.requiredMonths: { min: 3, max: 12 }
+  coverage.minMonths: { min: 1, max: 12 }   # must also be ≤ coverage.requiredMonths

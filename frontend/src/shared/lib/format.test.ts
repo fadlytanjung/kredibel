@@ -35,6 +35,16 @@ describe('formatMoney (AC-001-14)', () => {
     expect(formatMoney('12abc', { currency: 'IDR' })).toBe('')
   })
 
+  it.each([
+    ['IDR', '1250000.00', 'IDR 1,250,000'],
+    ['JPY', '3000.00', 'JPY 3,000'],
+    ['MYR', '1250.50', 'MYR 1,250.50'],
+    ['SGD', '980.05', 'SGD 980.05'],
+    ['USD', '12.00', 'USD 12.00'],
+  ])('shows %s in its own decimals (ADR-020)', (currency, amount, shown) => {
+    expect(formatMoney(amount, { currency, code: true }).replace(/\s/g, ' ')).toBe(shown)
+  })
+
   it('uses the active i18n locale', async () => {
     await i18n.changeLanguage('de')
     expect(formatMoney('1250000', { currency: 'IDR' })).toContain('1.250.000')

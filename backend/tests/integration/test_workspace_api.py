@@ -260,3 +260,16 @@ async def test_ac013_1_me_with_a_claim_for_a_missing_workspace_needs_one(h):
     assert body["needsWorkspace"] is True
     assert body["orgId"] is None
     assert body["workspace"] is None
+
+
+async def test_adr020_onboarding_takes_the_currency_and_patch_refuses_it(h):
+    async with h.client() as c:
+        res = await c.post(
+            "/api/workspaces", json={**CREATE, "currency": "MYR"}, headers=h.auth("new")
+        )
+        assert res.json()["currency"] == "MYR"
+        h.tokens.valid_tokens["owner"] = {"uid": "u-1", **h.identity.claims["u-1"]}
+        patched = await c.patch("/api/workspace", json={"currency": "SGD"}, headers=h.auth("owner"))
+
+    assert patched.status_code == 422
+    assert patched.json()["code"] == "VALIDATION_ERROR"

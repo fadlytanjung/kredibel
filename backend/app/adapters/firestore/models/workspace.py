@@ -6,7 +6,7 @@ from typing import Any
 from pydantic import Field
 
 from app.adapters.firestore.models.base import FirestoreModel
-from app.domain.models.workspace import EntityType
+from app.domain.models.workspace import Currency, EntityType
 
 
 class OrgDoc(FirestoreModel):
@@ -18,7 +18,7 @@ class OrgDoc(FirestoreModel):
     profile: dict[str, Any]
     country: str
     timezone: str
-    currency: str
+    currency: Currency
     default_language: str
     subscription: dict[str, Any]
     learning: dict[str, Any] = Field(default_factory=lambda: {"shareVerifiedLabels": False})

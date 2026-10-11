@@ -25,7 +25,7 @@ _Last updated: 12 Oct 2026 — Spec 001, Spec 013, and Spec 003 built (tests all
 | Component | Spec | Status | Notes |
 |---|---|---|---|
 | Plans config + entitlement checks | 013 | Built | Catalog validated at start-up; pure checks; `EntitlementService` meters in the same Firestore transaction (T013-01…03, T013-07). Wiring into upload and month runs waits for specs 003/004 (T013-10) |
-| Onboarding as individual or company (free trial, claims, first bank account) | 013 | Built | One-transaction create with double-submit and claims-repair guard; routes; onboarding page with token refresh and retry; demo seed (T013-04…06, -08, -09, -11). Verify on Cloud Run: T013-18 |
+| Onboarding as individual or company (free trial, claims, currency, first bank account) | 013 | Built | One-transaction create with double-submit and claims-repair guard; routes; onboarding page with token refresh and retry; demo seed (T013-04…06, -08, -09, -11). Verify on Cloud Run: T013-18; currency chosen at onboarding (IDR, MYR, SGD, JPY, USD), fixed afterwards, support script (ADR-020) |
 | Usage counters + page reservation at upload | 013, 003 | Built | Counters, reservation and settlement integrated into upload with Firestore transactions (AC-003-3, AC-003-4) |
 | Settings: profile, bank accounts, language, plan & usage (coming soon items) | 013 | Built | API and UI built; ProfileForm, BankAccountsSection, LanguageSettings, PlanAndUsage, and PlanLimitDialog fully tested with unit and integration tests (T013-08, T013-12…15) |
 | Members and roles (owner, accountant, reviewer, viewer) | 013 | Specified (P1) | |

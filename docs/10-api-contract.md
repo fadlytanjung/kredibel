@@ -38,7 +38,7 @@
 | `GET /api/health` | Liveness + version (no auth) | P0 |
 | `GET /api/me` | Current user: uid, email, name, `orgId` (null before onboarding), role, `needsWorkspace`, plan summary | P0 |
 | `GET /api/plans` | Plan catalog (Free trial `AVAILABLE`; others `COMING_SOON`), coming-soon features, UI languages | P0 |
-| `POST /api/workspaces` | Create the workspace: name, `entityType` (`INDIVIDUAL` or `COMPANY`), profile basics, time zone; starts the free trial; caller becomes `owner` | P0 |
+| `POST /api/workspaces` | Create the workspace: name, `entityType` (`INDIVIDUAL` or `COMPANY`), profile basics, time zone, `currency` (`IDR`, `MYR`, `SGD`, `JPY`, `USD`; fixed afterwards); starts the free trial; caller becomes `owner` | P0 |
 | `GET /api/workspace` | Profile, subscription (trial days left, effective limits), usage this month, counts | P0 |
 | `PATCH /api/workspace` | Profile fields (incl. `accountingFramework`: `IFRS` or `US_GAAP`), time zone, language (`en` only), `learning.shareVerifiedLabels`; entity type is fixed | P0 / P1 |
 | `GET /api/bank-accounts` · `POST /api/bank-accounts` · `PATCH /api/bank-accounts/{accountId}` · `DELETE /api/bank-accounts/{accountId}` | The workspace's bank accounts (full number in, mask + hash stored); `ledgerAccountCode` for ledger reconciliation | P0 |

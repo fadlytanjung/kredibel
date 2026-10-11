@@ -119,7 +119,7 @@ items are visible in the UI and not built.
 
 **Loan readiness report** (shown as coming soon) · tuning Gemini on consented, verified labels
 ([ADR-016](adr/ADR-016-human-verified-labels-and-learning-loop.md)) · bank feeds · e-invoice (QR) validation ·
-multi-currency · accounting-tool connectors · more UI languages · paid plans and billing.
+currency conversion and documents in a second currency · accounting-tool connectors · more UI languages · paid plans and billing.
 
 ### 6.4 Explicitly out of scope
 
@@ -269,7 +269,7 @@ edited statement caught in the first 90 seconds, and sees a month close with mos
 
 | # | Assumption / question | Owner | Status |
 |---|---|---|---|
-| A1 | One currency (IDR) per workspace in the prototype | Product | Assumed |
+| A1 | One currency per workspace, chosen at onboarding from IDR, MYR, SGD, JPY, USD; fixed afterwards ([ADR-020](adr/ADR-020-workspace-currency-chosen-at-onboarding.md)) | Product | Decided |
 | A2 | Months are calendar months in the workspace's time zone | Product | Assumed |
 | A3 | Ledger exports have one row per entry with date, amount (or debit/credit), description and a reference | Product | Assumed; mapping confirmed by the user |
 | A4 | Receipts paid in cash have no bank line; they are matched to ledger entries only | Product | Assumed |

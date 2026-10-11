@@ -189,7 +189,7 @@ class WorkspaceService:
             profile=profile,
             country=request.country,
             timezone=request.timezone,
-            currency="IDR",
+            currency=request.currency,
             default_language="en",
             subscription=Subscription(
                 plan_id=plan.id,

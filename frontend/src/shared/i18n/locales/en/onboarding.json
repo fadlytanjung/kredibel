@@ -47,5 +47,7 @@
     "other": "Other"
   },
   "timeZoneOption": "{{zone}} ({{offset}})",
-  "bankAccount": "Main bank account"
+  "bankAccount": "Main bank account",
+  "currency": "Currency",
+  "currencyHint": "The currency of your books. Changing it later is coming soon."
 }

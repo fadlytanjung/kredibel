@@ -12,6 +12,7 @@ EventType = Literal[
     "DOCUMENT_UPLOADED",
     "DUPLICATE_RECORDED",
     "DOCUMENT_REMOVED",
+    "CURRENCY_CHANGED",
 ]
 
 

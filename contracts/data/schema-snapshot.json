@@ -89,7 +89,7 @@
       "counts": "dict[str, Any]",
       "created_at": "datetime",
       "created_by": "str",
-      "currency": "str",
+      "currency": "Currency",
       "default_language": "str",
       "entity_type": "EntityType",
       "learning": "dict[str, Any]",

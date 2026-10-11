@@ -11,11 +11,15 @@ export interface FormatMoneyOptions {
   compact?: boolean
   /** "USD 1.84" (the mocks' style for small amounts) instead of the locale's symbol. */
   code?: boolean
-  /** Digits after the decimal point; defaults to none (whole rupiah) or two when compact. */
+  /** Digits after the decimal point; defaults to the currency's own (ADR-020), up to two when compact. */
   fractionDigits?: number
 }
 
 const DECIMAL = /^-?\d+(\.\d+)?$/
+
+// Rupiah are shown whole, as the mocks do; yen have no minor unit. Ringgit, Singapore and US
+// dollars keep their cents (ADR-020).
+const WHOLE_UNITS = new Set(['IDR', 'JPY'])
 
 /**
  * Intl formats the decimal string itself, so no amount ever passes through a float
@@ -32,8 +36,8 @@ export function formatMoney(amount: string, options: FormatMoneyOptions = {}): s
     currency,
     notation: compact ? 'compact' : 'standard',
     currencyDisplay: code ? 'code' : 'symbol',
-    minimumFractionDigits: fractionDigits ?? 0,
-    maximumFractionDigits: fractionDigits ?? (compact ? 2 : 0),
+    minimumFractionDigits: fractionDigits ?? (compact || WHOLE_UNITS.has(currency) ? 0 : 2),
+    maximumFractionDigits: fractionDigits ?? (compact ? 2 : WHOLE_UNITS.has(currency) ? 0 : 2),
   })
   return formatter.format(amount as Intl.StringNumericLiteral)
 }

@@ -1592,6 +1592,10 @@ components:
         address: { $ref: "#/components/schemas/Address" }
         aliases: { type: array, items: { type: string }, maxItems: 10 }
         accountingFramework: { $ref: "#/components/schemas/AccountingFramework" }
+    Currency:
+      type: string
+      enum: [IDR, MYR, SGD, JPY, USD]
+      description: "The workspace's currency, chosen at onboarding and fixed afterwards (ADR-020)"
     LearningSettings:
       type: object
       properties:
@@ -1609,6 +1613,10 @@ components:
         taxId: { type: string, maxLength: 30, writeOnly: true, description: "Stored masked" }
         country: { type: string, enum: [ID], default: ID }
         timezone: { type: string, examples: [Asia/Jakarta] }
+        currency:
+          $ref: "#/components/schemas/Currency"
+          default: IDR
+          description: "The currency of the books; changing it later is coming soon (ADR-020)"
         bankAccounts:
           type: array
           maxItems: 5
@@ -1651,7 +1659,7 @@ components:
         profile: { $ref: "#/components/schemas/WorkspaceProfile" }
         country: { type: string }
         timezone: { type: string }
-        currency: { type: string }
+        currency: { $ref: "#/components/schemas/Currency" }
         defaultLanguage: { type: string }
         subscription: { $ref: "#/components/schemas/SubscriptionState" }
         usage: { $ref: "#/components/schemas/UsageSummary" }

@@ -28,6 +28,7 @@ Phases 1–3 are needed by specs 003 and 004 (D1). Phase 4 can follow on D5–D6
 - [x] **T013-13** Settings: Profile, Bank accounts, Language & formats. (AC-013-14…16)
 - [x] **T013-14** Plan & usage with coming-soon plans and features. (AC-013-11)
 - [x] **T013-15** `PlanLimitDialog` and early warnings in the upload sheet. (AC-013-13)
+- [x] **T013-20** **TDD** The workspace currency ([ADR-020](../../adr/ADR-020-workspace-currency-chosen-at-onboarding.md)): chosen at onboarding with a suggestion from the time zone; not in the PATCH body; read-only with "Coming soon" in Settings; `scripts/set_workspace_currency.py` for support (refuses with documents unless `--force`, audited); `formatMoney` decimals per currency. (AC-013-2, AC-013-15)
 
 ## Phase 5 — P1 roles
 

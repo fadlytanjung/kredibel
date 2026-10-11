@@ -14,6 +14,7 @@ from pydantic.alias_generators import to_camel
 EntityType = Literal["INDIVIDUAL", "COMPANY"]
 SubscriptionStatus = Literal["TRIALING", "TRIAL_EXPIRED", "ACTIVE"]
 Role = Literal["owner", "accountant", "reviewer", "viewer"]
+Currency = Literal["IDR", "MYR", "SGD", "JPY", "USD"]
 
 
 class DomainModel(BaseModel):
@@ -89,6 +90,8 @@ class WorkspaceCreate(DomainModel):
     tax_id: str | None = Field(default=None, max_length=30)
     country: Literal["ID"] = "ID"
     timezone: str = Field(min_length=1, max_length=64)
+    # The books' currency (ADR-020); the onboarding form suggests one from the time zone.
+    currency: Currency = "IDR"
     bank_accounts: list[BankAccountCreate] = Field(default_factory=list, max_length=5)
 
 
@@ -113,7 +116,7 @@ class Workspace(DomainModel):
     profile: Profile
     country: str
     timezone: str
-    currency: str
+    currency: Currency
     default_language: str
     subscription: Subscription
     share_verified_labels: bool = False
@@ -132,6 +135,7 @@ class WorkspaceUpdate(DomainModel):
     profile: Profile | None = None
     tax_id: str | None = Field(default=None, max_length=30)
     timezone: str | None = Field(default=None, min_length=1, max_length=64)
+    # No currency: it is fixed after onboarding (ADR-020); support changes it with a script.
     default_language: str | None = Field(default=None, min_length=2, max_length=8)
     learning: LearningSettings | None = None
 

@@ -102,6 +102,7 @@
     "currency": "Currency",
     "dateFormat": "Date format",
     "dateExample": "Day, month, year: {{example}}",
-    "readOnly": "Set by your workspace; it cannot change yet."
+    "readOnly": "Set by your workspace; it cannot change yet.",
+    "currencyFixed": "Chosen when the workspace was created. Changing the currency is coming soon."
   }
 }

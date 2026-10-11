@@ -119,6 +119,31 @@ describe('CreateWorkspaceForm (AC-013-2)', () => {
     expect(refreshSession).toHaveBeenCalledOnce()
   })
 
+  it('sends the currency the person chose (ADR-020)', async () => {
+    const { user } = renderForm()
+
+    await user.type(screen.getByLabelText('Legal name'), 'Synthetic Roasters Sdn Bhd')
+    await user.selectOptions(screen.getByLabelText('Currency'), 'MYR')
+    await user.click(screen.getByRole('button', { name: 'Start the free trial' }))
+
+    await screen.findByText('Dashboard home')
+    expect(created[0]).toMatchObject({ currency: 'MYR' })
+  })
+
+  it('suggests the currency from the time zone until the person picks one', async () => {
+    const { user } = renderForm()
+    const currency = screen.getByLabelText('Currency') as HTMLSelectElement
+
+    await user.selectOptions(screen.getByLabelText('Time zone'), 'Asia/Kuala_Lumpur')
+    expect(currency.value).toBe('MYR')
+    await user.selectOptions(screen.getByLabelText('Time zone'), 'Asia/Tokyo')
+    expect(currency.value).toBe('JPY')
+
+    await user.selectOptions(currency, 'USD')
+    await user.selectOptions(screen.getByLabelText('Time zone'), 'Asia/Singapore')
+    expect(currency.value).toBe('USD')
+  })
+
   it('checks the bank account before sending it', async () => {
     const { user } = renderForm()
 

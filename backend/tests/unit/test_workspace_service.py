@@ -5,12 +5,13 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 from app.adapters.policy_files import load_plans
 from app.core.auth import Principal
 from app.core.errors import AlreadyInWorkspaceError, SignupClosedError, ValidationProblem
 from app.domain.accounts import account_hash
-from app.domain.models.workspace import WorkspaceCreate
+from app.domain.models.workspace import WorkspaceCreate, WorkspaceUpdate
 from app.services.workspace_service import WorkspaceService
 from tests.fakes.clock import FixedClock
 from tests.fakes.identity_admin import FakeIdentityAdmin
@@ -218,3 +219,23 @@ async def test_ac013_1_a_signup_record_for_a_deleted_workspace_does_not_block():
 
     assert second.org_id != first.org_id
     assert identity.claims["u-1"]["orgId"] == second.org_id
+
+
+async def test_ac013_2_the_workspace_books_in_the_currency_chosen_at_onboarding():
+    service, repo, _ = _service()
+
+    workspace = await service.create(NEW_USER, COMPANY.model_copy(update={"currency": "MYR"}))
+
+    assert workspace.currency == "MYR"
+    assert repo.workspaces[workspace.org_id].currency == "MYR"
+
+
+def test_adr020_the_currency_cannot_be_patched():
+    """Changing the currency after onboarding is coming soon; the PATCH body has no such field."""
+    with pytest.raises(ValidationError):
+        WorkspaceUpdate.model_validate({"currency": "SGD"})
+
+
+def test_adr020_only_the_five_currencies():
+    with pytest.raises(ValidationError):
+        WorkspaceCreate.model_validate({**COMPANY.model_dump(by_alias=True), "currency": "EUR"})

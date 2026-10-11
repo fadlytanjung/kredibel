@@ -3,7 +3,7 @@
 
 import { useTranslation } from 'react-i18next'
 import type { PlanCatalog } from '../entities/plan'
-import type { Workspace } from '../entities/workspace'
+import { currencyLabel, type Workspace } from '../entities/workspace'
 import { formatDate } from '../shared/lib/formatDate'
 import { Badge } from '../shared/ui/Badge'
 
@@ -42,8 +42,11 @@ export function LanguageSettings({ workspace, catalog }: { workspace: Workspace;
         <div className="form-grid">
           <div className="field">
             <span className="label">{t('language.currency')}</span>
-            <span className="num">{workspace.currency}</span>
-            <span className="hint">{t('language.readOnly')}</span>
+            <span className="row">
+              {currencyLabel(workspace.currency)}
+              <Badge variant="outline">{t('plan.comingSoon')}</Badge>
+            </span>
+            <span className="hint">{t('language.currencyFixed')}</span>
           </div>
           <div className="field">
             <span className="label">{t('language.dateFormat')}</span>

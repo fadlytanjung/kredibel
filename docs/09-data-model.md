@@ -23,10 +23,13 @@
 ## 2. Money
 
 - **Python:** `Decimal`, wrapped in `Money(amount, currency)`. **Never `float`.**
-- **Firestore:** integer **minor units** in fields suffixed `Minor` (`amountMinor: 125000000` =
-  IDR 1,250,000.00) plus `currency` on the workspace.
-- **API JSON:** `{"amount": "1250000.00", "currency": "IDR"}`, decimal string, two places.
-- **Display:** `formatMoney` → `IDR 1,250,000`; compact `IDR 1.25 M`.
+- **Currency:** one per workspace (`orgs/{orgId}.currency`: `IDR`, `MYR`, `SGD`, `JPY` or `USD`), chosen
+  at onboarding and fixed afterwards ([ADR-020](adr/ADR-020-workspace-currency-chosen-at-onboarding.md)).
+- **Firestore:** integer **hundredths** in fields suffixed `Minor` for every currency
+  (`amountMinor: 125000000` = IDR 1,250,000.00; ¥3,000 is `300000`).
+- **API JSON:** `{"amount": "1250000.00", "currency": "MYR"}`, decimal string, two places.
+- **Display:** `formatMoney` with the workspace currency: `IDR 1,250,000`, `MYR 1,250.50`, `¥3,000`;
+  compact `IDR 1.25 M`.
 
 ---
 
@@ -65,7 +68,7 @@ erDiagram
 | `name` | string | Display name |
 | `entityType` | `INDIVIDUAL` \| `COMPANY` | Set at creation; cannot change |
 | `profile` | map | `legalName`, `tradingName?`, `legalForm?` (company), `industry?`, `taxIdMasked?`, `address?` {`line1`, `city`}, `aliases[]` (accepted spellings) |
-| `country`, `timezone`, `currency`, `defaultLanguage` | string | `ID`, `Asia/Jakarta`, `IDR`, `en` in the prototype |
+| `country`, `timezone`, `currency`, `defaultLanguage` | string | `ID`, `Asia/Jakarta`, the chosen currency (`IDR`, `MYR`, `SGD`, `JPY`, `USD`; fixed after onboarding), `en` |
 | `profile.accountingFramework` | `IFRS` \| `US_GAAP` | Decides each category's cash-flow class (`contracts/policy/categories.v1.yaml`); default `IFRS` ([ADR-016](adr/ADR-016-human-verified-labels-and-learning-loop.md)) |
 | `learning` | map | `shareVerifiedLabels` (bool, default `false`): consent to use masked verified labels in tuning datasets (later) |
 | `ledgerMappings` | map | per file layout signature → confirmed column mapping (§3.8); bank account → ledger account code |
@@ -255,7 +258,7 @@ As [`08`](08-risk-engine.md) §1 (`code`, `category`, `scope`, `docId?`, `month?
 
 ### 3.16 `orgs/{orgId}/events/{eventId}` (append-only audit)
 
-`type` (`WORKSPACE_CREATED`, `DOCUMENT_UPLOADED`, `DUPLICATE_RECORDED`, `DOCUMENT_REMOVED`, `DUPLICATE_CONFIRMED`,
+`type` (`WORKSPACE_CREATED`, `CURRENCY_CHANGED` (support only), `DOCUMENT_UPLOADED`, `DUPLICATE_RECORDED`, `DOCUMENT_REMOVED`, `DUPLICATE_CONFIRMED`,
 `DUPLICATE_REJECTED`, `VALUE_CORRECTED`, `CATEGORY_CHANGED`, `MATCH_CREATED`, `MATCH_REJECTED`,
 `REVIEW_ITEM_RESOLVED`, `FINDING_ACKNOWLEDGED`,
 `FINDING_DISMISSED`, `SUGGESTION_ACCEPTED`, `SUGGESTION_REJECTED`, `LEDGER_MAPPING_CONFIRMED`,

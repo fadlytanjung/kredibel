@@ -4,6 +4,7 @@
  */
 
 import { z } from 'zod'
+import { CURRENCIES } from '../../entities/workspace'
 import type { components } from '../../shared/api/schema'
 
 export type WorkspaceCreate = components['schemas']['WorkspaceCreate']
@@ -19,6 +20,7 @@ export const createWorkspaceSchema = z
     tradingName: optionalText(200),
     industry: optionalText(100),
     timezone: z.string().min(1, 'validation.required'),
+    currency: z.enum(CURRENCIES),
     withBankAccount: z.boolean(),
     bankName: optionalText(100),
     accountNumber: optionalText(30),
@@ -46,6 +48,7 @@ export function toRequest(values: CreateWorkspaceValues): WorkspaceCreate {
     entityType: values.entityType,
     country: 'ID',
     timezone: values.timezone,
+    currency: values.currency,
     ...(Object.keys(profile).length ? { profile } : {}),
     ...(values.withBankAccount
       ? {
@@ -69,6 +72,7 @@ export function formFieldOf(serverField: string): keyof CreateWorkspaceValues | 
     'tradingName',
     'industry',
     'timezone',
+    'currency',
     'bankName',
     'accountNumber',
     'holderName',

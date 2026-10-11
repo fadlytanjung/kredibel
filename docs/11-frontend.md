@@ -324,7 +324,8 @@ wins; on looks, the mock and [`12`](12-design-system.md) win.
 
 - One question first: **Whose books are these?** *Myself* (freelancer or sole trader) or *A
   company*. The choice switches the fields: legal or full name, trading name (optional), industry,
-  time zone (months are counted in it), and an optional main bank account.
+  time zone (months are counted in it), the currency of the books (IDR, MYR, SGD, JPY or USD,
+  suggested from the time zone; fixed afterwards), and an optional main bank account.
 - The trial terms are stated before the button: "30-day free trial. 150 documents and 400 pages a
   month. No card, no payment. Paid plans are coming soon." (numbers from `GET /api/plans`)
   **Start the free trial** → `POST /api/workspaces` → refresh the ID token → the dashboard's empty
@@ -511,7 +512,7 @@ citation chip).
 |---|---|
 | Profile | Type (read-only after onboarding), names, tax ID, address, industry, time zone; pending suggestions with evidence and **Accept** / **Reject** |
 | Bank accounts | Bank, masked number, holder, purpose; `Declared` or `Detected` (from an accepted suggestion) |
-| Language and formats | **English** (selected); other languages disabled with "Coming soon"; currency and date format read-only |
+| Language and formats | **English** (selected); other languages disabled with "Coming soon"; the workspace currency read-only with "Changing the currency is coming soon"; date format read-only |
 | Plan and usage | Trial hero (days left as a 30-cell track, end date, what happens after); usage meters from `contracts/plans.v1.yaml` (documents, pages read, AI use, month reconciliations today, members, assistant questions) that warn at 80%; plan cards **Free trial** (current), **Starter**, **Professional**, **Enterprise** with "Coming soon", no price and disabled buttons; coming-soon features **Loan readiness report** and **Bank feeds**. Nothing here starts a payment |
 | Members (P1) | Members with roles (owner, accountant, reviewer, viewer); invite by email; seats used |
 
@@ -631,7 +632,7 @@ Details and CI wiring: [`15`](15-testing-and-evaluation.md) §2.6.
 - All user-visible strings live in `shared/i18n/locales/en/{common,dashboard,documents,months,review,
   risk,assistant,settings,errors}.json` and are read with `useTranslation()`.
 - Numbers, money and dates go through `Intl` helpers with the active locale (`en`) and the workspace
-  currency (`IDR`): `formatMoney` → `IDR 1,250,000`; compact `IDR 1,355.8 M`.
+  currency (chosen at onboarding, [ADR-020](adr/ADR-020-workspace-currency-chosen-at-onboarding.md)): `formatMoney` → `IDR 1,250,000`, `MYR 1,250.50`; compact `IDR 1,355.8 M`.
 - Layouts leave room for longer strings (labels wrap; no fixed-width buttons).
 - API errors are mapped by `code` to `errors.json`; the server's English `title`/`detail` is the
   fallback.

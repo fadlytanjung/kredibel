@@ -27,10 +27,12 @@ member (`owner`); P1 adds an accounting team with roles.
   `403 WORKSPACE_REQUIRED`.
 - **AC-013-2** Onboarding asks: **individual or company** (two large choices with a sentence each),
   the name (legal name for a company, full name for a person, plus an optional trading name), industry,
-  time zone, and optionally the main bank account (bank, account number, holder). `POST
+  time zone, the **currency** of the books (IDR, MYR, SGD, JPY or USD; suggested from the time zone,
+  [ADR-020](../../adr/ADR-020-workspace-currency-chosen-at-onboarding.md)), and optionally the main bank
+  account (bank, account number, holder). `POST
   /api/workspaces` returns `201`; in one transaction it creates `orgs/{orgId}` with `entityType`,
   `profile`, `subscription {planId: free_trial, status: TRIALING, trialEndsAt: now + 30 days}`,
-  `currency: IDR`, `defaultLanguage: en`, the member doc with role `owner`, the bank account (mask +
+  the chosen `currency`, `defaultLanguage: en`, the member doc with role `owner`, the bank account (mask +
   hash), and increments `system/signup.workspacesCreated`; then it sets the claims `{orgId, role:
   owner}`. The SPA refreshes the token and lands on the dashboard's empty state.
 - **AC-013-3** A caller who already has a workspace → `409 ALREADY_IN_WORKSPACE`. `SIGNUP_MODE=closed`
@@ -77,7 +79,8 @@ member (`owner`); P1 adds an accounting team with roles.
   masked), address, aliases; the entity type is shown and fixed. **Bank accounts**: list (masked), add,
   nickname, ledger account code, delete when no statement uses it.
 - **AC-013-15** **Language & formats**: English selected; other languages disabled with "Coming soon"
-  (`422 LANGUAGE_NOT_AVAILABLE` on PATCH); currency (IDR) and date format read-only.
+  (`422 LANGUAGE_NOT_AVAILABLE` on PATCH); the currency is shown read-only with "Coming soon" for
+  changing it (it is not part of the PATCH body), and the date format is read-only.
 - **AC-013-16** All strings come from `locales/en/*.json`.
 
 ### US-013-5: An accounting team (P1)
@@ -94,7 +97,8 @@ member (`owner`); P1 adds an accounting team with roles.
 ## Out of scope
 
 Payments, checkout, upgrades, emails, SSO, several workspaces per user, other countries and
-currencies, translations, the loan readiness report itself.
+translations, changing a workspace's currency after onboarding and converting between currencies
+(ADR-020), the loan readiness report itself.
 
 ## Edge cases
 
@@ -103,6 +107,8 @@ currencies, translations, the loan readiness report itself.
 - Month boundaries and the trial end use the injected `Clock`; usage months are UTC, book months are
   in the workspace's time zone.
 - `limitOverrides` can only be set by the server (bootstrap script), never through the API.
+- A workspace's currency can only be changed by support with `scripts/set_workspace_currency.py`,
+  which refuses when the workspace already has documents unless `--force` (ADR-020).
 - A claim (or a `system/signup/users/{uid}` record) that names a workspace which does not exist, because
   it was never created or a demo reset removed it, counts as no workspace: `GET /api/me` answers
   `needsWorkspace: true`, onboarding runs, and creating the workspace replaces the stale claim.

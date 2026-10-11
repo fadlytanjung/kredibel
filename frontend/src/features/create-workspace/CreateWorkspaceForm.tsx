@@ -9,6 +9,7 @@ import { useForm, useWatch } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { trialPlan, usePlans } from '../../entities/plan'
+import { CURRENCIES, currencyLabel, suggestCurrency } from '../../entities/workspace'
 import { useAuth } from '../../entities/session'
 import { ProblemError } from '../../shared/api/client'
 import { Field, Input, Select } from '../../shared/ui/Field'
@@ -52,6 +53,7 @@ export function CreateWorkspaceForm({ retryDelayMs }: { retryDelayMs?: number })
       tradingName: '',
       industry: '',
       timezone: current,
+      currency: suggestCurrency(current),
       withBankAccount: false,
       bankName: '',
       accountNumber: '',
@@ -65,6 +67,12 @@ export function CreateWorkspaceForm({ retryDelayMs }: { retryDelayMs?: number })
   useEffect(() => {
     if (create.phase === 'done') navigate('/', { replace: true })
   }, [create.phase, navigate])
+
+  // The currency follows the time zone until the person picks one themselves (ADR-020).
+  const timezone = useWatch({ control, name: 'timezone' })
+  useEffect(() => {
+    if (!form.getFieldState('currency').isDirty) setValue('currency', suggestCurrency(timezone))
+  }, [timezone, form, setValue])
 
   const onSubmit = form.handleSubmit(async (values) => {
     setServerError(null)
@@ -98,6 +106,7 @@ export function CreateWorkspaceForm({ retryDelayMs }: { retryDelayMs?: number })
     tradingName: field('tradingName'),
     industry: field('industry'),
     timezone: field('timezone'),
+    currency: field('currency'),
     bankName: field('bankName'),
     holderName: field('holderName'),
     accountNumber: field('accountNumber'),
@@ -173,7 +182,6 @@ export function CreateWorkspaceForm({ retryDelayMs }: { retryDelayMs?: number })
           </Field>
           <Field
             id="timezone"
-            className="span-2"
             label={t('timeZone')}
             hint={t('timeZoneHint')}
             error={errorOf('timezone')}
@@ -182,6 +190,15 @@ export function CreateWorkspaceForm({ retryDelayMs }: { retryDelayMs?: number })
               {zones.map((option) => (
                 <option key={option.zone} value={option.zone}>
                   {t('timeZoneOption', { zone: option.zone, offset: option.offset })}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field id="currency" label={t('currency')} hint={t('currencyHint')} error={errorOf('currency')}>
+            <Select {...bind.currency}>
+              {CURRENCIES.map((code) => (
+                <option key={code} value={code}>
+                  {currencyLabel(code)}
                 </option>
               ))}
             </Select>

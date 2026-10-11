@@ -255,7 +255,7 @@ describe('SettingsPage (AC-013-14…16)', () => {
     await waitFor(() => expect(lastDeletedAccountId).toBe('acc_1'))
   })
 
-  it('renders Language & formats with English selected and IDR/date read-only (AC-013-15)', async () => {
+  it('renders Language & formats with English selected, the currency fixed and the date format read-only (AC-013-15)', async () => {
     renderSettings('language')
 
     expect(await screen.findByText('English')).toBeInTheDocument()
@@ -266,9 +266,11 @@ describe('SettingsPage (AC-013-14…16)', () => {
     const indonesianRadio = screen.getByRole('radio', { name: /Indonesian/ })
     expect(indonesianRadio).toBeDisabled()
 
-    // Currency and date format are read-only
-    expect(screen.getByText('IDR')).toBeInTheDocument()
-    const readOnlyHints = screen.getAllByText('Set by your workspace; it cannot change yet.')
-    expect(readOnlyHints.length).toBe(2)
+    // The currency is fixed after onboarding; changing it is coming soon (ADR-020)
+    expect(screen.getByText(/\(IDR\)/)).toBeInTheDocument()
+    expect(
+      screen.getByText('Chosen when the workspace was created. Changing the currency is coming soon.'),
+    ).toBeInTheDocument()
+    expect(screen.getAllByText('Set by your workspace; it cannot change yet.')).toHaveLength(1)
   })
 })

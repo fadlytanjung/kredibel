@@ -49,6 +49,30 @@ export default tseslint.config(
           'jsx-attributes': {
             include: ['alt', 'aria-label', 'aria-description', 'placeholder', 'title', 'label'],
           },
+          callees: {
+            exclude: [
+              // the plugin's defaults (an explicit list replaces them)
+              'i18n(ext)?',
+              't',
+              'require',
+              'addEventListener',
+              'removeEventListener',
+              'postMessage',
+              'getElementById',
+              'dispatch',
+              'commit',
+              'includes',
+              'indexOf',
+              'endsWith',
+              'startsWith',
+              // react-hook-form takes field names, which are identifiers, not UI text
+              'register',
+              'setValue',
+              'setError',
+              'fieldError',
+              'invalid',
+            ],
+          },
         },
       ],
     },

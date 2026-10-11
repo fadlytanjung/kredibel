@@ -325,8 +325,10 @@ wins; on looks, the mock and [`12`](12-design-system.md) win.
   company*. The choice switches the fields: legal or full name, trading name (optional), industry,
   time zone (months are counted in it), and an optional main bank account.
 - The trial terms are stated before the button: "30-day free trial. 150 documents and 400 pages a
-  month. No card, no payment. Paid plans are coming soon." **Start the free trial** →
-  `POST /api/workspaces` → refresh the ID token → `/documents?upload=1`.
+  month. No card, no payment. Paid plans are coming soon." (numbers from `GET /api/plans`)
+  **Start the free trial** → `POST /api/workspaces` → refresh the ID token → the dashboard's empty
+  state with its upload action (AC-013-2). If the refreshed token still has no workspace, "Finishing
+  setup…" and one retry after 2 s.
 - The brand panel shows three ledger lines with what Kredibel does to each (read twice, matched,
   copy not read). It is the only decorative surface in the product.
 

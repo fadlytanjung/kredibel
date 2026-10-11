@@ -23,13 +23,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [me, setMe] = useState<MeResponse | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const fetchMe = async () => {
+  const fetchMe = async (): Promise<MeResponse | null> => {
     try {
       const data = await apiClient<MeResponse>('/api/me')
       setMe(data)
+      return data
     } catch {
       setMe(null)
+      return null
     }
+  }
+
+  const refreshSession = async (): Promise<MeResponse | null> => {
+    const current = auth.currentUser
+    if (!current) return null
+    // Claims set by the server reach the client only in a newly minted ID token.
+    await current.getIdToken(true)
+    return fetchMe()
   }
 
   const handleSignOut = async () => {
@@ -87,7 +97,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signInWithEmail,
     signInWithGoogle,
     signOut: handleSignOut,
-    refreshMe: fetchMe,
+    refreshMe: async () => {
+      await fetchMe()
+    },
+    refreshSession,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

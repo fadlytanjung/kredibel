@@ -28,7 +28,8 @@ RUN npm ci
 
 COPY frontend/ ./
 
-RUN npm run build
+# docs/16 §5: API types come from the contract (/contracts/openapi.yaml), never from a checkout.
+RUN npm run gen:api && npm run build
 
 # ==============================================================================
 # Stage 2: Runtime Backend (FastAPI + Workers)

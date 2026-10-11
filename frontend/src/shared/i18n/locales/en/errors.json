@@ -1,0 +1,7 @@
+{
+  "SIGNUP_CLOSED": "New workspaces cannot be created right now.",
+  "ALREADY_IN_WORKSPACE": "You already have a workspace.",
+  "VALIDATION_ERROR": "Some fields need a look.",
+  "UNAUTHENTICATED": "Your session ended. Sign in again.",
+  "fallback": "Something went wrong. Try again."
+}

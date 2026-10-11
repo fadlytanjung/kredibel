@@ -64,7 +64,7 @@ check: ## Run all quality gates (lint, types, layers, repo checks, tests)
 	@echo "5. Running backend tests (pytest)..."
 	@if [ -f backend/pyproject.toml ]; then cd backend && uv run pytest; fi
 	@echo "6. Checking frontend linting and types..."
-	@if [ -f frontend/package.json ]; then cd frontend && npm run lint && npm run check; fi
+	@if [ -f frontend/package.json ]; then cd frontend && npm run gen:api >/dev/null && npm run lint && npm run check; fi
 	@echo "7. Running frontend tests (vitest)..."
 	@if [ -f frontend/package.json ]; then cd frontend && npm test -- --run; fi
 	@echo "==> All gates passed."
@@ -84,7 +84,7 @@ synth: ## Generate synthetic scenarios
 
 gen-api: ## Regenerate frontend TypeScript types from OpenAPI spec
 	@echo "==> Generating frontend API types from contracts/openapi.yaml..."
-	./frontend/node_modules/.bin/openapi-typescript contracts/openapi.yaml -o frontend/src/shared/api/schema.d.ts
+	cd frontend && npm run gen:api
 
 record: ## Record real extractor outputs for a scenario (e.g. make record SCENARIO=S2 SEED=1)
 	@echo "==> Recording extractor output for scenario $(SCENARIO)..."

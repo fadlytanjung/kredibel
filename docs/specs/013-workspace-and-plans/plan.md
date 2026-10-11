@@ -41,7 +41,11 @@ settings UI can follow later.
 | `features/plan-limit-dialog/` | maps `PLAN_LIMIT_REACHED` and `TRIAL_EXPIRED` to a dialog |
 | `entities/workspace/`, `entities/plan/` | query hooks, mappers |
 | `shared/ui/ComingSoonBadge.tsx` | badge + disabled wrapper with tooltip |
-| `shared/i18n/locales/en/settings.json`, `onboarding.json` | strings |
+| `shared/i18n/locales/en/settings.json`, `onboarding.json`, `errors.json` | strings; `errors.json` maps problem `code`s ([`docs/11`](../../11-frontend.md) §10) |
+| `shared/api/schema.d.ts` | generated from `contracts/openapi.yaml` by `npm run gen:api` (`make gen-api`) |
+
+New frontend dependencies (the docs/11 §2 stack, first used here): `@tanstack/react-query`,
+`react-hook-form`, `zod`, `@hookform/resolvers`.
 
 ## Constitution check
 

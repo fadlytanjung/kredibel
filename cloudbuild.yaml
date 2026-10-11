@@ -32,6 +32,7 @@ steps:
         python3 tools/checks/no_raw_styles.py
         cd frontend
         npm ci
+        npm run gen:api
         npm run lint
         npm run check
         npx vitest --run

@@ -22,6 +22,7 @@ import {
   SettingsPage,
 } from '../pages/Placeholders'
 import { AppShell } from '../shared/ui'
+import { OnboardingPreview } from './OnboardingPreview'
 import { ShellPreview } from './ShellPreview'
 
 function FullPageLoading() {
@@ -99,6 +100,7 @@ export function AppRouter() {
       ))}
       {/* Visual regression target for the shell (tests/visual); never part of a production build. */}
       {import.meta.env.DEV && <Route path="/preview/shell" element={<ShellPreview />} />}
+      {import.meta.env.DEV && <Route path="/preview/onboarding" element={<OnboardingPreview />} />}
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   )

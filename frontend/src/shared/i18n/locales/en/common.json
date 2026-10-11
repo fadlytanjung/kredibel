@@ -102,23 +102,6 @@
     "emptyDescription": "Upload bank statements, sales or purchase invoices, receipts, and ledger exports to reconcile your books.",
     "uploadButton": "Upload documents"
   },
-  "onboarding": {
-    "title": "Whose books are these?",
-    "subtitle": "One workspace is one business or one person. You can add details later; Kredibel will suggest them from your documents.",
-    "typeLabel": "Workspace type",
-    "individual": "Myself",
-    "individualHint": "A freelancer or sole trader with a business account",
-    "company": "A company",
-    "companyHint": "A partnership or a limited company",
-    "legalName": "Legal name",
-    "fullName": "Full name",
-    "tradingName": "Trading name",
-    "optional": "(optional)",
-    "tradingNamePlaceholder": "As on your invoices",
-    "industry": "Industry",
-    "timeZone": "Time zone",
-    "submit": "Start the free trial"
-  },
   "placeholder": {
     "body": "This page arrives with {{spec}}.",
     "backToDashboard": "Back to the dashboard",

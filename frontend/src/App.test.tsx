@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest'
 import App from './App'
 
 describe('App component', () => {
-  it('renders without crashing', () => {
+  it('renders login page when unauthenticated', async () => {
     render(<App />)
-    expect(screen.getByRole('heading', { name: /Get started/i })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /Sign in to Kredibel/i })).toBeInTheDocument()
   })
 })

@@ -16,7 +16,7 @@ _Last updated: 11 Oct 2026 — documentation complete (finance-workspace scope, 
 | Data-migration foundation: versions, upcasters, runner, job, backups | 001 | Specified | ADR-013, docs/22 |
 | Dockerfile, Cloud Build, bootstrap, Firebase | 001 | In progress | Dockerfile, cloudbuild.yaml, bootstrap.sh, docker-compose.yml created |
 | Cost guardrails: budget, AR cleanup, run quotas, kill switch | 001, 004 | Specified | docs/21 |
-| i18n scaffold (English only) | 001 | Specified | NFR-11 |
+| i18n scaffold (English only) | 001 | Built | `i18next` + `react-i18next` with `en` bundle (AC-001-14) |
 | Synthetic books S1–S5, scan variant, fixtures | 002 | Specified | |
 | Synthetic S6 (hidden instructions) | 002 | Specified (P1) | |
 

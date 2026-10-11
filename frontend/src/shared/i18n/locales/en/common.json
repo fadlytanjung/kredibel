@@ -1,0 +1,39 @@
+{
+  "auth": {
+    "title": "Sign in to Kredibel",
+    "subtitle": "Your AI finance workspace",
+    "emailLabel": "Email address",
+    "passwordLabel": "Password",
+    "signInButton": "Sign in",
+    "signInWithGoogle": "Sign in with Google",
+    "signOut": "Sign out",
+    "signingIn": "Signing in..."
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "documents": "Documents",
+    "months": "Reconciliation",
+    "review": "Review",
+    "risk": "Risk",
+    "counterparties": "Clients & Suppliers",
+    "assistant": "Assistant",
+    "settings": "Settings"
+  },
+  "dashboard": {
+    "emptyTitle": "Upload your first documents",
+    "emptyDescription": "Upload bank statements, sales or purchase invoices, receipts, and ledger exports to reconcile your books.",
+    "uploadButton": "Upload documents"
+  },
+  "onboarding": {
+    "title": "Create your workspace",
+    "subtitle": "Set up your business profile to begin checking your books."
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "notFound": "Page not found",
+    "save": "Save",
+    "cancel": "Cancel",
+    "back": "Back"
+  }
+}

@@ -13,7 +13,7 @@
 |---|---|
 | SD-1 | Deterministic: same scenario + seed → byte-identical files (fixed timestamps, fixed IDs) and identical `truth.json` |
 | SD-2 | Realistic structure: running balances, statement descriptions in the style of real banks, English number format (`1,250,000.00`), multi-page statements (2–3 pages per month), invoices and receipts that add up, a ledger export whose cash entries mirror the bank |
-| SD-3 | Every PDF page and image carries a visible diagonal watermark and footer: **"SYNTHETIC — FOR TESTING"**. All entities are fictional. Ledger files carry the same text in a header comment row. |
+| SD-3 | Every PDF page and image carries a visible diagonal watermark and footer: **"SYNTHETIC — FOR TESTING"**. The diagonal mark is drawn as an image, so it stays out of the text layer (a text-layer reader sees the values, not the watermark's letters through them); the footer carries the text. All entities are fictional. Ledger files carry the same text in a header comment row. |
 | SD-4 | Tampering and duplication use real-world techniques (incremental PDF edits, font substitution, re-exported statements, re-scanned invoices, re-photographed receipts, hidden text), not just different numbers |
 | SD-5 | `truth.json` records every generated value, every tamper and duplicate, the intended **matches**, and every expected outcome per document and per month |
 | SD-6 | Runs offline; no network calls; only open-source libraries (`reportlab`, `pypdf`, `pikepdf`, `pypdfium2`, `Pillow`, `openpyxl`) |

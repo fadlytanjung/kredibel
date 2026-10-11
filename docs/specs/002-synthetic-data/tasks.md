@@ -12,10 +12,10 @@
 
 ## Phase 3 — Rendering
 
-- [ ] **T002-05** `render_statement.py` per docs/18 §3.1 with sidecar map, watermark, fixed metadata. (AC-002-3, AC-002-4)
-- [ ] **T002-06** [P] `render_invoice.py` (sales + 3 supplier layouts) and `render_receipt.py` (JPEG photo and PDF). (AC-002-3, AC-002-5)
-- [ ] **T002-07** [P] `render_ledger.py` CSV and XLSX variant. (AC-002-6)
-- [ ] **T002-08** **TDD** determinism: generate twice → identical SHA-256 for all files. (AC-002-2)
+- [x] **T002-05** `render_statement.py` per docs/18 §3.1 with sidecar map, watermark, fixed metadata. (AC-002-3, AC-002-4)
+- [x] **T002-06** [P] `render_invoice.py` (sales + 3 supplier layouts) and `render_receipt.py` (JPEG photo and PDF). (AC-002-3, AC-002-5)
+- [x] **T002-07** [P] `render_ledger.py` CSV and XLSX variant. (AC-002-6)
+- [x] **T002-08** **TDD** determinism: generate twice → identical SHA-256 for all files. (AC-002-2)
 
 ## Phase 4 — Tampering, duplicates and scenarios (P0)
 

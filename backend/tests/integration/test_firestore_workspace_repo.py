@@ -143,3 +143,15 @@ async def test_ac013_14_profile_update_and_bank_accounts_on_firestore(db):
     assert added.account_id not in {a.account_id for a in await service.list_bank_accounts(org)}
     hash_doc = await db.document(f"orgPrivate/{org}/accountHashes/{added.account_id}").get()
     assert not hash_doc.exists
+
+
+async def test_ac013_1_a_removed_workspace_does_not_block_a_new_one(db):
+    service, identity = _service(db)
+    user = Principal(uid="u-1")
+    first = await service.create(user, REQUEST)
+    await db.document(f"orgs/{first.org_id}").delete()  # what a demo reset does
+
+    second = await service.create(user, REQUEST)
+
+    assert second.org_id != first.org_id
+    assert identity.claims["u-1"]["orgId"] == second.org_id

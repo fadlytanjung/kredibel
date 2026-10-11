@@ -45,7 +45,10 @@ class FirestoreWorkspaceRepository(WorkspaceRepository):
             user_snap = await user_ref.get(transaction=txn)
             if user_snap.exists:
                 user = SignupUserDoc.model_validate(user_snap.to_dict())
-                return AlreadyMember(org_id=user.org_id, role=user.role)
+                existing = db.collection("orgs").document(user.org_id)
+                # A record whose workspace was removed (a demo reset) is stale; replace it.
+                if (await existing.get(transaction=txn)).exists:
+                    return AlreadyMember(org_id=user.org_id, role=user.role)
             signup_snap = await signup_ref.get(transaction=txn)
             created = SignupDoc.model_validate(signup_snap.to_dict() or {}).workspaces_created
             if created >= max_workspaces:

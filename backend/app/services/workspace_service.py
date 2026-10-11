@@ -70,7 +70,9 @@ class WorkspaceService:
         self._max_workspaces = max_workspaces
 
     async def create(self, principal: Principal, request: WorkspaceCreate) -> Workspace:
-        if principal.org_id is not None:
+        # A claim only counts while its workspace exists; a stale one (never created, or removed by
+        # a demo reset) must not lock the user out of onboarding.
+        if principal.org_id is not None and await self._repo.get_workspace(principal.org_id):
             raise AlreadyInWorkspaceError(principal.org_id)
         # P0 has no invites, so invite_only behaves like closed for creating a workspace.
         if self._signup_mode != "open":

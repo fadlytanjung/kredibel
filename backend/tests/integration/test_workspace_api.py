@@ -249,3 +249,14 @@ async def test_ac013_14_bank_accounts_list_add_update_delete(h):
     assert deleted.status_code == 204
     assert missing.status_code == 404 and missing.json()["code"] == "NOT_FOUND"
     assert [a["accountMasked"] for a in after] == ["••••4821"]
+
+
+async def test_ac013_1_me_with_a_claim_for_a_missing_workspace_needs_one(h):
+    h.tokens.valid_tokens["stale"] = {"uid": "u-1", "orgId": "org_gone", "role": "owner"}
+    async with h.client() as c:
+        res = await c.get("/api/me", headers=h.auth("stale"))
+
+    body = res.json()
+    assert body["needsWorkspace"] is True
+    assert body["orgId"] is None
+    assert body["workspace"] is None

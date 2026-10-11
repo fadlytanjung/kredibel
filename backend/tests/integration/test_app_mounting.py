@@ -92,14 +92,16 @@ async def test_ac001_6_api_me_returns_principal_fields(fake_verifier):
     from app.core.settings import Settings
     from app.main import AppDeps, create_app
     from tests.fakes.usage_repository import FakeUsageRepository
-    from tests.fakes.workspace_repository import FakeWorkspaceRepository
+    from tests.fakes.workspace_repository import FakeWorkspaceRepository, demo_workspace
 
     settings = Settings(app_role="web")
+    workspaces = FakeWorkspaceRepository()
+    workspaces.workspaces["org_demo"] = demo_workspace("org_demo")
     deps = AppDeps(
         settings,
         load_plans(settings.contract_path(settings.plans_file)),
-        workspace_repo=FakeWorkspaceRepository(),
-        usage_repo=FakeUsageRepository(),
+        workspace_repo=workspaces,
+        usage_repo=FakeUsageRepository(workspaces=workspaces),
         token_verifier=fake_verifier,
     )
     app = create_app(settings=settings, deps=deps)
@@ -110,8 +112,7 @@ async def test_ac001_6_api_me_returns_principal_fields(fake_verifier):
 
     assert res.status_code == 200
     data = res.json()
-    # The claim names a workspace this fake store does not have: /api/me still answers.
-    assert data["workspace"] is None
+    assert data["workspace"]["name"] == "Synthetic Demo Ltd"
     assert data["uid"] == "owner-1"
     assert data["email"] == "owner@demo.kredibel"
     assert data["displayName"] == "Jane Owner"

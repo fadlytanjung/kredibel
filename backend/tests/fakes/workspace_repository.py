@@ -30,7 +30,7 @@ class FakeWorkspaceRepository(WorkspaceRepository):
     async def create_workspace(self, new: NewWorkspace, *, max_workspaces: int) -> CreateOutcome:
         async with self._txn:
             uid = new.owner.uid
-            if uid in self.users:
+            if uid in self.users and self.users[uid].org_id in self.workspaces:
                 return self.users[uid]
             if self.workspaces_created >= max_workspaces:
                 return SignupLimitReached(self.workspaces_created)
@@ -84,3 +84,30 @@ class FakeWorkspaceRepository(WorkspaceRepository):
             del self.bank_accounts[org_id][account_id]
             self.account_hashes.get(org_id, {}).pop(account_id, None)
             return True
+
+
+def demo_workspace(org_id: str) -> Workspace:
+    """A ready-made workspace for tests that only need one to exist."""
+    from datetime import UTC, datetime, timedelta
+
+    from app.domain.models.workspace import Profile, Subscription
+
+    now = datetime(2026, 10, 11, tzinfo=UTC)
+    return Workspace(
+        org_id=org_id,
+        name="Synthetic Demo Ltd",
+        entity_type="COMPANY",
+        profile=Profile(legal_name="Synthetic Demo Ltd"),
+        country="ID",
+        timezone="Asia/Jakarta",
+        currency="IDR",
+        default_language="en",
+        subscription=Subscription(
+            plan_id="free_trial",
+            status="TRIALING",
+            trial_started_at=now,
+            trial_ends_at=now + timedelta(days=30),
+        ),
+        created_by="u-demo",
+        created_at=now,
+    )

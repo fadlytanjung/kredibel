@@ -22,7 +22,7 @@ def create_me_router(provider: ServiceProvider, principal_dep: PrincipalDependen
         workspace: dict[str, Any] | None = None
         ws = None
         if principal.org_id is not None:
-            # A claim can outlive its workspace (a demo reset); /api/me must still answer.
+            # A claim can outlive its workspace (never created, or a demo reset).
             with suppress(NotFoundError):
                 ws = await provider.workspace_service.get(principal.org_id)
         if ws is not None:
@@ -34,13 +34,15 @@ def create_me_router(provider: ServiceProvider, principal_dep: PrincipalDependen
                 "subscriptionStatus": subscription_status(ws.subscription, now),
                 "trialDaysLeft": trial_days_left(ws.subscription, now),
             }
+        # A claim for a workspace that does not exist is no workspace: onboarding, not a dashboard.
+        org_id = principal.org_id if ws is not None else None
         return {
             "uid": principal.uid,
             "email": principal.email,
             "displayName": principal.display_name,
-            "orgId": principal.org_id,
-            "role": principal.role,
-            "needsWorkspace": principal.needs_workspace,
+            "orgId": org_id,
+            "role": principal.role if ws is not None else None,
+            "needsWorkspace": org_id is None,
             "language": "en",
             "workspace": workspace,
         }

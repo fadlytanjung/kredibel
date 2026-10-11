@@ -103,3 +103,6 @@ currencies, translations, the loan readiness report itself.
 - Month boundaries and the trial end use the injected `Clock`; usage months are UTC, book months are
   in the workspace's time zone.
 - `limitOverrides` can only be set by the server (bootstrap script), never through the API.
+- A claim (or a `system/signup/users/{uid}` record) that names a workspace which does not exist, because
+  it was never created or a demo reset removed it, counts as no workspace: `GET /api/me` answers
+  `needsWorkspace: true`, onboarding runs, and creating the workspace replaces the stale claim.

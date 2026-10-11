@@ -109,11 +109,12 @@ async def test_ac013_2_an_individual_workspace():
 
 async def test_ac013_3_a_caller_with_a_workspace_claim_gets_409():
     service, repo, _ = _service()
-    member = Principal(uid="u-2", org_id="org_existing", role="owner")
+    existing = await service.create(Principal(uid="u-2"), COMPANY)
+    member = Principal(uid="u-2", org_id=existing.org_id, role="owner")
 
     with pytest.raises(AlreadyInWorkspaceError):
         await service.create(member, COMPANY)
-    assert repo.workspaces == {}
+    assert list(repo.workspaces) == [existing.org_id]
 
 
 async def test_ac013_3_a_double_submit_creates_one_workspace():
@@ -195,3 +196,25 @@ async def test_ac013_2_the_same_account_twice_is_a_validation_error():
 
     with pytest.raises(ValidationProblem):
         await service.create(NEW_USER, twice)
+
+
+async def test_ac013_1_a_claim_for_a_missing_workspace_counts_as_none():
+    """A stale claim (the workspace was never created or was reset) must not block onboarding."""
+    service, repo, identity = _service()
+    stale = Principal(uid="u-1", email="owner@example.test", org_id="org_gone", role="owner")
+
+    workspace = await service.create(stale, COMPANY)
+
+    assert workspace.org_id != "org_gone"
+    assert identity.claims["u-1"] == {"orgId": workspace.org_id, "role": "owner"}
+
+
+async def test_ac013_1_a_signup_record_for_a_deleted_workspace_does_not_block():
+    service, repo, identity = _service()
+    first = await service.create(NEW_USER, COMPANY)
+    del repo.workspaces[first.org_id]  # a demo reset removed the workspace
+
+    second = await service.create(NEW_USER, COMPANY)
+
+    assert second.org_id != first.org_id
+    assert identity.claims["u-1"]["orgId"] == second.org_id

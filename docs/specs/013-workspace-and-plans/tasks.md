@@ -19,7 +19,7 @@ Phases 1–3 are needed by specs 003 and 004 (D1). Phase 4 can follow on D5–D6
 
 ## Phase 3 — Wiring (with 003 and 004)
 
-- [ ] **T013-10** Call `EntitlementService` from `DocumentService.upload`, `runs.start_month_run` (user re-runs) and the assistant; integration tests for every `403`/`413`/`422` code. (AC-013-7, AC-013-8)
+- [x] **T013-10** Call `EntitlementService` from `DocumentService.upload`, `runs.start_month_run` (user re-runs) and the assistant; integration tests for every `403`/`413`/`422` code. (AC-013-7, AC-013-8) Upload and user month runs done; the assistant's check lands with T011-04.
 
 ## Phase 4 — Frontend
 
@@ -38,4 +38,4 @@ Phases 1–3 are needed by specs 003 and 004 (D1). Phase 4 can follow on D5–D6
 ## Phase 6 — Verify
 
 - [ ] **T013-18** On the deployed env: a new Google account → onboarding as a company → free trial → Plan & usage shows limits and coming-soon items; `SIGNUP_MODE=closed` blocks a second new account.
-- [ ] **T013-19** Update `docs/20-implementation-status.md`.
+- [x] **T013-19** Update `docs/20-implementation-status.md`.

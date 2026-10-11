@@ -4,7 +4,7 @@
 > a component. Statuses: **Specified** → **In progress** → **Built** (tests green) → **Deployed**
 > (running on Cloud Run) · **Cut** (deliberately dropped, with reason).
 
-_Last updated: 12 Oct 2026 — Spec 001, Spec 013, and Spec 003 built (tests all green)._
+_Last updated: 12 Oct 2026 — Specs 001, 003, 004 and 013 (P0) built; tracing and the ADK dev UI built, Cloud Trace check waits for the next deploy._
 
 ## Foundation & platform
 
@@ -24,7 +24,7 @@ _Last updated: 12 Oct 2026 — Spec 001, Spec 013, and Spec 003 built (tests all
 
 | Component | Spec | Status | Notes |
 |---|---|---|---|
-| Plans config + entitlement checks | 013 | Built | Catalog validated at start-up; pure checks; `EntitlementService` meters in the same Firestore transaction (T013-01…03, T013-07). Wiring into upload and month runs waits for specs 003/004 (T013-10) |
+| Plans config + entitlement checks | 013 | Built | Catalog validated at start-up; pure checks; `EntitlementService` meters in the same Firestore transaction (T013-01…03, T013-07); wired into upload and user month runs, every `403`/`413`/`422`/`429` code tested through the API (T013-10). The assistant's daily question limit arrives with spec 011 (T011-04) |
 | Onboarding as individual or company (free trial, claims, currency, first bank account) | 013 | Built | One-transaction create with double-submit and claims-repair guard; routes; onboarding page with token refresh and retry; demo seed (T013-04…06, -08, -09, -11). Verify on Cloud Run: T013-18; currency chosen at onboarding (IDR, MYR, SGD, JPY, USD), fixed afterwards, support script (ADR-020) |
 | Usage counters + page reservation at upload | 013, 003 | Built | Counters, reservation and settlement integrated into upload with Firestore transactions (AC-003-3, AC-003-4) |
 | Settings: profile, bank accounts, language, plan & usage (coming soon items) | 013 | Built | API and UI built; ProfileForm, BankAccountsSection, LanguageSettings, PlanAndUsage, and PlanLimitDialog fully tested with unit and integration tests (T013-08, T013-12…15) |
@@ -37,9 +37,9 @@ _Last updated: 12 Oct 2026 — Spec 001, Spec 013, and Spec 003 built (tests all
 | Upload API + sheet (camera on phones), page split + triage | 003 | Built | Sniffing, triage, rendering, storage, Cloud Tasks enqueue, UploadSheet with mobile camera (AC-003-1…4) |
 | Exact duplicates (`D01`) | 003 | Built | SHA-256 duplicate detection, DUPLICATE record, no re-read, upload UI duplicate notice (AC-003-5, AC-003-6) |
 | Documents library + document page | 003 | Built | Documents list with filters & live badges, Document detail with page viewer, extracted values, and delete cascade (AC-003-7…11) |
-| Queues, runs, worker endpoints, inline mode | 004 | Specified | |
-| `document_workflow` and `month_workflow` skeletons; generations and debounce | 004 | Specified | Depends on spike S2 |
-| Live progress (documents and months) | 004 | Specified | |
+| Queues, runs, worker endpoints, inline mode | 004 | Built | Generation bump and task name in one transaction, debounce, Cloud Tasks and inline queue, OIDC-only `/tasks/*` on the worker, idempotent re-delivery (T004-02…04) |
+| `document_workflow` and `month_workflow` skeletons; generations and debounce | 004 | Built | Spike S2 done; both workflows run with stub nodes, `SUPERSEDED` and `NEEDS_INPUT` paths, burst of 10 changes → one effective run (T004-05…08). Real nodes arrive with specs 005–008 |
+| Live progress (documents and months) | 004 | Built | Firestore listeners, `ProgressLine`, runs API; `RUNS_ENABLED` kill switch and daily quotas with "paused until tomorrow" (T004-09, T004-10) |
 
 ## Reading, checks and reconciliation
 

@@ -14,7 +14,7 @@ _Last updated: 11 Oct 2026 — Spec 001 Foundation complete (tests green) and de
 | Settings, logging, errors, auth, security headers | 001 | Deployed | Tests green (AC-001-1, AC-001-4, AC-001-5, AC-001-6, AC-001-10); running on Cloud Run |
 | Design foundation: tokens, app shell, Storybook, visual tests, raw-style gate | 001 | Built | Tokens compile, AppShell responsive (360–1600px), Storybook 10, Playwright visual tests at 390/834/1440, no_raw_styles check (AC-001-15, AC-001-16, AC-001-17, AC-001-18) |
 | Data-migration foundation: versions, upcasters, runner, job, backups | 001 | Deployed | Upcasters, runner with emulator, schema drift check, `kredibel-migrate` Cloud Run job, backup bucket and PITR (AC-001-19, AC-001-20, AC-001-21, AC-001-22) |
-| Dockerfile, Cloud Build, bootstrap, Firebase | 001 | Deployed | Multi-stage Dockerfile, Cloud Build pipeline, web & worker deployed, Firebase Auth configured with demo user (AC-001-8, AC-001-9) |
+| Dockerfile, Cloud Build, bootstrap, Firebase (Auth + Hosting) | 001 | Deployed | Multi-stage Dockerfile, Cloud Build pipeline, web & worker deployed, Firebase Auth & Hosting (kredibel-app.web.app) deployed with demo user (AC-001-8, AC-001-9) |
 | Cost guardrails: budget, AR cleanup, run quotas, kill switch | 001, 004 | Deployed | GCP budget 50/90/100% alerts, Artifact Registry 3-version cleanup policy, run quotas in env (docs/21 §7) |
 | i18n scaffold (English only) | 001 | Built | `i18next` + `react-i18next` with `en` bundle (AC-001-14) |
 | Synthetic books S1–S5, scan variant, fixtures | 002 | Specified | |

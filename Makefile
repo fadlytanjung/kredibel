@@ -8,7 +8,7 @@ SCENARIO ?= S1
 SEED ?= 1
 ENV ?= local
 
-.PHONY: help setup dev check test synth gen-api record evals deploy tokens tokens-check mocks mock-shots dev-agents migrate migrate-dry migrate-status docker-up docker-down schema-snapshot
+.PHONY: help setup dev check test synth gen-api record evals deploy deploy-hosting tokens tokens-check mocks mock-shots dev-agents migrate migrate-dry migrate-status docker-up docker-down schema-snapshot
 
 help: ## Show this help message
 	@echo "Kredibel — Developer Commands"
@@ -100,6 +100,12 @@ deploy: ## Deploy to Cloud Run via Cloud Build
 	COMMIT_SHA=$$(git rev-parse --short HEAD 2>/dev/null || echo "latest"); \
 	gcloud builds submit --config=cloudbuild.yaml \
 		--substitutions=_COMMIT_SHA=$${COMMIT_SHA},_VITE_FIREBASE_API_KEY="$${VITE_FIREBASE_API_KEY}",_VITE_FIREBASE_AUTH_DOMAIN="$${VITE_FIREBASE_AUTH_DOMAIN}",_VITE_FIREBASE_PROJECT_ID="$${VITE_FIREBASE_PROJECT_ID}",_VITE_FIREBASE_APP_ID="$${VITE_FIREBASE_APP_ID}"
+
+deploy-hosting: ## Build frontend and deploy to Firebase Hosting (kredibel-app)
+	@echo "==> Building frontend for production..."
+	cd frontend && npm run build
+	@echo "==> Deploying to Firebase Hosting (kredibel-app)..."
+	firebase deploy --only hosting --project $(PROJECT_ID)
 
 tokens: ## Regenerate CSS from design tokens
 	python3 tools/design/build_tokens.py

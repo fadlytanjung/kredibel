@@ -110,7 +110,26 @@ steps:
           --env-vars-file=infra/env.web.resolved.yaml
         gcloud run services add-iam-policy-binding kredibel-web --region=asia-southeast1 --member=allUsers --role=roles/run.invoker || true
 
-  # 6. Smoke verification
+  # 8. Extract built frontend and deploy to Firebase Hosting
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'extract-dist'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        id=$$(docker create asia-southeast1-docker.pkg.dev/$PROJECT_ID/kredibel/app:$_COMMIT_SHA)
+        docker cp $$id:/app/frontend/dist frontend/dist
+        docker rm $$id
+
+  - name: 'node:22-slim'
+    id: 'deploy-hosting'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        npx --yes firebase-tools deploy --only hosting --project "$PROJECT_ID" || true
+
+  # 9. Smoke verification
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     id: 'smoke'
     entrypoint: 'bash'
@@ -118,8 +137,10 @@ steps:
       - '-c'
       - |
         WEB_URL=$$(gcloud run services describe kredibel-web --region=asia-southeast1 --format='value(status.url)')
-        echo "Verifying deployment at $$WEB_URL..."
+        echo "Verifying Cloud Run deployment at $$WEB_URL..."
         curl -fsS "$$WEB_URL/api/health"
+        echo "Verifying Firebase Hosting deployment at https://kredibel-app.web.app..."
+        curl -fsS "https://kredibel-app.web.app/api/health"
 
 images:
   - 'asia-southeast1-docker.pkg.dev/$PROJECT_ID/kredibel/app:$_COMMIT_SHA'

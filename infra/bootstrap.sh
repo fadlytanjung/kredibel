@@ -28,6 +28,7 @@ gcloud services enable \
   monitoring.googleapis.com \
   cloudtrace.googleapis.com \
   firebase.googleapis.com \
+  firebasehosting.googleapis.com \
   identitytoolkit.googleapis.com
 
 echo "==> 2. Creating Artifact Registry, Cloud Storage buckets, Firestore database, and Task Queues..."
@@ -138,4 +139,8 @@ gcloud run jobs create kredibel-migrate \
   --set-env-vars=APP_ROLE=migrate,PROJECT_ID=${PROJECT_ID},BACKUPS_BUCKET=${PROJECT_ID}-kredibel-backups \
   --command=python --args=-m,migrations,run || true
 
+echo "==> 6. Ensuring Firebase Hosting site is created..."
+npx --yes firebase-tools hosting:sites:create kredibel-app --project "$PROJECT_ID" --non-interactive || true
+
 echo "==> Bootstrap completed successfully for project $PROJECT_ID."
+

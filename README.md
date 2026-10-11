@@ -112,8 +112,9 @@ make storybook-build
 ### Live Deployment
 
 Spec 001 Foundation is deployed on Google Cloud (`cloud-hack2skill`, `asia-southeast1`):
-- **Web SPA & API**: [https://kredibel-web-110491117045.asia-southeast1.run.app](https://kredibel-web-110491117045.asia-southeast1.run.app)
-- **Worker (IAM only)**: [https://kredibel-worker-110491117045.asia-southeast1.run.app](https://kredibel-worker-110491117045.asia-southeast1.run.app)
+- **Web App (Firebase Hosting CDN & Custom Domain Entry)**: [https://kredibel-app.web.app](https://kredibel-app.web.app) (also [https://kredibel-app.firebaseapp.com](https://kredibel-app.firebaseapp.com))
+- **Cloud Run Web (Origin API & SPA)**: [https://kredibel-web-110491117045.asia-southeast1.run.app](https://kredibel-web-110491117045.asia-southeast1.run.app)
+- **Cloud Run Worker (IAM only)**: [https://kredibel-worker-110491117045.asia-southeast1.run.app](https://kredibel-worker-110491117045.asia-southeast1.run.app)
 - **Data Migration Job**: `kredibel-migrate` Cloud Run job with automated Cloud Build pipeline step.
 
 

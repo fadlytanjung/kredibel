@@ -56,3 +56,14 @@ for the same inputs must produce identical stored results, whatever order the do
 - Unit tests for the domain functions (property tests where order or arithmetic matters).
 - Node test with fakes (`tests/fakes/`) asserting writes, the stage record and the returned summary.
 - Scenario test updated if the node changes expected outcomes (compare to `truth.json`).
+
+## 7. Debuggable in the ADK dev UI
+
+- Every workflow, LLM node and agent has a dev app in `backend/app/agents/dev_apps/<name>/agent.py`
+  exposing `root_agent`, built on fakes or recorded fixtures (no Firestore, no live Gemini by default).
+  Add its sample input to `RUN_INPUT` in `tests/integration/test_dev_apps.py`, which loads and runs
+  every dev app the way `adk web` does.
+- Read the input with `node_input_dict(ctx, node_input)` and keep the node behind `stage()`, so the
+  dev UI's Traces tab shows its `node:` span under the run.
+- Open it with `make dev-agents` and check Events, Traces and the graph before pushing
+  ([`docs/23`](../../../docs/23-agents-and-tracing-guide.md) §4, §7).

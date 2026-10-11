@@ -91,15 +91,13 @@
     "runs": {
       "long": "Runs",
       "short": "Runs"
-    },
-    "settingsNav": "Settings"
+    }
   },
   "shell": {
     "upload": "Upload",
     "notifications": "Notifications, {{count}} new",
     "trialDaysLeft_one": "Free trial: {{count}} day left",
     "trialDaysLeft_other": "Free trial: {{count}} days left",
-    "pagesUsed": "{{used}} of {{max}} pages read this month",
     "planAndUsage": "Plan and usage",
     "trialBadge_one": "Free trial: {{count}} day left",
     "trialBadge_other": "Free trial: {{count}} days left",
@@ -108,13 +106,15 @@
     "uploadBlocked": "Uploads are paused because the free trial has ended.",
     "itemsCount": "{{count}} items",
     "openCount": "{{count}} open",
-    "signedInAs": "Signed in as {{name}}",
     "backTo": "Back to {{page}}",
     "search": "Search books",
     "searchSoon": "Search arrives with the documents library",
     "notificationsNone": "Notifications",
     "trialBadgeShort_one": "{{count}} day left",
-    "trialBadgeShort_other": "{{count}} days left"
+    "trialBadgeShort_other": "{{count}} days left",
+    "pagesShort": "{{used}} of {{max}} pages",
+    "profile": "Settings, signed in as {{name}}",
+    "profileWithRole": "Settings, signed in as {{name}} ({{role}})"
   },
   "roles": {
     "owner": "Owner",

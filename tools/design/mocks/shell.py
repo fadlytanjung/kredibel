@@ -22,7 +22,6 @@ NAV_AI = [
     ("labels", "tag", "Labels", "Labels", "labels.html", ("37", True)),
     ("runs", "flow", "Runs", "Runs", "runs.html", None),
 ]
-NAV_FOOT = [("settings", "sliders", "Settings", "Settings", "plan-usage.html", None)]
 
 
 def _item(key, ic, label, short, href, count, active):
@@ -41,7 +40,7 @@ def side(active: str) -> str:
     books = "".join(_item(*n, active) for n in NAV_BOOKS)
     insight = "".join(_item(*n, active) for n in NAV_INSIGHT)
     ai = "".join(_item(*n, active) for n in NAV_AI)
-    foot = "".join(_item(*n, active) for n in NAV_FOOT)
+    profile_current = ' aria-current="page"' if active == "settings" else ""
     return f"""<aside class="side">
   <a href="dashboard.html" aria-label="Kredibel home"><img class="lockup" src="{BRAND}/kredibel-logo.svg" alt="Kredibel"/><img class="side-mark" src="{BRAND}/kredibel-mark.svg" alt="Kredibel"/></a>
   <a class="workspace" href="plan-usage.html"><span class="ws-icon">{icon("building")}</span><span><strong>Sunrise Coffee Roasters</strong><span class="sub">Company, IDR, IFRS</span></span>{icon("chevron-down", "icon icon-sm")}</a>
@@ -51,9 +50,8 @@ def side(active: str) -> str:
     <span class="nav-group-label">AI quality</span><span class="nav-sep" aria-hidden="true"></span>{ai}
   </nav>
   <div class="side-foot">
-    <div class="trial-card"><strong>Free trial: 23 days left</strong><span>286 of 400 pages read this month</span><span class="bar"><i></i></span><a href="plan-usage.html">Plan and usage</a></div>
-    <nav class="nav" aria-label="Settings">{foot}</nav>
-    <a class="user" href="plan-usage.html"><span class="avatar" role="img" aria-label="Signed in as Maya Sari">MS</span><span><strong>Maya Sari</strong>Owner</span></a>
+    <a class="trial-status" href="plan-usage.html" title="Plan and usage"><strong>Free trial: 23 days left</strong><span class="bar" aria-hidden="true"><i style="width:72%"></i></span><span class="pages">286 of 400 pages</span></a>
+    <a class="user" href="plan-usage.html"{profile_current} title="Settings" aria-label="Settings, signed in as Maya Sari (Owner)"><span class="avatar" aria-hidden="true">MS</span><span><strong>Maya Sari</strong>Owner</span>{icon("sliders", "icon user-action")}</a>
   </div>
 </aside>"""
 

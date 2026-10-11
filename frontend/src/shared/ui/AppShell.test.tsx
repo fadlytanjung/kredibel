@@ -36,11 +36,26 @@ describe('AppShell (AC-001-16)', () => {
     ])
   })
 
-  it('shows the workspace, trial card and user it was given, and invents nothing', () => {
+  it('shows the workspace, trial status and profile it was given, and invents nothing', () => {
     renderShell(FULL_PROPS)
     expect(screen.getByText('Synthetic Books Ltd')).toBeInTheDocument()
-    expect(screen.getByText('286 of 400 pages read this month')).toBeInTheDocument()
-    expect(screen.getByRole('img', { name: 'Signed in as Maya Sari' })).toHaveTextContent('MS')
+    const trial = screen.getByRole('link', { name: /Free trial: 23 days left/ })
+    expect(trial).toHaveAttribute('href', '/settings/plan')
+    expect(trial).toHaveTextContent('286 of 400 pages')
+    expect(screen.getByRole('link', { name: 'Settings, signed in as Maya Sari (Owner)' })).toHaveTextContent('MS')
+  })
+
+  it('opens Settings from the profile row; there is no separate Settings item', () => {
+    renderShell(FULL_PROPS, '/settings/plan')
+    const profile = screen.getByRole('link', { name: /^Settings, signed in as Maya Sari/ })
+    expect(profile).toHaveAttribute('href', '/settings/profile')
+    expect(profile).toHaveAttribute('aria-current', 'page')
+    expect(screen.queryByRole('navigation', { name: 'Settings' })).not.toBeInTheDocument()
+  })
+
+  it('says when the trial has ended in the sidebar (AC-013-12)', () => {
+    renderShell({ ...FULL_PROPS, trial: { status: 'TRIAL_EXPIRED', daysLeft: 0, pagesUsed: 12, pagesMax: 400 } })
+    expect(screen.getByRole('link', { name: /Your free trial has ended/ })).toHaveTextContent('12 of 400 pages')
   })
 
   it('opens the More sheet from the bottom navigation and closes it with Esc', () => {

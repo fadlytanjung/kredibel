@@ -104,7 +104,7 @@ names are short:
 | `bg.surface` | `surface` | `#FFFFFF` | Panels, tables, forms |
 | `bg.sunken` | `sunken` | `#E8ECEE` | Table headers, wells, the evidence viewer |
 | `bg.raised` | `raised` | `#FFFFFF` | Overlays: drawers, sheets, popovers |
-| `bg.inverse` | `inverse` | `#16212B` | The trial card, tooltips, toasts, the onboarding brand panel ("ink") |
+| `bg.inverse` | `inverse` | `#16212B` | Tooltips, toasts, the onboarding brand panel ("ink") |
 | `border.default` / `.strong` | `line`, `line-strong` | `#DCE1E5`, `#828E99` | Hairlines; inputs and boundaries (≥ 3:1) |
 | `text.default` / `.muted` / `.subtle` | `ink`, `ink-muted`, `ink-subtle` | `#16212B`, `#56636F`, `#6B7782` | Text (all ≥ 4.5:1 on surface) |
 | `brand.default` / `.hover` / `.soft` / `.line` | `brand`, `brand-hover`, `brand-soft`, `brand-line` | `#0E5A47`, `#0A4738`, `#E7F2EE`, `#2E8B6A` | Ledger green: primary actions, links, selection, reconciled |
@@ -228,7 +228,7 @@ Breakpoints are tokens (`layout.breakpoint.*`) and Tailwind variants named after
 | Compact | < 600 | Top bar (mark or back, title, bell) + bottom navigation (Dashboard, Documents, Review, Risk, More) + floating **Upload** | 16 | default |
 | Medium | 600–839 | Navigation rail (88 px, icon and short label) + top bar with breadcrumbs, search and **Upload** | 24 | `medium:` |
 | Expanded | 840–1199 | Rail | 32 | `expanded:` |
-| Large | ≥ 1200 | Labelled sidebar (248 px): logo, workspace, grouped navigation with counts, trial card, user | 32 | `large:` |
+| Large | ≥ 1200 | Labelled sidebar (248 px): logo, workspace, grouped navigation with counts, trial status, profile (opens Settings); fits 768 px tall without scrolling | 32 | `large:` |
 | Wide | ≥ 1600 | Sidebar; content max 1280 px, left-aligned | 32 | `wide:` |
 
 ```
@@ -244,7 +244,7 @@ Compact (390)                 Medium / expanded (834)              Large (1440)
 │ Money flow as bars   │      │ Cl │ Months (scroll)          │    │  Risk 2  │ └──────────────────┘ └───────────┘│
 │ Months (scroll)  [⬆] │      │ As │                          │    │ Insight  │ Months: Jan Feb Mar Apr May Jun  │
 ├──────────────────────┤      │    │                          │    │ trial    │                                  │
-│ Da  Do  Rv  Ri  More │      │ Se │                          │    │ Maya     │                                  │
+│ Da  Do  Rv  Ri  More │      │ MS │                          │    │ Maya   ⚙ │                                  │
 └──────────────────────┘      └────┴──────────────────────────┘    └──────────┴──────────────────────────────────┘
 ```
 
@@ -377,7 +377,7 @@ component has a Storybook story per state and size class. The mock class names i
 | `Sidebar` / `NavRail` / `BottomNav` | `groups[]`, `active`, `counts` | Same items; the rail shows short labels; neutral counts (totals) only in the sidebar; alert counts everywhere |
 | `TopBar` | `title`, `back?`, `crumbs`, `actions` | Compact: mark or back + title + bell; ≥ 600: breadcrumbs, period, search, bell, **Upload** |
 | `WorkspaceSwitcher` | `workspace` | Name, type, currency and framework ("Company, IDR, IFRS"); one workspace in P0 |
-| `TrialCard` / `TrialBadge` | `daysLeft`, `usage` | Inverse card in the sidebar; badge in Settings on compact |
+| `TrialStatus` / `TrialBadge` | `daysLeft`, `usage` | Two-line row in the sidebar foot (days left, a thin pages meter; opens Plan and usage); badge in the top bar below 1200 px |
 | `Dock` / `UploadFab` | children | Sticks to the bottom; stacks the floating **Upload** over the bottom nav |
 | `Sheet` | `side` (`bottom`, `right`), `size` | Bottom sheet with handle on compact; right sheet 440 px at ≥ 600; focus trap; `Esc` |
 | `MoreSheet` | `items[]` | Compact only: the bottom nav's **More** opens the rest of the navigation as a bottom sheet |

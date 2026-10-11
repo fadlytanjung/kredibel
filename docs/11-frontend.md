@@ -101,13 +101,23 @@ they never set colours, font sizes or shadows ([`12`](12-design-system.md) §0).
 | Insight | Assistant (P1) | `/assistant` | — |
 | AI quality | Labels (P1) | `/labels` | labels that need a check, neutral |
 | AI quality | Runs (P1, owner only) | `/runs` | — |
-| Footer | Settings | `/settings` | — |
+| Footer | Profile: avatar, name and role; opens Settings (no separate Settings item) | `/settings/profile` | — |
 
 The logo, the workspace switcher (one workspace in P0; its subtitle shows the type, currency and
-accounting framework), the trial card and a global **Upload** action are always reachable: in the
+accounting framework), the trial status and a global **Upload** action are always reachable: in the
 sidebar and top bar from 600 px, as the floating **Upload** button and the bottom navigation
 (Dashboard, Documents, Review, Risk, More) below 600 px. **More** opens a sheet with Reconciliation,
 Clients and suppliers, Assistant, Labels, Runs and Settings; `Esc` or a tap outside closes it.
+
+The sidebar foot has two rows and nothing else, so the labelled sidebar shows every item without
+scrolling in a window 768 px tall (below that only the navigation scrolls; the logo and the foot stay
+put):
+
+- **Trial status**: "Free trial: 23 days left", then a thin meter with "286 of 400 pages" read this
+  month; the row opens Plan and usage. After expiry it reads "Your free trial has ended". From 600 to
+  1199 px the rail hides it and the top bar's trial badge carries it (AC-013-12).
+- **Profile**: the avatar, name and role, with a settings icon; it opens Settings (the profile section
+  first) and is marked current on every Settings page. In the rail it is the avatar alone.
 
 ### 4.2 Routes
 
@@ -298,7 +308,7 @@ express (drawer versus full page).
 
 | Screen | Compact (< 600) | Medium and expanded (600–1199) | Large (≥ 1200) |
 |---|---|---|---|
-| App frame | Top bar (mark or back, title, bell); bottom nav; floating **Upload** | Rail with short labels; top bar with breadcrumbs, search and **Upload** | Labelled sidebar with workspace, trial card and user |
+| App frame | Top bar (mark or back, title, bell); bottom nav; floating **Upload** | Rail with short labels and the avatar (opens Settings); top bar with breadcrumbs, search and **Upload** | Labelled sidebar with workspace, trial status and profile (opens Settings) |
 | Dashboard | Sentence, figures in 2 columns, **Needs you**, risk, then the charts one under the other (money flow as ranked bars), months scroll with snap | Figures in 2 columns; Needs you and Risk stacked; charts full width, medium drawings (Sankey from 640 px of panel) | Figures in 6 columns; Needs you beside Risk; charts full width, one per row, wide drawings from 960 px of panel; months in one row |
 | Labels (P1) | Rows as cards (subject, value, confidence, status); the label panel opens as a page | Table from 760 px of container; panel below the table | Table with source, extraction, run and dataset columns; panel below with the form beside the provenance |
 | Runs (P1) | Runs as cards; span waterfall with the bar under each name; inspector below | Table; waterfall beside names | Table; waterfall; inspector below with the call beside its request and response |

@@ -68,8 +68,10 @@ member (`owner`); P1 adds an accounting team with roles.
   pages, AI spend, month runs today, seats), Starter, Professional and Enterprise with a **Coming soon**
   badge and disabled buttons, and the **Loan readiness report** and **Bank feeds** as coming-soon
   features. Nothing can start a purchase.
-- **AC-013-12** The top bar shows a trial badge; in the last 7 days and after expiry a banner says
-  what happens; after expiry Upload is disabled with the reason.
+- **AC-013-12** The trial status is always visible: from 1200 px as a row at the sidebar foot (days
+  left and pages read this month, opening Plan and usage), below that as a badge in the top bar; in
+  the last 7 days and after expiry a banner says what happens; after expiry Upload is disabled with
+  the reason.
 - **AC-013-13** A `403 PLAN_LIMIT_REACHED` opens a dialog naming the limit, the usage and the maximum;
   the upload sheet warns before ("4 of 400 pages left this month").
 

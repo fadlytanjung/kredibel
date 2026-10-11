@@ -55,22 +55,50 @@ function group(name: NavGroup) {
   return NAV_ITEMS.filter((item) => item.group === name)
 }
 
-export function TrialCard({ trial }: { trial: AppShellTrial }) {
+/** Two short lines at the sidebar foot; the whole row opens Plan and usage (docs/11 §4.1). */
+export function TrialStatus({ trial }: { trial: AppShellTrial }) {
   const { t } = useTranslation()
+  const ended = trial.status === 'TRIAL_EXPIRED'
   const percent = Math.min(100, Math.round((trial.pagesUsed / Math.max(1, trial.pagesMax)) * 100))
   return (
-    <div className="trial-card">
-      <strong>
-        {trial.status === 'TRIAL_EXPIRED'
-          ? t('shell.trialEndedCard')
-          : t('shell.trialDaysLeft', { count: trial.daysLeft })}
-      </strong>
-      <span>{t('shell.pagesUsed', { used: trial.pagesUsed, max: trial.pagesMax })}</span>
-      <span className="bar">
+    <Link
+      className={`trial-status${ended ? ' is-ended' : ''}`}
+      to="/settings/plan"
+      title={t('shell.planAndUsage')}
+    >
+      <strong>{ended ? t('shell.trialEndedCard') : t('shell.trialDaysLeft', { count: trial.daysLeft })}</strong>
+      <span className="bar" aria-hidden="true">
         <i style={{ width: `${percent}%` }} /* allow-raw-style: computed meter width */ />
       </span>
-      <Link to="/settings/plan">{t('shell.planAndUsage')}</Link>
-    </div>
+      <span className="pages">{t('shell.pagesShort', { used: trial.pagesUsed, max: trial.pagesMax })}</span>
+    </Link>
+  )
+}
+
+/** The avatar, name and role in one link to Settings; the rail shows the avatar alone. */
+function ProfileLink({ user, activePath }: { user: AppShellUser; activePath: string }) {
+  const { t } = useTranslation()
+  const role = user.role ? t(`roles.${user.role}`) : null
+  const label = role
+    ? t('shell.profileWithRole', { name: user.name, role })
+    : t('shell.profile', { name: user.name })
+  return (
+    <Link
+      className="user"
+      to="/settings/profile"
+      title={t('nav.settings.long')}
+      aria-label={label}
+      aria-current={isActivePath(activePath, '/settings') ? 'page' : undefined}
+    >
+      <span className="avatar" aria-hidden="true">
+        {initialsOf(user.name)}
+      </span>
+      <span>
+        <strong>{user.name}</strong>
+        {role}
+      </span>
+      <Icon name="sliders" className="user-action" />
+    </Link>
   )
 }
 
@@ -94,7 +122,6 @@ export function AppShellSide({ user, workspace, trial, counts, activePath }: Sid
     books: links('books'),
     insight: links('insight'),
     ai: links('ai'),
-    foot: links('foot'),
   }
 
   return (
@@ -127,21 +154,8 @@ export function AppShellSide({ user, workspace, trial, counts, activePath }: Sid
         {nav.ai}
       </nav>
       <div className="side-foot">
-        {trial && <TrialCard trial={trial} />}
-        <nav className="nav" aria-label={t('nav.settingsNav')}>
-          {nav.foot}
-        </nav>
-        {user && (
-          <Link className="user" to="/settings/profile">
-            <span className="avatar" role="img" aria-label={t('shell.signedInAs', { name: user.name })}>
-              {initialsOf(user.name)}
-            </span>
-            <span>
-              <strong>{user.name}</strong>
-              {user.role ? t(`roles.${user.role}`) : null}
-            </span>
-          </Link>
-        )}
+        {trial && <TrialStatus trial={trial} />}
+        {user && <ProfileLink user={user} activePath={activePath} />}
       </div>
     </aside>
   )

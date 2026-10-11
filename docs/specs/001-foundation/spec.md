@@ -73,10 +73,12 @@ domain-specific yet. Everything later builds on these seams.
   `tailwind-theme.css` from `contracts/design/tokens.json`; `make tokens-check` fails when a generated
   file is stale or a listed contrast pair is below its minimum.
 - **AC-001-16** The app shell shows the navigation of [`docs/11`](../../11-frontend.md) §4 (Dashboard,
-  Documents, Reconciliation, Review, Risk, Clients & suppliers, Assistant (P1), Settings) as a
+  Documents, Reconciliation, Review, Risk, Clients & suppliers, Assistant (P1)) as a
   labelled sidebar from 1200 px, a rail with short labels from 600 to 1199 px, and below 600 px a
-  bottom navigation (Dashboard, Documents, Review, Risk, More) with the rest in the More sheet; the
-  logo, the workspace name, the trial badge and a global **Upload** action are always reachable; no
+  bottom navigation (Dashboard, Documents, Review, Risk, More) with the rest in the More sheet;
+  Settings opens from the profile row (avatar, name, role) at the foot of the sidebar and rail, and
+  from the More sheet; the labelled sidebar fits a window 768 px tall without scrolling; the logo,
+  the workspace name, the trial status and a global **Upload** action are always reachable; no
   horizontal page scroll at 360 px.
 - **AC-001-17** Storybook builds with the first `shared/ui` components (Button, Badge, Panel,
   EmptyState, Skeleton, Toast, AppShell); every story passes axe; Playwright visual tests of the

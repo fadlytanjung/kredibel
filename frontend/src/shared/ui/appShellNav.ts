@@ -73,6 +73,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     fab: true,
   },
   { key: 'runs', path: '/runs', icon: 'flow', group: 'ai' },
+  // Not drawn in the sidebar or rail: the profile row opens Settings (docs/11 §4.1); the More sheet lists it.
   { key: 'settings', path: '/settings', icon: 'sliders', group: 'foot' },
 ]
 

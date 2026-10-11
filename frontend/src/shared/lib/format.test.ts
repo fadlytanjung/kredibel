@@ -1,33 +1,65 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
+import i18n from '../i18n/setup'
 import { formatDate } from './formatDate'
 import { formatMoney } from './formatMoney'
 
-describe('formatMoney', () => {
+const ORIGINAL_TZ = process.env.TZ
+
+// A second UI language only becomes active once it has resources, as a real one would.
+i18n.addResourceBundle('de', 'common', { app: { name: 'Kredibel' } })
+
+afterEach(async () => {
+  process.env.TZ = ORIGINAL_TZ
+  await i18n.changeLanguage('en')
+})
+
+describe('formatMoney (AC-001-14)', () => {
   it('formats standard amount with currency prefix', () => {
-    const formatted = formatMoney(1250000, { currency: 'IDR' })
-    expect(formatted).toContain('1,250,000')
+    expect(formatMoney('1250000.00', { currency: 'IDR' })).toContain('1,250,000')
   })
 
   it('formats compact amounts', () => {
-    const formatted = formatMoney(1250000, { currency: 'IDR', compact: true })
-    expect(formatted).toMatch(/1\.25.*M/)
+    expect(formatMoney('1250000', { currency: 'IDR', compact: true })).toMatch(/1\.25.*M/)
   })
 
-  it('handles string amounts', () => {
-    const formatted = formatMoney('500000', { currency: 'IDR' })
-    expect(formatted).toContain('500,000')
+  it('keeps every digit of a decimal string (money is never a float)', () => {
+    // 2^53 + 1 cannot be represented as a float; parseFloat would print ...992.
+    expect(formatMoney('9007199254740993', { currency: 'IDR' })).toContain('9,007,199,254,740,993')
+  })
+
+  it('keeps the sign of an outgoing amount', () => {
+    expect(formatMoney('-32100000.00', { currency: 'IDR' })).toMatch(/-.*32,100,000/)
+  })
+
+  it('rejects a value that is not a decimal string', () => {
+    expect(formatMoney('12abc', { currency: 'IDR' })).toBe('')
+  })
+
+  it('uses the active i18n locale', async () => {
+    await i18n.changeLanguage('de')
+    expect(formatMoney('1250000', { currency: 'IDR' })).toContain('1.250.000')
   })
 })
 
-describe('formatDate', () => {
+describe('formatDate (AC-001-14)', () => {
   it('formats ISO date strings', () => {
     const formatted = formatDate('2026-10-11')
     expect(formatted).toContain('Oct')
     expect(formatted).toContain('2026')
   })
 
+  it('shows a calendar date as that day in every time zone', () => {
+    process.env.TZ = 'America/Los_Angeles'
+    expect(formatDate('2026-10-11')).toContain('11')
+  })
+
   it('handles invalid dates gracefully', () => {
     expect(formatDate('')).toBe('')
     expect(formatDate('invalid-date')).toBe('')
+  })
+
+  it('uses the active i18n locale', async () => {
+    await i18n.changeLanguage('de')
+    expect(formatDate('2026-10-11')).toContain('Okt')
   })
 })

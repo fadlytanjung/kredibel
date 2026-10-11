@@ -1,31 +1,42 @@
 /**
- * Format dates according to calendar conventions.
+ * Format dates for display.
  *
- * Normative reference: docs/09-data-model.md §1 and docs/11 §3.
+ * Normative reference: docs/13 §4 (calendar dates have no zone; instants are UTC), AC-001-14.
  */
+
+import { activeLocale } from './activeLocale'
+
+const CALENDAR_DATE = /^(\d{4})-(\d{2})-(\d{2})$/
+
+function toDate(input: string | Date | number): Date {
+  if (typeof input === 'string') {
+    // new Date('2026-10-11') is UTC midnight, which is 10 Oct west of UTC. A calendar date is
+    // the same day everywhere, so build it in local time.
+    const match = CALENDAR_DATE.exec(input)
+    if (match) {
+      return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+    }
+  }
+  return input instanceof Date ? input : new Date(input)
+}
 
 export function formatDate(
   dateInput: string | Date | number,
   options?: Intl.DateTimeFormatOptions,
 ): string {
-  if (!dateInput) {
+  if (dateInput === '' || dateInput === null || dateInput === undefined) {
     return ''
   }
 
-  const date = typeof dateInput === 'string' || typeof dateInput === 'number'
-    ? new Date(dateInput)
-    : dateInput
-
-  if (isNaN(date.getTime())) {
+  const date = toDate(dateInput)
+  if (Number.isNaN(date.getTime())) {
     return ''
   }
 
-  const defaultOptions: Intl.DateTimeFormatOptions = {
+  return new Intl.DateTimeFormat(activeLocale(), {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
     ...options,
-  }
-
-  return new Intl.DateTimeFormat('en-US', defaultOptions).format(date)
+  }).format(date)
 }

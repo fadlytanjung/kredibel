@@ -24,8 +24,8 @@ _Last updated: 11 Oct 2026 — Spec 001 Foundation complete (tests green) and de
 
 | Component | Spec | Status | Notes |
 |---|---|---|---|
-| Plans config + entitlement checks | 013 | Specified | `contracts/plans.v1.yaml`, ADR-011 |
-| Onboarding as individual or company (free trial, claims, first bank account) | 013 | Specified | `SIGNUP_MODE`, `MAX_WORKSPACES` |
+| Plans config + entitlement checks | 013 | In progress | Catalog validated at start-up; pure checks for upload, month run, assistant, invite (T013-01…03). EntitlementService and wiring next |
+| Onboarding as individual or company (free trial, claims, first bank account) | 013 | In progress | `WorkspaceService.create` with one Firestore transaction, double-submit and claims-repair guard (T013-04…06); routes and UI next |
 | Usage counters + page reservation at upload | 013, 003 | Specified | |
 | Settings: profile, bank accounts, language, plan & usage (coming soon items) | 013 | Specified | |
 | Members and roles (owner, accountant, reviewer, viewer) | 013 | Specified (P1) | |
@@ -100,4 +100,4 @@ _Record every deliberate deviation here with the reason and the doc that was upd
 | Date | Deviation | Reason | Docs updated |
 |---|---|---|---|
 | 11 Oct 2026 | Firebase Hosting serves the SPA and rewrites `/api/**` to `kredibel-web` (ADR-008 had Cloud Run only) | Stable demo URL and edge-served assets; same origin kept | [ADR-018](adr/ADR-018-firebase-hosting-in-front-of-cloud-run.md); `14` §8, `16` §5 and §8, `21`, `05` §3, ADR-008 status. **Open:** `diagrams/gcp-architecture.drawio.svg` still shows Cloud Run only; update it with the draw.io extension. |
-| 11 Oct 2026 | CI `frontend-check` runs ESLint, tsc, Vitest, `tokens-check` and `no_raw_styles`; the Playwright visual tests and Storybook axe checks of docs/16 §8 run locally only | Visual baselines are recorded on macOS (`-darwin.png`) and the Storybook test runner was never installed (T001-29) | **Open:** record `-linux.png` baselines in the Playwright Docker image and add the Storybook Vitest a11y runner, then add both to `frontend-check`. |
+| 11 Oct 2026 | CI `frontend-check` runs ESLint, tsc, Vitest, `tokens-check` and `no_raw_styles`; the Playwright visual tests and Storybook axe checks of docs/16 §8 run locally only; `backend-check` skips the Firestore emulator tests | Visual baselines are recorded on macOS (`-darwin.png`), the Storybook test runner was never installed (T001-29), and the Cloud Build step has no emulator | **Open:** record `-linux.png` baselines in the Playwright Docker image, add the Storybook Vitest a11y runner, and run `backend-check` in the `google-cloud-cli:emulators` image; then enforce all three. Locally `make docker-up` + `make check` runs everything. |

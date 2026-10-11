@@ -68,3 +68,54 @@ class Profile(DomainModel):
     address: Address | None = None
     aliases: list[str] = Field(default_factory=list, max_length=10)
     accounting_framework: Literal["IFRS", "US_GAAP"] = "IFRS"
+
+
+class BankAccountCreate(DomainModel):
+    """The full number is accepted once; only its mask and keyed hash are stored."""
+
+    bank_name: str = Field(min_length=1, max_length=100)
+    account_number: str = Field(pattern=r"^[0-9 -]{6,30}$")
+    holder_name: str = Field(min_length=1, max_length=200)
+    nickname: str | None = Field(default=None, max_length=50)
+    ledger_account_code: str | None = Field(default=None, max_length=30)
+
+
+class WorkspaceCreate(DomainModel):
+    """POST /api/workspaces (contracts/openapi.yaml WorkspaceCreate, AC-013-2)."""
+
+    name: str = Field(min_length=2, max_length=100)
+    entity_type: EntityType
+    profile: Profile | None = None
+    tax_id: str | None = Field(default=None, max_length=30)
+    country: Literal["ID"] = "ID"
+    timezone: str = Field(min_length=1, max_length=64)
+    bank_accounts: list[BankAccountCreate] = Field(default_factory=list, max_length=5)
+
+
+class BankAccount(DomainModel):
+    account_id: str
+    bank_name: str
+    account_masked: str
+    holder_name: str
+    nickname: str | None = None
+    source: Literal["DECLARED", "DETECTED"] = "DECLARED"
+    ledger_account_code: str | None = None
+    first_month: str | None = None
+    last_month: str | None = None
+
+
+class Workspace(DomainModel):
+    """orgs/{orgId} as the services see it."""
+
+    org_id: str
+    name: str
+    entity_type: EntityType
+    profile: Profile
+    country: str
+    timezone: str
+    currency: str
+    default_language: str
+    subscription: Subscription
+    share_verified_labels: bool = False
+    created_by: str
+    created_at: datetime

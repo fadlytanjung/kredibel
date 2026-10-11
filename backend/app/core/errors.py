@@ -74,6 +74,44 @@ class WorkspaceRequiredError(DomainError):
         super().__init__(code=code, status=403, title="Workspace required", detail=detail)
 
 
+class AlreadyInWorkspaceError(DomainError):
+    """Creating a workspace or accepting an invite while already in one (409, docs/10 §3)."""
+
+    def __init__(self, org_id: str | None = None) -> None:
+        super().__init__(
+            code="ALREADY_IN_WORKSPACE",
+            status=409,
+            title="Already in a workspace",
+            detail="You already have a workspace. Refresh your session to open it.",
+        )
+        self.org_id = org_id
+
+
+class SignupClosedError(DomainError):
+    """SIGNUP_MODE is closed or invite-only, or MAX_WORKSPACES is reached (403, docs/10 §3)."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            code="SIGNUP_CLOSED",
+            status=403,
+            title="Sign-up is closed",
+            detail="New workspaces cannot be created right now.",
+        )
+
+
+class ValidationProblem(DomainError):
+    """A business-level validation failure, shaped like the 422 for invalid request bodies."""
+
+    def __init__(self, field: str, message: str) -> None:
+        super().__init__(
+            code="VALIDATION_ERROR",
+            status=422,
+            title="Validation error",
+            detail="The request is not valid.",
+            extras={"errors": [{"field": field, "message": message}]},
+        )
+
+
 class NotFoundError(DomainError):
     """Raised when a requested resource does not exist (404)."""
 

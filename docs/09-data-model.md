@@ -255,7 +255,7 @@ As [`08`](08-risk-engine.md) §1 (`code`, `category`, `scope`, `docId?`, `month?
 
 ### 3.16 `orgs/{orgId}/events/{eventId}` (append-only audit)
 
-`type` (`DOCUMENT_UPLOADED`, `DUPLICATE_RECORDED`, `DOCUMENT_REMOVED`, `DUPLICATE_CONFIRMED`,
+`type` (`WORKSPACE_CREATED`, `DOCUMENT_UPLOADED`, `DUPLICATE_RECORDED`, `DOCUMENT_REMOVED`, `DUPLICATE_CONFIRMED`,
 `DUPLICATE_REJECTED`, `VALUE_CORRECTED`, `CATEGORY_CHANGED`, `MATCH_CREATED`, `MATCH_REJECTED`,
 `REVIEW_ITEM_RESOLVED`, `FINDING_ACKNOWLEDGED`,
 `FINDING_DISMISSED`, `SUGGESTION_ACCEPTED`, `SUGGESTION_REJECTED`, `LEDGER_MAPPING_CONFIRMED`,
@@ -282,6 +282,7 @@ catalog and help pages, `source` (file path), `text`, `embedding_v1`. Rebuilt at
 | `orgPrivate/{orgId}/accountHashes/{accountId}` | Salted hash of a full bank account number (HMAC with a Secret Manager key in production) |
 | `orgPrivate/{orgId}/counterpartyAccounts/{id}` | Hashes of supplier and client accounts seen (for `X08`) |
 | `system/signup` | `{workspacesCreated}`; enforces `MAX_WORKSPACES` |
+| `system/signup/users/{uid}` | `{orgId, role, createdAt}`: the user's one workspace, written in the creating transaction. A second create before the token carries the claim (double submit) finds it and gets `409 ALREADY_IN_WORKSPACE`; the server re-sets the claims from it if they were lost |
 | `knowledgeChunks/{chunkId}` (P1) | Shared help and policy passages for the assistant (§3.17) |
 | `system/migrations/{migrationId}`, `system/migrationLock` | Migration registry and lease ([`22`](22-data-migrations.md) §5) |
 

@@ -1,6 +1,5 @@
 """Tests for Firestore migration runner and 0000_example migration (AC-001-20)."""
 
-import os
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -11,10 +10,8 @@ from migrations.runner import LockHeldError, MigrationRunner
 
 
 @pytest.fixture
-def firestore_db():
+def firestore_db(firestore_emulator: str):
     """Firestore emulator client fixture."""
-    emulator_host = os.environ.get("FIRESTORE_EMULATOR_HOST", "localhost:8080")
-    os.environ["FIRESTORE_EMULATOR_HOST"] = emulator_host
     db = firestore.Client(project="cloud-hack2skill")
     # Clean lock and test records
     db.collection("system").document("migrationLock").delete()

@@ -1,4 +1,29 @@
 {
+  "AccountHashDoc": {
+    "fields": {
+      "account_id": "str",
+      "hash": "str",
+      "org_id": "str"
+    },
+    "file": "workspace.py",
+    "schemaVersion": null
+  },
+  "BankAccountDoc": {
+    "fields": {
+      "account_id": "str",
+      "account_masked": "str",
+      "bank_name": "str",
+      "first_month": "str | None",
+      "holder_name": "str",
+      "last_month": "str | None",
+      "ledger_account_code": "str | None",
+      "nickname": "str | None",
+      "org_id": "str",
+      "source": "str"
+    },
+    "file": "workspace.py",
+    "schemaVersion": null
+  },
   "DocumentDocV2": {
     "fields": {
       "doc_type": "str",
@@ -24,11 +49,74 @@
     "file": "document.py",
     "schemaVersion": null
   },
+  "EventDoc": {
+    "fields": {
+      "actor_role": "str",
+      "actor_uid": "str",
+      "at": "datetime",
+      "details": "dict[str, Any]",
+      "event_id": "str",
+      "org_id": "str",
+      "subject": "dict[str, str]",
+      "type": "str"
+    },
+    "file": "workspace.py",
+    "schemaVersion": null
+  },
   "FirestoreModel": {
     "fields": {
       "schema_version": "int"
     },
     "file": "base.py",
     "schemaVersion": 1
+  },
+  "MemberDoc": {
+    "fields": {
+      "created_at": "datetime",
+      "display_name": "str | None",
+      "email": "str | None",
+      "language": "str",
+      "org_id": "str",
+      "role": "str",
+      "uid": "str"
+    },
+    "file": "workspace.py",
+    "schemaVersion": null
+  },
+  "OrgDoc": {
+    "fields": {
+      "country": "str",
+      "counts": "dict[str, Any]",
+      "created_at": "datetime",
+      "created_by": "str",
+      "currency": "str",
+      "default_language": "str",
+      "entity_type": "EntityType",
+      "learning": "dict[str, Any]",
+      "name": "str",
+      "org_id": "str",
+      "profile": "dict[str, Any]",
+      "subscription": "dict[str, Any]",
+      "timezone": "str"
+    },
+    "file": "workspace.py",
+    "schemaVersion": null
+  },
+  "SignupDoc": {
+    "fields": {
+      "workspaces_created": "int"
+    },
+    "file": "workspace.py",
+    "schemaVersion": null
+  },
+  "SignupUserDoc": {
+    "fields": {
+      "created_at": "datetime",
+      "org_id": "str",
+      "role": "str",
+      "uid": "str"
+    },
+    "file": "workspace.py",
+    "schemaVersion": null
   }
 }

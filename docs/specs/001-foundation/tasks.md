@@ -13,14 +13,14 @@ Each task lists the acceptance criteria it serves.
 
 ## Phase 2 — Backend core
 
-- [ ] **T001-06** **TDD** `core/settings.py` validation (missing required vars fail at startup; `APP_ROLE` enum).
-- [ ] **T001-07** `core/errors.py` + handlers; **TDD** a raised `DomainError` renders RFC 9457 with `code`.
-- [ ] **T001-08** `core/logging.py` JSON logging + request middleware.
-- [ ] **T001-09** **TDD** `core/auth.py`: missing header → 401, bad token → 401, no `orgId` → `Principal(org_id=None)` (routes that need a workspace → `403 WORKSPACE_REQUIRED`), valid → `Principal`. Fake verifier injected through `deps`. (AC-001-4, AC-001-5)
-- [ ] **T001-10** `api/health.py` and `api/me.py`; `main.create_app` mounting by role; **TDD** `/tasks/*` absent on `web`, `/api/me` absent on `worker`. (AC-001-1, AC-001-6, AC-001-10)
-- [ ] **T001-11** `core/security_headers.py`; test that headers are present. 
-- [ ] **T001-12** `api/static.py`: SPA fallback for non-`/api` paths (web/all).
-- [ ] **T001-13** `scripts/set_claims.py` (sets claims, upserts member doc, prints result).
+- [x] **T001-06** **TDD** `core/settings.py` validation (missing required vars fail at startup; `APP_ROLE` enum).
+- [x] **T001-07** `core/errors.py` + handlers; **TDD** a raised `DomainError` renders RFC 9457 with `code`.
+- [x] **T001-08** `core/logging.py` JSON logging + request middleware.
+- [x] **T001-09** **TDD** `core/auth.py`: missing header → 401, bad token → 401, no `orgId` → `Principal(org_id=None)` (routes that need a workspace → `403 WORKSPACE_REQUIRED`), valid → `Principal`. Fake verifier injected through `deps`. (AC-001-4, AC-001-5)
+- [x] **T001-10** `api/health.py` and `api/me.py`; `main.create_app` mounting by role; **TDD** `/tasks/*` absent on `web`, `/api/me` absent on `worker`. (AC-001-1, AC-001-6, AC-001-10)
+- [x] **T001-11** `core/security_headers.py`; test that headers are present. 
+- [x] **T001-12** `api/static.py`: SPA fallback for non-`/api` paths (web/all).
+- [x] **T001-13** `scripts/set_claims.py` (sets claims, upserts member doc, prints result).
 
 ## Phase 3 — Frontend shell
 

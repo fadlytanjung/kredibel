@@ -11,7 +11,7 @@ _Last updated: 11 Oct 2026 — documentation complete (finance-workspace scope, 
 | Component | Spec | Status | Notes |
 |---|---|---|---|
 | Repo layout, Makefile, quality gates | 001 | Built | `make check` all gates green (AC-001-11, AC-001-12) |
-| Settings, logging, errors, auth, security headers | 001 | Specified | |
+| Settings, logging, errors, auth, security headers | 001 | Built | Tests green (AC-001-1, AC-001-4, AC-001-5, AC-001-6, AC-001-10) |
 | Design foundation: tokens, app shell, Storybook, visual tests, raw-style gate | 001 | Specified | `contracts/design/tokens.json`, docs/12 |
 | Data-migration foundation: versions, upcasters, runner, job, backups | 001 | Specified | ADR-013, docs/22 |
 | Dockerfile, Cloud Build, bootstrap, Firebase | 001 | In progress | Dockerfile, cloudbuild.yaml, bootstrap.sh, docker-compose.yml created |

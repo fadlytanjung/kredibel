@@ -6,10 +6,13 @@ Normative references: docs/specs/001-foundation/spec.md AC-001-4, AC-001-5, and 
 from collections.abc import Callable, Coroutine
 from typing import Any, Protocol
 
+import structlog
 from fastapi import Header
 from pydantic import BaseModel
 
 from app.core.errors import UnauthenticatedError, WorkspaceRequiredError
+
+_log = structlog.get_logger()
 
 
 class Principal(BaseModel):
@@ -47,10 +50,7 @@ class FirebaseTokenVerifier:
         except ValueError:
             firebase_admin.initialize_app()
 
-        try:
-            return firebase_admin.auth.verify_id_token(token)
-        except Exception as exc:
-            raise ValueError(f"Failed to verify Firebase token: {exc}") from exc
+        return firebase_admin.auth.verify_id_token(token)
 
 
 _default_verifier: TokenVerifier = FirebaseTokenVerifier()
@@ -75,7 +75,9 @@ def get_principal_dependency(
         try:
             claims = active_verifier.verify_token(token)
         except Exception as exc:
-            raise UnauthenticatedError(detail=f"Invalid or expired token: {exc}") from exc
+            # The SDK's message names the expected project and claim; it stays in our logs only.
+            _log.info("token_rejected", reason=type(exc).__name__)
+            raise UnauthenticatedError(detail="Invalid or expired token") from exc
 
         uid = claims.get("uid") or claims.get("sub") or claims.get("user_id")
         if not uid:

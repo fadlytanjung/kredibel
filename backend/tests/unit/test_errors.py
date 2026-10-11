@@ -52,3 +52,61 @@ async def test_t001_07_exception_handler_returns_problem_json():
     assert body["code"] == "WORKSPACE_REQUIRED"
     assert body["title"] == "Workspace required"
     assert body["status"] == 403
+
+
+def _app_with_routes() -> FastAPI:
+    from app.core.errors import register_error_handlers
+
+    app = FastAPI()
+    register_error_handlers(app)
+
+    @app.get("/boom")
+    async def boom():
+        raise RuntimeError("secret internal detail")
+
+    @app.get("/items/{item_id}")
+    async def item(item_id: int):
+        return {"id": item_id}
+
+    return app
+
+
+async def _get(app: FastAPI, path: str, method: str = "GET"):
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        return await client.request(method, path)
+
+
+async def test_t001_07_unknown_route_is_problem_json_not_found():
+    res = await _get(_app_with_routes(), "/nowhere")
+
+    assert res.status_code == 404
+    assert res.headers["content-type"] == "application/problem+json"
+    assert res.json()["code"] == "NOT_FOUND"
+
+
+async def test_t001_07_wrong_method_is_problem_json():
+    res = await _get(_app_with_routes(), "/boom", method="DELETE")
+
+    assert res.status_code == 405
+    assert res.headers["content-type"] == "application/problem+json"
+    assert res.json()["code"] == "METHOD_NOT_ALLOWED"
+
+
+async def test_t001_07_validation_error_lists_fields_without_echoing_input():
+    res = await _get(_app_with_routes(), "/items/not-a-number")
+
+    assert res.status_code == 422
+    body = res.json()
+    assert body["code"] == "VALIDATION_ERROR"
+    assert body["errors"][0]["field"] == "path.item_id"
+    assert set(body["errors"][0]) == {"field", "message"}
+    assert "not-a-number" not in res.text
+
+
+async def test_t001_07_unexpected_error_is_internal_with_a_generic_detail():
+    res = await _get(_app_with_routes(), "/boom")
+
+    assert res.status_code == 500
+    assert res.json()["code"] == "INTERNAL"
+    assert "secret internal detail" not in res.text

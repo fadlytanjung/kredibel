@@ -132,3 +132,18 @@ async def test_valid_token_with_org_returns_principal(fake_verifier):
 
     assert res.status_code == 200
     assert res.json()["orgId"] == "org_demo"
+
+
+@pytest.mark.asyncio
+async def test_ac001_5_invalid_token_detail_does_not_echo_the_verifier_error():
+    class LeakyVerifier:
+        def verify_token(self, token: str) -> dict:
+            raise ValueError("Firebase ID token has incorrect 'aud' claim: other-project")
+
+    app = create_test_auth_app(LeakyVerifier())
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        res = await client.get("/api/me", headers={"Authorization": "Bearer whatever"})
+
+    assert res.status_code == 401
+    assert res.json()["code"] == "UNAUTHENTICATED"
+    assert "aud" not in res.text and "other-project" not in res.text

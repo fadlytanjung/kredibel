@@ -193,6 +193,7 @@ All errors use **RFC 9457** `application/problem+json`:
 | `LABEL_VALUE_INVALID` | 422 | A label correction whose value is not in the task's vocabulary (`allowedValues` included) |
 | `CONSENT_REQUIRED` | 403 | A dataset export while `learning.shareVerifiedLabels` is off |
 | `DATASET_TOO_SMALL` | 422 | Fewer verified labels than `minExamplesPerTask` for a requested task (`counts` included) |
+| `METHOD_NOT_ALLOWED` | 405 | The path exists but not with this HTTP method |
 | `INTERNAL` | 500 | Unexpected; `detail` is generic, the log has the cause |
 
 ---

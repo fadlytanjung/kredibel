@@ -29,7 +29,8 @@ def create_app(
     # Configure structured logging
     setup_logging(
         log_level=active_settings.log_level,
-        project_id=active_settings.google_cloud_project,
+        service=active_settings.service_name,
+        version=active_settings.app_version,
     )
 
     app = FastAPI(

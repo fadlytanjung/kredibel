@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     # Core
     app_role: AppRole = "all"
     app_version: str = "dev"
+    # Set by Cloud Run on every service (kredibel-web, kredibel-worker); used as the log `service`.
+    k_service: str | None = None
     log_level: str = "INFO"
     data_class: Literal["synthetic", "real"] = "synthetic"
     signup_mode: Literal["open", "invite_only", "closed"] = "open"
@@ -118,3 +120,8 @@ class Settings(BaseSettings):
     feature_labels: bool = False
     feature_agent_analytics: bool = False
     feature_dataset_export: bool = False
+
+    @property
+    def service_name(self) -> str:
+        """Name in every log line: the Cloud Run service, or kredibel-<role> elsewhere."""
+        return self.k_service or f"kredibel-{self.app_role}"

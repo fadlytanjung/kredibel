@@ -252,6 +252,7 @@ for hashed assets. Firebase Hosting (`kredibel-app.web.app`) serves the same fil
 |---|---|---|
 | `APP_ROLE` | `web` \| `worker` \| `all` | router mounting |
 | `APP_VERSION` | git SHA | `/api/health`, logs |
+| `K_SERVICE` | set by Cloud Run (`kredibel-web`, `kredibel-worker`) | `service` in every log line; `kredibel-<role>` when unset |
 | `GOOGLE_CLOUD_PROJECT` | `<PROJECT_ID>` | all clients |
 | `GOOGLE_CLOUD_LOCATION` | `global` | Gemini (ADK, google-genai) |
 | `GOOGLE_GENAI_USE_VERTEXAI` | `TRUE` | ADK, google-genai |

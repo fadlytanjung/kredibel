@@ -7,7 +7,10 @@ export type MeResponse = components['schemas']['Me']
 export interface AuthContextType {
   user: User | null
   me: MeResponse | null
+  /** True until Firebase and, for a signed-in user, the first /api/me have answered. */
   loading: boolean
+  /** /api/me failed: the app cannot tell whether the user has a workspace. */
+  meError: boolean
   needsWorkspace: boolean
   signInWithEmail: (email: string, pass: string) => Promise<void>
   signInWithGoogle: () => Promise<void>

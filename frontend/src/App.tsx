@@ -1,5 +1,6 @@
 import { BrowserRouter } from 'react-router-dom'
 import { AuthProvider, QueryProvider } from './app/providers'
+import { PlanLimitProvider } from './features/plan-limit-dialog'
 import { AppRouter } from './app/router'
 import './shared/i18n/setup'
 
@@ -8,7 +9,9 @@ export function App() {
     <BrowserRouter>
       <QueryProvider>
         <AuthProvider>
-          <AppRouter />
+          <PlanLimitProvider>
+            <AppRouter />
+          </PlanLimitProvider>
         </AuthProvider>
       </QueryProvider>
     </BrowserRouter>

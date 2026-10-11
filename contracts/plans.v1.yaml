@@ -36,14 +36,14 @@ plans:
     highlights:
       - "Every feature of the prototype"
       - "Up to 3 team members"
-      - "400 extracted pages per month"
+      - "400 pages read per month"
 
   - id: starter
     label: Starter
     status: COMING_SOON
     priceLabel: "Pricing announced later"
     highlights:
-      - "More documents and pages per month"
+      - "More documents and pages"
       - "Up to 10 team members"
       - "Email support"
 
@@ -52,8 +52,8 @@ plans:
     status: COMING_SOON
     priceLabel: "Pricing announced later"
     highlights:
-      - "Thorough mode: a Document AI parser reads every page too"
-      - "Several workspaces for an accounting firm"
+      - "A second reader on every page"
+      - "Several workspaces for a firm"
       - "Audit export"
 
   - id: enterprise
@@ -61,17 +61,17 @@ plans:
     status: COMING_SOON
     priceLabel: "Contact us later"
     highlights:
-      - "In-region processing (data residency)"
+      - "Processing in your region"
       - "Single sign-on"
-      - "Custom limits and support"
+      - "Custom limits"
 
 comingSoonFeatures:
   - id: loan_readiness_report
     label: "Loan readiness report"
-    description: "A lender-ready summary of verified months, built on the same checked data."
+    description: "A lender-ready summary of your verified months, built on the same checked data."
   - id: bank_feeds
     label: "Bank feeds"
-    description: "Statements arrive automatically instead of by upload."
+    description: "Statements arrive by themselves instead of by upload."
 
 languages:
   - { code: en, label: "English", status: available }

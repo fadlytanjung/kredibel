@@ -21,14 +21,14 @@ const workspace = (status: 'TRIALING' | 'TRIAL_EXPIRED', daysLeft: number): Work
 
 describe('shellPropsFromWorkspace (AC-013-12)', () => {
   it('names the workspace and its trial', () => {
-    const props = shellPropsFromWorkspace(workspace('TRIALING', 23))
+    const props = shellPropsFromWorkspace(workspace('TRIALING', 23), (p) => `${p.entityType}, ${p.currency}, ${p.framework}`)
 
-    expect(props.workspace).toEqual({ name: 'Synthetic Roasters Ltd', subtitle: 'COMPANY · IDR · IFRS' })
+    expect(props.workspace).toEqual({ name: 'Synthetic Roasters Ltd', subtitle: 'COMPANY, IDR, IFRS' })
     expect(props.trial).toEqual({ status: 'TRIALING', daysLeft: 23, pagesUsed: 286, pagesMax: 400 })
     expect(props.uploadBlocked).toBe(false)
   })
 
   it('blocks Upload after the trial', () => {
-    expect(shellPropsFromWorkspace(workspace('TRIAL_EXPIRED', 0)).uploadBlocked).toBe(true)
+    expect(shellPropsFromWorkspace(workspace('TRIAL_EXPIRED', 0), () => '').uploadBlocked).toBe(true)
   })
 })

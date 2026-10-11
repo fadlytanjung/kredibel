@@ -12,10 +12,12 @@ export interface WorkspaceShellProps {
   uploadBlocked: boolean
 }
 
-export function shellPropsFromWorkspace(ws: Workspace): WorkspaceShellProps {
+/** `subtitle` turns (entity type, currency, framework) into the mock's "Company, IDR, IFRS". */
+export function shellPropsFromWorkspace(
+  ws: Workspace,
+  subtitle: (parts: { entityType: string; currency: string; framework: string }) => string,
+): WorkspaceShellProps {
   const sub = ws.subscription
-  const framework = ws.profile?.accountingFramework
-  const subtitle = [ws.entityType, ws.currency, framework].filter(Boolean).join(' · ')
   const trial =
     sub.status === 'ACTIVE'
       ? undefined
@@ -26,7 +28,14 @@ export function shellPropsFromWorkspace(ws: Workspace): WorkspaceShellProps {
           pagesMax: sub.limits?.extractedPagesPerMonth ?? 0,
         }
   return {
-    workspace: { name: ws.name, subtitle },
+    workspace: {
+      name: ws.name,
+      subtitle: subtitle({
+        entityType: ws.entityType,
+        currency: ws.currency,
+        framework: ws.profile?.accountingFramework ?? 'IFRS',
+      }),
+    },
     trial,
     uploadBlocked: sub.status === 'TRIAL_EXPIRED',
   }

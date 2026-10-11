@@ -1,40 +1,30 @@
 import type { Meta, StoryObj } from '@storybook/react'
-import { Panel } from './Panel'
 import { Button } from './Button'
+import { Panel } from './Panel'
 
 const meta: Meta<typeof Panel> = {
   title: 'UI/Panel',
   component: Panel,
   tags: ['autodocs'],
-  argTypes: {
-    elevation: {
-      control: 'select',
-      options: ['flat', 'raised', 'overlay'],
-    },
-    padded: {
-      control: 'boolean',
-    },
-  },
+  argTypes: { padded: { control: 'boolean' } },
 }
 
 export default meta
 type Story = StoryObj<typeof Panel>
 
-export const Flat: Story = {
-  args: {
-    title: 'Panel Header',
-    children: 'This is the main panel content area.',
-    elevation: 'flat',
-    padded: true,
-  },
+export const Plain: Story = {
+  args: { children: 'A kit panel with its standard padding.', padded: true },
 }
 
-export const RaisedWithAction: Story = {
+export const WithHeadAndAction: Story = {
   args: {
-    title: 'Financial Summary',
-    action: <Button size="sm" variant="secondary">Refresh</Button>,
-    children: 'Detailed ledger and reconciliation statistics.',
-    elevation: 'raised',
+    title: 'Needs you',
+    action: (
+      <Button size="sm" variant="secondary">
+        All 9
+      </Button>
+    ),
+    children: 'Items that only a person can settle.',
     padded: true,
   },
 }

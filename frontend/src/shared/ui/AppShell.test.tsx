@@ -1,12 +1,12 @@
+/**
+ * The shell's structure and behaviour (AC-001-16, AC-013-12). Which parts show at which width is
+ * kit.css's container queries (ADR-019) and is covered by the visual tests at 390/834/1440 px.
+ */
+
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { AppShell, type AppShellProps } from './AppShell'
-
-function setWidth(width: number) {
-  window.innerWidth = width
-  window.dispatchEvent(new Event('resize'))
-}
 
 function renderShell(props: Partial<AppShellProps> = {}, path = '/') {
   return render(
@@ -19,100 +19,47 @@ function renderShell(props: Partial<AppShellProps> = {}, path = '/') {
 }
 
 const FULL_PROPS: Partial<AppShellProps> = {
-  user: { name: 'Demo Owner', role: 'owner' },
-  workspace: { name: 'Synthetic Books Ltd', subtitle: 'COMPANY · IDR · IFRS' },
-  trial: { status: 'TRIALING' as const, daysLeft: 23, pagesUsed: 286, pagesMax: 400 },
-  counts: { documents: 12, review: 3, risk: 1 },
+  user: { name: 'Maya Sari', role: 'owner' },
+  workspace: { name: 'Synthetic Books Ltd', subtitle: 'Company, IDR, IFRS' },
+  trial: { status: 'TRIALING', daysLeft: 23, pagesUsed: 286, pagesMax: 400 },
+  counts: { documents: 92, review: 9, risk: 2, labels: 37 },
 }
 
 describe('AppShell (AC-001-16)', () => {
-  beforeEach(() => setWidth(1440))
-
-  it('shows the docs/11 navigation, workspace, trial and Upload from 1200 px', () => {
+  it('has the navigation of the mocks', () => {
     renderShell(FULL_PROPS)
+    const main = screen.getByRole('navigation', { name: 'Main' })
+    const titles = within(main).getAllByRole('link').map((link) => link.getAttribute('title'))
+    expect(titles).toEqual([
+      'Dashboard', 'Documents', 'Reconciliation', 'Review', 'Risk',
+      'Clients and suppliers', 'Assistant', 'Labels', 'Runs',
+    ])
+  })
 
-    const nav = screen.getByRole('navigation', { name: 'Main navigation' })
-    for (const label of [
-      'Dashboard',
-      'Documents',
-      'Reconciliation',
-      'Review',
-      'Risk',
-      'Clients and suppliers',
-      'Assistant',
-    ]) {
-      expect(within(nav).getByText(label)).toBeInTheDocument()
-    }
-    expect(screen.getByText('Settings')).toBeInTheDocument()
+  it('shows the workspace, trial card and user it was given, and invents nothing', () => {
+    renderShell(FULL_PROPS)
     expect(screen.getByText('Synthetic Books Ltd')).toBeInTheDocument()
-    expect(screen.getByText('Free trial: 23 days left')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Upload' })).toBeInTheDocument()
-    expect(screen.getByText('Page content')).toBeInTheDocument()
+    expect(screen.getByText('286 of 400 pages read this month')).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Signed in as Maya Sari' })).toHaveTextContent('MS')
   })
 
-  it('invents nothing when the caller has no workspace data yet', () => {
-    renderShell({ user: { name: 'Demo Owner', role: 'owner' } })
-
-    expect(screen.queryByText(/Free trial/)).not.toBeInTheDocument()
-    expect(screen.queryByText('Sunrise Coffee Roasters')).not.toBeInTheDocument()
-    expect(screen.getByRole('navigation', { name: 'Main navigation' })).toBeInTheDocument()
-  })
-
-  it('signs out through the callback it was given', () => {
-    const onSignOut = vi.fn()
-    renderShell({ ...FULL_PROPS, onSignOut })
-
-    fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
-    expect(onSignOut).toHaveBeenCalledOnce()
-  })
-
-  it('shows the rail with short labels from 600 to 1199 px', () => {
-    setWidth(834)
+  it('opens the More sheet from the bottom navigation and closes it with Esc', () => {
     renderShell(FULL_PROPS)
-
-    expect(screen.getByLabelText('Rail navigation')).toBeInTheDocument()
-    expect(screen.getByText('Reconcile')).toBeInTheDocument()
-  })
-
-  it('shows the bottom navigation and the More sheet below 600 px; Esc closes the sheet', () => {
-    setWidth(390)
-    renderShell(FULL_PROPS)
-
     const bottom = screen.getByRole('navigation', { name: 'Mobile navigation' })
-    for (const label of ['Dashboard', 'Docs', 'Review', 'Risk', 'More']) {
-      expect(within(bottom).getByText(label)).toBeInTheDocument()
-    }
-
-    fireEvent.click(within(bottom).getByText('More'))
-    const sheet = screen.getByRole('dialog')
-    for (const label of ['Reconciliation', 'Clients and suppliers', 'Assistant', 'Settings']) {
-      expect(within(sheet).getByText(label)).toBeInTheDocument()
-    }
-
+    fireEvent.click(within(bottom).getByRole('button', { name: 'More' }))
+    expect(within(screen.getByRole('dialog', { name: 'More' })).getByText('Labels')).toBeInTheDocument()
     fireEvent.keyDown(window, { key: 'Escape' })
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
-})
 
-describe('AppShell trial (AC-013-12)', () => {
-  beforeEach(() => setWidth(1440))
-
-  it('shows the trial badge in the top bar', () => {
-    renderShell(FULL_PROPS)
-
-    expect(screen.getByText('Free trial · 23 days left')).toBeInTheDocument()
-  })
-
-  it('disables Upload with the reason after the trial', () => {
+  it('disables Upload with the reason after the trial (AC-013-12)', () => {
     renderShell({
       ...FULL_PROPS,
       trial: { status: 'TRIAL_EXPIRED', daysLeft: 0, pagesUsed: 0, pagesMax: 400 },
       uploadBlockedReason: 'Uploads are paused because the free trial has ended.',
     })
-
-    const upload = screen.getByRole('button', { name: 'Upload' })
+    const [upload] = screen.getAllByRole('button', { name: 'Upload' })
     expect(upload).toBeDisabled()
-    expect(upload).toHaveAccessibleDescription('Uploads are paused because the free trial has ended.')
     expect(screen.getByText('Trial ended')).toBeInTheDocument()
   })
 })

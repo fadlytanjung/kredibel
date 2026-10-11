@@ -17,15 +17,17 @@ import {
   AssistantPage,
   CounterpartiesPage,
   DocumentsPage,
+  LabelsPage,
   MonthsPage,
   ReviewPage,
   RiskPage,
-  SettingsPage,
+  RunsPage,
 } from '../pages/Placeholders'
-import { AppShell } from '../shared/ui'
+import { SettingsPage } from '../pages/SettingsPage'
+import { AppShell, Button } from '../shared/ui'
 import { OnboardingPreview } from './OnboardingPreview'
 import { TrialBanner } from '../widgets/TrialBanner'
-import { ShellPreview } from './ShellPreview'
+import { SettingsPreview, ShellPreview } from './ShellPreview'
 
 function FullPageLoading() {
   const { t } = useTranslation()
@@ -38,18 +40,46 @@ function FullPageLoading() {
   )
 }
 
+function SessionError() {
+  const { t } = useTranslation()
+  const { refreshMe, signOut } = useAuth()
+  return (
+    <div className="viewport">
+      <div className="page stack gap-4 items-start">
+        <h1 className="type-h1">{t('session.errorTitle')}</h1>
+        <p className="muted">{t('session.errorBody')}</p>
+        <div className="row">
+          <Button onClick={() => void refreshMe()}>{t('session.retry')}</Button>
+          <Button variant="secondary" onClick={() => void signOut()}>
+            {t('auth.signOut')}
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function ProtectedRoute({ children }: { children: ReactNode }) {
   const { t } = useTranslation()
-  const { user, me, needsWorkspace, loading, signOut } = useAuth()
+  const { user, me, needsWorkspace, loading, meError } = useAuth()
   const navigate = useNavigate()
   const workspaceQuery = useWorkspace(Boolean(user && me?.orgId))
 
   if (loading) return <FullPageLoading />
   if (!user) return <Navigate to="/login" replace />
+  if (meError) return <SessionError />
   if (needsWorkspace) return <Navigate to="/onboarding" replace />
 
   const name = me?.displayName || user.displayName || user.email || ''
-  const shell = workspaceQuery.data ? shellPropsFromWorkspace(workspaceQuery.data) : undefined
+  const shell = workspaceQuery.data
+    ? shellPropsFromWorkspace(workspaceQuery.data, ({ entityType, currency, framework }) =>
+        t('workspace.subtitle', {
+          entity: t(`workspace.entity.${entityType}`),
+          currency,
+          framework,
+        }),
+      )
+    : undefined
   return (
     <AppShell
       user={{ name, role: me?.role }}
@@ -57,7 +87,6 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
       trial={shell?.trial}
       banner={shell?.trial && <TrialBanner trial={shell.trial} />}
       uploadBlockedReason={shell?.uploadBlocked ? t('shell.uploadBlocked') : undefined}
-      onSignOut={() => void signOut()}
       onUpload={() => navigate('/documents?upload=1')}
     >
       {children}
@@ -73,7 +102,7 @@ export function OnboardingRoute({ children }: { children: ReactNode }) {
   return <>{children}</>
 }
 
-// docs/11 §4.2. P1 routes (labels, runs) arrive with specs 016 and 017.
+// docs/11 §4.2; P1 pages (assistant, labels, runs) show placeholders until their specs.
 const PROTECTED_ROUTES: { path: string; element: ReactNode }[] = [
   { path: '/', element: <DashboardPage /> },
   { path: '/documents', element: <DocumentsPage /> },
@@ -88,7 +117,11 @@ const PROTECTED_ROUTES: { path: string; element: ReactNode }[] = [
   { path: '/counterparties/:id', element: <CounterpartiesPage /> },
   { path: '/assistant', element: <AssistantPage /> },
   { path: '/assistant/:threadId', element: <AssistantPage /> },
-  { path: '/settings', element: <SettingsPage /> },
+  { path: '/labels', element: <LabelsPage /> },
+  { path: '/labels/:labelId', element: <LabelsPage /> },
+  { path: '/runs', element: <RunsPage /> },
+  { path: '/runs/:runId', element: <RunsPage /> },
+  { path: '/settings', element: <Navigate to="/settings/plan" replace /> },
   { path: '/settings/:section', element: <SettingsPage /> },
 ]
 
@@ -110,6 +143,9 @@ export function AppRouter() {
       {/* Visual regression target for the shell (tests/visual); never part of a production build. */}
       {import.meta.env.DEV && <Route path="/preview/shell" element={<ShellPreview />} />}
       {import.meta.env.DEV && <Route path="/preview/onboarding" element={<OnboardingPreview />} />}
+      {import.meta.env.DEV && (
+        <Route path="/preview/settings/:section" element={<SettingsPreview />} />
+      )}
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   )

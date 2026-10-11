@@ -15,36 +15,39 @@
     "signOut": "Sign out",
     "signOutAs": "Sign out ({{email}})",
     "signingIn": "Signing in...",
-    "signInFailed": "We could not sign you in. Check your email and password, or try Google."
+    "signInFailed": "We could not sign you in. Check your email and password, or try Google.",
+    "or": "or",
+    "signedInAsLine": "Signed in as {{email}}.",
+    "signOutShort": "Sign out"
   },
   "brand": {
     "tagline": "Every number has a source.",
     "promiseCopies": "Send the same file twice and it is never counted twice.",
     "promiseReadTwice": "Every number is read twice before it counts, and you can see where it came from.",
     "promiseAnyOrder": "Months reconcile themselves, in any upload order. You only fix what is left.",
-    "sampleLabel": "Sample bank lines",
-    "sampleRows": {
+    "ledger": {
       "outDate": "05 Mar",
-      "outText": "TRANSFER OUT GREEN VALLEY",
+      "outText": "TRANSFER OUT GREEN VALLEY FARMS",
       "outAmount": "32,100,000",
+      "outTick": "read twice",
       "inDate": "11 Mar",
       "inText": "TRANSFER IN DAYBREAK CAFE",
       "inAmount": "6,420,000",
+      "inTick": "matched",
       "copyDate": "12 Mar",
       "copyText": "ACB_Feb_2026 (1).pdf",
-      "copyNote": "copy, not read"
+      "copyTick": "copy, not read"
     },
     "footnote": "Synthetic data only. Kredibel never moves money and never changes your accounting system."
   },
   "nav": {
-    "main": "Main navigation",
-    "rail": "Rail navigation",
-    "sidebar": "Sidebar navigation",
+    "main": "Main",
     "mobile": "Mobile navigation",
-    "breadcrumbs": "Breadcrumbs",
+    "breadcrumbs": "Breadcrumb",
     "groups": {
       "books": "Books",
-      "insight": "Insight"
+      "insight": "Insight",
+      "ai": "AI quality"
     },
     "dashboard": {
       "long": "Dashboard",
@@ -52,7 +55,7 @@
     },
     "documents": {
       "long": "Documents",
-      "short": "Docs"
+      "short": "Documents"
     },
     "months": {
       "long": "Reconciliation",
@@ -81,20 +84,37 @@
     "more": "More",
     "moreTitle": "More",
     "closeMore": "Close",
-    "p1Badge": "Soon"
+    "labels": {
+      "long": "Labels",
+      "short": "Labels"
+    },
+    "runs": {
+      "long": "Runs",
+      "short": "Runs"
+    },
+    "settingsNav": "Settings"
   },
   "shell": {
     "upload": "Upload",
-    "notifications": "Risk alerts, {{count}} open",
+    "notifications": "Notifications, {{count}} new",
     "trialDaysLeft_one": "Free trial: {{count}} day left",
     "trialDaysLeft_other": "Free trial: {{count}} days left",
     "pagesUsed": "{{used}} of {{max}} pages read this month",
     "planAndUsage": "Plan and usage",
-    "trialBadge_one": "Free trial · {{count}} day left",
-    "trialBadge_other": "Free trial · {{count}} days left",
+    "trialBadge_one": "Free trial: {{count}} day left",
+    "trialBadge_other": "Free trial: {{count}} days left",
     "trialEnded": "Trial ended",
     "trialEndedCard": "Your free trial has ended",
-    "uploadBlocked": "Uploads are paused because the free trial has ended."
+    "uploadBlocked": "Uploads are paused because the free trial has ended.",
+    "itemsCount": "{{count}} items",
+    "openCount": "{{count}} open",
+    "signedInAs": "Signed in as {{name}}",
+    "backTo": "Back to {{page}}",
+    "search": "Search books",
+    "searchSoon": "Search arrives with the documents library",
+    "notificationsNone": "Notifications",
+    "trialBadgeShort_one": "{{count}} day left",
+    "trialBadgeShort_other": "{{count}} days left"
   },
   "roles": {
     "owner": "Owner",
@@ -116,7 +136,9 @@
     "risk": "Risk",
     "counterparties": "Clients and suppliers",
     "assistant": "Assistant",
-    "settings": "Settings"
+    "settings": "Settings",
+    "labels": "Labels",
+    "runs": "Runs"
   },
   "notFound": {
     "code": "404",
@@ -138,5 +160,44 @@
     "endingSoon_one": "Your free trial ends in {{count}} day. Your books stay readable after that; new uploads pause.",
     "endingSoon_other": "Your free trial ends in {{count}} days. Your books stay readable after that; new uploads pause.",
     "expired": "Your trial has ended. Your books stay readable; new uploads are paused."
+  },
+  "workspace": {
+    "entity": {
+      "COMPANY": "Company",
+      "INDIVIDUAL": "Individual"
+    },
+    "subtitle": "{{entity}}, {{currency}}, {{framework}}"
+  },
+  "settings": {
+    "sections": {
+      "profile": "Profile",
+      "bank-accounts": "Bank accounts",
+      "language": "Language and formats",
+      "plan": "Plan and usage",
+      "members": "Team (soon)"
+    }
+  },
+  "session": {
+    "errorTitle": "We could not load your workspace",
+    "errorBody": "Kredibel could not reach its server to check your workspace. Try again in a moment.",
+    "retry": "Try again"
+  },
+  "planLimit": {
+    "title": "You have reached a plan limit",
+    "body": "{{used}} of {{max}} {{what}} used. The free trial cannot go further this period.",
+    "bodyNoNumbers": "This would go over your plan's {{what}}.",
+    "planAndUsage": "See plan and usage",
+    "close": "Close",
+    "limits": {
+      "documentsPerMonth": "documents this month",
+      "extractedPagesPerMonth": "pages read this month",
+      "aiSpendUsdPerMonth": "USD of AI use this month",
+      "monthRunsPerDay": "month reconciliations today",
+      "assistantQuestionsPerDay": "assistant questions today",
+      "seats": "team seats",
+      "fileSizeMb": "MB per file",
+      "pagesPerDocument": "pages per document",
+      "ledgerRowsPerFile": "rows per ledger file"
+    }
   }
 }

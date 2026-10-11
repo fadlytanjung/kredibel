@@ -9,6 +9,10 @@ import { activeLocale } from './activeLocale'
 export interface FormatMoneyOptions {
   currency?: string
   compact?: boolean
+  /** "USD 1.84" (the mocks' style for small amounts) instead of the locale's symbol. */
+  code?: boolean
+  /** Digits after the decimal point; defaults to none (whole rupiah) or two when compact. */
+  fractionDigits?: number
 }
 
 const DECIMAL = /^-?\d+(\.\d+)?$/
@@ -18,7 +22,7 @@ const DECIMAL = /^-?\d+(\.\d+)?$/
  * (a float loses digits above 2^53 and rounds cents).
  */
 export function formatMoney(amount: string, options: FormatMoneyOptions = {}): string {
-  const { currency = 'IDR', compact = false } = options
+  const { currency = 'IDR', compact = false, code = false, fractionDigits } = options
   if (!DECIMAL.test(amount)) {
     return ''
   }
@@ -27,7 +31,9 @@ export function formatMoney(amount: string, options: FormatMoneyOptions = {}): s
     style: 'currency',
     currency,
     notation: compact ? 'compact' : 'standard',
-    maximumFractionDigits: compact ? 2 : 0,
+    currencyDisplay: code ? 'code' : 'symbol',
+    minimumFractionDigits: fractionDigits ?? 0,
+    maximumFractionDigits: fractionDigits ?? (compact ? 2 : 0),
   })
   return formatter.format(amount as Intl.StringNumericLiteral)
 }

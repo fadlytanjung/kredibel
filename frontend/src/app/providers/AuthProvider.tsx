@@ -21,15 +21,20 @@ import { AuthContext, type AuthContextType, type MeResponse } from '../../entiti
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [me, setMe] = useState<MeResponse | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [authReady, setAuthReady] = useState(false)
+  // 'idle' until the first /api/me answer after sign-in: routes wait for it instead of guessing
+  // that the user has a workspace (which used to show the dashboard before onboarding).
+  const [meState, setMeState] = useState<'idle' | 'ready' | 'error'>('idle')
 
   const fetchMe = async (): Promise<MeResponse | null> => {
     try {
       const data = await apiClient<MeResponse>('/api/me')
       setMe(data)
+      setMeState('ready')
       return data
     } catch {
       setMe(null)
+      setMeState('error')
       return null
     }
   }
@@ -48,6 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setUser(null)
       setMe(null)
+      setMeState('idle')
       setTokenProvider(null)
     }
   }
@@ -63,8 +69,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         setTokenProvider(null)
         setMe(null)
+        setMeState('idle')
       }
-      setLoading(false)
+      setAuthReady(true)
     })
 
     return () => {
@@ -92,7 +99,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value: AuthContextType = {
     user,
     me,
-    loading,
+    loading: !authReady || (user !== null && meState === 'idle'),
+    meError: user !== null && meState === 'error',
     needsWorkspace: me ? me.needsWorkspace : false,
     signInWithEmail,
     signInWithGoogle,

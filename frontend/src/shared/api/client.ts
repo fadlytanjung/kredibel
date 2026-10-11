@@ -29,9 +29,17 @@ export class ProblemError extends Error {
 
 type TokenProvider = () => Promise<string | null> | string | null
 type UnauthorizedHandler = () => void
+type ProblemListener = (problem: ProblemError) => void
 
 let tokenProvider: TokenProvider | null = null
 let unauthorizedHandler: UnauthorizedHandler | null = null
+let problemListener: ProblemListener | null = null
+
+/** Hears every problem response, e.g. to open the PlanLimitDialog wherever a limit is hit
+ *  (docs/11 §5.4, §7a). The caller still receives the error. */
+export function setProblemListener(listener: ProblemListener | null): void {
+  problemListener = listener
+}
 
 export function setTokenProvider(provider: TokenProvider | null): void {
   tokenProvider = provider
@@ -93,7 +101,9 @@ export async function apiClient<T>(
       }
     }
 
-    throw new ProblemError(problem)
+    const error = new ProblemError(problem)
+    problemListener?.(error)
+    throw error
   }
 
   if (response.status === 204) {

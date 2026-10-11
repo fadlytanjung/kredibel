@@ -1,12 +1,20 @@
+/**
+ * The onboarding form of design/mocks/onboarding.html, with the mock's markup and kit classes
+ * (ADR-019): who-choice, form-grid, disclosure for the optional bank account, trial note.
+ */
+
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type KeyboardEvent } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { trialPlan, usePlans } from '../../entities/plan'
 import { useAuth } from '../../entities/session'
 import { ProblemError } from '../../shared/api/client'
-import { Button } from '../../shared/ui/Button'
+import { Field, Input, Select } from '../../shared/ui/Field'
+import { fieldErrorProps } from '../../shared/ui/fieldProps'
+import { Icon, type IconName } from '../../shared/ui/Icon'
+import onboardingEn from '../../shared/i18n/locales/en/onboarding.json'
 import {
   createWorkspaceSchema,
   formFieldOf,
@@ -14,51 +22,16 @@ import {
   type CreateWorkspaceValues,
   type EntityType,
 } from './schema'
+import { timeZoneOptions } from './timeZones'
 import { useCreateWorkspace } from './useCreateWorkspace'
 
-const INPUT_CLASS =
-  'w-full h-10 px-3 rounded-xs border border-line bg-surface text-ink text-sm focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand aria-invalid:border-critical'
-
-const CHOICES: { value: EntityType; label: string; hint: string }[] = [
-  { value: 'INDIVIDUAL', label: 'individual', hint: 'individualHint' },
-  { value: 'COMPANY', label: 'company', hint: 'companyHint' },
+const CHOICES: { value: EntityType; icon: IconName; label: string; hint: string }[] = [
+  { value: 'INDIVIDUAL', icon: 'user', label: 'individual', hint: 'individualHint' },
+  { value: 'COMPANY', icon: 'building', label: 'company', hint: 'companyHint' },
 ]
 
-function browserTimeZones(): { zones: string[]; current: string } {
-  const current = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Jakarta'
-  const zones = Intl.supportedValuesOf('timeZone')
-  return { zones: zones.includes(current) ? zones : [current, ...zones], current }
-}
-
-function Field({
-  id,
-  label,
-  error,
-  hint,
-  children,
-}: {
-  id: string
-  label: ReactNode
-  error?: string
-  hint?: string
-  children: ReactNode
-}) {
-  return (
-    <div>
-      <label htmlFor={id} className="block text-xs font-semibold text-ink mb-1">
-        {label}
-      </label>
-      {children}
-      {error ? (
-        <p id={`${id}-error`} className="mt-1 text-xs text-critical">
-          {error}
-        </p>
-      ) : (
-        hint && <p className="mt-1 text-xs text-ink-muted">{hint}</p>
-      )}
-    </div>
-  )
-}
+const INDUSTRY_KEYS = Object.keys(onboardingEn.industries)
+type FieldName = Exclude<keyof CreateWorkspaceValues, 'entityType' | 'withBankAccount'>
 
 export function CreateWorkspaceForm({ retryDelayMs }: { retryDelayMs?: number }) {
   const { t } = useTranslation('onboarding')
@@ -69,7 +42,7 @@ export function CreateWorkspaceForm({ retryDelayMs }: { retryDelayMs?: number })
   const trial = trialPlan(plans.data)
   const create = useCreateWorkspace(retryDelayMs)
   const [serverError, setServerError] = useState<string | null>(null)
-  const { zones, current } = useMemo(() => browserTimeZones(), [])
+  const { options: zones, current } = useMemo(() => timeZoneOptions(), [])
 
   const form = useForm<CreateWorkspaceValues>({
     resolver: zodResolver(createWorkspaceSchema),
@@ -110,164 +83,191 @@ export function CreateWorkspaceForm({ retryDelayMs }: { retryDelayMs?: number })
     }
   })
 
-  const fieldError = (name: keyof CreateWorkspaceValues) => {
+  const errorOf = (name: keyof CreateWorkspaceValues) => {
     const message = formState.errors[name]?.message
     return message ? t(message, { defaultValue: message }) : undefined
   }
-  const invalid = (name: keyof CreateWorkspaceValues) => ({
-    'aria-invalid': Boolean(formState.errors[name]),
-    'aria-describedby': formState.errors[name] ? `${name}-error` : undefined,
+  // id, aria and react-hook-form bindings per field, built outside the JSX.
+  const field = (name: FieldName) => ({
+    id: name,
+    ...fieldErrorProps(name, errorOf(name)),
+    ...register(name),
   })
+  const bind = {
+    name: field('name'),
+    tradingName: field('tradingName'),
+    industry: field('industry'),
+    timezone: field('timezone'),
+    bankName: field('bankName'),
+    holderName: field('holderName'),
+    accountNumber: field('accountNumber'),
+  }
+
+  // Arrow keys move between the two choices, as in a native radio group.
+  const onChoiceKey = (event: KeyboardEvent<HTMLButtonElement>) => {
+    if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return
+    event.preventDefault()
+    setValue('entityType', entityType === 'COMPANY' ? 'INDIVIDUAL' : 'COMPANY')
+  }
+
   const busy = create.isPending
-  const optional = <span className="text-ink-subtle font-normal">{t('optional')}</span>
+  const optional = <span className="muted">({t('optional')})</span>
 
   return (
-    <form className="space-y-6" onSubmit={onSubmit} noValidate>
-      <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-label={t('typeLabel')}>
+    <form className="stack gap-6" onSubmit={onSubmit} noValidate>
+      <div className="who-choice" role="radiogroup" aria-label={t('typeLabel')}>
         {CHOICES.map((choice) => {
-          const selected = entityType === choice.value
+          const checked = entityType === choice.value
           return (
             <button
               key={choice.value}
               type="button"
               role="radio"
-              aria-checked={selected}
+              aria-checked={checked}
+              tabIndex={checked ? 0 : -1}
+              className={`who text-left${checked ? ' is-checked' : ''}`}
               onClick={() => setValue('entityType', choice.value)}
-              className={`flex flex-col justify-start p-4 rounded-xs border text-left transition-colors cursor-pointer ${
-                selected
-                  ? 'border-brand bg-brand-soft ring-1 ring-brand'
-                  : 'border-line bg-surface hover:bg-sunken'
-              }`}
+              onKeyDown={onChoiceKey}
             >
-              <div className="font-semibold text-sm text-ink mb-1">{t(choice.label)}</div>
-              <div className="text-xs text-ink-muted leading-relaxed">{t(choice.hint)}</div>
+              {checked && (
+                <span className="tick">
+                  <Icon name="check" />
+                </span>
+              )}
+              <span className="ico">
+                <Icon name={choice.icon} />
+              </span>
+              <strong>{t(choice.label)}</strong>
+              <span className="d">{t(choice.hint)}</span>
             </button>
           )
         })}
       </div>
 
-      <div className="space-y-4">
-        <Field
-          id="name"
-          label={entityType === 'COMPANY' ? t('legalName') : t('fullName')}
-          error={fieldError('name')}
-        >
-          <input id="name" type="text" className={INPUT_CLASS} {...invalid('name')} {...register('name')} />
-        </Field>
-
-        <Field id="tradingName" label={<>{t('tradingName')} {optional}</>} error={fieldError('tradingName')}>
-          <input
-            id="tradingName"
-            type="text"
-            placeholder={t('tradingNamePlaceholder')}
-            className={INPUT_CLASS}
-            {...invalid('tradingName')}
-            {...register('tradingName')}
-          />
-        </Field>
-
-        <div className="grid grid-cols-1 medium:grid-cols-2 gap-4">
-          <Field id="industry" label={<>{t('industry')} {optional}</>} error={fieldError('industry')}>
-            <input
-              id="industry"
+      <div className="form-wrap">
+        <div className="form-grid">
+          <Field
+            id="name"
+            className="span-2"
+            label={entityType === 'COMPANY' ? t('legalName') : t('fullName')}
+            error={errorOf('name')}
+          >
+            <Input type="text" autoComplete="organization" {...bind.name} />
+          </Field>
+          <Field id="tradingName" label={<>{t('tradingName')} {optional}</>} error={errorOf('tradingName')}>
+            <Input
               type="text"
-              placeholder={t('industryPlaceholder')}
-              className={INPUT_CLASS}
-              {...invalid('industry')}
-              {...register('industry')}
+              placeholder={t('tradingNamePlaceholder')}
+              {...bind.tradingName}
             />
           </Field>
-          <Field id="timezone" label={t('timeZone')} hint={t('timeZoneHint')} error={fieldError('timezone')}>
-            <select id="timezone" className={INPUT_CLASS} {...invalid('timezone')} {...register('timezone')}>
-              {zones.map((zone) => (
-                <option key={zone} value={zone}>
-                  {zone}
+          <Field id="industry" label={t('industry')} error={errorOf('industry')}>
+            <Select {...bind.industry}>
+              <option value="">{t('industryChoose')}</option>
+              {INDUSTRY_KEYS.map((key) => (
+                <option key={key} value={t(`industries.${key}`)}>
+                  {t(`industries.${key}`)}
                 </option>
               ))}
-            </select>
+            </Select>
+          </Field>
+          <Field
+            id="timezone"
+            className="span-2"
+            label={t('timeZone')}
+            hint={t('timeZoneHint')}
+            error={errorOf('timezone')}
+          >
+            <Select {...bind.timezone}>
+              {zones.map((option) => (
+                <option key={option.zone} value={option.zone}>
+                  {t('timeZoneOption', { zone: option.zone, offset: option.offset })}
+                </option>
+              ))}
+            </Select>
           </Field>
         </div>
+      </div>
 
-        {withBankAccount ? (
-          <fieldset className="space-y-4 rounded-xs border border-line p-4">
-            <legend className="px-1 text-xs font-semibold text-ink">{t('bankAccount')}</legend>
-            <Field id="bankName" label={t('bankName')} error={fieldError('bankName')}>
-              <input id="bankName" type="text" className={INPUT_CLASS} {...invalid('bankName')} {...register('bankName')} />
+      <details
+        className="disclosure"
+        open={withBankAccount}
+        onToggle={(event) => setValue('withBankAccount', event.currentTarget.open)}
+      >
+        <summary>
+          <span>
+            {t('bankAccount')}
+            <span className="opt">{t('optional')}</span>
+          </span>
+          <Icon name={withBankAccount ? 'chevron-up' : 'chevron-down'} />
+        </summary>
+        <div className="form-wrap pb-4">
+          <div className="form-grid">
+            <Field id="bankName" label={t('bankName')} error={errorOf('bankName')}>
+              <Input type="text" {...bind.bankName} />
+            </Field>
+            <Field id="holderName" label={t('holderName')} error={errorOf('holderName')}>
+              <Input type="text" {...bind.holderName} />
             </Field>
             <Field
               id="accountNumber"
+              className="span-2"
               label={t('accountNumber')}
               hint={t('accountNumberHint')}
-              error={fieldError('accountNumber')}
+              error={errorOf('accountNumber')}
             >
-              <input
-                id="accountNumber"
+              <Input
                 type="text"
                 inputMode="numeric"
                 autoComplete="off"
-                className={INPUT_CLASS}
-                {...invalid('accountNumber')}
-                {...register('accountNumber')}
+                {...bind.accountNumber}
               />
             </Field>
-            <Field id="holderName" label={t('holderName')} error={fieldError('holderName')}>
-              <input
-                id="holderName"
-                type="text"
-                className={INPUT_CLASS}
-                {...invalid('holderName')}
-                {...register('holderName')}
-              />
-            </Field>
-            <button
-              type="button"
-              onClick={() => setValue('withBankAccount', false)}
-              className="text-xs font-semibold text-ink-muted hover:text-ink cursor-pointer"
-            >
-              {t('removeBankAccount')}
-            </button>
-          </fieldset>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setValue('withBankAccount', true)}
-            className="text-sm font-semibold text-brand hover:underline cursor-pointer"
-          >
-            {t('addBankAccount')}
-          </button>
-        )}
-      </div>
+          </div>
+        </div>
+      </details>
 
       {trial?.limits && (
-        <p className="p-3 rounded-xs bg-sunken text-xs text-ink-muted">
-          {t('trialTerms', {
-            days: trial.trialDays,
-            documents: trial.limits.documentsPerMonth,
-            pages: trial.limits.extractedPagesPerMonth,
-          })}
+        <p className="trial-note">
+          <Icon name="clock" />
+          <span>
+            <strong>{t('trialLead', { days: trial.trialDays })}</strong>{' '}
+            {t('trialRest', {
+              documents: trial.limits.documentsPerMonth,
+              pages: trial.limits.extractedPagesPerMonth,
+            })}
+          </span>
         </p>
       )}
 
       {serverError && (
-        <div role="alert" className="rounded-xs bg-critical-soft p-3 text-xs font-medium text-critical">
-          {serverError}
-        </div>
+        <p role="alert" className="trial-note bg-critical-soft text-critical">
+          <Icon name="circle-alert" />
+          <span>{serverError}</span>
+        </p>
       )}
-      {create.phase === 'finishing' && <p role="status" className="text-sm text-ink-muted">{t('finishing')}</p>}
+      {create.phase === 'finishing' && (
+        <p role="status" className="muted">
+          {t('finishing')}
+        </p>
+      )}
       {create.phase === 'notReady' && (
-        <div role="alert" className="rounded-xs bg-sunken p-3 text-xs text-ink">
-          {t('notReady')}
-        </div>
+        <p role="alert" className="trial-note">
+          <Icon name="info" />
+          <span>{t('notReady')}</span>
+        </p>
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-        <button type="button" onClick={() => void signOut()} className="text-xs text-ink-muted hover:text-ink cursor-pointer">
-          {t('auth.signOutAs', { ns: 'common', email: user?.email ?? '' })}
+      <button type="submit" className="button button-primary button-lg button-block" disabled={busy}>
+        {busy ? t('creating') : t('submit')}
+      </button>
+
+      <p className="small muted">
+        {t('auth.signedInAsLine', { ns: 'common', email: user?.email ?? '' })}{' '}
+        <button type="button" className="link border-0 bg-transparent p-0" onClick={() => void signOut()}>
+          {t('auth.signOutShort', { ns: 'common' })}
         </button>
-        <Button type="submit" variant="primary" size="lg" disabled={busy}>
-          {busy ? t('creating') : t('submit')}
-        </Button>
-      </div>
+      </p>
     </form>
   )
 }

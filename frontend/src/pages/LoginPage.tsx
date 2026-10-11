@@ -1,24 +1,23 @@
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Navigate } from 'react-router-dom'
 import { useAuth } from '../entities/session'
-import { Button } from '../shared/ui/Button'
+import { Field, Input } from '../shared/ui/Field'
+import { Icon } from '../shared/ui/Icon'
 import { AuthBrandPanel } from '../widgets/AuthBrandPanel'
 
-const INPUT_CLASS =
-  'w-full h-10 px-3 rounded-xs border border-line bg-surface text-ink text-sm focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand'
-
+/** Sign-in in the onboarding layout (there is no separate login mock): brand column and form. */
 export function LoginPage() {
   const { t } = useTranslation()
-  const { user, needsWorkspace, signInWithEmail, signInWithGoogle } = useAuth()
-  const navigate = useNavigate()
+  const { user, loading, needsWorkspace, signInWithEmail, signInWithGoogle } = useAuth()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [failed, setFailed] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  if (user) {
+  // Wait for /api/me before choosing between onboarding and the dashboard.
+  if (user && !loading) {
     return <Navigate to={needsWorkspace ? '/onboarding' : '/'} replace />
   }
 
@@ -28,7 +27,7 @@ export function LoginPage() {
     setIsSubmitting(true)
     try {
       await signIn()
-      navigate('/')
+      // The redirect above picks /onboarding or / once /api/me has answered.
     } catch {
       setFailed(true)
     } finally {
@@ -42,83 +41,78 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col expanded:flex-row bg-canvas">
-      <AuthBrandPanel />
-
-      <main className="flex-1 flex items-center justify-center p-4 medium:p-6 expanded:p-12">
-        <div className="w-full max-w-md bg-surface p-8 rounded-md border border-line shadow-raised">
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-ink">{t('auth.title')}</h1>
-            <p className="mt-1 text-sm text-ink-muted">{t('auth.subtitle')}</p>
+    <div className="viewport">
+      <div className="onboard">
+        <AuthBrandPanel />
+        <section className="onboard-form" aria-labelledby="login-h">
+          <div className="stack gap-2">
+            <h1 className="type-title" id="login-h">
+              {t('auth.title')}
+            </h1>
+            <p className="muted">{t('auth.subtitle')}</p>
           </div>
 
           {failed && (
-            <div
-              role="alert"
-              className="mb-6 rounded-xs bg-critical-soft p-3 text-xs font-medium text-critical border border-critical-line"
-            >
-              {t('auth.signInFailed')}
-            </div>
+            <p role="alert" className="trial-note bg-critical-soft text-critical">
+              <Icon name="circle-alert" />
+              <span>{t('auth.signInFailed')}</span>
+            </p>
           )}
 
           <button
             type="button"
+            className="button button-secondary button-lg button-block"
             onClick={() => void attempt(signInWithGoogle)}
             disabled={isSubmitting}
-            className="w-full h-11 flex items-center justify-center gap-3 rounded-xs border border-line bg-surface px-4 text-sm font-semibold text-ink shadow-xs hover:bg-sunken transition-colors disabled:opacity-50 cursor-pointer"
           >
-            <img src="/brand/google.svg" alt="" className="w-5 h-5 shrink-0" />
-            <span>{t('auth.signInWithGoogle')}</span>
+            <img src="/brand/google.svg" alt="" className="w-5 h-5" />
+            {t('auth.signInWithGoogle')}
           </button>
 
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-line" />
-            </div>
-            <div className="relative flex justify-center text-xs">
-              <span className="bg-surface px-3 text-ink-subtle">{t('auth.orWithEmail')}</span>
-            </div>
-          </div>
+          <p className="flex items-center gap-3 small muted" aria-hidden="true">
+            <span className="flex-1 border-t border-line" />
+            {t('auth.or')}
+            <span className="flex-1 border-t border-line" />
+          </p>
 
-          <form className="space-y-4" onSubmit={handleEmailSubmit}>
-            <div>
-              <label htmlFor="email-address" className="block text-xs font-semibold text-ink mb-1">
-                {t('auth.emailLabel')}
-              </label>
-              <input
-                id="email-address"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className={INPUT_CLASS}
-                placeholder={t('auth.emailPlaceholder')}
-              />
+          <form className="stack gap-6" onSubmit={handleEmailSubmit}>
+            <div className="form-wrap">
+              <div className="form-grid">
+                <Field id="email-address" className="span-2" label={t('auth.emailLabel')}>
+                  <Input
+                    id="email-address"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder={t('auth.emailPlaceholder')}
+                  />
+                </Field>
+                <Field id="password" className="span-2" label={t('auth.passwordLabel')}>
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    autoComplete="current-password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </Field>
+              </div>
             </div>
-            <div>
-              <label htmlFor="password" className="block text-xs font-semibold text-ink mb-1">
-                {t('auth.passwordLabel')}
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className={INPUT_CLASS}
-              />
-            </div>
-
-            <Button type="submit" variant="primary" size="lg" className="w-full" disabled={isSubmitting}>
+            <button
+              type="submit"
+              className="button button-primary button-lg button-block"
+              disabled={isSubmitting}
+            >
               {isSubmitting ? t('auth.signingIn') : t('auth.signInButton')}
-            </Button>
+            </button>
           </form>
-        </div>
-      </main>
+        </section>
+      </div>
     </div>
   )
 }

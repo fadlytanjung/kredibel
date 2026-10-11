@@ -1,0 +1,11 @@
+{
+  "id": "doc_01HVABC123",
+  "orgId": "org_demo",
+  "docType": "BANK_STATEMENT",
+  "status": "PROCESSED",
+  "duplicateOf": "doc_01HVOLD001",
+  "duplicateKind": "EXACT",
+  "duplicateDecision": "PENDING",
+  "fileName": "ACB_Feb_2026.pdf",
+  "sha256": "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
+}

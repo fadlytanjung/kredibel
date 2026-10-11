@@ -90,7 +90,9 @@ evals: ## Run model evaluations (DeepEval)
 
 deploy: ## Deploy to Cloud Run via Cloud Build
 	@echo "==> Submitting Cloud Build for project $(PROJECT_ID)..."
-	gcloud builds submit --config=cloudbuild.yaml --substitutions=_PROJECT_ID=$(PROJECT_ID)
+	@if [ -f .env ]; then export $$(cat .env | grep -v '^#' | xargs); fi; \
+	gcloud builds submit --config=cloudbuild.yaml \
+		--substitutions=_VITE_FIREBASE_API_KEY="$${VITE_FIREBASE_API_KEY}",_VITE_FIREBASE_AUTH_DOMAIN="$${VITE_FIREBASE_AUTH_DOMAIN}",_VITE_FIREBASE_PROJECT_ID="$${VITE_FIREBASE_PROJECT_ID}",_VITE_FIREBASE_APP_ID="$${VITE_FIREBASE_APP_ID}"
 
 tokens: ## Regenerate CSS from design tokens
 	python3 tools/design/build_tokens.py

@@ -34,6 +34,12 @@ echo "==> 2. Creating Artifact Registry, Cloud Storage buckets, Firestore databa
 gcloud artifacts repositories create kredibel \
   --repository-format=docker \
   --location="$REGION" || true
+if [ -f infra/ar-cleanup.json ]; then
+  gcloud artifacts repositories set-cleanup-policies kredibel \
+    --location="$REGION" \
+    --policy=infra/ar-cleanup.json \
+    --no-dry-run || true
+fi
 
 gcloud storage buckets create "gs://${PROJECT_ID}-kredibel-docs" \
   --location="$REGION" \
@@ -87,6 +93,14 @@ done
 # Web sets Firebase custom claims when a workspace is created or an invite accepted
 gcloud projects add-iam-policy-binding "$PROJECT_ID" --member="serviceAccount:$(SA kredibel-web)" \
   --role=roles/firebaseauth.admin --condition=None || true
+
+# Cloud Build SA requires Cloud Run admin and Service Account User to deploy services & jobs
+PROJECT_NUMBER="$(gcloud projects describe "$PROJECT_ID" --format='value(projectNumber)')"
+for role in roles/run.admin roles/iam.serviceAccountUser; do
+  gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+    --member="serviceAccount:${PROJECT_NUMBER}@cloudbuild.gserviceaccount.com" \
+    --role="$role" --condition=None || true
+done
 
 # Cloud Tasks enqueuing
 for q in kredibel-documents kredibel-months; do

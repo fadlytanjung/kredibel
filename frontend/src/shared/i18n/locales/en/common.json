@@ -1,23 +1,101 @@
 {
+  "app": {
+    "name": "Kredibel",
+    "home": "Kredibel home"
+  },
   "auth": {
     "title": "Sign in to Kredibel",
     "subtitle": "Your AI finance workspace",
     "emailLabel": "Email address",
+    "emailPlaceholder": "name@company.com",
     "passwordLabel": "Password",
     "signInButton": "Sign in",
     "signInWithGoogle": "Sign in with Google",
+    "orWithEmail": "Or continue with email",
     "signOut": "Sign out",
-    "signingIn": "Signing in..."
+    "signOutAs": "Sign out ({{email}})",
+    "signingIn": "Signing in...",
+    "signInFailed": "We could not sign you in. Check your email and password, or try Google."
+  },
+  "brand": {
+    "tagline": "Every number has a source.",
+    "promiseCopies": "Send the same file twice and it is never counted twice.",
+    "promiseReadTwice": "Every number is read twice before it counts, and you can see where it came from.",
+    "promiseAnyOrder": "Months reconcile themselves, in any upload order. You only fix what is left.",
+    "sampleLabel": "Sample bank lines",
+    "sampleRows": {
+      "outDate": "05 Mar",
+      "outText": "TRANSFER OUT GREEN VALLEY",
+      "outAmount": "32,100,000",
+      "inDate": "11 Mar",
+      "inText": "TRANSFER IN DAYBREAK CAFE",
+      "inAmount": "6,420,000",
+      "copyDate": "12 Mar",
+      "copyText": "ACB_Feb_2026 (1).pdf",
+      "copyNote": "copy, not read"
+    },
+    "footnote": "Synthetic data only. Kredibel never moves money and never changes your accounting system."
   },
   "nav": {
-    "dashboard": "Dashboard",
-    "documents": "Documents",
-    "months": "Reconciliation",
-    "review": "Review",
-    "risk": "Risk",
-    "counterparties": "Clients & Suppliers",
-    "assistant": "Assistant",
-    "settings": "Settings"
+    "main": "Main navigation",
+    "rail": "Rail navigation",
+    "sidebar": "Sidebar navigation",
+    "mobile": "Mobile navigation",
+    "breadcrumbs": "Breadcrumbs",
+    "groups": {
+      "books": "Books",
+      "insight": "Insight"
+    },
+    "dashboard": {
+      "long": "Dashboard",
+      "short": "Dashboard"
+    },
+    "documents": {
+      "long": "Documents",
+      "short": "Docs"
+    },
+    "months": {
+      "long": "Reconciliation",
+      "short": "Reconcile"
+    },
+    "review": {
+      "long": "Review",
+      "short": "Review"
+    },
+    "risk": {
+      "long": "Risk",
+      "short": "Risk"
+    },
+    "counterparties": {
+      "long": "Clients and suppliers",
+      "short": "Clients"
+    },
+    "assistant": {
+      "long": "Assistant",
+      "short": "Assistant"
+    },
+    "settings": {
+      "long": "Settings",
+      "short": "Settings"
+    },
+    "more": "More",
+    "moreTitle": "More",
+    "closeMore": "Close",
+    "p1Badge": "Soon"
+  },
+  "shell": {
+    "upload": "Upload",
+    "notifications": "Risk alerts, {{count}} open",
+    "trialDaysLeft_one": "Free trial: {{count}} day left",
+    "trialDaysLeft_other": "Free trial: {{count}} days left",
+    "pagesUsed": "{{used}} of {{max}} pages read this month",
+    "planAndUsage": "Plan and usage"
+  },
+  "roles": {
+    "owner": "Owner",
+    "accountant": "Accountant",
+    "reviewer": "Reviewer",
+    "viewer": "Viewer"
   },
   "dashboard": {
     "emptyTitle": "Upload your first documents",
@@ -25,13 +103,45 @@
     "uploadButton": "Upload documents"
   },
   "onboarding": {
-    "title": "Create your workspace",
-    "subtitle": "Set up your business profile to begin checking your books."
+    "title": "Whose books are these?",
+    "subtitle": "One workspace is one business or one person. You can add details later; Kredibel will suggest them from your documents.",
+    "typeLabel": "Workspace type",
+    "individual": "Myself",
+    "individualHint": "A freelancer or sole trader with a business account",
+    "company": "A company",
+    "companyHint": "A partnership or a limited company",
+    "legalName": "Legal name",
+    "fullName": "Full name",
+    "tradingName": "Trading name",
+    "optional": "(optional)",
+    "tradingNamePlaceholder": "As on your invoices",
+    "industry": "Industry",
+    "timeZone": "Time zone",
+    "submit": "Start the free trial"
+  },
+  "placeholder": {
+    "body": "This page arrives with {{spec}}.",
+    "backToDashboard": "Back to the dashboard",
+    "documents": "Documents",
+    "months": "Reconciliation",
+    "review": "Review",
+    "risk": "Risk",
+    "counterparties": "Clients and suppliers",
+    "assistant": "Assistant",
+    "settings": "Settings"
+  },
+  "notFound": {
+    "code": "404",
+    "title": "Page not found",
+    "body": "The page you are looking for does not exist or has moved.",
+    "backToDashboard": "Back to the dashboard"
+  },
+  "toast": {
+    "close": "Close"
   },
   "common": {
     "loading": "Loading...",
-    "error": "An error occurred",
-    "notFound": "Page not found",
+    "error": "Something went wrong. Try again.",
     "save": "Save",
     "cancel": "Cancel",
     "back": "Back"

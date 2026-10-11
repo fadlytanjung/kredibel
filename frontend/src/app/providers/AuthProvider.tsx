@@ -16,7 +16,7 @@ import {
 import React, { useEffect, useState } from 'react'
 import { apiClient, setTokenProvider, setUnauthorizedHandler } from '../../shared/api/client'
 import { auth, googleAuthProvider } from '../../shared/firebase/app'
-import { AuthContext, type AuthContextType, type MeResponse } from './AuthContext'
+import { AuthContext, type AuthContextType, type MeResponse } from '../../entities/session'
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)

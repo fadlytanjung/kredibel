@@ -1,4 +1,5 @@
 import { forwardRef, type HTMLAttributes, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 
 export interface ToastProps extends HTMLAttributes<HTMLDivElement> {
   message: ReactNode
@@ -8,6 +9,7 @@ export interface ToastProps extends HTMLAttributes<HTMLDivElement> {
 
 export const Toast = forwardRef<HTMLDivElement, ToastProps>(
   ({ className = '', message, icon, onClose, ...props }, ref) => {
+    const { t } = useTranslation()
     return (
       <div
         ref={ref}
@@ -23,7 +25,7 @@ export const Toast = forwardRef<HTMLDivElement, ToastProps>(
             type="button"
             onClick={onClose}
             className="flex-none p-1 rounded-xs hover:bg-surface/20 transition-colors cursor-pointer"
-            aria-label="Close"
+            aria-label={t('toast.close')}
           >
             ×
           </button>

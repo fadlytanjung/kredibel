@@ -1,7 +1,12 @@
 import js from '@eslint/js'
+import boundaries from 'eslint-plugin-boundaries'
+import i18next from 'eslint-plugin-i18next'
 import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 import tseslint from 'typescript-eslint'
+
+// Feature-Sliced Design layers (docs/11 §3): a layer imports only from the layers below it.
+const LAYERS = ['app', 'pages', 'widgets', 'features', 'entities', 'shared']
 
 export default tseslint.config(
   { ignores: ['dist', 'node_modules', '**/*.d.ts', 'storybook-static', 'test-results', 'playwright-report'] },
@@ -27,6 +32,43 @@ export default tseslint.config(
             'panelVariants',
             'skeletonVariants',
           ],
+        },
+      ],
+    },
+  },
+  {
+    // AC-001-14: every user-visible string comes from locales/en/*.json through useTranslation().
+    files: ['src/**/*.tsx'],
+    ignores: ['src/**/*.test.tsx', 'src/**/*.stories.tsx'],
+    plugins: { i18next },
+    rules: {
+      'i18next/no-literal-string': [
+        'error',
+        {
+          mode: 'jsx-only',
+          'jsx-attributes': {
+            include: ['alt', 'aria-label', 'aria-description', 'placeholder', 'title', 'label'],
+          },
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    plugins: { boundaries },
+    settings: {
+      'import/resolver': { node: { extensions: ['.ts', '.tsx', '.js', '.json'] } },
+      'boundaries/elements': LAYERS.map((layer) => ({ type: layer, pattern: `src/${layer}` })),
+    },
+    rules: {
+      'boundaries/dependencies': [
+        'error',
+        {
+          default: 'disallow',
+          policies: LAYERS.map((layer, i) => ({
+            from: { element: { type: layer } },
+            allow: { to: { element: { types: { anyOf: LAYERS.slice(i) } } } },
+          })),
         },
       ],
     },

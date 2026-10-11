@@ -1,32 +1,34 @@
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { Panel } from '../shared/ui/Panel'
 
 interface PlaceholderProps {
-  title: string
+  titleKey: string
   spec: string
 }
 
-function PlaceholderPage({ title, spec }: PlaceholderProps) {
+/** Routes of docs/11 §4.2 whose screens arrive with later specs (T001-16). */
+function PlaceholderPage({ titleKey, spec }: PlaceholderProps) {
+  const { t } = useTranslation()
   return (
-    <div className="p-4 sm:p-8 max-w-4xl mx-auto">
-      <Panel className="p-8 bg-surface border border-line rounded-md shadow-raised">
-        <h2 className="text-xl font-bold text-ink">{title}</h2>
-        <p className="mt-2 text-sm text-ink-muted">
-          This feature will be connected in {spec}. The full interactive HTML prototype is available in design mocks.
-        </p>
-        <div className="mt-6 flex items-center gap-4">
-          <Link to="/" className="text-sm font-semibold text-brand hover:underline">
-            &larr; Back to Dashboard
-          </Link>
-        </div>
+    <div className="max-w-4xl mx-auto">
+      <Panel elevation="raised">
+        <h1 className="text-xl font-bold text-ink">{t(titleKey)}</h1>
+        <p className="mt-2 text-sm text-ink-muted">{t('placeholder.body', { spec })}</p>
+        <Link to="/" className="inline-block mt-6 text-sm font-semibold text-brand hover:underline">
+          {t('placeholder.backToDashboard')}
+        </Link>
       </Panel>
     </div>
   )
 }
 
-export const DocumentsPage = () => <PlaceholderPage title="Documents Library" spec="Spec 003 (Document Intake)" />
-export const MonthsPage = () => <PlaceholderPage title="Reconciliation (Months)" spec="Spec 007 (Reconciliation)" />
-export const ReviewPage = () => <PlaceholderPage title="Review Queue" spec="Spec 009 (Review Queue)" />
-export const RiskPage = () => <PlaceholderPage title="Risk & Explanations" spec="Spec 008 (Risk & Explanations)" />
-export const CounterpartiesPage = () => <PlaceholderPage title="Clients & Suppliers" spec="Spec 014 (Counterparties)" />
-export const SettingsPage = () => <PlaceholderPage title="Settings & Plans" spec="Spec 013 (Workspace & Plans)" />
+export const DocumentsPage = () => <PlaceholderPage titleKey="placeholder.documents" spec="spec 003" />
+export const MonthsPage = () => <PlaceholderPage titleKey="placeholder.months" spec="spec 007" />
+export const ReviewPage = () => <PlaceholderPage titleKey="placeholder.review" spec="spec 009" />
+export const RiskPage = () => <PlaceholderPage titleKey="placeholder.risk" spec="spec 008" />
+export const CounterpartiesPage = () => (
+  <PlaceholderPage titleKey="placeholder.counterparties" spec="spec 014" />
+)
+export const AssistantPage = () => <PlaceholderPage titleKey="placeholder.assistant" spec="spec 011" />
+export const SettingsPage = () => <PlaceholderPage titleKey="placeholder.settings" spec="spec 013" />

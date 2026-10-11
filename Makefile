@@ -72,6 +72,12 @@ check: ## Run all quality gates (lint, types, layers, repo checks, tests)
 test: ## Run unit and integration tests
 	cd backend && uv run pytest
 
+test-visual: ## Run Playwright visual regression tests
+	cd frontend && npm run test:visual
+
+storybook-build: ## Build Storybook static assets
+	cd frontend && npm run build-storybook
+
 synth: ## Generate synthetic scenarios
 	@echo "==> Generating synthetic test scenarios..."
 	cd tools/synthetic && uv run python -m synthetic.cli generate

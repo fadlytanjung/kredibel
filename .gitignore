@@ -29,6 +29,7 @@ frontend/dist/
 frontend/coverage/
 frontend/test-results/
 frontend/playwright-report/
+frontend/storybook-static/
 
 # Generated
 frontend/src/shared/api/schema.d.ts

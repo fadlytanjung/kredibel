@@ -129,6 +129,14 @@ export function AppRouter() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/preview/shell"
+        element={
+          <AppShell>
+            <DashboardPage />
+          </AppShell>
+        }
+      />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   )

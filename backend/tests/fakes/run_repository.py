@@ -2,7 +2,7 @@
 
 from datetime import UTC, datetime
 
-from app.domain.models.run import Run, RunStage, RunStatus
+from app.domain.models.run import Run, RunKind, RunStage, RunStatus
 from app.ports.run_repository import RunRepository
 
 
@@ -32,3 +32,25 @@ class FakeRunRepository(RunRepository):
 
     async def list_by_target(self, org_id: str, target: str) -> list[Run]:
         return [r for (o, _), r in self.runs.items() if o == org_id and r.target == target]
+
+    async def list_runs(
+        self,
+        org_id: str,
+        *,
+        kind: RunKind | None = None,
+        target: str | None = None,
+        status: RunStatus | None = None,
+        limit: int = 50,
+    ) -> list[Run]:
+        res = [r for (o, _), r in self.runs.items() if o == org_id]
+        if target is not None:
+            res = [r for r in res if r.target == target]
+        if kind is not None:
+            res = [r for r in res if r.kind == kind]
+        if status is not None:
+            res = [r for r in res if r.status == status]
+        res.sort(
+            key=lambda r: r.created_at or datetime.min.replace(tzinfo=UTC),
+            reverse=True,
+        )
+        return res[:limit]

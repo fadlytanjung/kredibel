@@ -121,11 +121,35 @@ class FirestoreRunRepository(RunRepository):
         await doc_ref.set({"stages": ArrayUnion([_stage_to_firestore(stage)])}, merge=True)
 
     async def list_by_target(self, org_id: str, target: str) -> list[Run]:
-        query = self._col(org_id).where(filter=FieldFilter("target", "==", target))
+        return await self.list_runs(org_id, target=target)
+
+    async def list_runs(
+        self,
+        org_id: str,
+        *,
+        kind: RunKind | None = None,
+        target: str | None = None,
+        status: RunStatus | None = None,
+        limit: int = 50,
+    ) -> list[Run]:
+        query = self._col(org_id)
+        if target is not None:
+            query = query.where(filter=FieldFilter("target", "==", target))
+        if kind is not None:
+            k_val = kind.value if hasattr(kind, "value") else str(kind)
+            query = query.where(filter=FieldFilter("kind", "==", k_val))
+        if status is not None:
+            s_val = status.value if hasattr(status, "value") else str(status)
+            query = query.where(filter=FieldFilter("status", "==", s_val))
+        query = query.limit(limit)
         snaps = await query.get()
         runs: list[Run] = []
         for snap in snaps:
             data = snap.to_dict() or {}
             data["runId"] = snap.id
             runs.append(_run_to_domain(data))
+        runs.sort(
+            key=lambda r: r.created_at or datetime.min.replace(tzinfo=UTC),
+            reverse=True,
+        )
         return runs

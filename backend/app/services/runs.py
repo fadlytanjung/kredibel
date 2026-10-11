@@ -213,3 +213,25 @@ class RunService:
             raise
 
         return {"ok": True}
+
+    async def get_run(self, org_id: str, run_id: str) -> Run | None:
+        """Get a run by ID (AC-004-9)."""
+        return await self._run_repo.get(org_id, run_id)
+
+    async def list_runs(
+        self,
+        org_id: str,
+        *,
+        kind: RunKind | None = None,
+        target: str | None = None,
+        status: RunStatus | None = None,
+        limit: int = 50,
+    ) -> list[Run]:
+        """List runs matching filters, newest first (AC-004-9)."""
+        return await self._run_repo.list_runs(
+            org_id,
+            kind=kind,
+            target=target,
+            status=status,
+            limit=limit,
+        )

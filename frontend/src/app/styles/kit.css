@@ -1215,3 +1215,13 @@ a:hover { color: var(--k-color-brand-hover); }
   .lbl-table td, .lbl-table th { padding-left: 10px; padding-right: 10px; }
 }
 .lbl-table .task { display: table; margin-bottom: 4px; }
+
+/* ProgressLine (spec 004, AC-004-8) */
+.progress-line { display: flex; flex-direction: column; gap: var(--k-space-1); min-width: 0; }
+.progress-line-head { display: flex; align-items: center; justify-content: space-between; gap: var(--k-space-2); font-size: 13px; line-height: 18px; }
+.progress-line-label { color: var(--k-color-text-default); display: inline-flex; align-items: center; gap: var(--k-space-1-5); }
+.progress-line-meta { color: var(--k-color-text-muted); font-variant-numeric: tabular-nums lining-nums; font-size: 12px; }
+.progress-track { width: 100%; height: 4px; background: var(--k-color-bg-sunken); border-radius: var(--k-radius-full); overflow: hidden; }
+.progress-bar { height: 100%; background: var(--k-color-brand-default); border-radius: var(--k-radius-full); transition: width 0.3s ease; }
+.progress-bar.is-failed { background: var(--k-color-severity-critical-fg); }
+.progress-bar.is-clean { background: var(--k-color-verdict-clean-fg); }

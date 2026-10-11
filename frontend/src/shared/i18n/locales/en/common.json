@@ -156,6 +156,15 @@
     "cancel": "Cancel",
     "back": "Back"
   },
+  "progress": {
+    "label": "Progress",
+    "readingPage": "Reading page {{current}} of {{total}}",
+    "collecting": "Collecting",
+    "reconciling": "Reconciling",
+    "needsReview": "Needs review",
+    "reconciled": "Reconciled",
+    "signedOff": "Signed off"
+  },
   "trialBanner": {
     "endingSoon_one": "Your free trial ends in {{count}} day. Your books stay readable after that; new uploads pause.",
     "endingSoon_other": "Your free trial ends in {{count}} days. Your books stay readable after that; new uploads pause.",

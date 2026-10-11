@@ -16,7 +16,7 @@
 
 ## Phase 3 — Live progress and ops
 
-- [ ] **T004-09** Listeners and `ProgressLine`; runs API. (AC-004-8, AC-004-9)
+- [x] **T004-09** Listeners and `ProgressLine`; runs API. (AC-004-8, AC-004-9)
 - [ ] **T004-10** `RUNS_ENABLED`, quotas and the "paused until tomorrow" state. (AC-004-10, AC-004-11)
 - [ ] **T004-11** Tracing setup; verify a document run shows as one trace in Cloud Trace. (AC-004-12)
 

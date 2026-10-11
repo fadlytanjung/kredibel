@@ -947,7 +947,7 @@ paths:
 
   /api/runs/{runId}:
     parameters:
-      - { name: runId, in: path, required: true, schema: { type: string, pattern: "^run_[0-9A-HJKMNP-TV-Z]{26}$" } }
+      - { name: runId, in: path, required: true, schema: { type: string, pattern: "^[a-zA-Z0-9_-]+$" } }
     get:
       tags: [insight]
       operationId: getRun
@@ -962,7 +962,7 @@ paths:
 
   /api/runs/{runId}/events:
     parameters:
-      - { name: runId, in: path, required: true, schema: { type: string, pattern: "^run_[0-9A-HJKMNP-TV-Z]{26}$" } }
+      - { name: runId, in: path, required: true, schema: { type: string, pattern: "^[a-zA-Z0-9_-]+$" } }
     get:
       tags: [insight]
       operationId: listRunEvents

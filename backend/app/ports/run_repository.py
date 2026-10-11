@@ -2,7 +2,7 @@
 
 from typing import Protocol
 
-from app.domain.models.run import Run, RunStage, RunStatus
+from app.domain.models.run import Run, RunKind, RunStage, RunStatus
 
 
 class RunRepository(Protocol):
@@ -28,4 +28,16 @@ class RunRepository(Protocol):
 
     async def list_by_target(self, org_id: str, target: str) -> list[Run]:
         """List runs for a specific target (docId or yyyy-mm)."""
+        ...
+
+    async def list_runs(
+        self,
+        org_id: str,
+        *,
+        kind: RunKind | None = None,
+        target: str | None = None,
+        status: RunStatus | None = None,
+        limit: int = 50,
+    ) -> list[Run]:
+        """List runs with optional filters, newest first."""
         ...

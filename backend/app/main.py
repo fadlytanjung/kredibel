@@ -30,6 +30,7 @@ from app.api.documents import create_documents_router
 from app.api.health import create_health_router
 from app.api.me import create_me_router
 from app.api.plans import create_plans_router
+from app.api.runs import create_runs_router
 from app.api.static import mount_static_spa
 from app.api.tasks import create_tasks_router
 from app.api.workspace import create_workspace_router
@@ -421,6 +422,7 @@ def create_app(
         app.include_router(create_workspace_router(deps, principal_dep, workspace_dep))
         app.include_router(create_bank_accounts_router(deps, workspace_dep))
         app.include_router(create_documents_router(deps, workspace_dep))
+        app.include_router(create_runs_router(deps, workspace_dep))
 
     # 3. Worker role endpoints
     if active_settings.app_role in ("worker", "all"):

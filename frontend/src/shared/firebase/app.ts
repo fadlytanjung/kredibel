@@ -7,6 +7,8 @@
 import { getApp, getApps, initializeApp } from 'firebase/app'
 import { getAuth, GoogleAuthProvider } from 'firebase/auth'
 
+import { getFirestore } from 'firebase/firestore'
+
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '',
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'cloud-hack2skill.firebaseapp.com',
@@ -16,4 +18,6 @@ const firebaseConfig = {
 
 export const firebaseApp = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig)
 export const auth = getAuth(firebaseApp)
+export const db = getFirestore(firebaseApp)
 export const googleAuthProvider = new GoogleAuthProvider()
+

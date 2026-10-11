@@ -7,9 +7,9 @@
 
 ## Phase 2 — API
 
-- [ ] **T003-03** **TDD** `DocumentService.upload`: limits and their error codes; page reservation; counters in the same transaction. (AC-003-3, AC-003-4)
-- [ ] **T003-04** **TDD** exact duplicates: same hash → `DUPLICATE` record, nothing stored, nothing enqueued, usage unchanged; concurrent uploads → one original. (AC-003-5)
-- [ ] **T003-05** Storage, rendering, task enqueue; `DOCUMENT_UPLOADED` event. (AC-003-4)
+- [x] **T003-03** **TDD** `DocumentService.upload`: limits and their error codes; page reservation; counters in the same transaction. (AC-003-3, AC-003-4)
+- [x] **T003-04** **TDD** exact duplicates: same hash → `DUPLICATE` record, nothing stored, nothing enqueued, usage unchanged; concurrent uploads → one original. (AC-003-5)
+- [x] **T003-05** Storage, rendering, task enqueue; `DOCUMENT_UPLOADED` event. (AC-003-4)
 - [ ] **T003-06** List, get, file, pages routes; **TDD** foreign IDs → 404. (AC-003-7, AC-003-11)
 - [ ] **T003-07** **TDD** delete cascade and months marked dirty; original-of-duplicate rule. (AC-003-10)
 

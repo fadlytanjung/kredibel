@@ -86,6 +86,25 @@ class EntitlementService:
         if isinstance(decision, Denied):
             raise _error_for(decision, sub)
 
+    async def check_upload_preflight(self, org_id: str, size_bytes: int) -> None:
+        """Preflight check for trial status, document limit, and file size before rendering."""
+        now = self._clock.now()
+        upload = UploadRequest(size_bytes=size_bytes, pages=0, pages_to_read=0)
+
+        def decide(sub: Subscription, month: UsageMonth, _day: UsageDay) -> Decision:
+            status = subscription_status(sub, now)
+            return check_upload(self.limits_for(sub), status, month, upload)
+
+        decision, sub = await self._repo.meter(
+            org_id,
+            month=_month(now),
+            day=_day(now),
+            decide=decide,
+            increment=UsageIncrement(),
+        )
+        if isinstance(decision, Denied):
+            raise _error_for(decision, sub)
+
     async def reserve_month_run(self, org_id: str) -> None:
         """A month run the user asked for (AC-004-11). Automatic runs (spec 004) are counted
         but never refused."""

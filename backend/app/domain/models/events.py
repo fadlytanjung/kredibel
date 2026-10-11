@@ -5,7 +5,14 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
-EventType = Literal["WORKSPACE_CREATED", "BANK_ACCOUNT_ADDED", "PROFILE_UPDATED"]
+EventType = Literal[
+    "WORKSPACE_CREATED",
+    "BANK_ACCOUNT_ADDED",
+    "PROFILE_UPDATED",
+    "DOCUMENT_UPLOADED",
+    "DUPLICATE_RECORDED",
+    "DOCUMENT_REMOVED",
+]
 
 
 class AuditEvent(BaseModel):

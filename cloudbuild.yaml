@@ -2,20 +2,50 @@
 # See docs/16-infrastructure-and-deployment.md §8
 
 steps:
-  # 1. Quality and secret checks
+  # 1-3. Gates (docs/16 §8). Visual tests run locally until Linux baselines exist (docs/20).
   - name: 'python:3.12-slim'
-    id: 'checks'
+    id: 'backend-check'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        python tools/checks/scan_secrets.py
-        python tools/checks/no_long_prompts.py
-        python tools/checks/schema_drift.py
+        set -euo pipefail
+        pip install --quiet uv
+        cd backend
+        uv sync --frozen
+        uv run ruff check .
+        uv run pyright
+        uv run lint-imports
+        uv run python ../tools/checks/no_long_prompts.py
+        uv run python ../tools/checks/schema_drift.py
+        uv run pytest -q
+
+  - name: 'node:22'
+    id: 'frontend-check'
+    waitFor: ['-']
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        set -euo pipefail
+        python3 tools/design/build_tokens.py --check
+        python3 tools/checks/no_raw_styles.py
+        cd frontend
+        npm ci
+        npm run lint
+        npm run check
+        npx vitest --run
+
+  - name: 'python:3.12-slim'
+    id: 'secret-scan'
+    waitFor: ['-']
+    entrypoint: 'bash'
+    args: ['-c', 'python tools/checks/scan_secrets.py']
 
   # 2. Build multi-stage container image
   - name: 'gcr.io/cloud-builders/docker'
     id: 'build'
+    waitFor: ['backend-check', 'frontend-check', 'secret-scan']
     args:
       - 'build'
       - '--build-arg'
@@ -55,26 +85,42 @@ steps:
     args:
       - '-c'
       - |
-        npx --yes firebase-tools deploy --only firestore:indexes,firestore:rules --project "$PROJECT_ID" --config infra/firebase.json || true
+        npx --yes firebase-tools deploy --only firestore:indexes,firestore:rules --project "$PROJECT_ID" --config infra/firebase.json
 
-  # 5b. Deploy and run kredibel-migrate job
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'firestore-indexes-ready'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        set -euo pipefail
+        # Queries on new indexes fail until they are READY; wait up to 15 minutes.
+        for i in $$(seq 1 90); do
+          pending=$$(gcloud firestore indexes composite list --format='value(state)' | grep -cv READY || true)
+          [ "$$pending" = "0" ] && exit 0
+          echo "$$pending index(es) still building..."; sleep 10
+        done
+        echo "Firestore indexes not READY after 15 minutes"; exit 1
+
+  # 5b. Migrations (docs/22 §7): dry run, export, run; a FAILED migration stops the release.
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     id: 'migrate'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
-        echo "Updating kredibel-migrate job..."
+        set -euo pipefail
         gcloud run jobs deploy kredibel-migrate \
           --image="asia-southeast1-docker.pkg.dev/$PROJECT_ID/kredibel/app:$_COMMIT_SHA" \
           --region=asia-southeast1 \
           --service-account="kredibel-migrate@$PROJECT_ID.iam.gserviceaccount.com" \
-          --set-env-vars=APP_ROLE=migrate,PROJECT_ID=$PROJECT_ID,BACKUPS_BUCKET=$PROJECT_ID-kredibel-backups \
+          --set-env-vars=APP_ROLE=migrate,GOOGLE_CLOUD_PROJECT=$PROJECT_ID,BACKUPS_BUCKET=$PROJECT_ID-kredibel-backups \
           --command=python --args=-m,migrations,run \
           --tasks=1 --max-retries=1 --task-timeout=3600s --cpu=1 --memory=1Gi \
-          --labels=app=kredibel,component=migrate || true
-        echo "Executing migration job..."
-        gcloud run jobs execute kredibel-migrate --args=-m,migrations,run --region=asia-southeast1 --wait || true
+          --labels=app=kredibel,component=migrate
+        gcloud run jobs execute kredibel-migrate --args=-m,migrations,run,--dry-run --region=asia-southeast1 --wait
+        gcloud firestore export "gs://$PROJECT_ID-kredibel-backups/pre-release/$_COMMIT_SHA"
+        gcloud run jobs execute kredibel-migrate --args=-m,migrations,run --region=asia-southeast1 --wait
 
   # 6. Deploy worker service (IAM authenticated only)
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -119,6 +165,7 @@ steps:
     args:
       - '-c'
       - |
+        set -euo pipefail
         # The image keeps the SPA build in /app/static (Dockerfile stage 2); Hosting serves the
         # same files so the two front doors never drift (ADR-018).
         id=$$(docker create asia-southeast1-docker.pkg.dev/$PROJECT_ID/kredibel/app:$_COMMIT_SHA)

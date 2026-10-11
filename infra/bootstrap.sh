@@ -95,12 +95,16 @@ done
 gcloud projects add-iam-policy-binding "$PROJECT_ID" --member="serviceAccount:$(SA kredibel-web)" \
   --role=roles/firebaseauth.admin --condition=None || true
 
-# Cloud Build SA requires Cloud Run admin and Service Account User to deploy services & jobs
+# Cloud Build deploys services and the migrate job, Firestore rules and indexes, the pre-release
+# export (docs/22 §7) and Hosting (ADR-018). Builds run as the project's default build SA, which
+# is the Compute default SA on new projects, so look it up instead of assuming the legacy one.
 PROJECT_NUMBER="$(gcloud projects describe "$PROJECT_ID" --format='value(projectNumber)')"
-for role in roles/run.admin roles/iam.serviceAccountUser; do
+BUILD_SA="$(gcloud builds get-default-service-account --project="$PROJECT_ID" --format='value(serviceAccountEmail)' | sed 's#.*/##')"
+for role in roles/run.admin roles/iam.serviceAccountUser roles/artifactregistry.writer \
+  roles/datastore.indexAdmin roles/firebaserules.admin roles/datastore.importExportAdmin \
+  roles/firebasehosting.admin roles/logging.logWriter; do
   gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-    --member="serviceAccount:${PROJECT_NUMBER}@cloudbuild.gserviceaccount.com" \
-    --role="$role" --condition=None || true
+    --member="serviceAccount:${BUILD_SA}" --role="$role" --condition=None || true
 done
 
 # Cloud Tasks enqueuing

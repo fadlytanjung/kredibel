@@ -18,6 +18,7 @@ import {
   RiskPage,
   SettingsPage,
 } from '../pages/Placeholders'
+import { AppShell } from '../shared/ui'
 import { useAuth } from './providers/useAuth'
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -25,8 +26,8 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <div className="text-sm font-medium text-gray-500">Loading...</div>
+      <div className="flex min-h-screen items-center justify-center bg-canvas">
+        <div className="text-sm font-medium text-ink-muted">Loading...</div>
       </div>
     )
   }
@@ -39,7 +40,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/onboarding" replace />
   }
 
-  return <>{children}</>
+  return <AppShell>{children}</AppShell>
 }
 
 export function OnboardingRoute({ children }: { children: React.ReactNode }) {
@@ -47,8 +48,8 @@ export function OnboardingRoute({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <div className="text-sm font-medium text-gray-500">Loading...</div>
+      <div className="flex min-h-screen items-center justify-center bg-canvas">
+        <div className="text-sm font-medium text-ink-muted">Loading...</div>
       </div>
     )
   }

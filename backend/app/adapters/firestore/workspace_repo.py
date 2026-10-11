@@ -3,12 +3,6 @@
 Normative references: docs/09 §3.1–§3.4, §3.16, §3.18; docs/13 §2.2 (atomic audit).
 """
 
-import asyncio
-import random
-from collections.abc import Awaitable, Callable
-from typing import Any
-
-from google.api_core.exceptions import Aborted
 from google.cloud.firestore import AsyncClient, AsyncTransaction, async_transactional
 
 from app.adapters.firestore.models.workspace import (
@@ -20,6 +14,7 @@ from app.adapters.firestore.models.workspace import (
     SignupDoc,
     SignupUserDoc,
 )
+from app.adapters.firestore.txn import dump, with_backoff
 from app.domain.models.workspace import BankAccount, Profile, Subscription, Workspace
 from app.ports.workspace_repository import (
     AlreadyMember,
@@ -29,36 +24,6 @@ from app.ports.workspace_repository import (
     SignupLimitReached,
     WorkspaceRepository,
 )
-
-_TXN_ATTEMPTS = 6
-
-
-def _dump(model: Any) -> dict[str, Any]:
-    return model.model_dump(by_alias=True, exclude_none=True)
-
-
-def _is_contention(exc: Exception) -> bool:
-    # The SDK reports a lost race as Aborted, or as ValueError once its own attempts run out.
-    return isinstance(exc, Aborted) or (
-        type(exc) is ValueError and str(exc).startswith("Failed to commit transaction")
-    )
-
-
-async def _with_backoff[T](attempt: Callable[[], Awaitable[T]]) -> T:
-    """Run a single-attempt transaction until it commits, with jittered backoff.
-
-    The SDK retries a conflicting transaction immediately, so two writers of the same hot
-    documents (system/signup) can keep aborting each other. Random waits break the tie, and the
-    loser re-reads and sees what the winner wrote.
-    """
-    for n in range(_TXN_ATTEMPTS):
-        try:
-            return await attempt()
-        except Exception as exc:
-            if not _is_contention(exc) or n == _TXN_ATTEMPTS - 1:
-                raise
-            await asyncio.sleep(random.uniform(0.05, 0.2) * (n + 1))
-    raise AssertionError("unreachable")
 
 
 class FirestoreWorkspaceRepository(WorkspaceRepository):
@@ -84,10 +49,10 @@ class FirestoreWorkspaceRepository(WorkspaceRepository):
             if created >= max_workspaces:
                 return SignupLimitReached(created)
 
-            txn.set(org_ref, _dump(self._org_doc(ws)))
+            txn.set(org_ref, dump(self._org_doc(ws)))
             txn.set(
                 org_ref.collection("members").document(new.owner.uid),
-                _dump(
+                dump(
                     MemberDoc(
                         uid=new.owner.uid,
                         org_id=ws.org_id,
@@ -104,11 +69,11 @@ class FirestoreWorkspaceRepository(WorkspaceRepository):
                 acc = item.account
                 txn.set(
                     org_ref.collection("bankAccounts").document(acc.account_id),
-                    _dump(BankAccountDoc(org_id=ws.org_id, **acc.model_dump())),
+                    dump(BankAccountDoc(org_id=ws.org_id, **acc.model_dump())),
                 )
                 txn.set(
                     private.collection("accountHashes").document(acc.account_id),
-                    _dump(
+                    dump(
                         AccountHashDoc(
                             org_id=ws.org_id, account_id=acc.account_id, hash=item.account_hash
                         )
@@ -117,12 +82,12 @@ class FirestoreWorkspaceRepository(WorkspaceRepository):
             for event in new.events:
                 txn.set(
                     org_ref.collection("events").document(event.event_id),
-                    _dump(EventDoc(org_id=ws.org_id, **event.model_dump())),
+                    dump(EventDoc(org_id=ws.org_id, **event.model_dump())),
                 )
-            txn.set(signup_ref, _dump(SignupDoc(workspaces_created=created + 1)))
+            txn.set(signup_ref, dump(SignupDoc(workspaces_created=created + 1)))
             txn.set(
                 user_ref,
-                _dump(
+                dump(
                     SignupUserDoc(
                         uid=new.owner.uid,
                         org_id=ws.org_id,
@@ -133,7 +98,7 @@ class FirestoreWorkspaceRepository(WorkspaceRepository):
             )
             return Created(ws.org_id)
 
-        return await _with_backoff(lambda: run(db.transaction(max_attempts=1)))
+        return await with_backoff(lambda: run(db.transaction(max_attempts=1)))
 
     async def get_workspace(self, org_id: str) -> Workspace | None:
         snap = await self._db.collection("orgs").document(org_id).get()

@@ -88,3 +88,27 @@ class EventDoc(FirestoreModel):
     at: datetime
     subject: dict[str, str]
     details: dict[str, Any] = Field(default_factory=dict)
+
+
+class UsageMonthDoc(FirestoreModel):
+    """orgs/{orgId}/usageMonthly/{yyyy-mm} (UTC month)."""
+
+    org_id: str
+    month: str
+    documents_uploaded: int = 0
+    pages_reserved: int = 0
+    pages_read: int = 0
+    pages_cached: int = 0
+    ocr_pages: int = 0
+    parser_pages: int = 0
+    # Money is a decimal string in Firestore JSON-like fields, never a float (docs/09 §2).
+    ai_spend_usd: str = "0"
+
+
+class UsageDayDoc(FirestoreModel):
+    """orgs/{orgId}/usage/{yyyy-mm-dd} (UTC day)."""
+
+    org_id: str
+    day: str
+    month_runs: int = 0
+    assistant_questions: int = 0

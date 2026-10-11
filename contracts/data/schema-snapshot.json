@@ -118,5 +118,30 @@
     },
     "file": "workspace.py",
     "schemaVersion": null
+  },
+  "UsageDayDoc": {
+    "fields": {
+      "assistant_questions": "int",
+      "day": "str",
+      "month_runs": "int",
+      "org_id": "str"
+    },
+    "file": "workspace.py",
+    "schemaVersion": null
+  },
+  "UsageMonthDoc": {
+    "fields": {
+      "ai_spend_usd": "str",
+      "documents_uploaded": "int",
+      "month": "str",
+      "ocr_pages": "int",
+      "org_id": "str",
+      "pages_cached": "int",
+      "pages_read": "int",
+      "pages_reserved": "int",
+      "parser_pages": "int"
+    },
+    "file": "workspace.py",
+    "schemaVersion": null
   }
 }

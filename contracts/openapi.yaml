@@ -1394,8 +1394,11 @@ components:
               field: { type: string }
               message: { type: string }
         limit: { type: string }
-        used: { type: integer }
-        max: { type: integer }
+        used:
+          description: Integer for counts; a decimal string for aiSpendUsdPerMonth.
+          oneOf: [{ type: integer }, { $ref: "#/components/schemas/Decimal" }]
+        max:
+          oneOf: [{ type: integer }, { $ref: "#/components/schemas/Decimal" }]
         trialEndsAt: { type: string, format: date-time }
         retryAfterSeconds: { type: integer }
         requiredRoles: { type: array, items: { $ref: "#/components/schemas/Role" } }

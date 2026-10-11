@@ -55,14 +55,16 @@ def get_latest_version(collection: str) -> int:
     return _LATEST_VERSIONS.get(collection, 1)
 
 
-def upcaster(collection: str, from_version: int) -> Callable[
+def upcaster(
+    collection: str, from_version: int
+) -> Callable[
     [Callable[[dict[str, Any]], dict[str, Any]]],
     Callable[[dict[str, Any]], dict[str, Any]],
 ]:
     """Decorator to register an upcaster step from from_version to from_version + 1."""
 
     def decorator(
-        fn: Callable[[dict[str, Any]], dict[str, Any]]
+        fn: Callable[[dict[str, Any]], dict[str, Any]],
     ) -> Callable[[dict[str, Any]], dict[str, Any]]:
         _UPCASTERS[(collection, from_version)] = fn
         register_collection_version(collection, from_version + 1)

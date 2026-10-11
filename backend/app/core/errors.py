@@ -3,6 +3,8 @@
 Normative references: docs/10-api-contract.md §3, docs/13 §2.4, spec 001 AC-001-5.
 """
 
+from datetime import datetime
+from decimal import Decimal
 from typing import Any
 
 import structlog
@@ -109,6 +111,85 @@ class ValidationProblem(DomainError):
             title="Validation error",
             detail="The request is not valid.",
             extras={"errors": [{"field": field, "message": message}]},
+        )
+
+
+def _number(value: object) -> object:
+    # Decimal limits (AI spend) travel as decimal strings, like all money in JSON (docs/10 §1).
+    return str(value) if isinstance(value, Decimal) else value
+
+
+def _limit_extras(limit: str | None, used: object, maximum: object) -> dict[str, Any]:
+    return {"limit": limit, "used": _number(used), "max": _number(maximum)}
+
+
+class PlanLimitReachedError(DomainError):
+    def __init__(self, limit: str | None, used: object, maximum: object) -> None:
+        super().__init__(
+            code="PLAN_LIMIT_REACHED",
+            status=403,
+            title="Plan limit reached",
+            detail=f"This would go over your plan's {limit} limit ({used} of {maximum} used).",
+            type_uri="/problems/plan-limit-reached",
+            extras=_limit_extras(limit, used, maximum),
+        )
+
+
+class TrialExpiredError(DomainError):
+    def __init__(self, trial_ends_at: datetime | None) -> None:
+        super().__init__(
+            code="TRIAL_EXPIRED",
+            status=403,
+            title="Trial ended",
+            detail="Your free trial has ended. Your books stay readable; new work is paused.",
+            extras={"trialEndsAt": trial_ends_at.isoformat()} if trial_ends_at else {},
+        )
+
+
+class DocumentTooLargeError(DomainError):
+    def __init__(self, limit: str | None, used: object, maximum: object) -> None:
+        super().__init__(
+            code="DOCUMENT_TOO_LARGE",
+            status=413,
+            title="File too large",
+            detail=f"The file is {used} MB; the limit is {maximum} MB.",
+            extras=_limit_extras(limit, used, maximum),
+        )
+
+
+class TooManyPagesError(DomainError):
+    def __init__(self, used: object, maximum: object) -> None:
+        super().__init__(
+            code="TOO_MANY_PAGES",
+            status=422,
+            title="Too many pages",
+            detail=f"The file has {used} pages; the limit is {maximum} per document.",
+            extras={"maxPages": maximum, "splitAvailable": False},
+        )
+
+
+class TooManyRowsError(DomainError):
+    def __init__(self, limit: str | None, used: object, maximum: object) -> None:
+        super().__init__(
+            code="TOO_MANY_ROWS",
+            status=422,
+            title="Too many rows",
+            detail=f"The ledger file has {used} rows; the limit is {maximum}.",
+            extras=_limit_extras(limit, used, maximum),
+        )
+
+
+class RunQuotaExceededError(DomainError):
+    def __init__(self, used: object, maximum: object, retry_after_seconds: int) -> None:
+        super().__init__(
+            code="RUN_QUOTA_EXCEEDED",
+            status=429,
+            title="Too many runs today",
+            detail=f"{used} of {maximum} month reconciliations used today.",
+            extras={
+                **_limit_extras("monthRunsPerDay", used, maximum),
+                "retryAfterSeconds": retry_after_seconds,
+            },
         )
 
 

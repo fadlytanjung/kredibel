@@ -1,10 +1,19 @@
 """Persistence of workspaces, members and bank accounts (spec 013 plan: WorkspaceRepository)."""
 
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
-from typing import Protocol
+from decimal import Decimal
+from typing import Any, Protocol
 
 from app.domain.models.events import AuditEvent
-from app.domain.models.workspace import BankAccount, Workspace
+from app.domain.models.workspace import (
+    BankAccount,
+    Subscription,
+    UsageDay,
+    UsageMonth,
+    Workspace,
+)
+from app.domain.plans import Decision
 
 
 @dataclass(frozen=True)
@@ -61,3 +70,57 @@ class WorkspaceRepository(Protocol):
     async def get_workspace(self, org_id: str) -> Workspace | None: ...
 
     async def list_bank_accounts(self, org_id: str) -> list[BankAccount]: ...
+
+
+@dataclass(frozen=True)
+class UsageIncrement:
+    documents_uploaded: int = 0
+    pages_reserved: int = 0
+    month_runs: int = 0
+    assistant_questions: int = 0
+
+
+@dataclass(frozen=True)
+class PendingWrite:
+    """A write the caller needs in the metering transaction (spec 003: the document record)."""
+
+    path: str
+    data: dict[str, Any]
+
+
+@dataclass(frozen=True)
+class UsageSettlement:
+    """What a finished document run actually used; replaces its page reservation (AC-013-10)."""
+
+    month: str
+    pages_reserved: int
+    pages_read: int
+    pages_cached: int
+    ocr_pages: int
+    parser_pages: int
+    ai_spend_usd: Decimal
+
+
+Decide = Callable[[Subscription, UsageMonth, UsageDay], Decision]
+
+
+class UsageRepository(Protocol):
+    async def meter(
+        self,
+        org_id: str,
+        *,
+        month: str,
+        day: str,
+        decide: Decide,
+        increment: UsageIncrement,
+        writes: Sequence[PendingWrite] = (),
+    ) -> tuple[Decision, Subscription]:
+        """In one transaction: read the subscription and usage, decide, and only when allowed
+        apply the increment and the caller's writes (AC-013-9)."""
+        ...
+
+    async def settle(self, org_id: str, settlement: UsageSettlement) -> None: ...
+
+    async def get_usage(
+        self, org_id: str, *, month: str, day: str
+    ) -> tuple[UsageMonth, UsageDay]: ...

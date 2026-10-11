@@ -5,11 +5,14 @@ AC-013-8). The file is read by `adapters/policy_files.py`; this module only vali
 """
 
 from collections.abc import Mapping
+from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Any, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 from pydantic.alias_generators import to_camel
+
+from app.domain.models.workspace import Subscription, SubscriptionStatus
 
 PlanStatus = Literal["AVAILABLE", "COMING_SOON"]
 
@@ -117,3 +120,44 @@ class PlanCatalog(_Contract):
 def parse_plans(data: Mapping[str, Any]) -> PlanCatalog:
     """Validate a plans file's content; raises pydantic.ValidationError on any violation."""
     return PlanCatalog.model_validate(data)
+
+
+class LimitOverrides(_Contract):
+    """Per-workspace limits that replace the plan's (the demo workspace, AC-013-4)."""
+
+    seats: int | None = None
+    documents_per_month: int | None = None
+    pages_per_document: int | None = None
+    file_size_mb: int | None = None
+    extracted_pages_per_month: int | None = None
+    ledger_rows_per_file: int | None = None
+    month_runs_per_day: int | None = None
+    ai_spend_usd_per_month: Decimal | None = None
+    assistant_questions_per_day: int | None = None
+
+
+def effective_limits(plan: Plan, overrides: Mapping[str, Any] | None) -> Limits:
+    """The plan's limits with the workspace's overrides applied; unknown override keys raise."""
+    if plan.limits is None:
+        raise ValueError(f"plan {plan.id!r} has no limits")
+    if not overrides:
+        return plan.limits
+    named = LimitOverrides.model_validate(overrides).model_dump(exclude_none=True)
+    return plan.limits.model_copy(update=named)
+
+
+def subscription_status(sub: Subscription, now: datetime) -> SubscriptionStatus:
+    """Derived from the clock, so a stored TRIALING never outlives trialEndsAt (AC-013-8)."""
+    if sub.status == "ACTIVE":
+        return "ACTIVE"
+    if sub.trial_ends_at is not None and now >= sub.trial_ends_at:
+        return "TRIAL_EXPIRED"
+    return "TRIALING"
+
+
+def trial_days_left(sub: Subscription, now: datetime) -> int:
+    """Whole days left, a started day counting as one ("Free trial: 1 day left" until the end)."""
+    if sub.trial_ends_at is None or now >= sub.trial_ends_at:
+        return 0
+    remaining = sub.trial_ends_at - now
+    return -(-remaining // timedelta(days=1))

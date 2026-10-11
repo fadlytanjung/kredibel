@@ -257,7 +257,12 @@ nodes never overwrite a person's label. When a workspace has verified labels, `d
 `txn_categorizer` get up to five of them as examples (same workspace only, nearest by embedding),
 inside the untrusted-data framing of §5.
 
-**Debugging workflows and nodes (P0).** Each workflow (`document_workflow`, `month_workflow`), LLM node, and the assistant has a thin dev app under `backend/app/agents/dev_apps/`, so `make dev-agents` opens the Google ADK dev UI (`adk web app/agents/dev_apps --port 8501`) with interactive DAG inspection, state delta stepping, event streaming, and Trace view of every LLM and tool call, on recorded fixtures or live Gemini ([ADR-017](adr/ADR-017-agent-observability-on-google-cloud.md), [`docs/17`](17-observability.md) §9).
+**Debugging workflows and nodes (P0).** Each workflow (`document_workflow`, `month_workflow`) and, as
+they are built, each LLM node and the assistant has a thin dev app under
+`backend/app/agents/dev_apps/`, so `make dev-agents` opens it in the ADK dev UI with its events, trace
+waterfall, graph and state ([ADR-017](adr/ADR-017-agent-observability-on-google-cloud.md),
+[`17`](17-observability.md) §9). How the workflows run and how to trace them, for readers who know
+LangGraph and LangSmith: [`23`](23-agents-and-tracing-guide.md).
 
 ---
 

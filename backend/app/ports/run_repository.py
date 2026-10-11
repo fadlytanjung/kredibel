@@ -26,6 +26,10 @@ class RunRepository(Protocol):
         """Append a stage record to the run."""
         ...
 
+    async def set_trace_id(self, org_id: str, run_id: str, trace_id: str) -> None:
+        """Record the Cloud Trace ID of the run's `workflow:` span (docs/17 §2)."""
+        ...
+
     async def list_by_target(self, org_id: str, target: str) -> list[Run]:
         """List runs for a specific target (docId or yyyy-mm)."""
         ...

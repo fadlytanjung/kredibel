@@ -71,7 +71,7 @@ _Last updated: 12 Oct 2026 — Spec 001, Spec 013, and Spec 003 built (tests all
 | Money flow (Flow, Bars, Table, By client and supplier) + drill-down | 010 | Specified | Statement view (IFRS or US GAAP) by default; full-width charts, one per row |
 | Months in and out, cash-flow statement waterfall | 010 | Specified | `GET /api/cash-flow`; docs/08 §5.2 |
 | Category → cash-flow class per framework | 007, 016 | Specified | `contracts/policy/categories.v1.yaml` |
-| Traces in Cloud Trace + ADK dev UI (`make dev-agents`) | 001, 004, 017 | Specified | ADR-017 |
+| Traces in Cloud Trace + ADK dev UI (`make dev-agents`) | 001, 004, 017 | Built | One trace per run (`workflow:` root, `node:` spans, ADK spans), `runs.traceId`, trace field on logs, `TRACE_EXPORT=cloud` on Cloud Run; dev apps for both workflows load and run in tests; guide in docs/23. Deploy to see traces in Cloud Trace |
 
 ## P1
 

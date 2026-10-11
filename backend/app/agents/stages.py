@@ -1,6 +1,7 @@
 """Workflow stage wrapper (AC-004-1, AC-004-12, docs/06 §2.2, docs/17)."""
 
 import inspect
+import json
 from datetime import UTC, datetime
 from typing import Any, cast
 
@@ -31,13 +32,34 @@ class CallableFunctionNode(FunctionNode):
         return await self._func(node_input or {})
 
 
+def node_input_dict(ctx: Any, node_input: Any) -> dict[str, Any]:
+    """A node's input as a dict, from wherever this run supplied it (docs/23 §4)."""
+    # Production passes the run input in session state (`node_input`); a previous node passes a
+    # dict; in the ADK dev UI the developer types the input as a JSON chat message, or types
+    # anything and the session state carries it.
+    if isinstance(node_input, dict):
+        return cast(dict[str, Any], node_input)
+    if isinstance(node_input, str):
+        try:
+            parsed = json.loads(node_input)
+        except ValueError:
+            parsed = None
+        if isinstance(parsed, dict):
+            return cast(dict[str, Any], parsed)
+    state = getattr(ctx, "state", None)
+    state_data: dict[str, Any] = (
+        cast(Any, state).to_dict() if state is not None and hasattr(state, "to_dict") else {}
+    )
+    from_state = state_data.get("node_input")
+    return cast(dict[str, Any], from_state) if isinstance(from_state, dict) else state_data
+
+
 def stage(
     deps: PipelineDeps,
     node_name: str,
     fn: Any | None = None,
 ) -> Any:
     """Wrap a node to record stages, bind logs, and trace spans."""
-
 
     def decorator(target_callable: Any) -> Any:
         raw_func = getattr(target_callable, "_func", target_callable)
@@ -46,22 +68,10 @@ def stage(
             len(sig.parameters) == 1 and "ctx" in sig.parameters
         )
 
-        async def _wrapped(
-            ctx: Context, node_input: dict[str, Any] | None = None
-        ) -> dict[str, Any]:
-            state_data: dict[str, Any] = (
-                cast(Any, ctx.state).to_dict()
-                if hasattr(ctx, "state") and hasattr(ctx.state, "to_dict")
-                else {}
-            )
-            raw_input: Any = (
-                node_input
-                or state_data.get("node_input")
-                or state_data
-            )
-            actual_input: dict[str, Any] = (
-                cast(dict[str, Any], raw_input) if isinstance(raw_input, dict) else {}
-            )
+        # `Any`, not dict: ADK coerces a node's input to its annotation, and the dev UI's first
+        # node receives the chat message as text.
+        async def _wrapped(ctx: Context, node_input: Any = None) -> dict[str, Any]:
+            actual_input = node_input_dict(ctx, node_input)
             org_id = str(actual_input.get("orgId") or actual_input.get("org_id") or "")
             run_id = str(actual_input.get("runId") or actual_input.get("run_id") or "")
             doc_id = actual_input.get("docId") or actual_input.get("doc_id")
@@ -89,6 +99,10 @@ def stage(
                 if run_id:
                     span.set_attribute("runId", run_id)
                 span.set_attribute("node", node_name)
+                # Lets the ADK dev UI's Traces tab group our node spans with ADK's own spans.
+                invocation_id = getattr(ctx, "invocation_id", None)
+                if isinstance(invocation_id, str):
+                    span.set_attribute("gcp.vertex.agent.invocation_id", invocation_id)
                 if doc_id:
                     span.set_attribute("docId", str(doc_id))
                 if month:
@@ -108,7 +122,6 @@ def stage(
                         result = res_or_coro
 
                     ended_at = deps.clock.now() if deps.clock is not None else datetime.now(UTC)
-
 
                     duration_ms = int((ended_at - started_at).total_seconds() * 1000)
 
@@ -170,7 +183,6 @@ def stage(
         base_node = cast(Any, node(name=node_name)(_wrapped))
         base_node.__class__ = CallableFunctionNode
         return base_node
-
 
     if fn is not None:
         return decorator(fn)

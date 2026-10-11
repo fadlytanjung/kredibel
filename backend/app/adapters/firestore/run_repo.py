@@ -120,6 +120,9 @@ class FirestoreRunRepository(RunRepository):
         doc_ref = self._col(org_id).document(run_id)
         await doc_ref.set({"stages": ArrayUnion([_stage_to_firestore(stage)])}, merge=True)
 
+    async def set_trace_id(self, org_id: str, run_id: str, trace_id: str) -> None:
+        await self._col(org_id).document(run_id).set({"traceId": trace_id}, merge=True)
+
     async def list_by_target(self, org_id: str, target: str) -> list[Run]:
         return await self.list_runs(org_id, target=target)
 

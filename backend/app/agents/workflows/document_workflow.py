@@ -2,13 +2,14 @@
 
 import asyncio
 from dataclasses import replace
-from typing import Any, cast
+from typing import Any
 
 from google.adk import Context, Workflow
 from google.adk.workflow import node
 
 from app.agents.deps import PipelineDeps
 from app.agents.nodes import doc_nodes as n
+from app.agents.stages import node_input_dict
 from app.domain.models.document import DocStatus
 
 
@@ -18,22 +19,8 @@ def build_document_workflow(deps: PipelineDeps) -> Workflow:
     page_sem = asyncio.Semaphore(page_concurrency)
 
     @node(name="document_workflow", rerun_on_resume=True)
-    async def document_workflow(
-        ctx: Context, node_input: Any = None
-    ) -> dict[str, Any]:
-        state_data: dict[str, Any] = (
-            cast(Any, ctx.state).to_dict()
-            if hasattr(ctx, "state") and hasattr(ctx.state, "to_dict")
-            else {}
-        )
-        raw_input: Any = (
-            node_input
-            or (ctx.state.get("node_input") if hasattr(ctx, "state") and ctx.state else None)
-            or state_data
-        )
-        input_data: dict[str, Any] = (
-            cast(dict[str, Any], raw_input) if isinstance(raw_input, dict) else {}
-        )
+    async def document_workflow(ctx: Context, node_input: Any = None) -> dict[str, Any]:
+        input_data = node_input_dict(ctx, node_input)
         org_id = str(input_data.get("orgId") or input_data.get("org_id") or "")
         doc_id = str(input_data.get("docId") or input_data.get("doc_id") or "")
         attempt = int(input_data.get("attempt", 1))
@@ -55,6 +42,7 @@ def build_document_workflow(deps: PipelineDeps) -> Workflow:
                     return doc
                 doc = await ctx.run_node(n.parse_ledger(deps), doc)
             else:
+
                 async def read(page_no: int, context: dict[str, Any] | None):
                     async with page_sem:
                         return await ctx.run_node(

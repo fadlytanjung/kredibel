@@ -7,8 +7,6 @@ from collections.abc import Callable
 from typing import Any, TypeVar, cast
 
 from fastapi import FastAPI
-from google.adk import Runner
-from google.adk.sessions import InMemorySessionService
 from google.cloud.firestore import AsyncClient
 
 from app.adapters.cloud_tasks import CloudTasksQueue, InlineTaskQueue
@@ -23,6 +21,7 @@ from app.adapters.page_renderer import DefaultPageRenderer
 from app.adapters.policy_files import load_plans
 from app.adapters.spreadsheet_reader import DefaultSpreadsheetReader
 from app.agents.deps import PipelineDeps
+from app.agents.runtime import run_workflow
 from app.agents.workflows.document_workflow import build_document_workflow
 from app.agents.workflows.month_workflow import build_month_workflow
 from app.api.bank_accounts import create_bank_accounts_router
@@ -51,6 +50,7 @@ from app.core.logging import LoggingMiddleware, setup_logging
 from app.core.security_headers import SecurityHeadersMiddleware
 from app.core.settings import Settings
 from app.domain.plans import PlanCatalog
+from app.observability.tracing import setup_tracing
 from app.ports.document_repository import DocumentRepository
 from app.ports.document_storage import DocumentStorage
 from app.ports.identity_admin import IdentityAdmin
@@ -284,24 +284,14 @@ class AppDeps:
                 task_queue=self.task_queue,
                 clock=self.clock,
             )
-            wf = build_document_workflow(pipeline_deps)
-            sessions = InMemorySessionService()
-            runner = Runner(agent=cast(Any, wf), app_name="kredibel", session_service=sessions)
-            await sessions.create_session(
-                app_name="kredibel",
-                user_id="system",
-                session_id=run_id,
-                state={
-                    "node_input": {
-                        "orgId": org_id,
-                        "docId": doc_id,
-                        "runId": run_id,
-                        "attempt": attempt,
-                    }
-                },
+            await run_workflow(
+                build_document_workflow(pipeline_deps),
+                org_id=org_id,
+                run_id=run_id,
+                node_input={"orgId": org_id, "docId": doc_id, "runId": run_id, "attempt": attempt},
+                run_repo=self.run_repo,
+                settings=self.settings,
             )
-            async for _ in runner.run_async(user_id="system", session_id=run_id):
-                pass
 
         return _default_runner
 
@@ -318,28 +308,19 @@ class AppDeps:
                 task_queue=self.task_queue,
                 clock=self.clock,
             )
-            wf = build_month_workflow(pipeline_deps)
-            sessions = InMemorySessionService()
-            runner = Runner(agent=cast(Any, wf), app_name="kredibel", session_service=sessions)
-            await sessions.create_session(
-                app_name="kredibel",
-                user_id="system",
-                session_id=run_id,
-                state={
-                    "node_input": {
-                        "orgId": org_id,
-                        "month": month,
-                        "generation": generation,
-                        "runId": run_id,
-                    }
+            return await run_workflow(
+                build_month_workflow(pipeline_deps),
+                org_id=org_id,
+                run_id=run_id,
+                node_input={
+                    "orgId": org_id,
+                    "month": month,
+                    "generation": generation,
+                    "runId": run_id,
                 },
+                run_repo=self.run_repo,
+                settings=self.settings,
             )
-            last: dict[str, Any] = {}
-            async for event in runner.run_async(user_id="system", session_id=run_id):
-                output = getattr(event, "output", None)
-                if isinstance(output, dict):
-                    last = cast(dict[str, Any], output)
-            return last
 
         return _default_runner
 
@@ -384,6 +365,7 @@ def create_app(
         service=active_settings.service_name,
         version=active_settings.app_version,
     )
+    setup_tracing(active_settings)
 
     if deps is None:
         # AC-013-5: an invalid plan catalog stops the process before it serves anything.

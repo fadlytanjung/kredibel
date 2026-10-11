@@ -30,6 +30,11 @@ class FakeRunRepository(RunRepository):
         if run:
             run.stages.append(stage)
 
+    async def set_trace_id(self, org_id: str, run_id: str, trace_id: str) -> None:
+        run = self.runs.get((org_id, run_id))
+        if run:
+            run.trace_id = trace_id
+
     async def list_by_target(self, org_id: str, target: str) -> list[Run]:
         return [r for (o, _), r in self.runs.items() if o == org_id and r.target == target]
 

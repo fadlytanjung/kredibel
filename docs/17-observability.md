@@ -28,6 +28,9 @@ ADK emits OpenTelemetry spans for its own work, following the GenAI semantic con
 
 | Span | Emitted for | Useful attributes |
 |---|---|---|
+| `invocation` | each `Runner.run_async` call (one per run) | — |
+| `invoke_workflow` | a `Workflow` | `gen_ai.workflow.name`, `gen_ai.conversation.id` (= `runId`) |
+| `invoke_node` | every workflow node, nested under its parent | `gen_ai.operation.name`, associated event IDs |
 | `invoke_agent` | an ADK `Agent` node (mapper, categorizer, explainer) and the assistant | agent name |
 | `call_llm`, `generate_content` | each Gemini call | model, input and output tokens, finish reason |
 | `execute_tool` | each assistant tool call (P1) | tool name, duration, error |
@@ -37,19 +40,14 @@ every node (function or LLM), and adapter spans for Document AI, Firestore and C
 document or month run is one trace. The trace ID is stored on
 the run (`runs.traceId`) and each stage keeps its `traceSpanId`.
 
-**Export to Cloud Trace** (import paths confirmed in spike S2):
-
-```python
-# backend/app/observability/tracing.py — sketch
-from google.adk.telemetry import google_cloud
-from google.adk.telemetry.setup import maybe_set_otel_providers
-
-def setup_tracing(settings) -> None:
-    hooks = google_cloud.get_gcp_exporters(enable_cloud_tracing=True)
-    maybe_set_otel_providers(otel_hooks_to_setup=[hooks])
-```
-
-The same setup runs locally, so a developer can open one workflow run in Cloud Trace.
+**Export to Cloud Trace** (`backend/app/observability/tracing.py`, called once by `create_app`):
+with `TRACE_EXPORT=cloud` (both Cloud Run services) it installs ADK's exporter,
+`get_gcp_exporters(enable_cloud_tracing=True)` through `maybe_set_otel_providers`, with the service
+name and version as the resource. `TRACE_EXPORT=none` (the default) keeps spans in the process: tests,
+local runs, and the dev UI, which has its own in-memory trace view. `app/agents/runtime.run_workflow`
+opens the `workflow:<name>` root span, stores its trace ID on the run and binds the trace field to every
+log line of the run; `stage()` tags `node:` spans with the ADK invocation ID so the dev UI groups them.
+How to find a run's trace: [`23`](23-agents-and-tracing-guide.md) §5.
 
 **Content capture follows the data** (`AI_CONTENT_CAPTURE`, [ADR-017](adr/ADR-017-agent-observability-on-google-cloud.md)).
 Outside Agent Runtime, ADK records prompts and responses in span attributes unless
@@ -223,11 +221,14 @@ counted in `kredibel/agent_events_dropped`.
 
 ## 9. Debugging locally (P0)
 
-`make dev-agents` starts the Google ADK dev UI (`adk web app/agents/dev_apps --port 8501`) pointing to
-`backend/app/agents/dev_apps/`. It provides interactive visual debugging equivalent to LangSmith:
-- **Workflows (`document_workflow`, `month_workflow`)**: Visual DAG graph inspection, interactive execution, step-by-step state delta inspection, and real-time event streaming across node transitions.
-- **LLM Agent Nodes and Assistant**: Each node (classifier, page reader, ledger mapper, categorizer, explainer) and the Finance Assistant runs with fixture tools by default (recorded inputs from synthetic scenarios) or live Gemini with `LIVE=1`. The dev UI shows exact prompt templates, input tokens, completion tokens, tool invocations, and output schemas.
-- **Traces and spans**: Full call trees with latency and state payloads. Prompts in `backend/app/agents/prompts/*.md` can be adjusted and re-tested in place with instant hot-reload. Synthetic content capture is enabled (`AI_CONTENT_CAPTURE=1`).
+`make dev-agents` opens the ADK dev UI (`adk web` on `backend/app/agents/dev_apps/`, port 8501), the
+local equivalent of LangSmith: **Events** (each node's output), **Traces** (the run as a waterfall of
+ADK and `node:` spans), **Agent structure** (the workflow graph), **State** and **Evals**. Today there
+is one dev app per workflow (`document_workflow`, `month_workflow`) on in-memory fakes; each LLM node
+and the assistant gets its own app when it is built (specs 005–011), with recorded fixtures by default.
+`tests/integration/test_dev_apps.py` loads and runs every dev app as `adk web` does, so one that cannot
+open fails `make check`. Step-by-step use, the API behind the UI and troubleshooting:
+[`23`](23-agents-and-tracing-guide.md) §4.
 
 ## 10. Feedback, datasets and evals (P1)
 

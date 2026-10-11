@@ -10,13 +10,14 @@ import { Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import { useAuth } from '../entities/session'
 import { shellPropsFromWorkspace, useWorkspace } from '../entities/workspace'
 import { DashboardPage } from '../pages/DashboardPage'
+import { DocumentPage } from '../pages/DocumentPage'
+import { DocumentsPage } from '../pages/DocumentsPage'
 import { LoginPage } from '../pages/LoginPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
 import { OnboardingPage } from '../pages/OnboardingPage'
 import {
   AssistantPage,
   CounterpartiesPage,
-  DocumentsPage,
   LabelsPage,
   MonthsPage,
   ReviewPage,
@@ -106,7 +107,7 @@ export function OnboardingRoute({ children }: { children: ReactNode }) {
 const PROTECTED_ROUTES: { path: string; element: ReactNode }[] = [
   { path: '/', element: <DashboardPage /> },
   { path: '/documents', element: <DocumentsPage /> },
-  { path: '/documents/:docId', element: <DocumentsPage /> },
+  { path: '/documents/:docId', element: <DocumentPage /> },
   { path: '/months', element: <MonthsPage /> },
   { path: '/months/:month', element: <MonthsPage /> },
   { path: '/review', element: <ReviewPage /> },

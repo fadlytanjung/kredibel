@@ -2,6 +2,7 @@ import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 import { DEFAULT_LANGUAGE } from './languages'
 import commonEn from './locales/en/common.json'
+import documentsEn from './locales/en/documents.json'
 import errorsEn from './locales/en/errors.json'
 import onboardingEn from './locales/en/onboarding.json'
 import settingsEn from './locales/en/settings.json'
@@ -10,6 +11,7 @@ void i18n.use(initReactI18next).init({
   resources: {
     en: {
       common: commonEn,
+      documents: documentsEn,
       errors: errorsEn,
       onboarding: onboardingEn,
       settings: settingsEn,

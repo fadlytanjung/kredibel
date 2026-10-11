@@ -15,9 +15,9 @@
 
 ## Phase 3 — UI
 
-- [ ] **T003-08** `UploadSheet` with camera input and duplicate notice; stories for each file state. (AC-003-1, AC-003-6)
-- [ ] **T003-09** `DocumentsPage` with filters, badges and live status; visual tests at 390/834/1440. (AC-003-7, AC-003-8)
-- [ ] **T003-10** `DocumentPage` (pages, read values, findings, matches, events). (AC-003-9)
+- [x] **T003-08** `UploadSheet` with camera input and duplicate notice; stories for each file state. (AC-003-1, AC-003-6)
+- [x] **T003-09** `DocumentsPage` with filters, badges and live status; visual tests at 390/834/1440. (AC-003-7, AC-003-8)
+- [x] **T003-10** `DocumentPage` (pages, read values, findings, matches, events). (AC-003-9)
 
 ## Phase 4 — Close
 

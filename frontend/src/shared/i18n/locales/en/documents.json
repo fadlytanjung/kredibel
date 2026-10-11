@@ -1,0 +1,89 @@
+{
+  "title": "Documents",
+  "subtitle": "Everything you uploaded, in any order. Kredibel reads each file twice and checks it before its numbers count.",
+  "upload": {
+    "title": "Drop statements, invoices, receipts or a ledger export",
+    "description": "PDF, photos, CSV or Excel, in any order. A file you already sent is never read twice.",
+    "chooseFiles": "Choose files",
+    "takePhoto": "Photo of a receipt",
+    "uploading": "Uploading...",
+    "readingPage": "Reading page {{page}} of {{total}}",
+    "duplicateNotice": "Already uploaded on {{date}} as {{name}}. Not read again and not counted.",
+    "heldNotice": "Looks like {{name}}. Held until you decide.",
+    "viewOriginal": "View original",
+    "decide": "Decide",
+    "hintLabel": "Document type (optional)",
+    "hints": {
+      "auto": "Automatic detection",
+      "statement": "Bank statement",
+      "salesInvoice": "Sales invoice",
+      "purchaseInvoice": "Purchase invoice",
+      "receipt": "Receipt",
+      "ledger": "Ledger export"
+    }
+  },
+  "filters": {
+    "all": "All",
+    "statements": "Statements",
+    "salesInvoices": "Sales invoices",
+    "purchaseInvoices": "Purchase invoices",
+    "receipts": "Receipts",
+    "ledger": "Ledger",
+    "duplicates": "Possible copies"
+  },
+  "table": {
+    "document": "Document",
+    "status": "Status",
+    "check": "Check",
+    "risk": "Risk",
+    "months": "Months",
+    "uploaded": "Uploaded",
+    "empty": "No documents yet. Drop your first statement, invoice or receipt above.",
+    "pages": "{{count}} pages",
+    "page": "1 page",
+    "rows": "{{count}} rows"
+  },
+  "status": {
+    "uploaded": "Uploaded",
+    "screening": "Checking",
+    "reading": "Reading",
+    "checking": "Checking",
+    "done": "Read",
+    "imported": "Imported",
+    "duplicate": "Copy, not read",
+    "needsInput": "Needs review",
+    "failed": "Failed",
+    "held": "Held",
+    "noPages": "No pages to check",
+    "afterReading": "After reading",
+    "notYet": "Not yet"
+  },
+  "verdict": {
+    "clean": "Clean",
+    "suspicious": "Suspicious",
+    "tampered": "Edited",
+    "unverifiable": "Unverifiable"
+  },
+  "detail": {
+    "back": "Back to documents",
+    "pages": "Pages",
+    "page": "Page {{page}}",
+    "extractedValues": "Extracted values",
+    "findings": "Findings",
+    "events": "Events",
+    "noFindings": "No findings. All checks clean.",
+    "deleteDocument": "Remove document",
+    "confirmDelete": "Are you sure you want to remove {{name}}? Reconciled figures for its months will be updated.",
+    "confirm": "Remove",
+    "cancel": "Cancel",
+    "downloadOriginal": "Original file",
+    "digital": "Digital",
+    "scanned": "Scanned",
+    "spreadsheet": "Spreadsheet",
+    "bank": "Bank",
+    "account": "Account",
+    "period": "Period",
+    "to": "to",
+    "rowsImported": "Rows imported"
+  }
+}

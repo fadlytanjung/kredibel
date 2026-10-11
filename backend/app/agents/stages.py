@@ -46,12 +46,22 @@ def stage(
             len(sig.parameters) == 1 and "ctx" in sig.parameters
         )
 
-        async def _wrapped(ctx: Context, node_input: dict[str, Any]) -> dict[str, Any]:
-            org_id = node_input.get("orgId") or node_input.get("org_id") or ""
-            run_id = node_input.get("runId") or node_input.get("run_id") or ""
-            doc_id = node_input.get("docId") or node_input.get("doc_id")
-            month = node_input.get("month")
-            parent = node_input.get("parent")
+        async def _wrapped(
+            ctx: Context, node_input: dict[str, Any] | None = None
+        ) -> dict[str, Any]:
+            state_data: dict[str, Any] = (
+                cast(Any, ctx.state).to_dict()
+                if hasattr(ctx, "state") and hasattr(ctx.state, "to_dict")
+                else {}
+            )
+            actual_input: dict[str, Any] = node_input or state_data
+            org_id = str(actual_input.get("orgId") or actual_input.get("org_id") or "")
+            run_id = str(actual_input.get("runId") or actual_input.get("run_id") or "")
+            doc_id = actual_input.get("docId") or actual_input.get("doc_id")
+            month = actual_input.get("month")
+            parent = actual_input.get("parent")
+            if parent is not None:
+                parent = str(parent)
 
             bind_kwargs: dict[str, Any] = {"node": node_name}
             if org_id:
@@ -83,7 +93,7 @@ def stage(
 
                 try:
                     res_or_coro = (
-                        raw_func(ctx, node_input) if accepts_ctx else raw_func(node_input)
+                        raw_func(ctx, actual_input) if accepts_ctx else raw_func(actual_input)
                     )
                     if inspect.iscoroutine(res_or_coro):
                         result = await res_or_coro

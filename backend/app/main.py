@@ -7,6 +7,8 @@ from collections.abc import Callable
 from typing import Any, TypeVar, cast
 
 from fastapi import FastAPI
+from google.adk import Runner
+from google.adk.sessions import InMemorySessionService
 from google.cloud.firestore import AsyncClient
 
 from app.adapters.cloud_tasks import CloudTasksQueue, InlineTaskQueue
@@ -20,6 +22,8 @@ from app.adapters.gcs_storage import GcsDocumentStorage
 from app.adapters.page_renderer import DefaultPageRenderer
 from app.adapters.policy_files import load_plans
 from app.adapters.spreadsheet_reader import DefaultSpreadsheetReader
+from app.agents.deps import PipelineDeps
+from app.agents.workflows.document_workflow import build_document_workflow
 from app.api.bank_accounts import create_bank_accounts_router
 from app.api.documents import create_documents_router
 from app.api.health import create_health_router
@@ -56,7 +60,7 @@ from app.ports.workspace_repository import UsageRepository, WorkspaceRepository
 from app.services.document_service import DocumentService
 from app.services.entitlement_service import EntitlementService
 from app.services.month_service import MonthService
-from app.services.runs import RunService
+from app.services.runs import DocumentWorkflowRunner, RunService
 from app.services.workspace_service import WorkspaceService
 
 T = TypeVar("T")
@@ -86,6 +90,7 @@ class AppDeps:
         run_repo: RunRepository | None = None,
         month_repo: MonthRepository | None = None,
         task_token_verifier: TaskTokenVerifier | None = None,
+        document_workflow_runner: DocumentWorkflowRunner | None = None,
     ) -> None:
         self.settings = settings
         self._plans = plans
@@ -102,6 +107,7 @@ class AppDeps:
         self._run_repo = run_repo
         self._month_repo = month_repo
         self._task_token_verifier = task_token_verifier
+        self._document_workflow_runner = document_workflow_runner
         self._built: dict[str, Any] = {}
 
     def _once(self, name: str, build: Callable[[], T]) -> T:
@@ -261,6 +267,41 @@ class AppDeps:
         )
 
     @property
+    def document_workflow_runner(self) -> DocumentWorkflowRunner:
+        if self._document_workflow_runner is not None:
+            return self._document_workflow_runner
+
+        async def _default_runner(org_id: str, doc_id: str, run_id: str, attempt: int) -> None:
+            pipeline_deps = PipelineDeps(
+                settings=self.settings,
+                run_repo=self.run_repo,
+                doc_repo=self.doc_repo,
+                month_repo=self.month_repo,
+                task_queue=self.task_queue,
+                clock=self.clock,
+            )
+            wf = build_document_workflow(pipeline_deps)
+            sessions = InMemorySessionService()
+            runner = Runner(agent=cast(Any, wf), app_name="kredibel", session_service=sessions)
+            await sessions.create_session(
+                app_name="kredibel",
+                user_id="system",
+                session_id=run_id,
+                state={
+                    "node_input": {
+                        "orgId": org_id,
+                        "docId": doc_id,
+                        "runId": run_id,
+                        "attempt": attempt,
+                    }
+                },
+            )
+            async for _ in runner.run_async(user_id="system", session_id=run_id):
+                pass
+
+        return _default_runner
+
+    @property
     def run_service(self) -> RunService:
         return self._once(
             "run_service",
@@ -271,6 +312,7 @@ class AppDeps:
                 entitlement_service=self.entitlement_service,
                 settings=self.settings,
                 clock=self.clock,
+                document_workflow_runner=self.document_workflow_runner,
             ),
         )
 

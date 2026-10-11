@@ -136,10 +136,13 @@ class RunService:
         else:
             await self._run_repo.update_status(org_id, run_id, RunStatus.RUNNING)
 
-        if self._document_workflow_runner is not None:
-            await self._document_workflow_runner(org_id, doc_id, run_id, attempt)
-        else:
+        try:
+            if self._document_workflow_runner is not None:
+                await self._document_workflow_runner(org_id, doc_id, run_id, attempt)
             await self._run_repo.update_status(org_id, run_id, RunStatus.DONE, ended=True)
+        except Exception:
+            await self._run_repo.update_status(org_id, run_id, RunStatus.FAILED, ended=True)
+            raise
 
         return {"ok": True}
 

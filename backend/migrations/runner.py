@@ -269,18 +269,25 @@ class MigrationRunner:
         return statuses
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Kredibel Firestore migration runner")
+    parser.add_argument(
+        "command",
+        nargs="?",
+        default="run",
+        choices=["run", "status"],
+        help="Command to execute (run or status)",
+    )
     parser.add_argument("--dry-run", action="store_true", help="Dry run migration without writing")
     parser.add_argument("--status", action="store_true", help="Print migration status")
     parser.add_argument("--limit", type=int, help="Limit number of documents processed")
     parser.add_argument("--only", type=str, help="Run only specific migration ID")
     parser.add_argument("--env", type=str, default="local", help="Environment (local, prod, etc.)")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     runner = MigrationRunner()
 
-    if args.status:
+    if args.command == "status" or args.status:
         statuses = runner.get_status()
         print(f"\nMigration Status (env={args.env}):")
         print("-" * 60)

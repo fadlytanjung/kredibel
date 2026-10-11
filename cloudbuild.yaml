@@ -28,7 +28,33 @@ steps:
       - 'push'
       - 'asia-southeast1-docker.pkg.dev/$PROJECT_ID/kredibel/app:$SHORT_SHA'
 
-  # 4. Deploy worker service (IAM authenticated only)
+  # 5a. Deploy Firestore indexes and rules
+  - name: 'node:22-slim'
+    id: 'firestore-indexes'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        npx --yes firebase-tools deploy --only firestore:indexes,firestore:rules --project "$PROJECT_ID" --config infra/firebase.json || true
+
+  # 5b. Deploy and run kredibel-migrate job
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'migrate'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "Updating kredibel-migrate job..."
+        gcloud run jobs deploy kredibel-migrate \
+          --image="asia-southeast1-docker.pkg.dev/$PROJECT_ID/kredibel/app:$SHORT_SHA" \
+          --region=asia-southeast1 \
+          --service-account="kredibel-migrate@$PROJECT_ID.iam.gserviceaccount.com" \
+          --set-env-vars=APP_ROLE=migrate,PROJECT_ID=$PROJECT_ID,BACKUPS_BUCKET=$PROJECT_ID-kredibel-backups \
+          --max-retries=1 --task-timeout=3600s || true
+        echo "Executing migration job..."
+        gcloud run jobs execute kredibel-migrate --args=run --region=asia-southeast1 --wait || true
+
+  # 6. Deploy worker service (IAM authenticated only)
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     id: 'deploy-worker'
     entrypoint: 'bash'

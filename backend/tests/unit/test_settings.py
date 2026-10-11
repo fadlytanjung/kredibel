@@ -9,7 +9,7 @@ def test_t001_06_default_settings_valid():
     from app.core.settings import Settings
 
     settings = Settings()
-    assert settings.app_role in ("web", "worker", "all")
+    assert settings.app_role in ("web", "worker", "all", "migrate")
     assert settings.google_cloud_project == "cloud-hack2skill"
     assert settings.region == "asia-southeast1"
 

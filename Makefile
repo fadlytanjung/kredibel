@@ -108,13 +108,25 @@ dev-agents: ## Launch ADK developer UI for agent inspection
 	cd backend && uv run adk web --port 8501
 
 migrate-dry: ## Dry-run pending data migrations
-	cd backend && uv run python -m migrations.runner --dry-run --env=$(ENV)
+	@if [ "$(ENV)" = "local" ]; then \
+		cd backend && uv run python -m migrations run --dry-run; \
+	else \
+		gcloud run jobs execute kredibel-migrate --args=run,--dry-run --region=$(REGION) --wait; \
+	fi
 
 migrate: ## Execute pending data migrations
-	cd backend && uv run python -m migrations.runner --env=$(ENV)
+	@if [ "$(ENV)" = "local" ]; then \
+		cd backend && uv run python -m migrations run; \
+	else \
+		gcloud run jobs execute kredibel-migrate --args=run --region=$(REGION) --wait; \
+	fi
 
 migrate-status: ## Check migration status
-	cd backend && uv run python -m migrations.runner --status --env=$(ENV)
+	@if [ "$(ENV)" = "local" ]; then \
+		cd backend && uv run python -m migrations status; \
+	else \
+		cd backend && uv run python -m migrations status --env=$(ENV); \
+	fi
 
 schema-snapshot: ## Regenerate Firestore data schema snapshot
 	python3 tools/checks/schema_drift.py --write

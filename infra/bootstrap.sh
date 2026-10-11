@@ -114,4 +114,13 @@ gcloud storage buckets add-iam-policy-binding "gs://${PROJECT_ID}-kredibel-backu
   --member="serviceAccount:service-${PROJECT_NUMBER}@gcp-sa-firestore.iam.gserviceaccount.com" \
   --role=roles/storage.admin || true
 
+echo "==> 5. Creating Cloud Run migrate job..."
+gcloud run jobs create kredibel-migrate \
+  --image="asia-southeast1-docker.pkg.dev/${PROJECT_ID}/kredibel/app:latest" \
+  --region="$REGION" \
+  --service-account="$(SA kredibel-migrate)" \
+  --set-env-vars=APP_ROLE=migrate,PROJECT_ID=${PROJECT_ID},BACKUPS_BUCKET=${PROJECT_ID}-kredibel-backups \
+  --max-retries=1 \
+  --task-timeout=3600s || true
+
 echo "==> Bootstrap completed successfully for project $PROJECT_ID."

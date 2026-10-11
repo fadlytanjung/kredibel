@@ -118,3 +118,25 @@ def test_ac001_20_resumes_from_checkpoint(firestore_db):
     assert resumed_res["status"] == "DONE"
     assert resumed_res["processed"] == 5
     assert resumed_res["updated"] == 5
+
+
+def test_ac001_22_cli_status(firestore_db, capsys):
+    """CLI status command reports registered migrations."""
+    from migrations.runner import main
+
+    code = main(["status"])
+    assert code == 0
+    captured = capsys.readouterr()
+    assert "Migration Status" in captured.out
+    assert "0000_example" in captured.out
+
+
+def test_ac001_22_cli_dry_run(firestore_db, capsys):
+    """CLI run with --dry-run operates without writing."""
+    from migrations.runner import main
+
+    code = main(["run", "--dry-run", "--only", "0000_example"])
+    assert code == 0
+    captured = capsys.readouterr()
+    assert "Starting migrations" in captured.out
+    assert "dry_run=True" in captured.out

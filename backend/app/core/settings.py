@@ -7,7 +7,7 @@ from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-AppRole = Literal["web", "worker", "all"]
+AppRole = Literal["web", "worker", "all", "migrate"]
 
 
 class Settings(BaseSettings):

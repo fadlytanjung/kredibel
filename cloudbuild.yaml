@@ -28,6 +28,8 @@ steps:
       - 'VITE_FIREBASE_APP_ID=$_VITE_FIREBASE_APP_ID'
       - '--build-arg'
       - 'VITE_APP_VERSION=$_COMMIT_SHA'
+      - '--build-arg'
+      - 'APP_VERSION=$_COMMIT_SHA'
       - '-t'
       - 'asia-southeast1-docker.pkg.dev/$PROJECT_ID/kredibel/app:$_COMMIT_SHA'
       - '-t'
@@ -110,15 +112,17 @@ steps:
           --env-vars-file=infra/env.web.resolved.yaml
         gcloud run services add-iam-policy-binding kredibel-web --region=asia-southeast1 --member=allUsers --role=roles/run.invoker || true
 
-  # 8. Extract built frontend and deploy to Firebase Hosting
+  # 8. Extract the built SPA from the image and deploy it to Firebase Hosting (ADR-018)
   - name: 'gcr.io/cloud-builders/docker'
     id: 'extract-dist'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
+        # The image keeps the SPA build in /app/static (Dockerfile stage 2); Hosting serves the
+        # same files so the two front doors never drift (ADR-018).
         id=$$(docker create asia-southeast1-docker.pkg.dev/$PROJECT_ID/kredibel/app:$_COMMIT_SHA)
-        docker cp $$id:/app/frontend/dist frontend/dist
+        docker cp $$id:/app/static frontend/dist
         docker rm $$id
 
   - name: 'node:22-slim'
@@ -127,7 +131,7 @@ steps:
     args:
       - '-c'
       - |
-        npx --yes firebase-tools deploy --only hosting --project "$PROJECT_ID" || true
+        npx --yes firebase-tools deploy --only hosting --project "$PROJECT_ID"
 
   # 9. Smoke verification
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -136,11 +140,14 @@ steps:
     args:
       - '-c'
       - |
+        set -euo pipefail
         WEB_URL=$$(gcloud run services describe kredibel-web --region=asia-southeast1 --format='value(status.url)')
-        echo "Verifying Cloud Run deployment at $$WEB_URL..."
-        curl -fsS "$$WEB_URL/api/health"
-        echo "Verifying Firebase Hosting deployment at https://kredibel-app.web.app..."
-        curl -fsS "https://kredibel-app.web.app/api/health"
+        # AC-001-8: both front doors must report the version this build just deployed.
+        for url in "$$WEB_URL" "https://kredibel-app.web.app"; do
+          body=$$(curl -fsS "$$url/api/health")
+          echo "$$url/api/health -> $$body"
+          echo "$$body" | grep -q "\"version\":\"$_COMMIT_SHA\"" || { echo "expected version $_COMMIT_SHA"; exit 1; }
+        done
 
 images:
   - 'asia-southeast1-docker.pkg.dev/$PROJECT_ID/kredibel/app:$_COMMIT_SHA'

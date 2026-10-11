@@ -1,6 +1,6 @@
 # ADR-008 — Same-origin SPA on Cloud Run with Firebase Auth
 
-**Status:** Accepted · **Date:** 2026-10-10
+**Status:** Accepted; hosting part superseded by [ADR-018](ADR-018-firebase-hosting-in-front-of-cloud-run.md) · **Date:** 2026-10-10
 
 ## Context
 

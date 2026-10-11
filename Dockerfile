@@ -35,11 +35,15 @@ RUN npm run build
 # ==============================================================================
 FROM python:3.12-slim AS app-runtime
 
+# The version is a property of the image, so web, worker and the migrate job all report it.
+ARG APP_VERSION=dev
+
 # Install uv package manager
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
+    APP_VERSION=$APP_VERSION \
     PATH="/app/.venv/bin:$PATH"
 
 WORKDIR /app

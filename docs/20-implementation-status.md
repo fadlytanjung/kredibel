@@ -95,4 +95,8 @@ _Last updated: 11 Oct 2026 — Spec 001 Foundation complete (tests green) and de
 
 ## Deviations from the docs
 
-_None yet. Record every deliberate deviation here with the reason and the doc that was updated._
+_Record every deliberate deviation here with the reason and the doc that was updated._
+
+| Date | Deviation | Reason | Docs updated |
+|---|---|---|---|
+| 11 Oct 2026 | Firebase Hosting serves the SPA and rewrites `/api/**` to `kredibel-web` (ADR-008 had Cloud Run only) | Stable demo URL and edge-served assets; same origin kept | [ADR-018](adr/ADR-018-firebase-hosting-in-front-of-cloud-run.md); `14` §8, `16` §5 and §8, `21`, `05` §3, ADR-008 status. **Open:** `diagrams/gcp-architecture.drawio.svg` still shows Cloud Run only; update it with the draw.io extension. |

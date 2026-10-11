@@ -305,7 +305,6 @@ creating the project.
 | Gemini Batch prediction (≈ 50% cheaper) | Asynchronous with long turnaround; a document should be read within a minute of upload |
 | RAG Engine with `RagManagedDb` | Spanner-backed, a fixed monthly cost far above our usage; Firestore vector search instead (ADR-014) |
 | Agent Runtime for the pipeline | Extra always-on/compute billing; Cloud Run's free tier covers our runs (ADR-002) |
-| Firebase Hosting + CDN | Not needed at demo scale; one Cloud Run service serves the SPA (ADR-008) |
 | Serverless VPC Access connector | Always-on connector instances; nothing in our design needs a VPC |
 | Gemini Pro | Flash and Flash-Lite are sufficient for reading, mapping, categorizing, explaining and the assistant |
 

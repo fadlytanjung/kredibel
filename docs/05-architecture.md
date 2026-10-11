@@ -61,6 +61,8 @@ flowchart TB
         spa["React SPA<br/>Firebase JS SDK"]
     end
 
+    hosting["Firebase Hosting<br/>kredibel-app.web.app<br/>SPA files at the edge (ADR-018)"]
+
     subgraph CloudRun["Cloud Run (asia-southeast1)"]
         webSvc["kredibel-web<br/>FastAPI: /api/* + SPA static<br/>public, auth in app"]
         workerSvc["kredibel-worker<br/>FastAPI: /tasks/*<br/>IAM-only (Cloud Tasks OIDC)"]
@@ -76,7 +78,8 @@ flowchart TB
     mem["Sessions + Memory Bank (P1)"]
     auth["Firebase Auth"]
 
-    spa -->|HTTPS + ID token| webSvc
+    spa -->|HTTPS| hosting
+    hosting -->|"rewrite /api/** + ID token"| webSvc
     spa -.->|realtime listeners, read-only| fs
     spa -.->|sign-in| auth
     webSvc --> fs

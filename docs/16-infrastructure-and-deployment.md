@@ -239,7 +239,8 @@ gcloud run jobs execute kredibel-migrate --region="$REGION" --wait --args=-m,mig
 3. System packages: none required (pikepdf, pdfplumber, pypdfium2, Pillow and openpyxl ship wheels).
 
 `kredibel-web` serves `/app/static` with SPA fallback for non-`/api` paths and long-cache headers
-for hashed assets.
+for hashed assets. Firebase Hosting (`kredibel-app.web.app`) serves the same files and rewrites `/api/**`,
+`/docs` and `/openapi.json` to `kredibel-web` ([ADR-018](adr/ADR-018-firebase-hosting-in-front-of-cloud-run.md)).
 
 ---
 
@@ -336,7 +337,8 @@ previous project.
 | 5b `migrate` | cloud-sdk | update the `kredibel-migrate` job to the new image; dry run; if pending migrations exist, export to the backups bucket and run them; stop the build on `FAILED` or `failed > 0` ([`22`](22-data-migrations.md) §7) |
 | 6 `deploy-worker` | `gcr.io/google.com/cloudsdktool/cloud-sdk` | `gcloud run deploy kredibel-worker …` |
 | 7 `deploy-web` | cloud-sdk | read `WORKER_URL`; `gcloud run deploy kredibel-web …` |
-| 8 `smoke` | cloud-sdk | `curl -fsS $WEB_URL/api/health` returns the new `APP_VERSION` |
+| 7a `hosting` | docker + `node:22-slim` | copy `/app/static` out of the new image; `firebase deploy --only hosting` (ADR-018) |
+| 8 `smoke` | cloud-sdk | `$WEB_URL/api/health` and `https://kredibel-app.web.app/api/health` both return the new `APP_VERSION` |
 | 9 `lighthouse` | Playwright image | Lighthouse CI (mobile) on the deployed dashboard and review queue with the demo user; report only during the competition |
 
 Triggered manually (`make deploy` → `gcloud builds submit`) during the competition, so a half-finished

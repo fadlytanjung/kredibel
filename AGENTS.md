@@ -71,7 +71,7 @@ Backend uses **uv** (`uv sync`, `uv run`; commit `uv.lock`). Frontend uses **npm
 ## Architecture in one screen
 
 ```
-Browser (React SPA, Firebase Auth) ──HTTPS + ID token──▶ kredibel-web (Cloud Run: /api + SPA)
+Browser (React SPA, Firebase Auth) ──HTTPS + ID token──▶ Firebase Hosting (SPA) ──/api/**──▶ kredibel-web (Cloud Run: /api + SPA)
       │ Firestore listeners (documents, months, runs)          │ plan checks, SHA-256 duplicates,
       │                                                       │ page split, review actions,
       │                                                       │ Finance Assistant (P1)

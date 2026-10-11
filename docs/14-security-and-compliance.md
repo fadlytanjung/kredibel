@@ -197,6 +197,9 @@ open the sign-in popup. The pdf.js worker and the Archivo font are bundled and s
 FastAPI's interactive API page (`/docs`) is the one exception: it also allows `https://cdn.jsdelivr.net`
 for its scripts and styles; nothing else is served under that policy.
 
+Firebase Hosting sets the same headers on the SPA it serves (`firebase.json` → `hosting.headers`,
+[ADR-018](adr/ADR-018-firebase-hosting-in-front-of-cloud-run.md)); a test keeps both in step.
+
 ---
 
 ## 9. Responsible AI

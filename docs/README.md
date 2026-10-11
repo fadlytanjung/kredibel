@@ -100,7 +100,7 @@ only; when a change alters what a diagram shows, update the diagram in the same 
 | [005](adr/ADR-005-deterministic-scoring-llm-explains.md) | Deterministic checks and risk levels; models read and explain |
 | [006](adr/ADR-006-async-jobs-cloud-tasks.md) | Asynchronous runs through Cloud Tasks |
 | [007](adr/ADR-007-hitl-review-queue.md) | Human-in-the-loop as a review queue, not paused workflows |
-| [008](adr/ADR-008-same-origin-spa-firebase-auth.md) | Same-origin SPA on Cloud Run + Firebase Auth |
+| [008](adr/ADR-008-same-origin-spa-firebase-auth.md) | Same-origin SPA on Cloud Run + Firebase Auth (hosting part superseded by 018) |
 | [009](adr/ADR-009-regions-and-data-residency.md) | Regions and the data-residency path |
 | [010](adr/ADR-010-adaptive-extraction-ai-reader-and-witness.md) | Adaptive extraction: one AI reader and a deterministic witness per page (supersedes part of 004) |
 | [011](adr/ADR-011-workspaces-and-plans-free-trial-only.md) | Workspaces and plans: free trial only, no billing |
@@ -110,6 +110,7 @@ only; when a change alters what a diagram shows, update the diagram in the same 
 | [015](adr/ADR-015-scope-finance-workspace-not-loan-review.md) | Scope: a finance workspace that checks your books, not loan review |
 | [016](adr/ADR-016-human-verified-labels-and-learning-loop.md) | Human-verified labels and the learning loop (IFRS or US GAAP; examples now, tuning later) |
 | [017](adr/ADR-017-agent-observability-on-google-cloud.md) | Agent observability on Google Cloud instead of LangSmith |
+| [018](adr/ADR-018-firebase-hosting-in-front-of-cloud-run.md) | Firebase Hosting serves the SPA and rewrites `/api` to Cloud Run (supersedes the hosting part of 008) |
 
 ## Machine-readable contracts
 

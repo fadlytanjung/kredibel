@@ -12,11 +12,7 @@ from app.adapters.firestore.upcast import SchemaTooNewError, get_latest_version,
 def test_ac001_19_v1_fixture_upcasts_to_v2():
     """A stored v1 fixture of documents reads as the latest version (v2)."""
     fixture_path = (
-        Path(__file__).resolve().parents[1]
-        / "fixtures"
-        / "firestore"
-        / "documents"
-        / "v1.json"
+        Path(__file__).resolve().parents[1] / "fixtures" / "firestore" / "documents" / "v1.json"
     )
     v1_raw = json.loads(fixture_path.read_text(encoding="utf-8"))
 

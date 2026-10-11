@@ -244,3 +244,19 @@ class EncryptedDocumentError(DomainError):
             title="Password-protected document",
             detail=detail,
         )
+
+
+class RunsDisabledError(DomainError):
+    """Raised when runs are disabled globally via RUNS_ENABLED=false (503, AC-004-10)."""
+
+    def __init__(
+        self,
+        detail: str = "Background runs are currently disabled.",
+        code: str = "RUNS_DISABLED",
+    ) -> None:
+        super().__init__(
+            code=code,
+            status=503,
+            title="Runs disabled",
+            detail=detail,
+        )

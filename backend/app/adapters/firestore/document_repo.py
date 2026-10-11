@@ -180,10 +180,7 @@ class FirestoreDocumentRepository(DocumentRepository):
 
     async def get_document(self, org_id: str, doc_id: str) -> Document | None:
         doc_ref = (
-            self._db.collection("orgs")
-            .document(org_id)
-            .collection("documents")
-            .document(doc_id)
+            self._db.collection("orgs").document(org_id).collection("documents").document(doc_id)
         )
         snap = await doc_ref.get()
         if not snap.exists:

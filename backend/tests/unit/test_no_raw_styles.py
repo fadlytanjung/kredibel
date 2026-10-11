@@ -12,7 +12,7 @@ def test_ac001_18_tokens_and_tailwind_classes_pass():
         tmp_path = Path(tmpdir)
         comp_file = tmp_path / "Button.tsx"
         code = (
-            'export const Button = () => '
+            "export const Button = () => "
             '<button className="bg-brand text-ink p-4 rounded-sm">Click</button>;\n'
         )
         comp_file.write_text(code)
@@ -83,9 +83,9 @@ def test_ac001_18_allowed_style_geometry_passes():
         tmp_path = Path(tmpdir)
         comp_file = tmp_path / "ChartBar.tsx"
         comp_file.write_text(
-            'export const Bar = ({ width }: { width: number }) => (\n'
-            '  <i style={{ width: `${width}%` }} /* allow-raw-style: computed geometry */ />\n'
-            ');\n'
+            "export const Bar = ({ width }: { width: number }) => (\n"
+            "  <i style={{ width: `${width}%` }} /* allow-raw-style: computed geometry */ />\n"
+            ");\n"
         )
 
         violations = check_no_raw_styles(tmp_path)

@@ -16,11 +16,15 @@ def firestore_db(firestore_emulator: str):
     # Clean lock and test records
     db.collection("system").document("migrationLock").delete()
     for test_id in ("0000_example_test", "0000_resume_test"):
-        db.collection("system").document("migrations").collection("records").document(test_id).delete()
+        db.collection("system").document("migrations").collection("records").document(
+            test_id
+        ).delete()
     yield db
     db.collection("system").document("migrationLock").delete()
     for test_id in ("0000_example_test", "0000_resume_test"):
-        db.collection("system").document("migrations").collection("records").document(test_id).delete()
+        db.collection("system").document("migrations").collection("records").document(
+            test_id
+        ).delete()
 
 
 def test_ac001_20_discover_migrations():

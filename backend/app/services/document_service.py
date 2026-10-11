@@ -271,9 +271,7 @@ class DocumentService:
             if doc.duplicate and doc.duplicate.kind == DuplicateKind.EXACT
             else doc.doc_id
         )
-        data = await self._storage.get_page_image(
-            principal.org_id, target_id, page_no, thumb=thumb
-        )
+        data = await self._storage.get_page_image(principal.org_id, target_id, page_no, thumb=thumb)
         if data is None:
             raise NotFoundError(detail=f"Page {page_no} image not found")
         return data
@@ -300,9 +298,7 @@ class DocumentService:
             subject={"docId": doc_id},
             details={"fileName": doc.file_name, "months": ",".join(doc.months)},
         )
-        await self._doc_repo.delete_document(
-            org_id, doc_id, months=doc.months, event=event
-        )
+        await self._doc_repo.delete_document(org_id, doc_id, months=doc.months, event=event)
 
 
 def _extension_for(filename: str, content_type: str) -> str:

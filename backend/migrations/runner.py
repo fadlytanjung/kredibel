@@ -250,21 +250,25 @@ class MigrationRunner:
             doc = self.migration_ref(m.id).get()
             if doc.exists:
                 data = doc.to_dict() or {}
-                statuses.append({
-                    "id": m.id,
-                    "status": data.get("status", "PENDING"),
-                    "updated": data.get("updated", 0),
-                    "processed": data.get("processed", 0),
-                    "finishedAt": data.get("finishedAt"),
-                })
+                statuses.append(
+                    {
+                        "id": m.id,
+                        "status": data.get("status", "PENDING"),
+                        "updated": data.get("updated", 0),
+                        "processed": data.get("processed", 0),
+                        "finishedAt": data.get("finishedAt"),
+                    }
+                )
             else:
-                statuses.append({
-                    "id": m.id,
-                    "status": "PENDING",
-                    "updated": 0,
-                    "processed": 0,
-                    "finishedAt": None,
-                })
+                statuses.append(
+                    {
+                        "id": m.id,
+                        "status": "PENDING",
+                        "updated": 0,
+                        "processed": 0,
+                        "finishedAt": None,
+                    }
+                )
 
         return statuses
 

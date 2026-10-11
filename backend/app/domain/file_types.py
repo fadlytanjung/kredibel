@@ -81,7 +81,7 @@ def _is_csv(data: bytes) -> bool:
     # Decode text (strip UTF-8 BOM if present)
     content = data
     if content.startswith(_UTF8_BOM):
-        content = content[len(_UTF8_BOM):]
+        content = content[len(_UTF8_BOM) :]
 
     try:
         text = content.decode("utf-8")

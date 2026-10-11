@@ -13,10 +13,7 @@ def test_ac001_21_models_inspected_correctly():
         tmp_path = Path(tmpdir)
         py_file = tmp_path / "sample.py"
         py_file.write_text(
-            "class SampleDoc:\n"
-            "    SCHEMA_VERSION: int = 3\n"
-            "    id: str\n"
-            "    amount: int\n"
+            "class SampleDoc:\n    SCHEMA_VERSION: int = 3\n    id: str\n    amount: int\n"
         )
 
         schema = inspect_models(tmp_path)
@@ -31,10 +28,7 @@ def test_ac001_21_schema_drift_detected():
         tmp_path = Path(tmpdir)
         py_file = tmp_path / "sample.py"
         py_file.write_text(
-            "class SampleDoc:\n"
-            "    SCHEMA_VERSION: int = 1\n"
-            "    id: str\n"
-            "    new_field: str\n"
+            "class SampleDoc:\n    SCHEMA_VERSION: int = 1\n    id: str\n    new_field: str\n"
         )
 
         old_snapshot = {

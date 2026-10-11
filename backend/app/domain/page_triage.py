@@ -76,9 +76,7 @@ def _analyze_characters(
         cid_matches = _CID_PATTERN.findall(text)
         cid_count = len(cid_matches)
         text_without_cid = _CID_PATTERN.sub("", text)
-        printable = sum(
-            1 for ch in text_without_cid if ch.isprintable() or ch in "\r\n\t "
-        )
+        printable = sum(1 for ch in text_without_cid if ch.isprintable() or ch in "\r\n\t ")
         total = cid_count + len(text_without_cid)
         if total == 0:
             return 0, 0.0
@@ -110,10 +108,7 @@ def triage_page(
     if char_count == 0:
         text_layer = TextLayerStatus.NONE
         witness = WitnessType.OCR
-    elif (
-        char_count >= _MIN_USABLE_CHAR_COUNT
-        and printable_ratio >= _MIN_USABLE_PRINTABLE_RATIO
-    ):
+    elif char_count >= _MIN_USABLE_CHAR_COUNT and printable_ratio >= _MIN_USABLE_PRINTABLE_RATIO:
         text_layer = TextLayerStatus.USABLE
         witness = WitnessType.TEXT_LAYER
     else:

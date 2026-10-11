@@ -526,4 +526,3 @@ async def test_delete_document_duplicate_preserves_original(
     original = await service.get_document(principal, doc1.doc_id)
     assert original.doc_id == doc1.doc_id
     assert len(storage.originals) == 1
-

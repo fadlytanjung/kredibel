@@ -140,9 +140,9 @@ class AppDeps:
     def storage(self) -> DocumentStorage:
         return self._once(
             "storage",
-            lambda: self._storage
-            or GcsDocumentStorage(
-                self.settings.google_cloud_project, self.settings.docs_bucket
+            lambda: (
+                self._storage
+                or GcsDocumentStorage(self.settings.google_cloud_project, self.settings.docs_bucket)
             ),
         )
 
@@ -150,17 +150,19 @@ class AppDeps:
     def task_queue(self) -> TaskQueue:
         return self._once(
             "task_queue",
-            lambda: self._task_queue
-            or (
-                CloudTasksQueue(
-                    project_id=self.settings.google_cloud_project,
-                    location=self.settings.tasks_location,
-                    document_queue=self.settings.tasks_queue_documents,
-                    month_queue=self.settings.tasks_queue_months,
-                    invoker_service_account=self.settings.tasks_invoker_sa,
+            lambda: (
+                self._task_queue
+                or (
+                    CloudTasksQueue(
+                        project_id=self.settings.google_cloud_project,
+                        location=self.settings.tasks_location,
+                        document_queue=self.settings.tasks_queue_documents,
+                        month_queue=self.settings.tasks_queue_months,
+                        invoker_service_account=self.settings.tasks_invoker_sa,
+                    )
+                    if self.settings.task_queue_mode == "cloud"
+                    else InlineTaskQueue()
                 )
-                if self.settings.task_queue_mode == "cloud"
-                else InlineTaskQueue()
             ),
         )
 

@@ -103,6 +103,13 @@ The location is `global`. ⚠️ Confirm availability in Model Garden for our pr
   (`google.adk.workflow`).
 - **Dynamic workflows:** a `@node(rerun_on_resume=True)` orchestrator calls
   `await ctx.run_node(child, input)` in ordinary Python loops; parallelism with `asyncio.gather`.
+  *Verified in spike S2*: if `rerun_on_resume=True` is omitted on the parent orchestrator, ADK raises
+  `ValueError: A node must have rerun_on_resume=True`.
+- **Runner & Sessions**: `Runner(agent=wf, session_service=session_service, app_name=...)` requires a
+  session service (`InMemorySessionService` in local tests, `VertexAiSessionService` in production GCP).
+  Execution is driven via `async for ev in runner.run_async(user_id=..., session_id=...): ...`.
+- **Static graphs**: nodes linked linearly `[(START, step_1), (step_1, step_2)]` communicate via
+  `ctx.state` while keeping domain records in Firestore/GCS.
 - **Human input:** a node yields `RequestInput(message=..., payload=..., response_schema=...)`
   (`google.adk.events`) to pause. We do **not** pause workflows: anything that needs a person becomes
   a review item and a new run ([`06`](06-agent-design.md) §9).

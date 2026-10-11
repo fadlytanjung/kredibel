@@ -13,7 +13,7 @@ shown in the UI.
 ## Decision
 
 - **Workspace = organization** (`orgs/{orgId}`). A signed-in user without a workspace creates one in a
-  one-screen onboarding (name, country, time zone). The creator becomes `admin`. The server sets the
+  one-screen onboarding (individual or company, name, time zone). The creator becomes `owner`. The server sets the
   Firebase custom claims; the client refreshes its ID token.
 - **Plans are configuration**, in [`contracts/plans.v1.yaml`](../../contracts/plans.v1.yaml). One plan
   is `AVAILABLE`: **Free trial** (30 days). `Starter`, `Professional` and `Enterprise` are listed as

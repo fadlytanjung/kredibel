@@ -13,8 +13,9 @@ settings UI can follow later.
 | File | Content |
 |---|---|
 | `contracts/plans.v1.yaml` | Plan catalog, limits, features, coming-soon features, languages |
-| `domain/plans.py` | Pydantic models `PlanCatalog`, `Plan`, `Limits`; `load_plans(path)` with validation; `effective_limits(plan, overrides)`; `check_upload`, `check_month_run`, `check_assistant_question`, `check_invite` → `Allowed` or `Denied(code, limit, used, max)`; `subscription_status(sub, now)` |
+| `domain/plans.py` | Pydantic models `PlanCatalog`, `Plan`, `Limits`; `parse_plans(data)` with validation (pure: the domain does no I/O, docs/13 §2.1); `effective_limits(plan, overrides)`; `check_upload`, `check_month_run`, `check_assistant_question`, `check_invite` → `Allowed` or `Denied(code, limit, used, max)`; `subscription_status(sub, now)` |
 | `domain/models/workspace.py` | `Workspace` (with `entityType`, `profile`), `Subscription`, `UsageMonth`, `UsageDay` |
+| `adapters/policy_files.py` | `load_plans(path)`: reads the YAML and calls `parse_plans`; `main.create_app` loads it at start-up and fails fast (AC-013-5) |
 | `domain/access.py` | role → allowed actions ([`docs/10`](../../10-api-contract.md) §5); `require(principal, action)` |
 | `ports/identity_admin.py` | `IdentityAdmin`: `set_claims(uid, claims)`, `get_user(uid) -> {email, emailVerified}` |
 | `adapters/firebase_identity.py` | Firebase Admin SDK implementation; fake in `tests/fakes/` |

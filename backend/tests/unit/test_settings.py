@@ -42,3 +42,22 @@ def test_t001_06_model_settings():
     settings = Settings()
     assert "gemini" in settings.model_fast
     assert "gemini" in settings.model_lite
+
+
+def test_t001_06_content_capture_is_refused_on_real_data():
+    """AI_CONTENT_CAPTURE=synthetic with DATA_CLASS=real stops start-up (docs/16 §6.1, ADR-017)."""
+    from app.core.settings import Settings
+
+    with pytest.raises(ValidationError, match="AI_CONTENT_CAPTURE"):
+        Settings(ai_content_capture="synthetic", data_class="real")
+
+
+def test_t001_06_span_content_capture_follows_ai_content_capture():
+    """ADK span content is on only with synthetic capture, whatever the env var says."""
+    from app.core.settings import Settings
+
+    assert Settings(ai_content_capture="synthetic", data_class="synthetic").capture_span_content
+    assert not Settings(ai_content_capture="off").capture_span_content
+    assert not Settings(
+        ai_content_capture="off", adk_capture_message_content_in_spans=True
+    ).capture_span_content

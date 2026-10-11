@@ -3,8 +3,9 @@
 Normative reference: docs/16-infrastructure-and-deployment.md §6.1.
 """
 
-from typing import Literal
+from typing import Literal, Self
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 AppRole = Literal["web", "worker", "all", "migrate"]
@@ -120,6 +121,18 @@ class Settings(BaseSettings):
     feature_labels: bool = False
     feature_agent_analytics: bool = False
     feature_dataset_export: bool = False
+
+    @model_validator(mode="after")
+    def _content_capture_only_on_synthetic_data(self) -> Self:
+        # Non-negotiable 17: prompts and responses are recorded only with synthetic data.
+        if self.ai_content_capture == "synthetic" and self.data_class != "synthetic":
+            raise ValueError("AI_CONTENT_CAPTURE=synthetic requires DATA_CLASS=synthetic")
+        return self
+
+    @property
+    def capture_span_content(self) -> bool:
+        """ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS as start-up sets it: on only when synthetic."""
+        return self.ai_content_capture == "synthetic"
 
     @property
     def service_name(self) -> str:

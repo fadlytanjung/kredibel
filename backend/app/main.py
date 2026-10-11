@@ -29,6 +29,7 @@ from app.api.bank_accounts import create_bank_accounts_router
 from app.api.documents import create_documents_router
 from app.api.health import create_health_router
 from app.api.me import create_me_router
+from app.api.months import create_months_router
 from app.api.plans import create_plans_router
 from app.api.runs import create_runs_router
 from app.api.static import mount_static_spa
@@ -239,6 +240,7 @@ class AppDeps:
                 renderer=self.renderer,
                 spreadsheet_reader=self.spreadsheet_reader,
                 clock=self.clock,
+                runs_enabled=self.settings.runs_enabled,
             ),
         )
 
@@ -423,6 +425,7 @@ def create_app(
         app.include_router(create_bank_accounts_router(deps, workspace_dep))
         app.include_router(create_documents_router(deps, workspace_dep))
         app.include_router(create_runs_router(deps, workspace_dep))
+        app.include_router(create_months_router(deps, workspace_dep))
 
     # 3. Worker role endpoints
     if active_settings.app_role in ("worker", "all"):

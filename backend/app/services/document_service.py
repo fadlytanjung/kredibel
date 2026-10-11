@@ -9,7 +9,12 @@ import hashlib
 from app.core.auth import Principal
 from app.core.clock import Clock
 from app.core.ids import new_id
-from app.domain.errors import NotFoundError, ValidationProblem, WorkspaceRequiredError
+from app.domain.errors import (
+    NotFoundError,
+    RunsDisabledError,
+    ValidationProblem,
+    WorkspaceRequiredError,
+)
 from app.domain.file_types import detect_file_type
 from app.domain.models.document import (
     DocStatus,
@@ -42,6 +47,7 @@ class DocumentService:
         renderer: PageRenderer,
         clock: Clock,
         spreadsheet_reader: SpreadsheetReader | None = None,
+        runs_enabled: bool = True,
     ) -> None:
         self._doc_repo = doc_repo
         self._storage = storage
@@ -50,6 +56,7 @@ class DocumentService:
         self._renderer = renderer
         self._clock = clock
         self._spreadsheet_reader = spreadsheet_reader
+        self._runs_enabled = runs_enabled
 
     async def upload(
         self,
@@ -59,6 +66,9 @@ class DocumentService:
         doc_type_hint: DocType | None = None,
     ) -> Document:
         """Upload and process a document file."""
+        if not self._runs_enabled:
+            raise RunsDisabledError()
+
         if not file_bytes:
             raise ValidationProblem(field="file", message="The file is empty or damaged.")
 

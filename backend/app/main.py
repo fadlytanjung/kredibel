@@ -7,6 +7,7 @@ from typing import Any
 
 from fastapi import FastAPI
 
+from app.adapters.policy_files import load_plans
 from app.api.health import create_health_router
 from app.api.me import create_me_router
 from app.api.static import mount_static_spa
@@ -33,12 +34,17 @@ def create_app(
         version=active_settings.app_version,
     )
 
+    # AC-013-5: an invalid plan catalog stops the process before it serves anything.
+    plans = load_plans(active_settings.contract_path(active_settings.plans_file))
+
     app = FastAPI(
         title="Kredibel API",
         version=active_settings.app_version,
         docs_url="/docs" if active_settings.app_role != "worker" else None,
         redoc_url=None,
     )
+
+    app.state.plans = plans
 
     # Middleware pipeline
     app.add_middleware(SecurityHeadersMiddleware)

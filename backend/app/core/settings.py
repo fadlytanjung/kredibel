@@ -3,6 +3,7 @@
 Normative reference: docs/16-infrastructure-and-deployment.md §6.1.
 """
 
+from pathlib import Path
 from typing import Literal, Self
 
 from pydantic import model_validator
@@ -133,6 +134,17 @@ class Settings(BaseSettings):
     def capture_span_content(self) -> bool:
         """ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS as start-up sets it: on only when synthetic."""
         return self.ai_content_capture == "synthetic"
+
+    def contract_path(self, configured: str) -> Path:
+        """Resolve a contracts/ path: as given (the image's /app), else from the repository root.
+
+        Locally the process runs from backend/, where contracts/ is one level up.
+        """
+        path = Path(configured)
+        if path.is_absolute() or path.exists():
+            return path
+        repo_root = Path(__file__).resolve().parents[3]
+        return repo_root / configured
 
     @property
     def service_name(self) -> str:

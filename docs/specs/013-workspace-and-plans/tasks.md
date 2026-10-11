@@ -4,7 +4,7 @@ Phases 1–3 are needed by specs 003 and 004 (D1). Phase 4 can follow on D5–D6
 
 ## Phase 1 — Plans in the domain (TDD)
 
-- [ ] **T013-01** **TDD** `load_plans`: valid file loads; unknown key, missing default plan, `COMING_SOON` plan with limits → error. (AC-013-5)
+- [x] **T013-01** **TDD** `load_plans`: valid file loads; unknown key, missing default plan, `COMING_SOON` plan with limits → error. (AC-013-5)
 - [ ] **T013-02** **TDD** `effective_limits` with `limitOverrides`; `subscription_status` before and after `trialEndsAt` (injected clock). (AC-013-4, AC-013-8)
 - [ ] **T013-03** **TDD** `check_upload` (each limit, exact duplicates free, all-cached = 0 pages), `check_month_run`, `check_assistant_question`, `check_invite`; `Denied` carries `limit`, `used`, `max`. (AC-013-7)
 

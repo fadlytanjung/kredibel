@@ -609,6 +609,11 @@ def dedupe_bank(rows: dict[str, list[BankRow]]) -> None:
     """Lines of one direction within a few days never share an amount within tolerance, so every
     bank line has exactly one ledger candidate. Only lines without documents move."""
     every = sorted((r for month in rows.values() for r in month), key=lambda r: r.date)
+    reserved = {world.T1_ANCHOR_AMOUNT, world.T1_EDITED_AMOUNT}
+    for row in every:
+        # The values T1 swaps appear nowhere else, so the edit is unambiguous on the page.
+        while _movable(row) and row.amount in reserved:
+            _shift(row)
     for i, row in enumerate(every):
         while True:
             clash = next(
@@ -626,11 +631,15 @@ def dedupe_bank(rows: dict[str, list[BankRow]]) -> None:
             target = row if _movable(row) else clash
             if not _movable(target):
                 raise ValueError(f"cannot separate {clash.description} and {row.description}")
-            step = Decimal("37000.00") if target.flow in {"vat", "utility"} else Decimal("50000.00")
-            if target.credit is not None:
-                target.credit += step
-            else:
-                target.debit = (target.debit or ZERO) + step
+            _shift(target)
+
+
+def _shift(row: BankRow) -> None:
+    step = Decimal("37000.00") if row.flow in {"vat", "utility"} else Decimal("50000.00")
+    if row.credit is not None:
+        row.credit += step
+    else:
+        row.debit = (row.debit or ZERO) + step
 
 
 # ---------------------------------------------------------------------------- statements

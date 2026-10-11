@@ -80,9 +80,12 @@ test-visual: ## Run Playwright visual regression tests
 storybook-build: ## Build Storybook static assets
 	cd frontend && npm run build-storybook
 
-synth: ## Generate synthetic scenarios
-	@echo "==> Generating synthetic test scenarios..."
-	cd tools/synthetic && uv run python -m synthetic.cli generate
+synth: ## Generate S1–S5 × seeds 1–5, S1 scanned, the fixtures and the demo set (docs/18)
+	@echo "==> Generating synthetic scenarios..."
+	cd tools/synthetic && uv run kredibel-synth generate --all --seeds 1-5 --out out
+	cd tools/synthetic && uv run kredibel-synth generate --scenario S1 --seed 1 --scan --out out
+	cd tools/synthetic && uv run kredibel-synth fixtures --out out/fixtures
+	cd tools/synthetic && uv run kredibel-synth demo --out out/demo
 
 gen-api: ## Regenerate frontend TypeScript types from OpenAPI spec
 	@echo "==> Generating frontend API types from contracts/openapi.yaml..."

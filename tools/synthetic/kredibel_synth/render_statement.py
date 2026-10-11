@@ -154,13 +154,16 @@ def _amount(
     out.amounts.setdefault(key, []).append(Placed(page, fld, x, y, text))
 
 
-def render_statement(st: StatementData, created: datetime | None = None) -> Rendered:
-    """`created` overrides the creation time (T8: the same month exported again)."""
+def render_statement(
+    st: StatementData, created: datetime | None = None, producer: str | None = None
+) -> Rendered:
+    """`created` overrides the creation time (T8: the same month exported again); `producer`
+    replaces the bank's (a statement rebuilt in an editor)."""
     buffer = io.BytesIO()
     c = new_canvas(
         buffer,
         A4,
-        producer=world.STATEMENT_PRODUCER,
+        producer=producer or world.STATEMENT_PRODUCER,
         creator=world.STATEMENT_CREATOR,
         title=f"Account Statement {st.account_number} {st.month}",
         created=created or st.created_at,

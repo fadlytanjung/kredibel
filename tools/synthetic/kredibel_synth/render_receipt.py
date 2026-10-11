@@ -31,17 +31,26 @@ def _receipt_lines(rec: ReceiptData) -> list[tuple[str, bool]]:
 
     out: list[tuple[str, bool]] = [(rec.merchant.name.upper().center(COLUMNS), True)]
     out += [(line.center(COLUMNS), False) for line in rec.merchant.address]
-    out += [(rule, False), (lr("Receipt", rec.receipt_no), False),
-            (lr("Date", f"{rec.issued_at:%d/%m/%Y %H:%M}"), False), (rule, False)]  # fmt: skip
+    out += [
+        (rule, False),
+        (lr("Receipt", rec.receipt_no), False),
+        (lr("Date", f"{rec.issued_at:%d/%m/%Y %H:%M}"), False),
+        (rule, False),
+    ]
     for item in rec.items:
         out.append((item.description[:COLUMNS], False))
         out.append((lr(f"  {item.quantity} x {fmt(item.unit_price)}", fmt(item.amount)), False))
-    out += [(rule, False), (lr("SUBTOTAL", fmt(rec.subtotal)), False),
-            (lr(f"VAT {int(rec.vat_rate * 100)}%", fmt(rec.vat)), False),
-            (lr("TOTAL", fmt(rec.total)), True), (rule, False),
-            (lr("PAID BY", rec.payment), False), ("", False),
-            ("Thank you for your visit".center(COLUMNS), False),
-            (WATERMARK.center(COLUMNS), True)]  # fmt: skip
+    out += [
+        (rule, False),
+        (lr("SUBTOTAL", fmt(rec.subtotal)), False),
+        (lr(f"VAT {int(rec.vat_rate * 100)}%", fmt(rec.vat)), False),
+        (lr("TOTAL", fmt(rec.total)), True),
+        (rule, False),
+        (lr("PAID BY", rec.payment), False),
+        ("", False),
+        ("Thank you for your visit".center(COLUMNS), False),
+        (WATERMARK.center(COLUMNS), True),
+    ]
     return out
 
 
@@ -77,9 +86,21 @@ def _noise(rng: Rng, size: tuple[int, int], strength: int) -> Image.Image:
     return noise.point([128 + (v - 128) * strength // 128 for v in range(256)])
 
 
-def photograph(roll: Image.Image, rng: Rng) -> bytes:
-    """Lay the paper on a table, tilt it, add perspective, grain and a little blur; JPEG q=82."""
+def photograph(roll: Image.Image, rng: Rng, again: Rng | None = None) -> bytes:
+    """Lay the paper on a table, tilt it, add perspective, grain and a little blur; JPEG q=82.
+
+    With `again`, the same paper is photographed a second time: the framing of the first photo
+    nudged a little (another angle and crop), with its own grain, so the bytes differ but a
+    perceptual hash stays close (T10)."""
     angle = rng.uniform(-2.2, 2.2)
+    offset = (rng.between(70, 130), rng.between(70, 130))
+    skew = rng.uniform(0.00002, 0.00006)
+    shear = (rng.uniform(-0.02, 0.02), rng.uniform(-0.01, 0.01))
+    if again is not None:
+        # Small enough that D05's perceptual hash (distance ≤ 8) still sees the same receipt.
+        angle += again.uniform(-0.2, 0.2)
+        offset = (offset[0] + again.between(-4, 4), offset[1] + again.between(-4, 4))
+        rng = again
     canvas_w, canvas_h = roll.width + 220, roll.height + 220
     table = Image.new("RGB", (canvas_w, canvas_h), (118, 92, 70))
     grain = _noise(rng, (canvas_w, canvas_h), 40).convert("RGB")
@@ -88,10 +109,8 @@ def photograph(roll: Image.Image, rng: Rng) -> bytes:
         angle, expand=True, fillcolor=(0, 0, 0), resample=Image.Resampling.BICUBIC
     )
     mask = roll.point([255] * 256).rotate(angle, expand=True, resample=Image.Resampling.BICUBIC)
-    offset = (rng.between(70, 130), rng.between(70, 130))
     table.paste(paper, offset, mask)
-    skew = rng.uniform(0.00002, 0.00006)
-    coeffs = (1, rng.uniform(-0.02, 0.02), 0, rng.uniform(-0.01, 0.01), 1, 0, skew, skew / 2)
+    coeffs = (1, shear[0], 0, shear[1], 1, 0, skew, skew / 2)
     photo = table.transform(
         table.size, Image.Transform.PERSPECTIVE, coeffs, Image.Resampling.BICUBIC
     )
@@ -108,7 +127,9 @@ def render_receipt_jpeg(rec: ReceiptData, rng: Rng) -> bytes:
 
 def photo_variant(rec: ReceiptData, rng: Rng) -> bytes:
     """T10: the same receipt photographed again, at another angle and crop."""
-    return photograph(till_roll(rec), rng.stream(rec.key, "photo", "again"))
+    return photograph(
+        till_roll(rec), rng.stream(rec.key, "photo"), rng.stream(rec.key, "photo", "again")
+    )
 
 
 def render_receipt_pdf(rec: ReceiptData) -> bytes:

@@ -27,7 +27,9 @@ Location: `tools/synthetic/` as its own `uv` project (`kredibel-synth`). CLI:
 uv run --project tools/synthetic kredibel-synth generate --scenario S2 --seed 1 --out tools/synthetic/out
 uv run --project tools/synthetic kredibel-synth generate --all --seeds 1-5 --out tools/synthetic/out
 uv run --project tools/synthetic kredibel-synth generate --scenario S1 --seed 1 --scan --out tools/synthetic/out
-make synth           # P0 scenarios (S1–S5), seeds 1–5, plus S1 seed-1 scanned and the fixtures
+uv run --project tools/synthetic kredibel-synth fixtures --out tools/synthetic/out/fixtures
+uv run --project tools/synthetic kredibel-synth demo --out tools/synthetic/out/demo
+make synth           # P0 scenarios (S1–S5), seeds 1–5, S1 seed-1 scanned, the fixtures, the demo set
 ```
 
 Output: `tools/synthetic/out/<scenario>/seed-<n>/` containing the files, `truth.json`, `upload-order.txt`
@@ -156,7 +158,7 @@ Seeds vary amounts (±15%), dates (±3 days) and counts. Built-in matching cases
 | **T8** | Re-exported statement | The same month regenerated with a new creation time (different bytes, identical rows) | `D02` (MEDIUM, rows identical); held |
 | **T9** | Re-scanned invoice | A purchase invoice printed and scanned (`--scan` on one file) | `D03`; held |
 | **T10** | Re-photographed receipt | The same receipt "photographed" again with another angle and crop | `D05` by perceptual hash; held |
-| **T11** | Ledger line entered twice | One ledger row duplicated with the same date, account, amount and reference | `D06`; later entry held |
+| **T11** | Ledger line entered twice | The first bank journal from 12 May whose cash line carries a reference, keyed in again right after the original (same date, accounts, amounts, reference; a new journal number) | `D06`; later entry held |
 | **T12** | Changed supplier account | A supplier invoice with a new pay-to account at Meridian Savings Bank, and the bank debit to that account | `X08` (HIGH) |
 | **T13** | Invoices nobody pays | Purchase invoices from a supplier with no bank or ledger history | `R02` (MEDIUM) per invoice |
 

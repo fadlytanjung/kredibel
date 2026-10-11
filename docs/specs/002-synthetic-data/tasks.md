@@ -19,12 +19,12 @@
 
 ## Phase 4 — Tampering, duplicates and scenarios (P0)
 
-- [ ] **T002-09** **TDD** T1: 2 revisions; edited value in Helvetica at the row's coordinates; old string absent; metadata updated. (AC-002-8)
-- [ ] **T002-10** **TDD** T7–T11 duplicates: T7 same hash; T8 same rows, new hash; T9 scanned invoice; T10 pHash ≤ 8 and new hash; T11 duplicated ledger row. (AC-002-9)
-- [ ] **T002-11** T12 changed supplier account and T13 unpaid invoices. (AC-002-10)
-- [ ] **T002-12** `scenarios.py` S1–S5 with upload orders; `truth.py`. (AC-002-1, AC-002-11, AC-002-12)
-- [ ] **T002-13** `--scan` variant and the fixtures of docs/18 §3.7. (AC-002-14, AC-002-15)
-- [ ] **T002-14** `cli.py`; `make synth` generates S1–S5 × seeds 1–5 and the fixtures; copy S1–S4 seed 1 into `tools/synthetic/out/demo/`.
+- [x] **T002-09** **TDD** T1: 2 revisions; edited value in Helvetica at the row's coordinates; old string absent; metadata updated. (AC-002-8)
+- [x] **T002-10** **TDD** T7–T11 duplicates: T7 same hash; T8 same rows, new hash; T9 scanned invoice; T10 pHash ≤ 8 and new hash; T11 duplicated ledger row. (AC-002-9)
+- [x] **T002-11** T12 changed supplier account and T13 unpaid invoices. (AC-002-10)
+- [x] **T002-12** `scenarios.py` S1–S5 with upload orders; `truth.py`. (AC-002-1, AC-002-11, AC-002-12)
+- [x] **T002-13** `--scan` variant and the fixtures of docs/18 §3.7. (AC-002-14, AC-002-15)
+- [x] **T002-14** `cli.py`; `make synth` generates S1–S5 × seeds 1–5 and the fixtures; copy S1–S4 seed 1 into `tools/synthetic/out/demo/`.
 
 ## Phase 5 — P1
 
@@ -32,4 +32,4 @@
 
 ## Phase 6 — Close
 
-- [ ] **T002-16** `tools/synthetic/README.md` (how to run, scenarios table); update `docs/20-implementation-status.md`.
+- [x] **T002-16** `tools/synthetic/README.md` (how to run, scenarios table); update `docs/20-implementation-status.md`.

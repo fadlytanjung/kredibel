@@ -256,6 +256,7 @@ OPENING_JANUARY = Decimal("120000000.00")
 T1_ANCHOR_DATE = date(YEAR, 3, 14)
 T1_ANCHOR_AMOUNT = Decimal("1250000.00")
 T1_EDITED_AMOUNT = Decimal("7250000.00")
+T11_FROM = date(YEAR, 5, 12)  # S3 duplicates the first referenced bank journal from this day
 
 
 def month_parts(month: str) -> tuple[int, int]:

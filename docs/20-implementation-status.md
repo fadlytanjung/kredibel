@@ -17,7 +17,7 @@ _Last updated: 12 Oct 2026 — Specs 001, 003, 004 and 013 (P0) built; tracing a
 | Dockerfile, Cloud Build, bootstrap, Firebase (Auth + Hosting) | 001 | Deployed | Multi-stage Dockerfile, Cloud Build pipeline, web & worker deployed, Firebase Auth & Hosting (kredibel-app.web.app) deployed with demo user (AC-001-8, AC-001-9) |
 | Cost guardrails: budget, AR cleanup, run quotas, kill switch | 001, 004 | Deployed | GCP budget 50/90/100% alerts, Artifact Registry 3-version cleanup policy, run quotas in env (docs/21 §7) |
 | i18n scaffold (English only) | 001 | Built | `i18next` + `react-i18next` with `en` bundle (AC-001-14) |
-| Synthetic books S1–S5, scan variant, fixtures | 002 | Specified | |
+| Synthetic books S1–S5, scan variant, fixtures | 002 | Built | `tools/synthetic` (`make synth`): books as data, AUTO/PROPOSED proven against the reconciliation policy, deterministic PDFs/JPEGs/CSV/XLSX, T1 and T7–T13, `truth.json`, `--scan`, 8 fixtures; 213 generator tests in `make check`. Demo set generated, not committed |
 | Synthetic S6 (hidden instructions) | 002 | Specified (P1) | |
 
 ## Workspace & plans

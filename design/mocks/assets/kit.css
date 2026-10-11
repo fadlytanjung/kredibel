@@ -117,13 +117,20 @@ a:hover { color: var(--k-color-brand-hover); }
     display: flex; flex-direction: column; align-items: center; gap: var(--k-space-2);
     position: sticky; top: 0; height: 100dvh; padding: var(--k-space-4) 0 var(--k-space-4);
   }
+  /* The column is exactly one viewport tall: the logo and the foot (settings, user) stay pinned and
+     only the main nav scrolls, so the avatar is never cut off on short screens. */
+  .side > * { flex: none; }
+  .side > .nav {
+    flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin;
+    padding: 2px;
+  }
   .side .lockup { display: none; }
   .side .side-mark { display: block; width: 40px; height: 40px; }
   .side .nav { display: flex; flex-direction: column; gap: 2px; margin-top: var(--k-space-4); }
-  .side .nav-item { width: 76px; min-height: 58px; font-size: 11.5px; }
+  .side .nav-item { width: 76px; min-height: 58px; font-size: 11.5px; flex: none; }
   .side .nav-group-label, .side .workspace, .side .trial-card { display: none; }
   .side .nav-sep { width: 40px; height: 1px; background: var(--k-color-border-default); margin: var(--k-space-2) auto; }
-  .side-foot { margin-top: auto; display: flex; flex-direction: column; align-items: center; gap: var(--k-space-3); }
+  .side-foot { margin-top: auto; display: flex; flex-direction: column; align-items: center; gap: var(--k-space-3); padding-top: var(--k-space-2); }
   .bottom-nav, .fab { display: none; }
   .topbar { height: 64px; padding: 0 var(--k-space-6); gap: var(--k-space-3); }
 }
@@ -163,8 +170,9 @@ a:hover { color: var(--k-color-brand-hover); }
   .side .trial-card .bar i { display: block; height: 100%; width: 23%; background: var(--k-color-brand-accent); border-radius: 3px; }
   .side .trial-card a { color: var(--k-color-brand-accent); font-weight: 600; }
   .side-foot { align-items: stretch; gap: var(--k-space-2); }
-  .side-foot .user { text-decoration: none; color: var(--k-color-text-default); display: flex; align-items: center; gap: 10px; padding: 6px 4px; font-size: 13px; }
-  .side-foot .user strong { display: block; font-size: 14px; }
+  .side-foot .user { text-decoration: none; color: var(--k-color-text-default); display: flex; align-items: center; gap: 10px; padding: 6px 4px; font-size: 13px; min-width: 0; }
+  .side-foot .user > span:not(.avatar) { min-width: 0; flex: 1; }
+  .side-foot .user strong { display: block; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 }
 .side-foot .user span:not(.avatar) { display: none; }
 @container app (width >= 1200px) { .side-foot .user span:not(.avatar) { display: block; } }

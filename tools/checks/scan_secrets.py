@@ -16,6 +16,11 @@ SECRET_PATTERNS = [
     (re.compile(r"AKIA[0-9A-Z]{16}"), "AWS Access Key"),
     (re.compile(r"ghp_[0-9a-zA-Z]{36}"), "GitHub Personal Access Token"),
     (re.compile(r"xox[baprs]-[0-9a-zA-Z]{10,48}"), "Slack token"),
+    # password = "…", password: '…', setPassword('…'); empty strings and i18n keys pass.
+    (
+        re.compile(r"""(?i)\b(?:set)?passw(?:or)?d\b\s*[:=(]\s*['"][^'"\s]{4,}['"]"""),
+        "Hard-coded password",
+    ),
 ]
 
 IGNORED_DIRS = {
@@ -27,6 +32,9 @@ IGNORED_DIRS = {
     ".ruff_cache",
     ".mypy_cache",
     "dist",
+    "storybook-static",
+    "test-results",
+    "playwright-report",
     "coverage",
     ".hypothesis",
 }

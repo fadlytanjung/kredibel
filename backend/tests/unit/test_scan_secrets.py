@@ -40,3 +40,30 @@ def test_service_account_json_detected():
 
         findings = scan_path_for_secrets(tmp_path)
         assert len(findings) >= 1
+
+
+def test_hard_coded_password_literal_detected():
+    """A password written into source fails (the demo password once shipped in LoginPage)."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmp_path = Path(tmpdir)
+        word = "Pass" + "word"
+        (tmp_path / "Login.tsx").write_text(f"set{word}('Hunter2Hunter2!')\n")
+        (tmp_path / "seed.py").write_text(f'{word.lower()} = "Hunter2Hunter2!"\n')
+
+        findings = scan_path_for_secrets(tmp_path)
+        assert len(findings) == 2
+        assert all("password" in f.lower() for f in findings)
+
+
+def test_password_fields_and_labels_are_not_secrets():
+    """Input types, autocomplete hints, i18n keys and empty state are fine."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmp_path = Path(tmpdir)
+        (tmp_path / "Login.tsx").write_text(
+            'type="password" autoComplete="current-password"\n'
+            "const [password, setPassword] = useState('')\n"
+            "{t('auth.passwordLabel')}\n"
+        )
+        (tmp_path / "common.json").write_text('{"passwordLabel": "Password"}\n')
+
+        assert scan_path_for_secrets(tmp_path) == []

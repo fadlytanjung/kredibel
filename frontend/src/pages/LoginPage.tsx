@@ -45,12 +45,6 @@ export function LoginPage() {
     }
   }
 
-  const fillDemoAccount = (e: React.MouseEvent) => {
-    e.preventDefault()
-    setEmail('owner@demo.kredibel')
-    setPassword('DemoPassword123!')
-  }
-
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-canvas">
       {/* Brand Hero Column (Matching design/mocks/onboarding.html) */}
@@ -206,19 +200,6 @@ export function LoginPage() {
               {isSubmitting ? t('auth.signingIn') : t('auth.signInButton')}
             </Button>
           </form>
-
-          {/* Quick Demo Login Hint */}
-          <div className="mt-6 p-3 rounded-xs bg-brand-soft border border-brand-line/20 text-xs">
-            <p className="font-semibold text-brand mb-1">Demo Workspace Credentials</p>
-            <p className="text-ink-muted mb-2">Preconfigured demo account with S1–S4 synthetic data.</p>
-            <button
-              type="button"
-              onClick={fillDemoAccount}
-              className="text-xs font-semibold text-brand hover:underline cursor-pointer"
-            >
-              Fill demo: owner@demo.kredibel &rarr;
-            </button>
-          </div>
         </div>
       </main>
     </div>

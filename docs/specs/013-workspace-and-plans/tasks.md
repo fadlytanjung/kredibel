@@ -15,7 +15,7 @@ Phases 1–3 are needed by specs 003 and 004 (D1). Phase 4 can follow on D5–D6
 - [x] **T013-06** **TDD** `WorkspaceService.create` for `INDIVIDUAL` and `COMPANY`: transaction (org, profile, subscription, owner member, bank account mask + hash, signup counter), claims after commit, `ALREADY_IN_WORKSPACE`, `SIGNUP_CLOSED` per mode and `MAX_WORKSPACES`. (AC-013-2, AC-013-3)
 - [x] **T013-07** **TDD** `EntitlementService` with counters in the same transaction; concurrency at the limit; usage settlement at run end. (AC-013-7, AC-013-9, AC-013-10)
 - [x] **T013-08** Plans, workspace and bank-account routes; `LANGUAGE_NOT_AVAILABLE`. (AC-013-6, AC-013-14, AC-013-15)
-- [ ] **T013-09** `scripts/seed_demo_workspace.py`; call it from `infra/bootstrap.sh`. (AC-013-4)
+- [x] **T013-09** `scripts/seed_demo_workspace.py`; call it from `infra/bootstrap.sh`. (AC-013-4)
 
 ## Phase 3 — Wiring (with 003 and 004)
 

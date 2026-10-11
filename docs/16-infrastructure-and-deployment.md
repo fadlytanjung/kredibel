@@ -142,9 +142,10 @@ gcloud model-armor templates create kredibel-docs --location="$REGION" \
   --malicious-uri-filter-settings-enforcement=enabled
 
 # 9. Demo workspace (free trial to 31 Dec 2026 with demo limits), users and claims (spec 013)
-uv run --project backend python backend/scripts/seed_demo_workspace.py --org org_demo \
+# Spec 003 adds --scenario S1 to upload a synthetic scenario's files into it.
+(cd backend && uv run python -m scripts.seed_demo_workspace --org org_demo \
   --name "Sunrise Coffee Roasters" --entity COMPANY --trial-ends 2026-12-31 \
-  --owner owner@demo.kredibel --scenario S1
+  --owner owner@demo.kredibel)
 # P1 roles: add --accountant accountant@demo.kredibel --reviewer reviewer@demo.kredibel --viewer viewer@demo.kredibel
 
 # 10. Assistant (P1): Memory Bank and a Sessions container, no agent code; prints MEMORY_BANK_ID and AGENT_SESSIONS_ID

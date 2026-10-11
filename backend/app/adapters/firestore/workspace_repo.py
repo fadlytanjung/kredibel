@@ -102,6 +102,44 @@ class FirestoreWorkspaceRepository(WorkspaceRepository):
 
         return await with_backoff(lambda: run(db.transaction(max_attempts=1)))
 
+    async def seed_workspace(self, new: NewWorkspace) -> None:
+        """Server-side upsert for the demo workspace (scripts/seed_demo_workspace.py, AC-013-4).
+
+        Not part of the port: no sign-up checks, and it does not count against MAX_WORKSPACES.
+        """
+        ws = new.workspace
+        org_ref = self._db.collection("orgs").document(ws.org_id)
+        batch = self._db.batch()
+        batch.set(org_ref, dump(self._org_doc(ws)))
+        batch.set(
+            org_ref.collection("members").document(new.owner.uid),
+            dump(
+                MemberDoc(
+                    uid=new.owner.uid,
+                    org_id=ws.org_id,
+                    email=new.owner.email,
+                    display_name=new.owner.display_name,
+                    role=new.owner.role,
+                    created_at=ws.created_at,
+                )
+            ),
+        )
+        batch.set(
+            self._db.collection("system")
+            .document("signup")
+            .collection("users")
+            .document(new.owner.uid),
+            dump(
+                SignupUserDoc(
+                    uid=new.owner.uid,
+                    org_id=ws.org_id,
+                    role=new.owner.role,
+                    created_at=ws.created_at,
+                )
+            ),
+        )
+        await batch.commit()
+
     async def get_workspace(self, org_id: str) -> Workspace | None:
         snap = await self._db.collection("orgs").document(org_id).get()
         if not snap.exists:

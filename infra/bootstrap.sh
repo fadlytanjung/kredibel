@@ -146,5 +146,12 @@ gcloud run jobs create kredibel-migrate \
 echo "==> 6. Ensuring Firebase Hosting site is created..."
 npx --yes firebase-tools hosting:sites:create kredibel-app --project "$PROJECT_ID" --non-interactive || true
 
+echo "==> 7. Seeding the demo workspace (free trial to 31 Dec 2026 with demo limits, spec 013)..."
+# Needs ADC with Firebase Auth admin and Firestore write on $PROJECT_ID. The owner's password is
+# set in the Firebase console, never here.
+(cd "$(dirname "$0")/../backend" && GOOGLE_CLOUD_PROJECT="$PROJECT_ID" uv run python -m scripts.seed_demo_workspace \
+  --org org_demo --name "Sunrise Coffee Roasters" --entity COMPANY --trial-ends 2026-12-31 \
+  --owner owner@demo.kredibel --project "$PROJECT_ID")
+
 echo "==> Bootstrap completed successfully for project $PROJECT_ID."
 

@@ -101,11 +101,11 @@ Indonesia; everything else is English.
 
 | Flow | Pattern | Statement description | Documents |
 |---|---|---|---|
-| B2B sales receipts | 4 invoices per month, paid on or near the due date | `TRANSFER IN <CLIENT>` / `INSTANT TRANSFER IN <CLIENT>`; ≈ 60% include the invoice number | Sales invoice |
+| B2B sales receipts | 4 invoices per month (24 in the half-year), paid on or before the due date (up to 3 days late only when the description carries the invoice number); one per month on 30-day terms is paid the next month | `TRANSFER IN <CLIENT>` / `INSTANT TRANSFER IN <CLIENT>`; ≈ 60% include the invoice number | Sales invoice |
 | Retail cash deposits | 4–8 per month, small | `CASH DEPOSIT` | Ledger only |
-| Supplier payments | 2–3 per month | `TRANSFER OUT <SUPPLIER> <last 4 of pay-to>` | Purchase invoice |
-| Card and QR spending | 4 per month | `DEBIT CARD <MERCHANT>`, `QRIS <MERCHANT>` | Receipt |
-| Cash spending | 0–2 per month | — (not in the bank) | Receipt, ledger |
+| Supplier payments | 2–3 per month, 16 in the half-year (Green Valley Farms and PrimePack monthly, Roastline in Jan, Mar, May, Jun), paid before the due date in the month of issue | `TRANSFER OUT <SUPPLIER> <last 4 of pay-to>` | Purchase invoice |
+| Card and QR spending | 3–4 per month, posted the same day | `DEBIT CARD <MERCHANT>`, `QRIS <MERCHANT>` | Receipt |
+| Cash spending | 0–1 per month, so receipts total 4 per month (24) | — (not in the bank) | Receipt, ledger |
 | Payroll | 25th | `PAYROLL <MON>` | Ledger only |
 | Rent | 1st | `WAREHOUSE RENT <MON>` | Ledger only |
 | Utilities | electricity, water, internet | `ELECTRICITY BILL <id>`, `WATER BILL`, `INTERNET BILL` | Ledger only |
@@ -113,6 +113,7 @@ Indonesia; everything else is English.
 | Existing loan | 5th | `LOAN INSTALLMENT <ref>` | Ledger only |
 | Owner drawings | 1–2 per month | `TRANSFER OUT ANDI PRATAMA` | Ledger only |
 | Bank fees | month end | `ADMIN FEE` | Ledger only |
+| Edited-value anchor | 14 March, a cash deposit of exactly `1,250,000.00` (the row T1 edits in S2) | `CASH DEPOSIT` | Ledger only |
 
 Seeds vary amounts (±15%), dates (±3 days) and counts. Built-in matching cases, each recorded in
 `truth.json`:
@@ -165,7 +166,7 @@ Seeds vary amounts (±15%), dates (±3 days) and counts. Built-in matching cases
 
 | ID | Name | Build | Expected | P |
 |---|---|---|---|---|
-| **S1** | A normal half-year | 6 statements, 24 sales and 16 purchase invoices, 24 receipts, 1 ledger CSV | All documents `CLEAN`; every month `LOW`; ≥ 85% of bank lines matched automatically; **0 wrong automatic matches**; the review items listed in `truth.json` (one proposed match in Feb, one unmatched deposit in Jun) | P0 |
+| **S1** | A normal half-year | 6 statements, 24 sales and 16 purchase invoices, 24 receipts, 1 ledger CSV | All documents `CLEAN`; every month `LOW` except June `MEDIUM` (`X09`: a cash deposit missing from the ledger); ≥ 85% of bank lines matched automatically; **0 wrong automatic matches**; the review items listed in `truth.json` (one proposed match in Feb, one unmatched deposit in Jun) | P0 |
 | **S2** | The edited statement | S1 + **T1** on the **March** statement | March statement `TAMPERED`; March `CRITICAL` with next step "download the statement again from internet banking"; other months as S1 | P0 |
 | **S3** | Duplicates | S1 + **T7** and **T8** on February, **T9** on one purchase invoice, **T10** on one receipt, **T11** on one ledger row | All five caught; month figures equal S1's (nothing counted twice); four `POSSIBLE_DUPLICATE` items (the exact copy needs none) | P0 |
 | **S4** | Payment diversion and unpaid bills | S1 + **T12** on Roastline Equipment Service in May + **T13** (two Bluewater Trading Co. invoices) | May `HIGH` with both accounts shown; two `R02` findings; two `UNMATCHED_DOCUMENT` items | P0 |
@@ -208,7 +209,7 @@ Bluewater Trading Co. invoices and the unmatched cash deposit of 21 Jun.
       "closing": "52310000.00",
       "rows": [
         {"key": "st-03#17", "rowIndex": 17, "page": 2, "date": "2026-03-14",
-         "description": "TRANSFER IN HARBORVIEW HOTEL GROUP INV/SCR/2026/03/0009",
+         "description": "CASH DEPOSIT",
          "debit": null, "credit": "1250000.00", "balance": "42500000.00",
          "category": "SALES_RECEIPT", "riskTags": []}
       ],
@@ -255,6 +256,13 @@ Bluewater Trading Co. invoices and the unmatched cash deposit of 21 Jun.
                     "topUses": ["Suppliers", "Payroll"]}
 }
 ```
+
+Row keys are `st-<mm>#<rowIndex>`, with `OPENING BALANCE` as row 0; invoice and receipt keys are their
+file names without the extension; ledger keys are `lg#<n>`, the n-th data row (after the comment row
+and the header).
+Every intended match carries `expect` (`AUTO` or `PROPOSED`), the reason codes and the score the
+generator computed under [`08`](08-risk-engine.md) §6.3, so a change of policy that would flip an
+expectation fails the generator's own tests first.
 
 Rows record values **as genuinely generated** (`credit: 1250000.00`), and `tampering` records what the
 document now shows. The reading eval compares readers against the **shown** values; the forensics eval

@@ -10,7 +10,7 @@ _Last updated: 12 Oct 2026 — Specs 001, 003, 004 and 013 (P0) built; tracing a
 
 | Component | Spec | Status | Notes |
 |---|---|---|---|
-| Repo layout, Makefile, quality gates | 001 | Built | `make check` all 7 gates green (AC-001-11, AC-001-12) |
+| Repo layout, Makefile, quality gates | 001 | Built | `make check` all 8 gates green, the synthetic generator's own checks included (AC-001-11, AC-001-12) |
 | Settings, logging, errors, auth, security headers | 001 | Deployed | Tests green (AC-001-1, AC-001-4, AC-001-5, AC-001-6, AC-001-10); running on Cloud Run |
 | Design foundation: tokens, app shell, Storybook, visual tests, raw-style gate | 001 | Built | Tokens compile, AppShell responsive (360–1600px), Storybook 10, Playwright visual tests at 390/834/1440, no_raw_styles check (AC-001-15, AC-001-16, AC-001-17, AC-001-18) |
 | Data-migration foundation: versions, upcasters, runner, job, backups | 001 | Deployed | Upcasters, runner with emulator, schema drift check, `kredibel-migrate` Cloud Run job, backup bucket and PITR (AC-001-19, AC-001-20, AC-001-21, AC-001-22) |

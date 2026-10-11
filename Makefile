@@ -67,6 +67,8 @@ check: ## Run all quality gates (lint, types, layers, repo checks, tests)
 	@if [ -f frontend/package.json ]; then cd frontend && npm run gen:api >/dev/null && npm run lint && npm run check; fi
 	@echo "7. Running frontend tests (vitest)..."
 	@if [ -f frontend/package.json ]; then cd frontend && npm test -- --run; fi
+	@echo "8. Checking the synthetic data generator (docs/18 §7)..."
+	@if [ -f tools/synthetic/pyproject.toml ]; then cd tools/synthetic && uv run ruff check . && uv run pyright && uv run pytest -q; fi
 	@echo "==> All gates passed."
 
 test: ## Run unit and integration tests

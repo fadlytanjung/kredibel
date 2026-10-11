@@ -351,9 +351,13 @@ For each left item, candidates within the window (`[issue − 3 days, due + grac
 
 - `amount_score` = 1.0 if within tol (max(IDR 1,000, 0.5%)); 0.8 if net of withholding
   (`T·(1 − maxWithholding) ≤ c < T`); else 0.
-- `party_score` = `token_set_ratio(party, counterparty or description) / 100`.
+- `party_score` = `token_set_ratio(party, counterparty or description) / 100`, both upper-cased with
+  accents and punctuation removed (`Daybreak Café` = `DAYBREAK CAFE`).
 - `reference_score` = 1.0 if the invoice number or ledger reference appears in the description, else 0.
-- `date_score` = `1 − min(1, distance / window)`.
+- `date_score` = `1 − min(1, distance / window)`. For invoices the distance is the days **after the
+  due date** (0 for a payment from `issue − 3 days` to the due date) and the window is `graceDays`; for
+  receipts and ledger entries it is the days between the two dates and the window is `receiptDays` or
+  `ledgerDays`.
 - `score = 0.45·amount + 0.25·party + 0.15·reference + 0.15·date`.
 
 Assignment is greedy by score, then date, then ID (deterministic); an item is used at most once except

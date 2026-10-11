@@ -2,13 +2,13 @@
 
 ## Phase 1 — Setup
 
-- [ ] **T002-01** Create `tools/synthetic/` uv project, CLI entry point, fonts folder (DejaVu Sans + licence).
-- [ ] **T002-02** `world.py`, `rng.py`, `model.py` (Decimal money, dataclasses).
+- [x] **T002-01** Create `tools/synthetic/` uv project, CLI entry point, fonts folder (DejaVu Sans + licence).
+- [x] **T002-02** `world.py`, `rng.py`, `model.py` (Decimal money, dataclasses).
 
 ## Phase 2 — Data generation (TDD)
 
-- [ ] **T002-03** **TDD** `books.py`: each month satisfies the running-balance equation and continuity (property test over seeds 1–20); every bank row has one ledger cash entry; documents add up. (AC-002-4…6)
-- [ ] **T002-04** **TDD** `matching_cases.py`: the six special cases exist; `AUTO` intended matches are unambiguous and `PROPOSED` ones ambiguous under `reconciliation.v1.yaml`. (AC-002-7, AC-002-13)
+- [x] **T002-03** **TDD** `books.py`: each month satisfies the running-balance equation and continuity (property test over seeds 1–20); every bank row has one ledger cash entry; documents add up. (AC-002-4…6)
+- [x] **T002-04** **TDD** `matching_cases.py`: the six special cases exist; `AUTO` intended matches are unambiguous and `PROPOSED` ones ambiguous under `reconciliation.v1.yaml`. (AC-002-7, AC-002-13)
 
 ## Phase 3 — Rendering
 

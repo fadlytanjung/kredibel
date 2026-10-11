@@ -59,6 +59,7 @@ check: ## Run all quality gates (lint, types, layers, repo checks, tests)
 	@if [ -f tools/checks/no_long_prompts.py ]; then python3 tools/checks/no_long_prompts.py; fi
 	@if [ -f tools/checks/scan_secrets.py ]; then python3 tools/checks/scan_secrets.py; fi
 	@if [ -f tools/checks/schema_drift.py ]; then python3 tools/checks/schema_drift.py; fi
+	@if [ -f tools/design/build_tokens.py ]; then python3 tools/design/build_tokens.py --check; fi
 	@echo "5. Running backend tests (pytest)..."
 	@if [ -f backend/pyproject.toml ]; then cd backend && uv run pytest; fi
 	@echo "6. Checking frontend linting and types..."
@@ -100,7 +101,7 @@ mocks: ## Regenerate HTML mocks from tools/design/mocks/
 	python3 tools/design/mocks/build_mocks.py
 
 mock-shots: ## Take screenshots of HTML mocks for docs
-	python3 tools/design/shoot_mocks.py
+	uv run --with playwright --with pillow python tools/design/shoot_mocks.py
 
 dev-agents: ## Launch ADK developer UI for agent inspection
 	cd backend && uv run adk web --port 8501

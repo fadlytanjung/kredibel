@@ -41,7 +41,7 @@ Each task lists the acceptance criteria it serves.
 
 ## Phase 4a — Design foundation
 
-- [ ] **T001-26** `make tokens` / `make tokens-check` wired to `tools/design/build_tokens.py`, and `make mocks` / `make mock-shots` to `tools/design/mocks/build_mocks.py` and `tools/design/shoot_mocks.py`; generated CSS imported by `app/styles`; Archivo via `@fontsource-variable/archivo`. (AC-001-15)
+- [x] **T001-26** `make tokens` / `make tokens-check` wired to `tools/design/build_tokens.py`, and `make mocks` / `make mock-shots` to `tools/design/mocks/build_mocks.py` and `tools/design/shoot_mocks.py`; generated CSS imported by `app/styles`; Archivo via `@fontsource-variable/archivo`. (AC-001-15)
 - [ ] **T001-27** **TDD** `tools/checks/no_raw_styles.py` (fixtures: hex colour, `rgb(`, `[13px]`, `style=` outside the allow-list fail; tokens pass); add to `make check`. (AC-001-18)
 - [ ] **T001-28** `AppShell` (sidebar, rail, bottom nav with More sheet, top bar with Upload, dock) with `useSizeClass`; first `shared/ui` components with `cva`; matches the shell of `design/mocks/dashboard.html` at the three widths. (AC-001-16)
 - [ ] **T001-29** Storybook 9 + a11y addon + test runner; one story per component state; Playwright visual tests for the shell and login at 390/834/1440 with committed baselines; CI job. (AC-001-17)

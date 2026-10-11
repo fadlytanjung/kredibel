@@ -90,14 +90,32 @@ are complete; code is built spec by spec. See
 
 ## Quick start
 
-_Available after spec 001._
-
 ```bash
-make setup      # uv + npm installs
-make synth      # generate synthetic scenarios S1–S5
-make dev        # API :8000 (in-process worker) + web :5173
-make check      # all quality gates
+# 1. Install dependencies
+make setup
+
+# 2. Build design tokens
+make tokens
+
+# 3. Start local environment (Firestore emulator + Vite & FastAPI dev servers)
+docker compose up -d
+make dev
+
+# 4. Run all quality gates (linting, type checking, architecture boundaries, repo checks, tests)
+make check
+
+# 5. Visual regression tests & Storybook
+make test-visual
+make storybook-build
 ```
+
+### Live Deployment
+
+Spec 001 Foundation is deployed on Google Cloud (`cloud-hack2skill`, `asia-southeast1`):
+- **Web SPA & API**: [https://kredibel-web-110491117045.asia-southeast1.run.app](https://kredibel-web-110491117045.asia-southeast1.run.app)
+- **Worker (IAM only)**: [https://kredibel-worker-110491117045.asia-southeast1.run.app](https://kredibel-worker-110491117045.asia-southeast1.run.app)
+- **Data Migration Job**: `kredibel-migrate` Cloud Run job with automated Cloud Build pipeline step.
+
 
 ## Results
 

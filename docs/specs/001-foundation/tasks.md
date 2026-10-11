@@ -55,4 +55,4 @@ Each task lists the acceptance criteria it serves.
 
 ## Phase 5 — Close
 
-- [ ] **T001-23** Update `docs/20-implementation-status.md` (foundation rows → Built) and `README.md` quick start.
+- [x] **T001-23** Update `docs/20-implementation-status.md` (foundation rows → Built) and `README.md` quick start.

@@ -1,0 +1,34 @@
+{
+  "DocumentDocV2": {
+    "fields": {
+      "doc_type": "str",
+      "duplicate": "DuplicateDoc | None",
+      "file_name": "str | None",
+      "held_as_duplicate": "bool",
+      "id": "str",
+      "org_id": "str",
+      "schema_version": "int",
+      "sha256": "str | None",
+      "status": "str"
+    },
+    "file": "document.py",
+    "schemaVersion": 2
+  },
+  "DuplicateDoc": {
+    "fields": {
+      "code": "str",
+      "decision": "str",
+      "kind": "str",
+      "of_doc_id": "str"
+    },
+    "file": "document.py",
+    "schemaVersion": null
+  },
+  "FirestoreModel": {
+    "fields": {
+      "schema_version": "int"
+    },
+    "file": "base.py",
+    "schemaVersion": 1
+  }
+}

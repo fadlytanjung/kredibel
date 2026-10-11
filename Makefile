@@ -8,7 +8,7 @@ SCENARIO ?= S1
 SEED ?= 1
 ENV ?= local
 
-.PHONY: help setup dev check test synth gen-api record evals deploy tokens tokens-check mocks mock-shots dev-agents migrate migrate-dry migrate-status docker-up docker-down
+.PHONY: help setup dev check test synth gen-api record evals deploy tokens tokens-check mocks mock-shots dev-agents migrate migrate-dry migrate-status docker-up docker-down schema-snapshot
 
 help: ## Show this help message
 	@echo "Kredibel — Developer Commands"
@@ -115,3 +115,6 @@ migrate: ## Execute pending data migrations
 
 migrate-status: ## Check migration status
 	cd backend && uv run python -m migrations.runner --status --env=$(ENV)
+
+schema-snapshot: ## Regenerate Firestore data schema snapshot
+	python3 tools/checks/schema_drift.py --write

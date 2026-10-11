@@ -4,7 +4,7 @@
 > a component. Statuses: **Specified** → **In progress** → **Built** (tests green) → **Deployed**
 > (running on Cloud Run) · **Cut** (deliberately dropped, with reason).
 
-_Last updated: 11 Oct 2026 — Spec 001 and Spec 013 P0 frontend & backend built (tests all green)._
+_Last updated: 12 Oct 2026 — Spec 001, Spec 013, and Spec 003 built (tests all green)._
 
 ## Foundation & platform
 
@@ -26,7 +26,7 @@ _Last updated: 11 Oct 2026 — Spec 001 and Spec 013 P0 frontend & backend built
 |---|---|---|---|
 | Plans config + entitlement checks | 013 | Built | Catalog validated at start-up; pure checks; `EntitlementService` meters in the same Firestore transaction (T013-01…03, T013-07). Wiring into upload and month runs waits for specs 003/004 (T013-10) |
 | Onboarding as individual or company (free trial, claims, first bank account) | 013 | Built | One-transaction create with double-submit and claims-repair guard; routes; onboarding page with token refresh and retry; demo seed (T013-04…06, -08, -09, -11). Verify on Cloud Run: T013-18 |
-| Usage counters + page reservation at upload | 013, 003 | In progress | Counters, reservation and settlement built and tested on the emulator (T013-07); the upload that calls them is spec 003 |
+| Usage counters + page reservation at upload | 013, 003 | Built | Counters, reservation and settlement integrated into upload with Firestore transactions (AC-003-3, AC-003-4) |
 | Settings: profile, bank accounts, language, plan & usage (coming soon items) | 013 | Built | API and UI built; ProfileForm, BankAccountsSection, LanguageSettings, PlanAndUsage, and PlanLimitDialog fully tested with unit and integration tests (T013-08, T013-12…15) |
 | Members and roles (owner, accountant, reviewer, viewer) | 013 | Specified (P1) | |
 
@@ -34,9 +34,9 @@ _Last updated: 11 Oct 2026 — Spec 001 and Spec 013 P0 frontend & backend built
 
 | Component | Spec | Status | Notes |
 |---|---|---|---|
-| Upload API + sheet (camera on phones), page split + triage | 003 | In progress | Pure file type sniffing built and tested (T003-01); page triage and upload service in progress |
-| Exact duplicates (`D01`) | 003 | Specified | |
-| Documents library + document page | 003 | Specified | |
+| Upload API + sheet (camera on phones), page split + triage | 003 | Built | Sniffing, triage, rendering, storage, Cloud Tasks enqueue, UploadSheet with mobile camera (AC-003-1…4) |
+| Exact duplicates (`D01`) | 003 | Built | SHA-256 duplicate detection, DUPLICATE record, no re-read, upload UI duplicate notice (AC-003-5, AC-003-6) |
+| Documents library + document page | 003 | Built | Documents list with filters & live badges, Document detail with page viewer, extracted values, and delete cascade (AC-003-7…11) |
 | Queues, runs, worker endpoints, inline mode | 004 | Specified | |
 | `document_workflow` and `month_workflow` skeletons; generations and debounce | 004 | Specified | Depends on spike S2 |
 | Live progress (documents and months) | 004 | Specified | |

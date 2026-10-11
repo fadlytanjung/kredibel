@@ -21,4 +21,4 @@
 
 ## Phase 4 — Close
 
-- [ ] **T003-11** Update `docs/20-implementation-status.md`.
+- [x] **T003-11** Update `docs/20-implementation-status.md`.

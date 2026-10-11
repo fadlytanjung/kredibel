@@ -185,14 +185,17 @@ No service account keys are created. Everything uses Application Default Credent
 
 | Header | Value |
 |---|---|
-| `Content-Security-Policy` | `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; worker-src 'self' blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com; frame-src https://*.firebaseapp.com; frame-ancestors 'none'` |
+| `Content-Security-Policy` | `default-src 'self'; script-src 'self' https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; worker-src 'self' blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com; frame-src https://*.firebaseapp.com; frame-ancestors 'none'` |
 | `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` |
 | `X-Content-Type-Options` | `nosniff` |
 | `Referrer-Policy` | `strict-origin-when-cross-origin` |
 | `Permissions-Policy` | `camera=(self), microphone=(), geolocation=()` (camera for photographing receipts on a phone) |
 
 The CSP is verified on the deployed URL (Google sign-in popups and Firestore listeners must work).
-The pdf.js worker and the Archivo font are bundled and served from `'self'`.
+`https://apis.google.com` is in `script-src` because Firebase Auth loads the Google API loader there to
+open the sign-in popup. The pdf.js worker and the Archivo font are bundled and served from `'self'`.
+FastAPI's interactive API page (`/docs`) is the one exception: it also allows `https://cdn.jsdelivr.net`
+for its scripts and styles; nothing else is served under that policy.
 
 ---
 

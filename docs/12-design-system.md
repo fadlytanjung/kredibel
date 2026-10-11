@@ -28,17 +28,21 @@ frontend/src/app/styles/tailwind-theme.css   Tailwind v4 @theme inline: bg-surfa
 design/mocks/assets/tokens.css               the same variables for the HTML mocks
         │
         ▼
-frontend/src/shared/ui/*            components with variants (cva), one story per state (Storybook)
-design/mocks/assets/kit.css         the same components as CSS classes for the mocks (kebab-case names)
+design/mocks/assets/kit.css         THE component stylesheet (kebab-case classes), for mocks and app
+        │  make tokens  copies it to frontend/src/app/styles/kit.css (ADR-019)
+        ▼
+frontend/src/shared/ui/*            React components that render the kit classes (cva variants map to
+                                    kit modifiers), one story per state; Icon draws icons.py's set
         │
         ▼
-widgets → pages                     layout only: they compose components and never set colours or sizes
+widgets → pages                     the mock's markup with kit classes; Tailwind only for layout glue
 ```
 
 | To change | Edit | Then |
 |---|---|---|
 | A colour, font size, radius, shadow, duration, breakpoint | `contracts/design/tokens.json` | `make tokens`; review the visual-regression diff; update §2–§4 here if a role changed |
-| How a component looks or behaves | its file in `shared/ui/` and its stories; the matching class in `kit.css` | update the visual baselines in the same PR with screenshots in the description |
+| How a component looks | its class in `design/mocks/assets/kit.css` (one place for mocks and app, ADR-019) | `make tokens mocks mock-shots`; update the app's visual baselines in the same PR |
+| How a component behaves | its file in `shared/ui/` and its stories | tests and stories |
 | How a screen is laid out | the page or widget; the screen in `tools/design/mocks/screens.py` | `make mocks mock-shots`; check the three widths |
 | The logo | `design/brand/*.svg` (never redraw from scratch) | `make mocks mock-shots` for the brand page |
 | A rule (what we avoid, content style) | this document | the `/ui-screen` skill and rule `30-frontend` read it |

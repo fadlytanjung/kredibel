@@ -20,6 +20,9 @@ from pathlib import Path
 EXEMPT_FILES = {
     "tokens.css",
     "tailwind-theme.css",
+    # Generated from design/mocks/assets/kit.css and icons.py (ADR-019); reviewed at the source.
+    "kit.css",
+    "icons.generated.ts",
 }
 
 # Regex patterns

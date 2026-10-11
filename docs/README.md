@@ -111,6 +111,7 @@ only; when a change alters what a diagram shows, update the diagram in the same 
 | [016](adr/ADR-016-human-verified-labels-and-learning-loop.md) | Human-verified labels and the learning loop (IFRS or US GAAP; examples now, tuning later) |
 | [017](adr/ADR-017-agent-observability-on-google-cloud.md) | Agent observability on Google Cloud instead of LangSmith |
 | [018](adr/ADR-018-firebase-hosting-in-front-of-cloud-run.md) | Firebase Hosting serves the SPA and rewrites `/api` to Cloud Run (supersedes the hosting part of 008) |
+| [019](adr/ADR-019-one-component-stylesheet-for-mocks-and-app.md) | `kit.css` and the mock icon set are the component stylesheet and icons of the app too (supersedes the Tailwind rebuild rule of 12 §0) |
 
 ## Machine-readable contracts
 

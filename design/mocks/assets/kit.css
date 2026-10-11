@@ -3,8 +3,9 @@
    Every class maps to a component in docs/12-design-system.md §6 (the class name is the component
    name in kebab case). Values come only from tokens.css (generated from contracts/design/tokens.json),
    except the synthetic document page, which imitates a bank's PDF.
-   The React app does not import this file: it rebuilds these components with Tailwind utilities and
-   the same tokens. Container queries are used so one mock renders correctly at any frame width. */
+   The React app uses this same file (ADR-019): `make tokens` copies it to
+   frontend/src/app/styles/kit.css and React components render these class names. Container queries
+   are used so one mock renders correctly at any frame width. */
 
 @font-face {
   font-family: "Archivo Variable";

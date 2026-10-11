@@ -37,7 +37,8 @@
 React 19 · Vite · TypeScript (strict) · Tailwind CSS v4 with the generated theme
 (`app/styles/tailwind-theme.css`, from [`contracts/design/tokens.json`](../contracts/design/tokens.json))
 · Radix UI primitives (dialog, popover, tooltip, tabs, radio group, select, collapsible) ·
-`class-variance-authority` + `tailwind-merge` for variants · `lucide-react` icons ·
+`class-variance-authority` + `tailwind-merge` for variants · the mocks' `kit.css` as the component
+stylesheet and their icon set (`shared/ui/Icon`, [ADR-019](adr/ADR-019-one-component-stylesheet-for-mocks-and-app.md)) ·
 `@fontsource-variable/archivo` · TanStack Query v5 · React Router v7 (data routers) ·
 react-hook-form + zod · Firebase JS SDK (Auth, Firestore listeners) · `react-pdf` (pdf.js) ·
 `d3-sankey` (layout only; we draw the SVG) · Recharts (bars and lines) · `i18next` + `react-i18next` ·

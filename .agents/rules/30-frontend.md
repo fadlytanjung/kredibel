@@ -13,10 +13,11 @@ description: Frontend conventions for the Kredibel React app.
   (`npm run gen:api`). Never hand-write API types.
 - Server state only through TanStack Query hooks in `entities/*/api.ts`. Firestore listeners are a
   change signal that invalidates queries; data comes from the API.
-- Styling: Tailwind utilities generated from `contracts/design/tokens.json` (`make tokens`); no raw
-  colours, arbitrary values or inline styles except computed geometry (bbox overlays, chart sizes);
-  `tools/checks/no_raw_styles.py` enforces it. New screens follow `docs/11-frontend.md` §4–§6 and the
-  matching mock in `design/mocks/` (use the `/ui-screen` skill).
+- Styling (ADR-019): components render the classes of `design/mocks/assets/kit.css` (copied into the
+  app by `make tokens`) and icons through `shared/ui/Icon`; pages reproduce the mock's markup from
+  `tools/design/mocks/screens.py`. Tailwind utilities from the tokens only for layout glue; no raw
+  colours, arbitrary values or inline styles except computed geometry; `tools/checks/no_raw_styles.py`
+  enforces it. A visual change goes into `kit.css` first. Use the `/ui-screen` skill.
 - Information architecture: the dashboard summarizes and links; tables live on their own pages
   (Documents, Reconciliation, Review, Risk). Do not put tables on the dashboard or KPIs on table pages.
 - Every screen works from 360 to 1600 px: window classes from tokens, container queries inside

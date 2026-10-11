@@ -5,9 +5,10 @@ description: Designs, builds or improves a Kredibel screen or UI component the s
 
 # Design or change a screen
 
-The design has one source of truth per layer: tokens in `contracts/design/tokens.json`, components in
-`design/mocks/assets/kit.css` (mocks) and `frontend/src/shared/ui/` (app), screens in
-`tools/design/mocks/screens.py` (mocks) and `frontend/src/pages|widgets/` (app). Rules live in
+The design has one source of truth per layer: tokens in `contracts/design/tokens.json`, component
+styles in `design/mocks/assets/kit.css` for both the mocks and the app (ADR-019; `make tokens` copies
+it), component behaviour in `frontend/src/shared/ui/`, screens in `tools/design/mocks/screens.py`
+(mocks) whose markup `frontend/src/pages|widgets/` reproduces with the same classes. Rules live in
 `docs/12-design-system.md`; screen behaviour in `docs/11-frontend.md` §4–§6. Change the lowest layer
 that fixes the problem.
 

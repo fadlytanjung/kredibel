@@ -5,6 +5,8 @@ Outputs (generated, never edited by hand):
   design/mocks/assets/tokens.css              CSS variables (light + dark) and .type-* classes
   frontend/src/app/styles/tokens.css          same file, when frontend/ exists
   frontend/src/app/styles/tailwind-theme.css  Tailwind v4 `@theme inline` mapping, when frontend/ exists
+  frontend/src/app/styles/kit.css             design/mocks/assets/kit.css for the app (ADR-019)
+  frontend/src/shared/ui/icons.generated.ts   the mock icon set (tools/design/mocks/icons.py)
 
 Also checks every contrast pair listed in `$extensions["kredibel.contrastPairs"]` (WCAG 2.x ratio).
 
@@ -34,6 +36,13 @@ HEADER = (
 )
 
 ALIAS = re.compile(r"^\{([^}]+)\}$")
+
+KIT_CSS = ROOT / "design" / "mocks" / "assets" / "kit.css"
+ICONS_PY = ROOT / "tools" / "design" / "mocks" / "icons.py"
+FE_ICONS = ROOT / "frontend" / "src" / "shared" / "ui" / "icons.generated.ts"
+FONT_FACE = re.compile(r"@font-face\s*\{[^}]*\}\s*", re.S)
+SVG_ELEMENT = re.compile(r"<(\w+)\s+([^>]*?)/>")
+SVG_ATTR = re.compile(r'([\w-]+)="([^"]*)"')
 
 
 # --------------------------------------------------------------------------------------------
@@ -268,6 +277,42 @@ def build_tailwind_theme(tree: dict) -> str:
 
 
 # --------------------------------------------------------------------------------------------
+# One component stylesheet and one icon set for the mocks and the app (ADR-019)
+# --------------------------------------------------------------------------------------------
+
+def build_app_kit_css() -> str:
+    """kit.css as the app's component layer. The @font-face is dropped: the app loads the same
+    Archivo variable font (weight and width axes) from @fontsource-variable/archivo/wdth.css."""
+    header = (
+        "/* GENERATED from design/mocks/assets/kit.css by tools/design/build_tokens.py (ADR-019).\n"
+        "   Do not edit. Change design/mocks/assets/kit.css and run `make tokens`. */\n"
+    )
+    return header + FONT_FACE.sub("", KIT_CSS.read_text(encoding="utf-8"), count=1)
+
+
+def build_icons_ts() -> str:
+    """The mock icons as element data, so React draws them without raw HTML."""
+    namespace: dict = {}
+    exec(compile(ICONS_PY.read_text(encoding="utf-8"), str(ICONS_PY), "exec"), namespace)
+    lines = [
+        "/* GENERATED from tools/design/mocks/icons.py by tools/design/build_tokens.py (ADR-019).",
+        "   Do not edit. Change the icon in icons.py and run `make tokens`. */",
+        "",
+        "export type IconElement = { tag: 'path' | 'circle' | 'rect'; attrs: Record<string, string> }",
+        "",
+        "export const ICONS = {",
+    ]
+    for name in sorted(namespace["ICONS"]):
+        elements = []
+        for tag, attrs in SVG_ELEMENT.findall(namespace["ICONS"][name]):
+            pairs = ", ".join(f"{key}: {json.dumps(value)}" for key, value in SVG_ATTR.findall(attrs))
+            elements.append(f"{{ tag: '{tag}', attrs: {{ {pairs} }} }}")
+        lines.append(f"  {json.dumps(name)}: [{', '.join(elements)}],")
+    lines += ["} satisfies Record<string, IconElement[]>", "", "export type IconName = keyof typeof ICONS", ""]
+    return "\n".join(lines)
+
+
+# --------------------------------------------------------------------------------------------
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
@@ -282,6 +327,8 @@ def main() -> int:
     if (ROOT / "frontend").is_dir():
         outputs[FE_STYLES / "tokens.css"] = outputs[MOCK_CSS]
         outputs[FE_STYLES / "tailwind-theme.css"] = build_tailwind_theme(tree)
+        outputs[FE_STYLES / "kit.css"] = build_app_kit_css()
+        outputs[FE_ICONS] = build_icons_ts()
 
     for path, text in outputs.items():
         rel = path.relative_to(ROOT)

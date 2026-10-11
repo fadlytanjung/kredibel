@@ -1,5 +1,5 @@
-"""Stroke icons (24x24, 1.75 stroke) drawn for the Kredibel mocks. The app uses lucide-react with
-the same names where one exists; these are simple stand-ins so the mocks have no dependency."""
+"""Stroke icons (24x24, 1.75 stroke): the Kredibel icon set for the mocks and the app. `make tokens`
+generates frontend/src/shared/ui/icons.generated.ts from this file (ADR-019)."""
 
 ICONS = {
     "tag": '<path d="M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7a1 1 0 0 1 .7.3l7.8 7.8a1 1 0 0 1 0 1.4l-7.7 7.7a1 1 0 0 1-1.4 0l-7.8-7.8a1 1 0 0 1-.3-.7z"/><circle cx="8" cy="8" r="1.5"/>',

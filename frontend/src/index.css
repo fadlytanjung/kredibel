@@ -1,11 +1,9 @@
 @import "@fontsource-variable/archivo/wdth.css";
 @import "tailwindcss";
 @import "./app/styles/tailwind-theme.css";
+/* ADR-019: the mocks' component stylesheet, in the components layer so utilities still win. */
+@import "./app/styles/kit.css" layer(components);
 
 :root {
-  font-family: var(--k-font-family-sans);
-  line-height: 1.5;
-  font-weight: 400;
   color-scheme: light;
 }
-

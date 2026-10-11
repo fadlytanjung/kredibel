@@ -88,20 +88,30 @@ async def test_ac001_10_worker_role_mounts_tasks_but_not_api_me():
 @pytest.mark.asyncio
 async def test_ac001_6_api_me_returns_principal_fields(fake_verifier):
     """GET /api/me returns uid, email, displayName, orgId, role, needsWorkspace, and language."""
+    from app.adapters.policy_files import load_plans
     from app.core.settings import Settings
-    from app.main import create_app
+    from app.main import AppDeps, create_app
+    from tests.fakes.usage_repository import FakeUsageRepository
+    from tests.fakes.workspace_repository import FakeWorkspaceRepository
 
     settings = Settings(app_role="web")
-    app = create_app(settings=settings, token_verifier=fake_verifier)
+    deps = AppDeps(
+        settings,
+        load_plans(settings.contract_path(settings.plans_file)),
+        workspace_repo=FakeWorkspaceRepository(),
+        usage_repo=FakeUsageRepository(),
+        token_verifier=fake_verifier,
+    )
+    app = create_app(settings=settings, deps=deps)
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        res = await client.get(
-            "/api/me", headers={"Authorization": "Bearer valid-owner"}
-        )
+        res = await client.get("/api/me", headers={"Authorization": "Bearer valid-owner"})
 
     assert res.status_code == 200
     data = res.json()
+    # The claim names a workspace this fake store does not have: /api/me still answers.
+    assert data["workspace"] is None
     assert data["uid"] == "owner-1"
     assert data["email"] == "owner@demo.kredibel"
     assert data["displayName"] == "Jane Owner"

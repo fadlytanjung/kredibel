@@ -15,11 +15,13 @@ from app.adapters.firestore.models.workspace import (
     SignupUserDoc,
 )
 from app.adapters.firestore.txn import dump, with_backoff
+from app.domain.models.events import AuditEvent
 from app.domain.models.workspace import BankAccount, Profile, Subscription, Workspace
 from app.ports.workspace_repository import (
     AlreadyMember,
     Created,
     CreateOutcome,
+    NewBankAccount,
     NewWorkspace,
     SignupLimitReached,
     WorkspaceRepository,
@@ -119,6 +121,73 @@ class FirestoreWorkspaceRepository(WorkspaceRepository):
             created_by=doc.created_by,
             created_at=doc.created_at,
         )
+
+    async def save_workspace(self, workspace: Workspace, event: AuditEvent) -> None:
+        org_ref = self._db.collection("orgs").document(workspace.org_id)
+        # Only the editable fields; counts and the subscription are owned by other writers.
+        fields = {
+            "name": workspace.name,
+            "profile": workspace.profile.model_dump(by_alias=True, exclude_none=True),
+            "timezone": workspace.timezone,
+            "defaultLanguage": workspace.default_language,
+            "learning": {"shareVerifiedLabels": workspace.share_verified_labels},
+        }
+        batch = self._db.batch()
+        batch.update(org_ref, fields)
+        batch.set(
+            org_ref.collection("events").document(event.event_id),
+            dump(EventDoc(org_id=workspace.org_id, **event.model_dump())),
+        )
+        await batch.commit()
+
+    async def count_members(self, org_id: str) -> int:
+        members = self._db.collection("orgs").document(org_id).collection("members")
+        result = await members.count().get()
+        return int(result[0][0].value)
+
+    async def add_bank_account(self, org_id: str, new: NewBankAccount, event: AuditEvent) -> bool:
+        org_ref = self._db.collection("orgs").document(org_id)
+        acc = new.account
+        account_ref = org_ref.collection("bankAccounts").document(acc.account_id)
+        hash_ref = (
+            self._db.collection("orgPrivate")
+            .document(org_id)
+            .collection("accountHashes")
+            .document(acc.account_id)
+        )
+
+        @async_transactional
+        async def run(txn: AsyncTransaction) -> bool:
+            if (await account_ref.get(transaction=txn)).exists:
+                return False
+            txn.set(account_ref, dump(BankAccountDoc(org_id=org_id, **acc.model_dump())))
+            txn.set(
+                hash_ref,
+                dump(
+                    AccountHashDoc(org_id=org_id, account_id=acc.account_id, hash=new.account_hash)
+                ),
+            )
+            txn.set(
+                org_ref.collection("events").document(event.event_id),
+                dump(EventDoc(org_id=org_id, **event.model_dump())),
+            )
+            return True
+
+        return await with_backoff(lambda: run(self._db.transaction(max_attempts=1)))
+
+    async def save_bank_account(self, org_id: str, account: BankAccount) -> None:
+        ref = self._db.document(f"orgs/{org_id}/bankAccounts/{account.account_id}")
+        await ref.set(dump(BankAccountDoc(org_id=org_id, **account.model_dump())))
+
+    async def delete_bank_account(self, org_id: str, account_id: str) -> bool:
+        ref = self._db.document(f"orgs/{org_id}/bankAccounts/{account_id}")
+        if not (await ref.get()).exists:
+            return False
+        batch = self._db.batch()
+        batch.delete(ref)
+        batch.delete(self._db.document(f"orgPrivate/{org_id}/accountHashes/{account_id}"))
+        await batch.commit()
+        return True
 
     async def list_bank_accounts(self, org_id: str) -> list[BankAccount]:
         query = self._db.collection("orgs").document(org_id).collection("bankAccounts")

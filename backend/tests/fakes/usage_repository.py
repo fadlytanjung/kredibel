@@ -12,15 +12,26 @@ from app.ports.workspace_repository import (
     UsageRepository,
     UsageSettlement,
 )
+from tests.fakes.workspace_repository import FakeWorkspaceRepository
 
 
 class FakeUsageRepository(UsageRepository):
-    def __init__(self, subscriptions: dict[str, Subscription]) -> None:
-        self.subscriptions = subscriptions
+    def __init__(
+        self,
+        subscriptions: dict[str, Subscription] | None = None,
+        workspaces: FakeWorkspaceRepository | None = None,
+    ) -> None:
+        self.subscriptions = subscriptions or {}
+        self._workspaces = workspaces
         self.months: dict[tuple[str, str], UsageMonth] = {}
         self.days: dict[tuple[str, str], UsageDay] = {}
         self.writes: list[PendingWrite] = []
         self._txn = asyncio.Lock()
+
+    def _subscription(self, org_id: str) -> Subscription:
+        if self._workspaces is not None and org_id in self._workspaces.workspaces:
+            return self._workspaces.workspaces[org_id].subscription
+        return self.subscriptions[org_id]
 
     @staticmethod
     def days_factory(day: str, **fields: int) -> UsageDay:
@@ -37,7 +48,7 @@ class FakeUsageRepository(UsageRepository):
         writes: Sequence[PendingWrite] = (),
     ) -> tuple[Decision, Subscription]:
         async with self._txn:
-            sub = self.subscriptions[org_id]
+            sub = self._subscription(org_id)
             m = self.months.get((org_id, month), UsageMonth(month=month))
             d = self.days.get((org_id, day), UsageDay(day=day))
             decision = decide(sub, m, d)

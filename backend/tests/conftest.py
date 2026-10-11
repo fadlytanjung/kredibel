@@ -5,6 +5,15 @@ import socket
 
 import pytest
 
+_EMULATOR = os.environ.get("FIRESTORE_EMULATOR_HOST", "localhost:8080")
+
+
+@pytest.fixture(autouse=True)
+def _never_a_real_firestore(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Point every Firestore client at the emulator, so no test can reach a real project
+    through the developer's credentials (docs/13 §5)."""
+    monkeypatch.setenv("FIRESTORE_EMULATOR_HOST", _EMULATOR)
+
 
 @pytest.fixture
 def firestore_emulator() -> str:
@@ -12,12 +21,10 @@ def firestore_emulator() -> str:
 
     Start it with `make docker-up`.
     """
-    host = os.environ.get("FIRESTORE_EMULATOR_HOST", "localhost:8080")
-    name, _, port = host.partition(":")
+    name, _, port = _EMULATOR.partition(":")
     try:
         with socket.create_connection((name, int(port or 8080)), timeout=0.3):
             pass
     except OSError:
-        pytest.skip(f"Firestore emulator not reachable at {host}")
-    os.environ["FIRESTORE_EMULATOR_HOST"] = host
-    return host
+        pytest.skip(f"Firestore emulator not reachable at {_EMULATOR}")
+    return _EMULATOR

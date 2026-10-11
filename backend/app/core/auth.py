@@ -15,6 +15,9 @@ from app.core.errors import UnauthenticatedError, WorkspaceRequiredError
 _log = structlog.get_logger()
 
 
+PrincipalDependency = Callable[..., Coroutine[Any, Any, "Principal"]]
+
+
 class Principal(BaseModel):
     """Authenticated user context derived from verified Firebase ID token claims."""
 

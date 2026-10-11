@@ -190,6 +190,7 @@ All errors use **RFC 9457** `application/problem+json`:
 | `RUN_QUOTA_EXCEEDED` | 429 | `monthRunsPerDay` or the per-user rate limit reached (`retryAfterSeconds` included) |
 | `RUNS_DISABLED` | 503 | New reading and runs switched off by `RUNS_ENABLED`; existing data stays readable |
 | `LAST_OWNER` | 409 | Removing or demoting the last owner (P1) |
+| `BANK_ACCOUNT_EXISTS` | 409 | Adding a bank account the workspace already has (same bank and number; `accountId` included) |
 | `LABEL_VALUE_INVALID` | 422 | A label correction whose value is not in the task's vocabulary (`allowedValues` included) |
 | `CONSENT_REQUIRED` | 403 | A dataset export while `learning.shareVerifiedLabels` is off |
 | `DATASET_TOO_SMALL` | 422 | Fewer verified labels than `minExamplesPerTask` for a requested task (`counts` included) |

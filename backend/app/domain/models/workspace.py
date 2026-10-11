@@ -119,3 +119,24 @@ class Workspace(DomainModel):
     share_verified_labels: bool = False
     created_by: str
     created_at: datetime
+
+
+class LearningSettings(DomainModel):
+    share_verified_labels: bool = False
+
+
+class WorkspaceUpdate(DomainModel):
+    """PATCH /api/workspace. The entity type is fixed, so it is not a field (AC-013-14)."""
+
+    name: str | None = Field(default=None, min_length=2, max_length=100)
+    profile: Profile | None = None
+    tax_id: str | None = Field(default=None, max_length=30)
+    timezone: str | None = Field(default=None, min_length=1, max_length=64)
+    default_language: str | None = Field(default=None, min_length=2, max_length=8)
+    learning: LearningSettings | None = None
+
+
+class BankAccountUpdate(DomainModel):
+    nickname: str | None = Field(default=None, max_length=50)
+    # null clears the mapping
+    ledger_account_code: str | None = Field(default=None, max_length=30)

@@ -9,7 +9,14 @@ from zoneinfo import available_timezones
 
 from app.core.auth import Principal
 from app.core.clock import Clock
-from app.core.errors import AlreadyInWorkspaceError, SignupClosedError, ValidationProblem
+from app.core.errors import (
+    AlreadyInWorkspaceError,
+    BankAccountExistsError,
+    LanguageNotAvailableError,
+    NotFoundError,
+    SignupClosedError,
+    ValidationProblem,
+)
 from app.core.ids import content_id, new_id
 from app.domain.accounts import (
     account_digits,
@@ -22,10 +29,12 @@ from app.domain.models.events import AuditEvent
 from app.domain.models.workspace import (
     BankAccount,
     BankAccountCreate,
+    BankAccountUpdate,
     Profile,
     Subscription,
     Workspace,
     WorkspaceCreate,
+    WorkspaceUpdate,
 )
 from app.domain.plans import PlanCatalog
 from app.ports.identity_admin import IdentityAdmin
@@ -84,6 +93,79 @@ class WorkspaceService:
             )
             raise AlreadyInWorkspaceError(outcome.org_id)
         raise SignupClosedError()
+
+    async def get(self, org_id: str) -> Workspace:
+        workspace = await self._repo.get_workspace(org_id)
+        if workspace is None:
+            raise NotFoundError()
+        return workspace
+
+    async def seats_used(self, org_id: str) -> int:
+        return await self._repo.count_members(org_id)
+
+    async def update(self, principal: Principal, org_id: str, patch: WorkspaceUpdate) -> Workspace:
+        current = await self.get(org_id)
+        if patch.timezone is not None and patch.timezone not in available_timezones():
+            raise ValidationProblem("timezone", "Unknown time zone")
+        if patch.default_language is not None:
+            self._check_language(patch.default_language)
+
+        updates: dict[str, object] = {}
+        changed = sorted(patch.model_dump(exclude_unset=True, by_alias=True))
+        if patch.name is not None:
+            updates["name"] = patch.name
+        if patch.timezone is not None:
+            updates["timezone"] = patch.timezone
+        if patch.default_language is not None:
+            updates["default_language"] = patch.default_language
+        if patch.learning is not None:
+            updates["share_verified_labels"] = patch.learning.share_verified_labels
+        profile_updates = patch.profile.model_dump(exclude_unset=True) if patch.profile else {}
+        profile_updates.pop("tax_id_masked", None)  # read-only; set from taxId only
+        if patch.tax_id is not None:
+            profile_updates["tax_id_masked"] = mask_tax_id(patch.tax_id)
+        if profile_updates:
+            updates["profile"] = current.profile.model_copy(update=profile_updates)
+
+        updated = current.model_copy(update=updates)
+        event = self._event("PROFILE_UPDATED", principal, {"orgId": org_id})
+        event = event.model_copy(update={"details": {"fields": ",".join(changed)}})
+        await self._repo.save_workspace(updated, event)
+        return updated
+
+    def _check_language(self, language: str) -> None:
+        catalog = {lang.code: lang.status for lang in self._plans.languages}
+        if language not in catalog:
+            raise ValidationProblem("defaultLanguage", "Unknown language")
+        if catalog[language] != "available":
+            raise LanguageNotAvailableError(language)
+
+    async def list_bank_accounts(self, org_id: str) -> list[BankAccount]:
+        return await self._repo.list_bank_accounts(org_id)
+
+    async def add_bank_account(
+        self, principal: Principal, org_id: str, request: BankAccountCreate
+    ) -> BankAccount:
+        [new] = self._bank_accounts(org_id, [request])
+        event = self._event("BANK_ACCOUNT_ADDED", principal, {"accountId": new.account.account_id})
+        if not await self._repo.add_bank_account(org_id, new, event):
+            raise BankAccountExistsError(new.account.account_id)
+        return new.account
+
+    async def update_bank_account(
+        self, org_id: str, account_id: str, patch: BankAccountUpdate
+    ) -> BankAccount:
+        accounts = {a.account_id: a for a in await self._repo.list_bank_accounts(org_id)}
+        if account_id not in accounts:
+            raise NotFoundError()
+        updated = accounts[account_id].model_copy(update=patch.model_dump(exclude_unset=True))
+        await self._repo.save_bank_account(org_id, updated)
+        return updated
+
+    async def delete_bank_account(self, org_id: str, account_id: str) -> None:
+        # Spec 003 adds the "no statement uses it" check once statements exist.
+        if not await self._repo.delete_bank_account(org_id, account_id):
+            raise NotFoundError()
 
     def _new_workspace(self, principal: Principal, request: WorkspaceCreate) -> NewWorkspace:
         now = self._clock.now()
@@ -152,12 +234,13 @@ class WorkspaceService:
         return accounts
 
     def _event(self, kind: str, principal: Principal, subject: dict[str, str]) -> AuditEvent:
+        # P0 has one role; P1 reads it from the principal's claim.
         return AuditEvent.model_validate(
             {
                 "event_id": new_id("evt"),
                 "type": kind,
                 "actor_uid": principal.uid,
-                "actor_role": OWNER,
+                "actor_role": principal.role or OWNER,
                 "at": self._clock.now(),
                 "subject": subject,
             }

@@ -69,7 +69,23 @@ class WorkspaceRepository(Protocol):
 
     async def get_workspace(self, org_id: str) -> Workspace | None: ...
 
+    async def save_workspace(self, workspace: Workspace, event: AuditEvent) -> None:
+        """Replace the workspace's editable fields and append the event, atomically."""
+        ...
+
+    async def count_members(self, org_id: str) -> int: ...
+
     async def list_bank_accounts(self, org_id: str) -> list[BankAccount]: ...
+
+    async def add_bank_account(self, org_id: str, new: NewBankAccount, event: AuditEvent) -> bool:
+        """False when an account with this ID (same bank and number) already exists."""
+        ...
+
+    async def save_bank_account(self, org_id: str, account: BankAccount) -> None: ...
+
+    async def delete_bank_account(self, org_id: str, account_id: str) -> bool:
+        """False when there is no such account; removes its private hash too."""
+        ...
 
 
 @dataclass(frozen=True)

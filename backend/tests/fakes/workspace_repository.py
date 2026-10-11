@@ -8,6 +8,7 @@ from app.ports.workspace_repository import (
     AlreadyMember,
     Created,
     CreateOutcome,
+    NewBankAccount,
     NewWorkspace,
     OwnerMember,
     SignupLimitReached,
@@ -52,5 +53,34 @@ class FakeWorkspaceRepository(WorkspaceRepository):
     async def get_workspace(self, org_id: str) -> Workspace | None:
         return self.workspaces.get(org_id)
 
+    async def save_workspace(self, workspace: Workspace, event: AuditEvent) -> None:
+        async with self._txn:
+            self.workspaces[workspace.org_id] = workspace
+            self.events.setdefault(workspace.org_id, []).append(event)
+
+    async def count_members(self, org_id: str) -> int:
+        return len(self.members.get(org_id, {}))
+
     async def list_bank_accounts(self, org_id: str) -> list[BankAccount]:
         return list(self.bank_accounts.get(org_id, {}).values())
+
+    async def add_bank_account(self, org_id: str, new: NewBankAccount, event: AuditEvent) -> bool:
+        async with self._txn:
+            accounts = self.bank_accounts.setdefault(org_id, {})
+            if new.account.account_id in accounts:
+                return False
+            accounts[new.account.account_id] = new.account
+            self.account_hashes.setdefault(org_id, {})[new.account.account_id] = new.account_hash
+            self.events.setdefault(org_id, []).append(event)
+            return True
+
+    async def save_bank_account(self, org_id: str, account: BankAccount) -> None:
+        self.bank_accounts[org_id][account.account_id] = account
+
+    async def delete_bank_account(self, org_id: str, account_id: str) -> bool:
+        async with self._txn:
+            if account_id not in self.bank_accounts.get(org_id, {}):
+                return False
+            del self.bank_accounts[org_id][account_id]
+            self.account_hashes.get(org_id, {}).pop(account_id, None)
+            return True

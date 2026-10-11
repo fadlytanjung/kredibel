@@ -106,3 +106,40 @@ async def test_ac013_3_the_last_workspace_goes_to_exactly_one_user(db):
     assert sum(isinstance(r, SignupClosedError) for r in results) == 1
     orgs = [s async for s in db.collection("orgs").stream()]
     assert len(orgs) == 1
+
+
+async def test_ac013_14_profile_update_and_bank_accounts_on_firestore(db):
+    from app.core.errors import BankAccountExistsError
+    from app.domain.models.workspace import BankAccountCreate, BankAccountUpdate, WorkspaceUpdate
+
+    service, _ = _service(db)
+    owner = Principal(uid="u-1", role="owner")
+    ws = await service.create(owner, REQUEST)
+    org = ws.org_id
+    owner = owner.model_copy(update={"org_id": org})
+
+    updated = await service.update(
+        owner,
+        org,
+        WorkspaceUpdate.model_validate({"profile": {"tradingName": "SR"}, "taxId": "1234567890"}),
+    )
+    assert updated.profile.trading_name == "SR"
+    assert (await FirestoreWorkspaceRepository(db).get_workspace(org)) == updated
+    assert await service.seats_used(org) == 1
+
+    extra = BankAccountCreate.model_validate(
+        {"bankName": "Bank Dua", "accountNumber": "9876543210", "holderName": "SR"}
+    )
+    added = await service.add_bank_account(owner, org, extra)
+    with pytest.raises(BankAccountExistsError):
+        await service.add_bank_account(owner, org, extra)
+    await service.update_bank_account(
+        org, added.account_id, BankAccountUpdate.model_validate({"nickname": "Payroll"})
+    )
+    accounts = {a.account_id: a for a in await service.list_bank_accounts(org)}
+    assert accounts[added.account_id].nickname == "Payroll"
+
+    await service.delete_bank_account(org, added.account_id)
+    assert added.account_id not in {a.account_id for a in await service.list_bank_accounts(org)}
+    hash_doc = await db.document(f"orgPrivate/{org}/accountHashes/{added.account_id}").get()
+    assert not hash_doc.exists

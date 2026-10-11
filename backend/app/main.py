@@ -1,41 +1,157 @@
-"""Application composition root and router mounting by role.
+"""Composition root: builds the dependencies and mounts routers by role.
 
-Normative reference: docs/specs/001-foundation/spec.md AC-001-1, AC-001-10, and docs/13 §1.
+Normative references: docs/13 §1 and §2.2 (composition root + DI), spec 001 AC-001-1, AC-001-10.
 """
 
-from typing import Any
+from collections.abc import Callable
+from typing import Any, TypeVar, cast
 
 from fastapi import FastAPI
+from google.cloud.firestore import AsyncClient
 
+from app.adapters.firebase_identity import FirebaseIdentityAdmin
+from app.adapters.firestore.usage_repo import FirestoreUsageRepository
+from app.adapters.firestore.workspace_repo import FirestoreWorkspaceRepository
 from app.adapters.policy_files import load_plans
+from app.api.bank_accounts import create_bank_accounts_router
 from app.api.health import create_health_router
 from app.api.me import create_me_router
+from app.api.plans import create_plans_router
 from app.api.static import mount_static_spa
 from app.api.tasks import create_tasks_router
-from app.core.auth import TokenVerifier, get_principal_dependency
+from app.api.workspace import create_workspace_router
+from app.core.auth import (
+    FirebaseTokenVerifier,
+    TokenVerifier,
+    get_principal_dependency,
+    require_workspace,
+)
+from app.core.clock import Clock, SystemClock
 from app.core.errors import register_error_handlers
 from app.core.logging import LoggingMiddleware, setup_logging
 from app.core.security_headers import SecurityHeadersMiddleware
 from app.core.settings import Settings
+from app.domain.plans import PlanCatalog
+from app.ports.identity_admin import IdentityAdmin
+from app.ports.workspace_repository import UsageRepository, WorkspaceRepository
+from app.services.entitlement_service import EntitlementService
+from app.services.workspace_service import WorkspaceService
+
+T = TypeVar("T")
+
+
+class AppDeps:
+    """Every dependency, built on first use; tests pass fakes for the ones they need.
+
+    Lazy so that start-up and tests that never touch Firestore need no Google credentials.
+    """
+
+    def __init__(
+        self,
+        settings: Settings,
+        plans: PlanCatalog,
+        *,
+        workspace_repo: WorkspaceRepository | None = None,
+        usage_repo: UsageRepository | None = None,
+        identity: IdentityAdmin | None = None,
+        clock: Clock | None = None,
+        token_verifier: TokenVerifier | None = None,
+    ) -> None:
+        self.settings = settings
+        self._plans = plans
+        self._workspace_repo = workspace_repo
+        self._usage_repo = usage_repo
+        self._identity = identity
+        self._clock = clock
+        self._token_verifier = token_verifier
+        self._built: dict[str, Any] = {}
+
+    def _once(self, name: str, build: Callable[[], T]) -> T:
+        if name not in self._built:
+            self._built[name] = build()
+        return cast(T, self._built[name])
+
+    @property
+    def plans(self) -> PlanCatalog:
+        return self._plans
+
+    @property
+    def clock(self) -> Clock:
+        return self._once("clock", lambda: self._clock or SystemClock())
+
+    @property
+    def token_verifier(self) -> TokenVerifier:
+        return self._once("token_verifier", lambda: self._token_verifier or FirebaseTokenVerifier())
+
+    @property
+    def firestore(self) -> AsyncClient:
+        # Honours FIRESTORE_EMULATOR_HOST for local runs.
+        return self._once(
+            "firestore", lambda: AsyncClient(project=self.settings.google_cloud_project)
+        )
+
+    @property
+    def workspace_repo(self) -> WorkspaceRepository:
+        return self._once(
+            "workspace_repo",
+            lambda: self._workspace_repo or FirestoreWorkspaceRepository(self.firestore),
+        )
+
+    @property
+    def usage_repo(self) -> UsageRepository:
+        return self._once(
+            "usage_repo", lambda: self._usage_repo or FirestoreUsageRepository(self.firestore)
+        )
+
+    @property
+    def identity(self) -> IdentityAdmin:
+        return self._once("identity", lambda: self._identity or FirebaseIdentityAdmin())
+
+    @property
+    def workspace_service(self) -> WorkspaceService:
+        return self._once(
+            "workspace_service",
+            lambda: WorkspaceService(
+                repo=self.workspace_repo,
+                identity=self.identity,
+                plans=self.plans,
+                clock=self.clock,
+                signup_mode=self.settings.signup_mode,
+                max_workspaces=self.settings.max_workspaces,
+            ),
+        )
+
+    @property
+    def entitlement_service(self) -> EntitlementService:
+        return self._once(
+            "entitlement_service",
+            lambda: EntitlementService(
+                repo=self.usage_repo,
+                plans=self.plans,
+                clock=self.clock,
+                run_quota_per_org_per_day=self.settings.run_quota_per_org_per_day,
+            ),
+        )
 
 
 def create_app(
     settings: Settings | None = None,
-    deps: Any = None,
+    deps: AppDeps | None = None,
     token_verifier: TokenVerifier | None = None,
 ) -> FastAPI:
     """Create and configure FastAPI application instance with role-based routing."""
     active_settings = settings or Settings()
 
-    # Configure structured logging
     setup_logging(
         log_level=active_settings.log_level,
         service=active_settings.service_name,
         version=active_settings.app_version,
     )
 
-    # AC-013-5: an invalid plan catalog stops the process before it serves anything.
-    plans = load_plans(active_settings.contract_path(active_settings.plans_file))
+    if deps is None:
+        # AC-013-5: an invalid plan catalog stops the process before it serves anything.
+        plans = load_plans(active_settings.contract_path(active_settings.plans_file))
+        deps = AppDeps(active_settings, plans, token_verifier=token_verifier)
 
     app = FastAPI(
         title="Kredibel API",
@@ -43,25 +159,24 @@ def create_app(
         docs_url="/docs" if active_settings.app_role != "worker" else None,
         redoc_url=None,
     )
+    app.state.plans = deps.plans
 
-    app.state.plans = plans
-
-    # Middleware pipeline
     app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(LoggingMiddleware, project_id=active_settings.google_cloud_project)
-
-    # RFC 9457 Problem Details error handling
     register_error_handlers(app)
 
-    # Authentication dependency
-    principal_dep = get_principal_dependency(verifier=token_verifier)
+    principal_dep = get_principal_dependency(verifier=token_verifier or deps.token_verifier)
+    workspace_dep = require_workspace(principal_dep)
 
-    # 1. Health check endpoint (always present on all roles)
+    # 1. Health check (every role)
     app.include_router(create_health_router(active_settings))
 
     # 2. Web role endpoints
     if active_settings.app_role in ("web", "all"):
-        app.include_router(create_me_router(principal_dep))
+        app.include_router(create_me_router(deps, principal_dep))
+        app.include_router(create_plans_router(deps, principal_dep))
+        app.include_router(create_workspace_router(deps, principal_dep, workspace_dep))
+        app.include_router(create_bank_accounts_router(deps, workspace_dep))
 
     # 3. Worker role endpoints
     if active_settings.app_role in ("worker", "all"):

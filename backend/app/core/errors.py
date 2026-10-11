@@ -193,6 +193,27 @@ class RunQuotaExceededError(DomainError):
         )
 
 
+class LanguageNotAvailableError(DomainError):
+    def __init__(self, language: str) -> None:
+        super().__init__(
+            code="LANGUAGE_NOT_AVAILABLE",
+            status=422,
+            title="Language coming soon",
+            detail=f"{language} is coming soon; English is the only language today.",
+        )
+
+
+class BankAccountExistsError(DomainError):
+    def __init__(self, account_id: str) -> None:
+        super().__init__(
+            code="BANK_ACCOUNT_EXISTS",
+            status=409,
+            title="Bank account already added",
+            detail="This account is already in the workspace.",
+            extras={"accountId": account_id},
+        )
+
+
 class NotFoundError(DomainError):
     """Raised when a requested resource does not exist (404)."""
 

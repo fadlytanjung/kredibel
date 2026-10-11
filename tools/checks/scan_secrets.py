@@ -32,6 +32,7 @@ IGNORED_DIRS = {
 }
 
 IGNORED_FILES = {
+    ".env",
     ".env.example",
     "uv.lock",
     "package-lock.json",
@@ -61,7 +62,7 @@ def scan_path_for_secrets(root_path: Path) -> list[str]:
             continue
 
         # Skip ignored files
-        if path.name in IGNORED_FILES:
+        if path.name in IGNORED_FILES or (path.name.startswith(".env") and path.name != ".env.example"):
             continue
 
         # Skip binaries

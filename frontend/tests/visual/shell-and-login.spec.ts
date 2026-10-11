@@ -11,7 +11,7 @@ test.describe('Visual Regression: Login Page', () => {
 test.describe('Visual Regression: AppShell & Dashboard', () => {
   test('app shell and dashboard match baseline', async ({ page }) => {
     await page.goto('/preview/shell')
-    await page.waitForSelector('text=Upload your first documents')
+    await page.waitForSelector('text=2 of 6 months are reconciled.')
     await expect(page).toHaveScreenshot('app-shell.png')
   })
 })

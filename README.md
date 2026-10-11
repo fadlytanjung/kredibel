@@ -1,10 +1,12 @@
-# kredibel
+<p><img src="design/brand/kredibel-logo.svg" alt="Kredibel" height="44"></p>
 
 **Every number has a source.**
 
-Kredibel is an agentic credit analyst for SME lenders. It turns a borrower's bank statements and
-invoices into a **verified, evidence-linked cash-flow assessment** in minutes. It catches tampered
-documents and revenue that never reached the bank, and leaves the decision to a human.
+Kredibel is an AI finance workspace that checks a small business's own books. Upload bank statements,
+sales and purchase invoices, receipts and your general-ledger export **in any order**. Kredibel reads
+every number twice, catches **duplicates** and **edited documents** before they are counted,
+**reconciles every month** automatically, sends the few things AI cannot match to a short **review
+queue**, and shows a **fraud risk level** for each month with the evidence and the next steps.
 
 > Google Cloud AI Builder Cup 2026 · Theme 1 — **BFSI: Intelligent Risk, Fraud & Financial Experiences**
 
@@ -12,74 +14,75 @@ documents and revenue that never reached the bank, and leaves the decision to a 
 
 ## The problem
 
-SME lenders across Southeast Asia underwrite from documents the borrower controls. Analysts spend days
-re-typing statements into spreadsheets. Edited PDFs and template-made statements are cheap to produce
-and hard to spot by eye; bank statements are the document fraud teams consider most vulnerable. A
-month later, nobody can trace where a memo's numbers came from.
+Small businesses close their books by hand. Invoices and receipts arrive all month; the bank statement
+arrives at month end; someone matches them in a spreadsheet. The same statement gets uploaded twice, a
+supplier invoice is entered again, a receipt is photographed by two people. A PDF can be edited in
+minutes, and a supplier's "new bank account" can be a fraudster's. Mistakes surface weeks later, if at
+all.
 
 ## How Kredibel works
 
 ```mermaid
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "Arial, Helvetica, sans-serif", "fontSize": "14px", "primaryColor": "#E3F1EE", "primaryBorderColor": "#0F5E56", "primaryTextColor": "#14201C", "lineColor": "#55625D", "secondaryColor": "#F0F2EF", "tertiaryColor": "#FFFFFF", "clusterBkg": "#F7F8F6", "clusterBorder": "#B8BFB9", "noteBkgColor": "#FEF0C7", "noteTextColor": "#14201C"}, "htmlLabels": false, "flowchart": {"htmlLabels": false, "padding": 16, "nodeSpacing": 40, "rankSpacing": 50, "wrappingWidth": 220}, "sequence": {"wrap": true, "useMaxWidth": true, "noteFontFamily": "Arial, Helvetica, sans-serif", "messageFontFamily": "Arial, Helvetica, sans-serif", "actorFontFamily": "Arial, Helvetica, sans-serif"}}}%%
+%%{init: {"theme": "base", "themeVariables": {"fontFamily": "Arial, Helvetica, sans-serif", "fontSize": "14px", "primaryColor": "#E7F2EE", "primaryBorderColor": "#0E5A47", "primaryTextColor": "#16212B", "lineColor": "#56636F", "secondaryColor": "#E8ECEE", "tertiaryColor": "#FFFFFF", "clusterBkg": "#F2F4F5", "clusterBorder": "#B9C2CA", "noteBkgColor": "#FFF5D6", "noteTextColor": "#16212B"}, "htmlLabels": false, "flowchart": {"htmlLabels": false, "padding": 16, "nodeSpacing": 40, "rankSpacing": 50, "wrappingWidth": 220}, "sequence": {"wrap": true, "useMaxWidth": true, "noteFontFamily": "Arial, Helvetica, sans-serif", "messageFontFamily": "Arial, Helvetica, sans-serif", "actorFontFamily": "Arial, Helvetica, sans-serif"}}}%%
 flowchart TB
-    up["Upload statements<br/>and invoices"] --> screen["Screen<br/>Model Armor"]
-    screen --> read["Read each page<br/>Gemini + free witness<br/>(text layer or OCR)"]
-    read --> agree["Verify<br/>trust only what both agree on"]
-    agree --> check["Forensics<br/>balances, revisions, fonts,<br/>continuity"]
-    check --> flow["Cash flow (IAS 7)<br/>+ invoice reconciliation"]
-    flow --> score["Policy scorecard<br/>hard stops"]
-    score --> memo["Memo by Gemini<br/>every figure verified"]
-    memo --> human["Analyst decides<br/>audited"]
+    up["Upload anything, any order<br/>statements, invoices,<br/>receipts, ledger export"] --> dup["Same file again?<br/>recorded, never read"]
+    up --> read["Read each page twice<br/>Gemini + free witness<br/>(text layer or OCR)"]
+    read --> check["Check<br/>content duplicates held,<br/>balances, revisions, fonts"]
+    check --> month["Reconcile the month<br/>bank ↔ invoices, receipts,<br/>ledger; same result in any order"]
+    month --> review["Review queue<br/>the 15% AI could not match"]
+    month --> risk["Fraud risk per month<br/>evidence + next steps"]
+    month --> dash["Dashboard<br/>where the money went"]
+    review -->|"each fix re-reconciles"| month
 ```
 
-1. **Screen** every file for hidden instructions before any model reads it.
-2. **Read twice, pay once**: Gemini reads every page image; the PDF's own text layer (or Document AI OCR
-   for scans) is an independent witness; values carry their page and bounding box, and a fraud verdict
-   needs both readings to agree. About USD 0.34 per case.
-3. **Cross-examine**: running balances, opening/closing totals, PDF revision history, font anomalies
-   in amount columns, month-to-month continuity, account-holder match.
-4. **Follow the money**: IAS 7 cash-flow classes, average daily balance, debt-service coverage, and
-   every invoice matched against real bank inflows.
-5. **Score transparently** with a versioned policy file; models explain but never decide.
-6. **Draft the memo** with Gemini from computed facts only; a grounding guard verifies every number.
-7. **Decide** with guard rails: no approval over open critical findings; overrides need a risk lead
-   and a reason; everything is audited.
+1. **Duplicates first.** An exact copy is recorded and never read again; a re-exported statement, a
+   re-scanned invoice or a re-photographed receipt is **held** until you decide.
+2. **Read twice, pay once.** Gemini reads every page image; the PDF's own text layer (or Document AI
+   OCR for scans and photos) is an independent witness. Every value carries its page and box. About
+   USD 0.45 for a half-year of books.
+3. **Ledger files by code.** Gemini proposes which column is which from the header alone; you confirm
+   once; code imports every row.
+4. **Forensics.** Running balances, opening and closing totals, PDF revision history, odd fonts in
+   amount columns, statement continuity, and a supplier paid to a bank account never seen before.
+5. **Months that reconcile themselves.** Exact, split, net-of-tax and ledger matches with reasons;
+   only unique, high-scoring matches are automatic; the result is the same whatever order you upload.
+6. **A short, honest review queue.** Proposed matches, missing documents, possible duplicates and
+   uncertain values, each with the evidence and only the fixes that make sense.
+7. **Fraud risk you can explain.** A policy file sets the level; Gemini explains it and orders the
+   next steps; a grounding guard checks every number it writes.
 
-Around the analysis:
-
-- **Workspaces and a free trial.** A lender signs up, creates a workspace in one screen and starts a
-  30-day free trial with clear, server-enforced limits. Paid tiers are shown as "coming soon".
-- **Applicant onboarding.** Applicants are onboarded as individuals or companies (bank accounts,
-  beneficial owners). Kredibel suggests what the documents reveal (accounts, tax ID, address, clients
-  and partners), each with the page it came from, and the analyst accepts or rejects.
-- **English UI**, built for more languages (listed as coming soon).
+Around it: a **dashboard** with a money-flow Sankey, a **free trial** for individuals and companies
+(paid tiers and a **loan readiness report** shown as coming soon), and a **Finance Assistant** (P1)
+that answers questions about your books with read-only tools, retrieval and Memory Bank.
 
 ## Built on Google Cloud
 
 | Need | Service |
 |---|---|
-| Agent orchestration | **Agent Development Kit (ADK) 2.x** workflows |
-| Models | **Gemini** on Gemini Enterprise Agent Platform (Flash, Flash-Lite, Pro) |
-| Document reading | **Gemini** on page images + **Document AI** Enterprise OCR for scans (Form/Invoice Parser for escalation, P1) |
-| Prompt-injection defence | **Model Armor** |
-| Conversation memory (assistant) | **Agent Platform Sessions** |
+| Agent orchestration | **Agent Development Kit (ADK) 2.x** workflows (per document, per month), traces in **Cloud Trace** |
+| Models | **Gemini** on Gemini Enterprise Agent Platform (Flash, Flash-Lite, embeddings) |
+| Document reading | **Gemini** on page images + **Document AI** Enterprise OCR for scans and photos |
+| Prompt-injection defence | **Model Armor** (P1) |
+| Assistant memory | **Agent Platform Sessions** and **Memory Bank** (P1) |
 | Runtime | **Cloud Run** (web + worker), **Cloud Tasks** |
-| Data | **Firestore**, **Cloud Storage** |
+| Data | **Firestore** (incl. vector search), **Cloud Storage** |
 | Identity | **Firebase Authentication** |
-| Delivery & ops | **Cloud Build**, **Artifact Registry**, Cloud Logging, Cloud Trace |
+| Delivery & ops | **Cloud Build**, **Artifact Registry**, Cloud Logging, Cloud Monitoring |
 
-![Kredibel on Google Cloud: services, regions and the numbered path of one analysis](docs/diagrams/gcp-architecture.drawio.svg)
+![Kredibel on Google Cloud: services, regions and the numbered path of one upload](docs/diagrams/gcp-architecture.drawio.svg)
 
 ## Repository status
 
-This repository is **specification-first**. The documents and contracts are complete; code is built
-spec by spec. See [`docs/20-implementation-status.md`](docs/20-implementation-status.md).
+This repository is **specification-first**. The documents, contracts, design tokens and screen mocks
+are complete; code is built spec by spec. See
+[`docs/20-implementation-status.md`](docs/20-implementation-status.md).
 
 | Start here | |
 |---|---|
-| Why this idea | [`docs/01-brainstorm-and-decision.md`](docs/01-brainstorm-and-decision.md) |
-| What we build | [`docs/03-prd.md`](docs/03-prd.md) |
-| How it's built | [`docs/05-architecture.md`](docs/05-architecture.md), [`docs/06-agent-design.md`](docs/06-agent-design.md) |
+| The scope decision | [`docs/adr/ADR-015-scope-finance-workspace-not-loan-review.md`](docs/adr/ADR-015-scope-finance-workspace-not-loan-review.md) |
+| The product | [`docs/01a-concept-deep-dive.md`](docs/01a-concept-deep-dive.md), [`docs/03-prd.md`](docs/03-prd.md) |
+| How it's built | [`docs/05-architecture.md`](docs/05-architecture.md), [`docs/06-agent-design.md`](docs/06-agent-design.md), [`docs/08-risk-engine.md`](docs/08-risk-engine.md) |
+| How it looks | [`docs/11-frontend.md`](docs/11-frontend.md), [`docs/12-design-system.md`](docs/12-design-system.md), [`design/mocks/`](design/mocks/index.html) |
 | The plan to 18 Oct | [`docs/19-delivery-plan.md`](docs/19-delivery-plan.md) |
 | All docs | [`docs/README.md`](docs/README.md) |
 | Feature specs | [`docs/specs/README.md`](docs/specs/README.md) |
@@ -91,7 +94,7 @@ _Available after spec 001._
 
 ```bash
 make setup      # uv + npm installs
-make synth      # generate synthetic scenarios S1–S3
+make synth      # generate synthetic scenarios S1–S5
 make dev        # API :8000 (in-process worker) + web :5173
 make check      # all quality gates
 ```
@@ -103,11 +106,11 @@ only._
 
 | Measure | Result |
 |---|---|
-| Seeded tampering detected | — |
-| False "tampered" verdicts on clean documents | — |
-| Consensus extraction F1 | — |
-| Memo figures verified | — |
-| Median time per case | — |
+| Bank lines matched automatically (S1) | — |
+| Wrong automatic matches | — |
+| Seeded duplicates caught | — |
+| Seeded tampering detected / false "tampered" verdicts | — |
+| Reading cost per page | — |
 
 ## Data
 

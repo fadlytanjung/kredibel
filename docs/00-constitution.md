@@ -3,7 +3,7 @@
 > The non-negotiable principles of Kredibel. Every spec, plan, task and pull request is checked
 > against this page. Changing a principle requires a team decision recorded as an ADR.
 
-**Version:** 1.1 (P6 reworded by [ADR-010](adr/ADR-010-adaptive-extraction-ai-reader-and-witness.md)) · **Ratified:** pending team review
+**Version:** 1.2 (P6 reworded by [ADR-010](adr/ADR-010-adaptive-extraction-ai-reader-and-witness.md); P2–P5 and P10 re-aimed by [ADR-015](adr/ADR-015-scope-finance-workspace-not-loan-review.md)) · **Ratified:** pending team review
 
 ---
 
@@ -16,28 +16,32 @@ completes or removes a component.
 
 ## P2 — Numbers come from code; words come from models
 
-Large language models **never** compute money, balances, ratios, scores or decisions. Deterministic,
-unit-tested Python computes every figure. Models are used to **read** (classify, extract),
-**interpret** (categorize, spot visual anomalies) and **explain** (findings, memo). Every model output
+Large language models **never** compute money, balances, totals, matches or risk levels.
+Deterministic, unit-tested Python computes every figure and decides every match. Models are used to
+**read** (classify, extract, propose a ledger column mapping), **interpret** (categorize, normalize
+names, spot visual anomalies) and **explain** (findings, risk, assistant answers). Every model output
 is validated against a Pydantic schema before anything uses it.
 
 ## P3 — Every claim has evidence
 
-Every finding, metric and memo statement links to its source: a document, page and bounding box, a
-transaction, an invoice, or a computed fact with its inputs. A number in a memo that cannot be traced
-to a fact fails the grounding guard and is shown as unverified. It is never silently published.
+Every finding, match, metric and explanation links to its source: a document, page and bounding
+box, a bank line, an invoice, a receipt, a ledger entry, or a computed fact with its inputs. A number
+in an explanation or an assistant answer that cannot be traced to a fact fails the grounding guard and
+is not shown as fact. It is never silently published.
 
 ## P4 — Documents are adversarial input
 
-The borrower controls the documents, so document content is **data, never instructions**. Documents
-are screened before any model reads them. Agent tools are read-only and scoped to one case. A model's
-output can annotate a case; it can never change a score, a policy or a decision.
+Documents come from banks, suppliers, customers and staff, and any of them can be edited, so
+document content is **data, never instructions**. Documents are screened before any model reads them.
+Agent tools are read-only and scoped to one workspace. A model's output can annotate; it can never
+confirm a match, change a risk level, change a policy or resolve a review item.
 
-## P5 — A human decides
+## P5 — A person resolves the exceptions
 
-Kredibel recommends; a credit analyst decides. Approving with an open critical finding is blocked.
-Overriding the recommendation requires a reason and the right role. Every decision, override and
-dismissal is written to an append-only audit trail.
+Kredibel matches what it can prove and recommends next steps; a person confirms duplicates, resolves
+review items and dismisses findings. Nothing is deleted or merged automatically except an exact copy
+of a file already uploaded. Dismissing a critical finding requires a reason. Every fix, confirmation
+and dismissal is written to an append-only audit trail.
 
 ## P6 — Two readings before an accusation
 
@@ -67,8 +71,8 @@ scenarios. When in doubt, cut scope, not quality.
 
 ## P10 — Test what matters, evaluate what is fuzzy
 
-Domain logic (forensics, metrics, reconciliation, scoring, state machine) is unit-tested against
-ground truth and must pass before merge. Model behaviour is measured with scenario evals that run on
+Domain logic (duplicates, forensics, matching, metrics, risk levels, review states) is unit-tested
+against ground truth and must pass before merge. Model behaviour is measured with scenario evals that run on
 demand and are **not** part of the merge gate; a failed eval is a judgement call, not a red build.
 
 ---

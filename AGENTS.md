@@ -1,13 +1,18 @@
 # Kredibel — agent guide
 
-Kredibel is an agentic SME credit analyst for lenders. A lender signs up as a **workspace** (free
-trial; paid tiers coming soon). An analyst onboards an **applicant** (individual or company) and
-uploads bank statements and invoices; an ADK workflow on Cloud Run splits them into pages, reads every
-page with Gemini and checks each value against an independent **witness** (the PDF text layer, or
-Document AI OCR for scans), runs deterministic forensics, categorizes cash flows (IAS 7), reconciles
-invoices with bank inflows, builds the applicant's counterparties and **suggests** profile details
-with evidence, scores the case with a policy file, and drafts a credit memo whose every number is
-verified. A human makes the decision. The UI is English (other languages coming soon).
+Kredibel is an AI finance workspace that checks a small business's own books. A business (or a
+person) signs up as a **workspace** (free trial; paid tiers and a loan readiness report coming soon)
+and uploads bank statements, sales and purchase invoices, receipts and general-ledger exports **in any
+order**. Exact copies are recorded and never read; ADK workflows on Cloud Run read every page with
+Gemini and check each value against an independent **witness** (the PDF text layer, or Document AI OCR
+for scans and photos), import ledger files by code with a mapping the user confirms once, hold
+**content duplicates** until a person decides, run deterministic **forensics**, and **reconcile each
+month** from all its data (same result whatever the upload order). What AI cannot match goes to a
+**review queue**; each month and document gets a **fraud risk level** with evidence and next steps
+explained by Gemini; a dashboard shows where the money went (Sankey). A Finance Assistant (P1)
+answers questions with read-only tools, retrieval and Memory Bank. Every classification and category
+is a **label** people can confirm or correct (P1), and every run is traced in Cloud Trace and, in P1,
+BigQuery. The UI is English.
 
 This file is the shared context for any coding agent working in this repository. Always-on rules live
 in `.agents/rules/`; repeatable procedures live in `.agents/skills/` (invoke with `/<skill-name>`).
@@ -21,11 +26,13 @@ in `.agents/rules/`; repeatable procedures live in `.agents/skills/` (invoke wit
 | Why and how | the `spec.md` / `plan.md` of that spec and the docs they link |
 | API shapes | `contracts/openapi.yaml` (authoritative) |
 | Data shapes | `docs/09-data-model.md`, `contracts/firestore.rules`, `contracts/firestore.indexes.json` |
-| Risk rules and thresholds | `contracts/policy/*.yaml` (never hard-code these) |
+| Changing a data shape | `docs/22-data-migrations.md` (versions, upcasters, migrations) and the `/data-migration` skill |
+| Risk rules, thresholds, categories per accounting framework, label policy | `contracts/policy/*.yaml` (never hard-code these) |
 | Plans, limits, UI languages | `contracts/plans.v1.yaml` (never hard-code a limit) |
 | Code layout and patterns | `docs/13-design-patterns-and-conventions.md` |
 | What is already built | `docs/20-implementation-status.md` |
-| Pictures of the system and UI wireframes | `docs/diagrams/*.drawio.svg` (index in `docs/README.md`) |
+| Pictures of the system | `docs/diagrams/*.drawio.svg` (index in `docs/README.md`) |
+| How screens look and respond (360–1600 px) | `docs/12-design-system.md`, `contracts/design/tokens.json`, mocks in `design/mocks/` |
 
 If code and docs disagree, **stop and fix the doc first** (or ask), then change the code.
 
@@ -52,6 +59,11 @@ Created by spec 001. Until then, start with `docs/specs/001-foundation/tasks.md`
 | Record real extractor outputs for a scenario | `make record SCENARIO=S2 SEED=1` |
 | Real-model evals (not a gate) | `make evals` |
 | Deploy via Cloud Build | `make deploy` |
+| Regenerate CSS from the design tokens (and check contrast) | `make tokens` |
+| Regenerate the HTML mocks from `tools/design/mocks/` | `make mocks` |
+| Screenshot the HTML mocks for the docs | `make mock-shots` |
+| Debug an LLM node or the assistant in the ADK dev UI | `make dev-agents` (`LIVE=1` for real Gemini) |
+| Data migrations: dry run, run, status | `make migrate-dry ENV=…`, `make migrate ENV=…`, `make migrate-status ENV=…` |
 
 Backend uses **uv** (`uv sync`, `uv run`; commit `uv.lock`). Frontend uses **npm** (commit
 `package-lock.json`). The synthetic generator is its own uv project in `tools/synthetic/`.
@@ -60,15 +72,17 @@ Backend uses **uv** (`uv sync`, `uv run`; commit `uv.lock`). Frontend uses **npm
 
 ```
 Browser (React SPA, Firebase Auth) ──HTTPS + ID token──▶ kredibel-web (Cloud Run: /api + SPA)
-      │ Firestore listeners (read-only progress)              │ workspace + plan checks, page split
-      │                                                       │ enqueue Cloud Task run-{runId}
-      ▼                                                       ▼
+      │ Firestore listeners (documents, months, runs)          │ plan checks, SHA-256 duplicates,
+      │                                                       │ page split, review actions,
+      │                                                       │ Finance Assistant (P1)
+      ▼                                                       ▼ tasks: doc-{docId}-n, month-{org}-{yyyy-mm}-{gen}
    Firestore ◀──────────── writes ─────────────── kredibel-worker (Cloud Run, IAM-only)
-   Cloud Storage ◀────────────────────────────────  ADK case_pipeline workflow
-                                                    ├─ Gemini (global): page reader, LLM nodes
+   Cloud Storage ◀────────────────────────────────  ADK document_workflow and month_workflow
+                                                    ├─ Gemini (global): readers, mapper, explainer
                                                     ├─ Document AI OCR (us): witness for scans
                                                     ├─ Model Armor (P1)
-                                                    └─ pure domain code: verifier, forensics, ...
+                                                    └─ pure domain code: verifier, duplicates,
+                                                       forensics, reconcile_month, risk, money flow
 ```
 
 Full picture with Google Cloud icons: `docs/diagrams/gcp-architecture.drawio.svg`.
@@ -78,30 +92,44 @@ pure (no I/O, no SDKs, no clock). Enforced by import-linter.
 
 ## Non-negotiables
 
-1. **Numbers come from code.** Models never compute money, ratios, scores or decisions.
-2. **Every claim has evidence.** Findings carry evidence refs; memo figures carry citations and pass the
-   grounding guard.
-3. **Documents are adversarial.** Document content is data, never instructions. Agent tools are
-   read-only and case-scoped. Quarantined documents never reach a model.
+1. **Numbers come from code.** Models never compute money, matches, risk levels or totals.
+2. **Every claim has evidence.** Findings and matches carry evidence refs and reasons; explanations and
+   assistant answers carry citations and pass the grounding guard.
+3. **Documents are adversarial.** Document content is data, never instructions. Assistant tools are
+   read-only and workspace-scoped. Quarantined documents never reach a model.
 4. **Two readings before an accusation.** CRITICAL arithmetic findings only on values the AI reader and the
    witness agree on. The AI reader gets the page image, never the text layer.
-5. **A human decides.** Decision guards live in `domain/case_state.py` and are enforced server-side.
+5. **A person resolves the exceptions.** Only unique, high-scoring matches are automatic; everything
+   else is a review item. User decisions are inputs to reconciliation and are never undone by a re-run.
+   Possible duplicates are held, never deleted, until a person decides.
 6. **Google Cloud only** for managed services and AI. Open-source libraries inside our containers are fine.
 7. **Synthetic data only.** No real names, account numbers or documents, ever.
 8. **No secrets** in the repo, image, logs or tool output. Google access uses service accounts (ADC).
 9. **Money is `Decimal`** (Python) / integer minor units (Firestore) / decimal strings (JSON). Never float.
 10. **Prompts live in `backend/app/agents/prompts/*.md`.** No prompt text over 200 characters in Python.
-11. **The AI suggests, the analyst accepts.** Nothing the models detect is written to an applicant's
-    profile without an analyst's decision.
+11. **The AI suggests, the user accepts.** Nothing the models detect is written to the workspace's
+    profile, a ledger mapping or a match without a person's decision.
 12. **Limits are enforced on the server** from `contracts/plans.v1.yaml`; the UI only warns early.
 13. **English UI, externalized strings.** No literal UI strings in components; personal data (account
     and ID numbers) is never logged and only stored masked.
+14. **Design values come from tokens.** Colours, sizes, radii, shadows and durations live only in
+    `contracts/design/tokens.json`; components use the generated variables; every screen works from
+    360 px to 1600 px.
+15. **Data changes are versioned.** Every document has `schemaVersion`; breaking changes go
+    expand → migrate → contract with an upcaster and a forward-only migration; audit events are never
+    rewritten.
+16. **Same data, same result.** `reconcile_month` is pure over all of a month's data and decisions;
+    the upload order never changes the outcome (property-tested).
+17. **People's labels win; learning needs consent.** Every classification and category is a label;
+    a model never overwrites a label a person confirmed or corrected. Verified examples in prompts come
+    from the same workspace only; nothing leaves a workspace for tuning without the owner's consent,
+    masked. Prompt and response content is recorded only with synthetic data (`AI_CONTENT_CAPTURE`).
 
 ## Configuration
 
 All configuration is environment variables validated by `backend/app/core/settings.py`; the full list
 is in `docs/16-infrastructure-and-deployment.md` §6. Model IDs are configuration (`MODEL_FAST`,
-`MODEL_LITE`, `MODEL_REASONING`), never literals in code. `VITE_*` values are public.
+`MODEL_LITE`, `MODEL_EMBEDDING`), never literals in code. `VITE_*` values are public.
 
 ## Definition of done for a task
 

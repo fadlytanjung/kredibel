@@ -1,11 +1,8 @@
-# Tasks 012 — Evals & Results
+# Tasks 012 — Evals and Results
 
-- [ ] **T012-01** `evals/run.py` (API-driven, org `org_eval`, waits on run status). (AC-012-1, AC-012-3)
-- [ ] **T012-02** **TDD** `evals/metrics.py` against hand-made small truth fixtures. (AC-012-2)
-- [ ] **T012-03** `evals/report.py` Markdown + JSON. (AC-012-2)
-- [ ] **T012-04** Run P0 suites on D6; commit the report.
-- [ ] **T012-05** `tools/checks/readme_results.py`; README "Results" section filled from the report. (AC-012-4)
-- [ ] **T012-06** Add P1 suites as 010/011 land. (AC-012-2)
-- [ ] **T012-07** Confirm `make check`/Cloud Build don't call evals. (AC-012-5)
-- [ ] **T012-08** E-EXT adaptive vs thorough, digital vs scanned, with measured cost per page. (AC-012-6)
-- [ ] **T012-09** E-CPTY counterparties and suggestions. (AC-012-7)
+- [ ] **T012-01** Runner with upload order, `org_eval` reset and settle detection. (AC-012-1)
+- [ ] **T012-02** Truth-to-ID mapping. (AC-012-3, AC-012-7)
+- [ ] **T012-03** Suites E-REC and E-DUP first (the headline), then E-FOR, E-RSK, E-EXT, E-MAP, E-CLS, E-CAT, E-CPTY, E-EXP, E-PERF. (AC-012-2…5)
+- [ ] **T012-04** Report writer; `readme_results.py`. (AC-012-7, AC-012-8)
+- [ ] **T012-05** Run on D6; publish the report; update README Results and `docs/20`. (AC-012-1)
+- [ ] **T012-06** P1 suites when available. (AC-012-6)

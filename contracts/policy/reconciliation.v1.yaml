@@ -1,0 +1,38 @@
+# Kredibel reconciliation — version 1
+# Matching windows, tolerances, weights and thresholds. Semantics: docs/08-risk-engine.md §6–§7.
+
+version: 1
+id: reconciliation.v1
+
+amountTolerance:
+  minMinor: 100000                  # IDR 1,000
+  share: "0.005"                    # 0.5% of the amount, whichever is larger
+maxWithholding: "0.02"              # net-of-tax payments up to 2% below the total
+
+windows:
+  invoiceBeforeIssueDays: 3         # a payment may arrive up to 3 days before the invoice date
+  defaultTermsDays: 30              # due date when the invoice has none
+  graceDays: 30                     # after the due date
+  receiptDays: 3
+  ledgerDays: 3
+  neighbourMonths: 1                # reconcile_month also looks at ±1 month for cross-month payments
+
+weights:
+  amount: "0.45"
+  party: "0.25"
+  reference: "0.15"
+  date: "0.15"
+
+thresholds:
+  autoConfirmScore: "0.85"
+  ambiguityMargin: "0.10"
+  proposeScore: "0.60"
+  partyMinScoreForSplit: "0.80"
+  maxSplitParts: 3
+
+ledger:
+  bankAccountMapping: user          # the user maps each bank account to a ledger account code once
+  cashAccountHints: ["1100", "1110", "bank", "cash at bank"]   # used only to pre-fill the mapping
+
+reviewItems:
+  waitForStatement: true            # no UNMATCHED_DOCUMENT items for a month without a statement

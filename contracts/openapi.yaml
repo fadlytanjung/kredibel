@@ -1,27 +1,33 @@
 openapi: 3.1.0
 info:
   title: Kredibel API
-  version: 1.0.0
+  version: 2.2.0
   description: |
-    REST API for Kredibel, an agentic SME credit analyst. Normative contract for the backend
-    (FastAPI) and the frontend (generated TypeScript types). See docs/10-api-contract.md for
-    conventions. All /api routes except /api/health require a Firebase ID token.
+    REST API for Kredibel, an AI finance workspace that reads a business's documents, catches
+    duplicates and edited documents, reconciles every month and explains its fraud risk.
+    Normative contract for the backend (FastAPI) and the frontend (generated TypeScript types).
+    Conventions: docs/10-api-contract.md. Data model: docs/09-data-model.md.
+    All /api routes except /api/health require a Firebase ID token; the workspace comes from the
+    token's custom claim, never from the path or body.
 servers:
   - url: /
 tags:
   - name: system
   - name: workspace
-  - name: applicants
-  - name: cases
   - name: documents
-  - name: analysis
+  - name: books
+  - name: months
   - name: review
+  - name: risk
+  - name: insight
   - name: assistant
+  - name: labels
   - name: internal
 security:
   - firebase: []
 
 paths:
+  # ------------------------------------------------------------------ system
   /api/health:
     get:
       tags: [system]
@@ -48,41 +54,41 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Me" }
         "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-
-  /api/policy:
-    get:
-      tags: [system]
-      operationId: getPolicy
-      description: Active scorecard policy with the workspace's policy overrides applied, read-only (P1).
-      responses:
-        "200":
-          description: Policy document as JSON
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/Policy" }
-        "401": { $ref: "#/components/responses/Problem" }
 
   /api/plans:
     get:
       tags: [workspace]
       operationId: listPlans
-      description: Plan catalog and UI languages from contracts/plans.v1.yaml. Works without a workspace.
+      description: Plan catalog, coming-soon features and UI languages from contracts/plans.v1.yaml. Works without a workspace.
       responses:
         "200":
-          description: Plans (AVAILABLE and COMING_SOON) and languages
+          description: Catalog
           content:
             application/json:
               schema: { $ref: "#/components/schemas/PlanCatalog" }
         "401": { $ref: "#/components/responses/Problem" }
 
+  /api/policy:
+    get:
+      tags: [risk]
+      operationId: getPolicy
+      description: P1. Read-only summary of enabled checks, reconciliation thresholds and risk rules.
+      responses:
+        "200":
+          description: Policy summary
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PolicySummary" }
+        "401": { $ref: "#/components/responses/Problem" }
+
+  # ------------------------------------------------------------------ workspace
   /api/workspaces:
     post:
       tags: [workspace]
       operationId: createWorkspace
       description: |
-        Create a workspace for a signed-in user who has none. Starts the free trial, makes the caller
-        `admin`, and sets the Firebase custom claims. The client must refresh its ID token afterwards.
+        Create the workspace for a user who has none. Starts the free trial; the caller becomes
+        `owner`; the server sets custom claims and the client must refresh its ID token.
       requestBody:
         required: true
         content:
@@ -90,7 +96,7 @@ paths:
             schema: { $ref: "#/components/schemas/WorkspaceCreate" }
       responses:
         "201":
-          description: Workspace created
+          description: Created
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Workspace" }
@@ -105,7 +111,7 @@ paths:
       operationId: getWorkspace
       responses:
         "200":
-          description: The caller's workspace with plan state, settings and usage
+          description: Workspace with subscription and usage
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Workspace" }
@@ -114,9 +120,7 @@ paths:
     patch:
       tags: [workspace]
       operationId: updateWorkspace
-      description: |
-        Admin only for profile and language; admin or risk_lead for policyOverrides (P1). Only
-        languages with status `available` are accepted.
+      description: Profile fields, time zone and language (en only). The entity type cannot change.
       requestBody:
         required: true
         content:
@@ -124,10 +128,11 @@ paths:
             schema: { $ref: "#/components/schemas/WorkspaceUpdate" }
       responses:
         "200":
-          description: Updated workspace
+          description: Updated
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Workspace" }
+        "401": { $ref: "#/components/responses/Problem" }
         "403": { $ref: "#/components/responses/Problem" }
         "422": { $ref: "#/components/responses/Problem" }
 
@@ -135,20 +140,34 @@ paths:
     get:
       tags: [workspace]
       operationId: listMembers
-      description: Members of the workspace and pending invites (P1).
+      description: P1. Members and pending invites.
       responses:
         "200":
-          description: Members and invites
+          description: Members
           content:
             application/json:
               schema: { $ref: "#/components/schemas/MemberList" }
+        "401": { $ref: "#/components/responses/Problem" }
         "403": { $ref: "#/components/responses/Problem" }
+
+  /api/workspace/members/{uid}:
+    parameters:
+      - { name: uid, in: path, required: true, schema: { type: string } }
+    delete:
+      tags: [workspace]
+      operationId: removeMember
+      description: P1. Owner only; the last owner cannot be removed.
+      responses:
+        "204": { description: Removed }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
 
   /api/workspace/invites:
     post:
       tags: [workspace]
       operationId: createInvite
-      description: Admin only (P1). Counts against the plan's seats.
+      description: P1. Invite by email with a role; counts against seats. Nothing is emailed; the response carries the link.
       requestBody:
         required: true
         content:
@@ -156,45 +175,23 @@ paths:
             schema: { $ref: "#/components/schemas/InviteCreate" }
       responses:
         "201":
-          description: Invite created (nothing is emailed; the invitee signs in with that email)
+          description: Invite
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Invite" }
         "403": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
         "422": { $ref: "#/components/responses/Problem" }
-
-  /api/workspace/members/{uid}:
-    parameters:
-      - name: uid
-        in: path
-        required: true
-        schema: { type: string }
-    delete:
-      tags: [workspace]
-      operationId: removeMember
-      description: Admin only (P1). The last admin cannot be removed.
-      responses:
-        "204": { description: Removed }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
 
   /api/invites/{inviteId}/accept:
     parameters:
-      - name: inviteId
-        in: path
-        required: true
-        schema: { type: string, pattern: "^ivt_[0-9A-HJKMNP-TV-Z]{26}$" }
+      - { name: inviteId, in: path, required: true, schema: { type: string } }
     post:
       tags: [workspace]
       operationId: acceptInvite
-      description: |
-        P1. Works without a workspace. The caller's verified email must equal the invite's email.
-        Sets the custom claims; the client refreshes its ID token.
+      description: P1. The caller's verified email must match the invite.
       responses:
         "200":
-          description: Joined
+          description: Joined; refresh the ID token
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Me" }
@@ -202,297 +199,78 @@ paths:
         "404": { $ref: "#/components/responses/Problem" }
         "409": { $ref: "#/components/responses/Problem" }
 
-  /api/applicants:
-    post:
-      tags: [applicants]
-      operationId: createApplicant
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/ApplicantCreate" }
-      responses:
-        "201":
-          description: Created
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/Applicant" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "422": { $ref: "#/components/responses/Problem" }
+  /api/bank-accounts:
     get:
-      tags: [applicants]
-      operationId: listApplicants
-      parameters:
-        - name: q
-          in: query
-          description: Prefix search on the display name (case-insensitive)
-          schema: { type: string, maxLength: 60 }
-        - name: type
-          in: query
-          schema: { $ref: "#/components/schemas/ApplicantType" }
-        - $ref: "#/components/parameters/Limit"
-        - $ref: "#/components/parameters/Cursor"
+      tags: [workspace]
+      operationId: listBankAccounts
       responses:
         "200":
-          description: Page of applicants, most recently updated first
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/ApplicantList" }
-        "403": { $ref: "#/components/responses/Problem" }
-
-  /api/applicants/{applicantId}:
-    parameters:
-      - $ref: "#/components/parameters/ApplicantId"
-    get:
-      tags: [applicants]
-      operationId: getApplicant
-      responses:
-        "200":
-          description: Applicant profile
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/Applicant" }
-        "404": { $ref: "#/components/responses/Problem" }
-    patch:
-      tags: [applicants]
-      operationId: updateApplicant
-      description: Edit profile fields. The type (individual or company) cannot change.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/ApplicantUpdate" }
-      responses:
-        "200":
-          description: Updated
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/Applicant" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "422": { $ref: "#/components/responses/Problem" }
-
-  /api/applicants/{applicantId}/bank-accounts:
-    parameters:
-      - $ref: "#/components/parameters/ApplicantId"
-    post:
-      tags: [applicants]
-      operationId: addBankAccount
-      description: The full account number is accepted here, stored only as a mask plus a hash.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/BankAccountInput" }
-      responses:
-        "201":
-          description: Added
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/BankAccount" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
-        "422": { $ref: "#/components/responses/Problem" }
-
-  /api/applicants/{applicantId}/bank-accounts/{accountId}:
-    parameters:
-      - $ref: "#/components/parameters/ApplicantId"
-      - name: accountId
-        in: path
-        required: true
-        schema: { type: string, pattern: "^acc_[0-9a-f]{16}$" }
-    delete:
-      tags: [applicants]
-      operationId: removeBankAccount
-      responses:
-        "204": { description: Removed }
-        "404": { $ref: "#/components/responses/Problem" }
-
-  /api/applicants/{applicantId}/related-parties:
-    parameters:
-      - $ref: "#/components/parameters/ApplicantId"
-    post:
-      tags: [applicants]
-      operationId: addRelatedParty
-      description: Beneficial owners, directors, shareholders, guarantors, signatories.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/RelatedPartyInput" }
-      responses:
-        "201":
-          description: Added
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/RelatedParty" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "422": { $ref: "#/components/responses/Problem" }
-
-  /api/applicants/{applicantId}/related-parties/{partyId}:
-    parameters:
-      - $ref: "#/components/parameters/ApplicantId"
-      - name: partyId
-        in: path
-        required: true
-        schema: { type: string, pattern: "^rp_[0-9a-f]{16}$" }
-    delete:
-      tags: [applicants]
-      operationId: removeRelatedParty
-      responses:
-        "204": { description: Removed }
-        "404": { $ref: "#/components/responses/Problem" }
-
-  /api/applicants/{applicantId}/suggestions:
-    parameters:
-      - $ref: "#/components/parameters/ApplicantId"
-    get:
-      tags: [applicants]
-      operationId: listSuggestions
-      parameters:
-        - name: status
-          in: query
-          schema: { $ref: "#/components/schemas/SuggestionStatus" }
-      responses:
-        "200":
-          description: AI-detected profile suggestions with evidence
+          description: Bank accounts (masked)
           content:
             application/json:
               schema:
                 type: object
                 required: [items]
                 properties:
-                  items:
-                    type: array
-                    items: { $ref: "#/components/schemas/ProfileSuggestion" }
-        "404": { $ref: "#/components/responses/Problem" }
-
-  /api/applicants/{applicantId}/suggestions/{suggestionId}:
-    parameters:
-      - $ref: "#/components/parameters/ApplicantId"
-      - name: suggestionId
-        in: path
-        required: true
-        schema: { type: string, pattern: "^sug_[0-9a-f]{16}$" }
-    patch:
-      tags: [applicants]
-      operationId: decideSuggestion
-      description: Accept (writes the value into the profile) or reject. Both write an applicant event.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/SuggestionDecision" }
-      responses:
-        "200":
-          description: Decided
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/ProfileSuggestion" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
-
-  /api/applicants/{applicantId}/events:
-    parameters:
-      - $ref: "#/components/parameters/ApplicantId"
-    get:
-      tags: [applicants]
-      operationId: listApplicantEvents
-      parameters:
-        - $ref: "#/components/parameters/Limit"
-        - $ref: "#/components/parameters/Cursor"
-      responses:
-        "200":
-          description: Applicant audit events, newest first
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/EventPage" }
-        "404": { $ref: "#/components/responses/Problem" }
-
-  /api/cases:
+                  items: { type: array, items: { $ref: "#/components/schemas/BankAccount" } }
+        "401": { $ref: "#/components/responses/Problem" }
     post:
-      tags: [cases]
-      operationId: createCase
-      description: Checks the plan (casesPerMonth, trial) before creating. Takes an existing applicantId or an inline applicant.
+      tags: [workspace]
+      operationId: createBankAccount
+      description: The full account number is accepted once; only the mask and a keyed hash are stored.
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/CaseCreate" }
+            schema: { $ref: "#/components/schemas/BankAccountCreate" }
       responses:
         "201":
           description: Created
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/Case" }
-        "401": { $ref: "#/components/responses/Problem" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
+              schema: { $ref: "#/components/schemas/BankAccount" }
+        "409": { $ref: "#/components/responses/Problem" }
         "422": { $ref: "#/components/responses/Problem" }
-    get:
-      tags: [cases]
-      operationId: listCases
-      parameters:
-        - name: status
-          in: query
-          schema: { $ref: "#/components/schemas/CaseStatus" }
-        - name: applicantId
-          in: query
-          schema: { type: string }
-        - $ref: "#/components/parameters/Limit"
-        - $ref: "#/components/parameters/Cursor"
-      responses:
-        "200":
-          description: Page of cases, newest first
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/CaseList" }
-        "401": { $ref: "#/components/responses/Problem" }
 
-  /api/cases/{caseId}:
+  /api/bank-accounts/{accountId}:
     parameters:
-      - $ref: "#/components/parameters/CaseId"
-    get:
-      tags: [cases]
-      operationId: getCase
-      responses:
-        "200":
-          description: Case
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/Case" }
-        "404": { $ref: "#/components/responses/Problem" }
+      - $ref: "#/components/parameters/AccountId"
     patch:
-      tags: [cases]
-      operationId: updateCase
+      tags: [workspace]
+      operationId: updateBankAccount
+      description: Nickname and ledger account code (for ledger reconciliation); marks affected months dirty.
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/CaseUpdate" }
+            schema: { $ref: "#/components/schemas/BankAccountUpdate" }
       responses:
         "200":
-          description: Updated case
+          description: Updated
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/Case" }
+              schema: { $ref: "#/components/schemas/BankAccount" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+    delete:
+      tags: [workspace]
+      operationId: deleteBankAccount
+      description: Only an account with no statements.
+      responses:
+        "204": { description: Deleted }
         "404": { $ref: "#/components/responses/Problem" }
         "409": { $ref: "#/components/responses/Problem" }
-        "422": { $ref: "#/components/responses/Problem" }
 
-  /api/cases/{caseId}/documents:
-    parameters:
-      - $ref: "#/components/parameters/CaseId"
+  # ------------------------------------------------------------------ documents
+  /api/documents:
     post:
       tags: [documents]
       operationId: uploadDocument
       description: |
-        Validates against the plan (fileSizeMb, pagesPerDocument, documentsPerCase), stores the original,
-        splits it into pages and triages each page (text layer usable, blank). With `split=auto` (P1), a
-        PDF longer than pagesPerDocument is cut into parts that each become a document.
-      parameters:
-        - name: split
-          in: query
-          schema: { type: string, enum: [none, auto], default: none }
+        Upload one file. PDF, PNG and JPEG are read by the AI reader with a witness; CSV and XLSX
+        are ledger exports parsed by code. A file whose SHA-256 already exists in the workspace is
+        recorded as an exact duplicate (status DUPLICATE, not read, not counted against limits).
+        Progress is visible through the Firestore listener on the document.
       requestBody:
         required: true
         content:
@@ -501,41 +279,41 @@ paths:
               type: object
               required: [file]
               properties:
-                file:
-                  type: string
-                  contentMediaType: application/octet-stream
+                file: { type: string, format: binary }
+                docTypeHint: { $ref: "#/components/schemas/DocType" }
       responses:
         "201":
-          description: Uploaded (one document, or several parts with split=auto)
+          description: Stored; reading started (or recorded as an exact duplicate)
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/UploadResult" }
+              schema: { $ref: "#/components/schemas/Document" }
         "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
         "413": { $ref: "#/components/responses/Problem" }
         "415": { $ref: "#/components/responses/Problem" }
         "422": { $ref: "#/components/responses/Problem" }
+        "429": { $ref: "#/components/responses/Problem" }
+        "503": { $ref: "#/components/responses/Problem" }
     get:
       tags: [documents]
       operationId: listDocuments
+      parameters:
+        - { name: type, in: query, schema: { $ref: "#/components/schemas/DocType" } }
+        - $ref: "#/components/parameters/MonthQuery"
+        - { name: status, in: query, schema: { $ref: "#/components/schemas/DocStatus" } }
+        - { name: duplicate, in: query, schema: { type: boolean }, description: "true = only exact or possible duplicates" }
+        - { name: risk, in: query, schema: { $ref: "#/components/schemas/RiskLevel" } }
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
       responses:
         "200":
-          description: Documents of the case
+          description: Documents, newest first
           content:
             application/json:
-              schema:
-                type: object
-                required: [items]
-                properties:
-                  items:
-                    type: array
-                    items: { $ref: "#/components/schemas/Document" }
-        "404": { $ref: "#/components/responses/Problem" }
+              schema: { $ref: "#/components/schemas/DocumentPage" }
+        "401": { $ref: "#/components/responses/Problem" }
 
-  /api/cases/{caseId}/documents/{docId}:
+  /api/documents/{docId}:
     parameters:
-      - $ref: "#/components/parameters/CaseId"
       - $ref: "#/components/parameters/DocId"
     get:
       tags: [documents]
@@ -547,38 +325,17 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Document" }
         "404": { $ref: "#/components/responses/Problem" }
-    patch:
-      tags: [documents]
-      operationId: updateDocumentType
-      description: Override the classified document type (P1). Requires a new analysis run.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [docType]
-              properties:
-                docType: { $ref: "#/components/schemas/DocType" }
-      responses:
-        "200":
-          description: Updated
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/Document" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
     delete:
       tags: [documents]
       operationId: deleteDocument
+      description: Removes the document and everything read from it; marks its months dirty.
       responses:
-        "204": { description: Removed }
+        "204": { description: Deleted }
         "404": { $ref: "#/components/responses/Problem" }
         "409": { $ref: "#/components/responses/Problem" }
 
-  /api/cases/{caseId}/documents/{docId}/file:
+  /api/documents/{docId}/file:
     parameters:
-      - $ref: "#/components/parameters/CaseId"
       - $ref: "#/components/parameters/DocId"
     get:
       tags: [documents]
@@ -587,22 +344,15 @@ paths:
         "200":
           description: Original file
           content:
-            application/pdf: {}
-            image/png: {}
-            image/jpeg: {}
+            application/octet-stream:
+              schema: { type: string, format: binary }
         "404": { $ref: "#/components/responses/Problem" }
 
-  /api/cases/{caseId}/documents/{docId}/pages/{pageNo}:
+  /api/documents/{docId}/pages/{pageNo}:
     parameters:
-      - $ref: "#/components/parameters/CaseId"
       - $ref: "#/components/parameters/DocId"
-      - name: pageNo
-        in: path
-        required: true
-        schema: { type: integer, minimum: 1 }
-      - name: variant
-        in: query
-        schema: { type: string, enum: [full, thumb], default: full }
+      - { name: pageNo, in: path, required: true, schema: { type: integer, minimum: 1 } }
+      - { name: variant, in: query, schema: { type: string, enum: [full, thumb], default: full } }
     get:
       tags: [documents]
       operationId: getDocumentPage
@@ -610,114 +360,424 @@ paths:
         "200":
           description: Rendered page
           content:
-            image/png: {}
+            image/png:
+              schema: { type: string, format: binary }
         "404": { $ref: "#/components/responses/Problem" }
 
-  /api/cases/{caseId}/analysis-runs:
+  /api/documents/{docId}/pages/{pageNo}/extraction.md:
     parameters:
-      - $ref: "#/components/parameters/CaseId"
-    post:
-      tags: [analysis]
-      operationId: startAnalysisRun
+      - $ref: "#/components/parameters/DocId"
+      - { name: pageNo, in: path, required: true, schema: { type: integer, minimum: 1 } }
+    get:
+      tags: [documents]
+      operationId: getPageExtraction
       description: |
-        Checks the trial, runsPerDay and aiSpendUsdPerMonth, and reserves the case's uncached pages
-        against extractedPagesPerMonth in one transaction (403 PLAN_LIMIT_REACHED / TRIAL_EXPIRED).
+        The page as Kredibel read it, in Markdown: the page type with its confidence, the reading
+        method, the witness text, tables for line items, and every extracted value with both readings.
+        Written by the document workflow (docs/07 §3.6). Used by the Labels page, the assistant's
+        retrieval chunks and, with consent, tuning datasets (ADR-016).
+      responses:
+        "200":
+          description: Markdown
+          content:
+            text/markdown:
+              schema: { type: string }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/documents/{docId}/ledger-mapping:
+    parameters:
+      - $ref: "#/components/parameters/DocId"
+    get:
+      tags: [documents]
+      operationId: getLedgerMapping
+      description: The proposed or confirmed column mapping of a ledger export, with sample rows parsed by it.
+      responses:
+        "200":
+          description: Mapping
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LedgerMappingView" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/documents/{docId}/reprocess:
+    parameters:
+      - $ref: "#/components/parameters/DocId"
+    post:
+      tags: [documents]
+      operationId: reprocessDocument
+      description: P1. Read again; counts against the page limit.
       responses:
         "202":
-          description: Run queued
+          description: Queued
           content:
             application/json:
               schema: { $ref: "#/components/schemas/RunCreated" }
         "403": { $ref: "#/components/responses/Problem" }
         "404": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
-        "429":
-          description: RUN_QUOTA_EXCEEDED (org daily quota or per-user rate limit)
-          content:
-            application/problem+json:
-              schema: { $ref: "#/components/schemas/Problem" }
-        "503":
-          description: RUNS_DISABLED (kill switch)
-          content:
-            application/problem+json:
-              schema: { $ref: "#/components/schemas/Problem" }
 
-  /api/cases/{caseId}/analysis-runs/{runId}:
-    parameters:
-      - $ref: "#/components/parameters/CaseId"
-      - name: runId
-        in: path
-        required: true
-        schema: { type: string }
+  # ------------------------------------------------------------------ books
+  /api/bank-lines:
     get:
-      tags: [analysis]
-      operationId: getAnalysisRun
-      responses:
-        "200":
-          description: Run
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/Run" }
-        "404": { $ref: "#/components/responses/Problem" }
-
-  /api/cases/{caseId}/analysis:
-    parameters:
-      - $ref: "#/components/parameters/CaseId"
-    get:
-      tags: [analysis]
-      operationId: getAnalysis
-      responses:
-        "200":
-          description: Results of the current run
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/Analysis" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
-
-  /api/cases/{caseId}/findings:
-    parameters:
-      - $ref: "#/components/parameters/CaseId"
-    get:
-      tags: [analysis]
-      operationId: listFindings
+      tags: [books]
+      operationId: listBankLines
       parameters:
-        - name: severity
-          in: query
-          schema: { $ref: "#/components/schemas/Severity" }
-        - name: category
-          in: query
-          schema: { $ref: "#/components/schemas/FindingCategory" }
-        - name: docId
-          in: query
-          schema: { type: string }
-        - name: status
-          in: query
-          schema: { $ref: "#/components/schemas/FindingStatus" }
+        - $ref: "#/components/parameters/MonthQuery"
+        - { name: accountId, in: query, schema: { type: string } }
+        - { name: matchState, in: query, schema: { $ref: "#/components/schemas/MatchState" } }
+        - { name: category, in: query, schema: { $ref: "#/components/schemas/Category" } }
+        - { name: counterpartyId, in: query, schema: { type: string } }
+        - { name: flow, in: query, schema: { type: string }, description: "A money-flow link ID (Sankey drill-down)" }
+        - { name: q, in: query, schema: { type: string, maxLength: 100 }, description: "Text in the description" }
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
       responses:
         "200":
-          description: Findings of the current run, most severe first
+          description: Bank lines, by date
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BankLinePage" }
+
+  /api/bank-lines/{txId}:
+    parameters:
+      - { name: txId, in: path, required: true, schema: { type: string, pattern: "^tx_[0-9a-f]{16}$" } }
+    patch:
+      tags: [books]
+      operationId: updateBankLine
+      description: Change the category (categorizedBy USER). Same effect as correcting the bank line's CATEGORY label (POST /api/labels/{labelId}/decision). Marks the month dirty.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BankLineUpdate" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BankLine" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /api/invoices:
+    get:
+      tags: [books]
+      operationId: listInvoices
+      parameters:
+        - { name: kind, in: query, schema: { type: string, enum: [SALES, PURCHASE] } }
+        - $ref: "#/components/parameters/MonthQuery"
+        - { name: paymentState, in: query, schema: { $ref: "#/components/schemas/PaymentState" } }
+        - { name: counterpartyId, in: query, schema: { type: string } }
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        "200":
+          description: Invoices
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/InvoicePage" }
+
+  /api/invoices/{invoiceId}:
+    parameters:
+      - { name: invoiceId, in: path, required: true, schema: { type: string, pattern: "^inv_[0-9a-f]{16}$" } }
+    get:
+      tags: [books]
+      operationId: getInvoice
+      responses:
+        "200":
+          description: Invoice
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Invoice" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/receipts:
+    get:
+      tags: [books]
+      operationId: listReceipts
+      parameters:
+        - $ref: "#/components/parameters/MonthQuery"
+        - { name: paymentState, in: query, schema: { $ref: "#/components/schemas/PaymentState" } }
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        "200":
+          description: Receipts
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReceiptPage" }
+
+  /api/receipts/{receiptId}:
+    parameters:
+      - { name: receiptId, in: path, required: true, schema: { type: string, pattern: "^rcp_[0-9a-f]{16}$" } }
+    get:
+      tags: [books]
+      operationId: getReceipt
+      responses:
+        "200":
+          description: Receipt
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Receipt" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/ledger-entries:
+    get:
+      tags: [books]
+      operationId: listLedgerEntries
+      parameters:
+        - $ref: "#/components/parameters/MonthQuery"
+        - { name: isBankCash, in: query, schema: { type: boolean } }
+        - { name: matchState, in: query, schema: { $ref: "#/components/schemas/MatchState" } }
+        - { name: accountCode, in: query, schema: { type: string } }
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        "200":
+          description: Ledger entries
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LedgerEntryPage" }
+
+  # ------------------------------------------------------------------ months
+  /api/months:
+    get:
+      tags: [months]
+      operationId: listMonths
+      description: Every month with data, oldest first (the month strip).
+      responses:
+        "200":
+          description: Months
           content:
             application/json:
               schema:
                 type: object
                 required: [items]
                 properties:
-                  items:
-                    type: array
-                    items: { $ref: "#/components/schemas/Finding" }
+                  items: { type: array, items: { $ref: "#/components/schemas/MonthSummary" } }
+
+  /api/months/{month}:
+    parameters:
+      - $ref: "#/components/parameters/Month"
+    get:
+      tags: [months]
+      operationId: getMonth
+      responses:
+        "200":
+          description: Month with figures and risk
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Month" }
         "404": { $ref: "#/components/responses/Problem" }
 
-  /api/cases/{caseId}/findings/{findingId}:
+  /api/months/{month}/reconcile:
     parameters:
-      - $ref: "#/components/parameters/CaseId"
-      - name: findingId
-        in: path
+      - $ref: "#/components/parameters/Month"
+    post:
+      tags: [months]
+      operationId: reconcileMonth
+      description: Re-run now. Normally automatic after any change to the month's data.
+      responses:
+        "202":
+          description: Queued
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RunCreated" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "429": { $ref: "#/components/responses/Problem" }
+        "503": { $ref: "#/components/responses/Problem" }
+
+  /api/months/{month}/sign-off:
+    parameters:
+      - $ref: "#/components/parameters/Month"
+    post:
+      tags: [months]
+      operationId: signOffMonth
+      description: P1. Lock a RECONCILED month.
+      responses:
+        "200":
+          description: Signed off
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Month" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /api/months/{month}/reopen:
+    parameters:
+      - $ref: "#/components/parameters/Month"
+    post:
+      tags: [months]
+      operationId: reopenMonth
+      description: P1. Reopen a signed-off month with a reason.
+      requestBody:
         required: true
-        schema: { type: string }
-    patch:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReasonBody" }
+      responses:
+        "200":
+          description: Reopened
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Month" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/matches:
+    get:
+      tags: [months]
+      operationId: listMatches
+      parameters:
+        - $ref: "#/components/parameters/MonthQuery"
+        - { name: status, in: query, schema: { $ref: "#/components/schemas/MatchStatus" } }
+        - { name: kind, in: query, schema: { $ref: "#/components/schemas/MatchKind" } }
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        "200":
+          description: Matches
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MatchPage" }
+    post:
+      tags: [months]
+      operationId: createMatch
+      description: Manual match. Both sides must agree within the reconciliation tolerance.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MatchCreate" }
+      responses:
+        "201":
+          description: Created (method MANUAL, status CONFIRMED)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Match" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/matches/{matchId}:
+    parameters:
+      - { name: matchId, in: path, required: true, schema: { type: string, pattern: "^mat_[0-9a-f]{16}$" } }
+    delete:
+      tags: [months]
+      operationId: unmatch
+      description: The match becomes REJECTED and is never proposed again; its month re-reconciles.
+      responses:
+        "204": { description: Unmatched }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+
+  /api/exports/reconciliation.csv:
+    get:
+      tags: [months]
+      operationId: exportReconciliation
+      description: P1. Matches, unmatched lines and the review log of a month.
+      parameters:
+        - { name: month, in: query, required: true, schema: { type: string, pattern: "^\\d{4}-(0[1-9]|1[0-2])$" } }
+      responses:
+        "200":
+          description: CSV
+          content:
+            text/csv:
+              schema: { type: string }
+
+  # ------------------------------------------------------------------ review
+  /api/review-items:
+    get:
       tags: [review]
+      operationId: listReviewItems
+      parameters:
+        - { name: status, in: query, schema: { $ref: "#/components/schemas/ReviewItemStatus" } }
+        - { name: kind, in: query, schema: { $ref: "#/components/schemas/ReviewItemKind" } }
+        - $ref: "#/components/parameters/MonthQuery"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        "200":
+          description: Items, highest priority first
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReviewItemPage" }
+
+  /api/review-items/{itemId}:
+    parameters:
+      - $ref: "#/components/parameters/ItemId"
+    get:
+      tags: [review]
+      operationId: getReviewItem
+      responses:
+        "200":
+          description: Item with subject records and candidates
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReviewItem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/review-items/{itemId}/resolve:
+    parameters:
+      - $ref: "#/components/parameters/ItemId"
+    post:
+      tags: [review]
+      operationId: resolveReviewItem
+      description: |
+        Resolve with one action allowed for the item's kind (docs/10 §4). Writes an event and marks
+        the affected months dirty; user decisions are inputs to reconciliation and are never undone.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ResolveRequest" }
+      responses:
+        "200":
+          description: Resolved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReviewItem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  # ------------------------------------------------------------------ risk
+  /api/findings:
+    get:
+      tags: [risk]
+      operationId: listFindings
+      parameters:
+        - { name: scope, in: query, schema: { $ref: "#/components/schemas/FindingScope" } }
+        - $ref: "#/components/parameters/MonthQuery"
+        - { name: docId, in: query, schema: { type: string } }
+        - { name: severity, in: query, schema: { $ref: "#/components/schemas/Severity" } }
+        - { name: status, in: query, schema: { $ref: "#/components/schemas/FindingStatus" } }
+        - { name: code, in: query, schema: { type: string } }
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        "200":
+          description: Findings, most severe first
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FindingPage" }
+
+  /api/findings/{findingId}:
+    parameters:
+      - { name: findingId, in: path, required: true, schema: { type: string, pattern: "^fnd_[0-9a-f]{16}$" } }
+    get:
+      tags: [risk]
+      operationId: getFinding
+      responses:
+        "200":
+          description: Finding
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Finding" }
+        "404": { $ref: "#/components/responses/Problem" }
+    patch:
+      tags: [risk]
       operationId: updateFinding
+      description: Acknowledge or dismiss. Dismissing a CRITICAL or HIGH finding requires a reason.
       requestBody:
         required: true
         content:
@@ -725,213 +785,139 @@ paths:
             schema: { $ref: "#/components/schemas/FindingUpdate" }
       responses:
         "200":
-          description: Updated finding
+          description: Updated
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Finding" }
         "404": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
         "422": { $ref: "#/components/responses/Problem" }
 
-  /api/cases/{caseId}/transactions:
-    parameters:
-      - $ref: "#/components/parameters/CaseId"
+  # ------------------------------------------------------------------ insight
+  /api/dashboard:
     get:
-      tags: [analysis]
-      operationId: listTransactions
+      tags: [insight]
+      operationId: getDashboard
       parameters:
-        - name: docId
-          in: query
-          schema: { type: string }
-        - name: month
-          in: query
-          schema: { type: string, pattern: "^\\d{4}-\\d{2}$" }
-        - name: category
-          in: query
-          schema: { $ref: "#/components/schemas/Category" }
-        - name: riskTag
-          in: query
-          schema: { $ref: "#/components/schemas/RiskTag" }
-        - name: q
-          in: query
-          description: Case-insensitive substring of description or counterparty
-          schema: { type: string, maxLength: 100 }
+        - $ref: "#/components/parameters/Period"
+      responses:
+        "200":
+          description: KPIs, months, alerts and review preview for the period
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Dashboard" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/money-flow:
+    get:
+      tags: [insight]
+      operationId: getMoneyFlow
+      description: >-
+        STATEMENT (default) groups money out by cash-flow activity and statement line under the chosen
+        framework (docs/08 §5.1); COUNTERPARTIES groups it by who was paid. Totals are the same in both.
+      parameters:
+        - $ref: "#/components/parameters/Period"
+        - { name: view, in: query, schema: { $ref: "#/components/schemas/MoneyFlowView" } }
+        - $ref: "#/components/parameters/Framework"
+        - { name: accountId, in: query, schema: { type: string } }
+        - { name: showTransfers, in: query, schema: { type: boolean, default: false } }
+      responses:
+        "200":
+          description: Sankey nodes and links
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MoneyFlow" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/cash-flow:
+    get:
+      tags: [insight]
+      operationId: getCashFlow
+      description: Months in and out, and the cash-flow statement by activity and by line (docs/08 §5.2).
+      parameters:
+        - $ref: "#/components/parameters/Period"
+        - $ref: "#/components/parameters/Framework"
+      responses:
+        "200":
+          description: Cash-flow series and statement for the period
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CashFlow" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/counterparties:
+    get:
+      tags: [insight]
+      operationId: listCounterparties
+      parameters:
+        - { name: role, in: query, schema: { $ref: "#/components/schemas/CounterpartyRole" } }
+        - { name: q, in: query, schema: { type: string, maxLength: 100 } }
         - $ref: "#/components/parameters/Limit"
         - $ref: "#/components/parameters/Cursor"
       responses:
         "200":
-          description: Page of transactions, by date
+          description: Clients and suppliers
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/TransactionPage" }
-        "404": { $ref: "#/components/responses/Problem" }
+              schema: { $ref: "#/components/schemas/CounterpartyPage" }
 
-  /api/cases/{caseId}/transactions/{txId}:
+  /api/counterparties/{counterpartyId}:
     parameters:
-      - $ref: "#/components/parameters/CaseId"
-      - name: txId
-        in: path
-        required: true
-        schema: { type: string }
-    patch:
-      tags: [review]
-      operationId: recategorizeTransaction
-      description: Analyst override of a transaction's category (P1). Marks the analysis stale.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [category]
-              properties:
-                category: { $ref: "#/components/schemas/Category" }
-                riskTags:
-                  type: array
-                  items: { $ref: "#/components/schemas/RiskTag" }
-      responses:
-        "200":
-          description: Updated transaction
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/Transaction" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
-
-  /api/cases/{caseId}/invoices:
-    parameters:
-      - $ref: "#/components/parameters/CaseId"
+      - { name: counterpartyId, in: path, required: true, schema: { type: string, pattern: "^cp_[0-9a-f]{16}$" } }
     get:
-      tags: [analysis]
-      operationId: listInvoices
-      parameters:
-        - name: kind
-          in: query
-          schema: { type: string, enum: [SALES, PURCHASE, TAX] }
+      tags: [insight]
+      operationId: getCounterparty
       responses:
         "200":
-          description: Invoices with match status
+          description: Counterparty with totals per month and accounts seen
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Counterparty" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/suggestions:
+    get:
+      tags: [insight]
+      operationId: listSuggestions
+      parameters:
+        - { name: status, in: query, schema: { $ref: "#/components/schemas/SuggestionStatus" } }
+      responses:
+        "200":
+          description: Profile suggestions from documents
           content:
             application/json:
               schema:
                 type: object
                 required: [items]
                 properties:
-                  items:
-                    type: array
-                    items: { $ref: "#/components/schemas/Invoice" }
-        "404": { $ref: "#/components/responses/Problem" }
+                  items: { type: array, items: { $ref: "#/components/schemas/Suggestion" } }
 
-  /api/cases/{caseId}/counterparties:
+  /api/suggestions/{suggestionId}:
     parameters:
-      - $ref: "#/components/parameters/CaseId"
-    get:
-      tags: [analysis]
-      operationId: listCounterparties
-      description: Clients, suppliers and other parties derived by the current run.
-      parameters:
-        - name: role
-          in: query
-          schema: { $ref: "#/components/schemas/CounterpartyRole" }
-      responses:
-        "200":
-          description: Counterparties, largest flow first
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/CounterpartyList" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
-
-  /api/cases/{caseId}/memo:
-    parameters:
-      - $ref: "#/components/parameters/CaseId"
-    get:
-      tags: [analysis]
-      operationId: getMemo
-      responses:
-        "200":
-          description: Memo
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/Memo" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
-    put:
-      tags: [review]
-      operationId: updateMemo
-      description: Save analyst edits (P1). The grounding guard re-runs on save.
+      - { name: suggestionId, in: path, required: true, schema: { type: string, pattern: "^sug_[0-9a-f]{16}$" } }
+    patch:
+      tags: [insight]
+      operationId: decideSuggestion
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              type: object
-              required: [sections]
-              properties:
-                sections:
-                  type: array
-                  items: { $ref: "#/components/schemas/MemoSection" }
+            schema: { $ref: "#/components/schemas/SuggestionDecision" }
       responses:
         "200":
-          description: Saved memo with fresh grounding result
+          description: Decided
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/Memo" }
+              schema: { $ref: "#/components/schemas/Suggestion" }
         "404": { $ref: "#/components/responses/Problem" }
         "409": { $ref: "#/components/responses/Problem" }
 
-  /api/cases/{caseId}/decision:
-    parameters:
-      - $ref: "#/components/parameters/CaseId"
-    post:
-      tags: [review]
-      operationId: recordDecision
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/DecisionRequest" }
-      responses:
-        "200":
-          description: Case after the decision
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/Case" }
-        "403": { $ref: "#/components/responses/Problem" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
-        "422": { $ref: "#/components/responses/Problem" }
-
-  /api/cases/{caseId}/info-request/draft:
-    parameters:
-      - $ref: "#/components/parameters/CaseId"
-    post:
-      tags: [review]
-      operationId: draftInfoRequest
-      description: |
-        P1. Drafts a borrower-facing information request (missing coverage, doubtful documents) from
-        the current run's findings. Returned for the analyst to copy; nothing is sent.
-      responses:
-        "200":
-          description: Draft letter
-          content:
-            application/json:
-              schema:
-                type: object
-                required: [subject, body]
-                properties:
-                  subject: { type: string }
-                  body: { type: string, description: Plain text; no internal finding codes }
-        "404": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
-
-  /api/cases/{caseId}/events:
-    parameters:
-      - $ref: "#/components/parameters/CaseId"
+  /api/events:
     get:
-      tags: [review]
+      tags: [insight]
       operationId: listEvents
       parameters:
+        - { name: subject, in: query, schema: { type: string }, description: "Any record ID (document, month, item, finding, match)" }
+        - { name: type, in: query, schema: { type: string } }
         - $ref: "#/components/parameters/Limit"
         - $ref: "#/components/parameters/Cursor"
       responses:
@@ -940,70 +926,320 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/EventPage" }
-        "404": { $ref: "#/components/responses/Problem" }
 
-  /api/cases/{caseId}/assistant/messages:
-    parameters:
-      - $ref: "#/components/parameters/CaseId"
+  /api/runs:
     get:
-      tags: [assistant]
-      operationId: listAssistantMessages
+      tags: [insight]
+      operationId: listRuns
+      parameters:
+        - { name: kind, in: query, schema: { $ref: "#/components/schemas/RunKind" } }
+        - { name: target, in: query, schema: { type: string }, description: "docId or month" }
+        - { name: status, in: query, schema: { $ref: "#/components/schemas/RunStatus" } }
+        - { name: hasCorrections, in: query, schema: { type: boolean }, description: "Runs whose labels a person corrected (P1)" }
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
       responses:
         "200":
-          description: Conversation for the current user and case
+          description: Runs, newest first
           content:
             application/json:
-              schema:
-                type: object
-                required: [items]
-                properties:
-                  items:
-                    type: array
-                    items: { $ref: "#/components/schemas/AssistantMessage" }
+              schema: { $ref: "#/components/schemas/RunPage" }
+
+  /api/runs/{runId}:
+    parameters:
+      - { name: runId, in: path, required: true, schema: { type: string, pattern: "^run_[0-9A-HJKMNP-TV-Z]{26}$" } }
+    get:
+      tags: [insight]
+      operationId: getRun
+      description: Run with its stages (the run graph, P1, draws from stages).
+      responses:
+        "200":
+          description: Run
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Run" }
         "404": { $ref: "#/components/responses/Problem" }
+
+  /api/runs/{runId}/events:
+    parameters:
+      - { name: runId, in: path, required: true, schema: { type: string, pattern: "^run_[0-9A-HJKMNP-TV-Z]{26}$" } }
+    get:
+      tags: [insight]
+      operationId: listRunEvents
+      description: |
+        P1 (spec 017). The run's agent events from the BigQuery Agent Analytics table: LLM requests and
+        responses, tool calls, node outputs and errors, with span IDs, latency and tokens, joined to the
+        labels the run produced and any person's correction of them. Prompt and response content is
+        included only when the deployment captures content (synthetic data, ADR-017); otherwise
+        `content` is null.
+      responses:
+        "200":
+          description: Events in time order
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AgentEventPage" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  # ------------------------------------------------------------------ labels (spec 016)
+  /api/labels:
+    get:
+      tags: [labels]
+      operationId: listLabels
+      description: Every AI decision a person can check, with its confidence, source, status and dataset use.
+      parameters:
+        - { name: task, in: query, schema: { $ref: "#/components/schemas/LabelTask" } }
+        - { name: status, in: query, schema: { $ref: "#/components/schemas/LabelStatus" } }
+        - { name: needsCheck, in: query, schema: { type: boolean } }
+        - { name: docId, in: query, schema: { type: string } }
+        - $ref: "#/components/parameters/MonthQuery"
+        - { name: datasetUse, in: query, schema: { $ref: "#/components/schemas/DatasetUse" } }
+        - { name: sort, in: query, schema: { type: string, enum: [confidence, newest], default: confidence } }
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
+      responses:
+        "200":
+          description: Labels and a summary of what people checked
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LabelPage" }
+
+  /api/labels/{labelId}:
+    parameters:
+      - $ref: "#/components/parameters/LabelId"
+    get:
+      tags: [labels]
+      operationId: getLabel
+      responses:
+        "200":
+          description: Label
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Label" }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/labels/{labelId}/decision:
+    parameters:
+      - $ref: "#/components/parameters/LabelId"
     post:
-      tags: [assistant]
-      operationId: askAssistant
+      tags: [labels]
+      operationId: decideLabel
+      description: |
+        A person confirms the AI's value (VERIFIED) or replaces it (CORRECTED). Writes an event; a
+        CATEGORY or DOC_TYPE change marks the affected months dirty. A later AI run never overwrites a
+        person's decision. `applyToSimilar` turns a category correction into a workspace rule.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LabelDecision" }
+      responses:
+        "200":
+          description: Updated label
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Label" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/labels/bulk-confirm:
+    post:
+      tags: [labels]
+      operationId: bulkConfirmLabels
+      description: Confirm up to 200 labels as the AI proposed them (VERIFIED). Corrections are always one by one.
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [text]
+              required: [labelIds]
               properties:
-                text: { type: string, minLength: 1, maxLength: 2000 }
+                labelIds: { type: array, minItems: 1, maxItems: 200, items: { type: string, pattern: "^lbl_[0-9a-f]{16}$" } }
       responses:
         "200":
-          description: Assistant reply
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/AssistantMessage" }
-        "404": { $ref: "#/components/responses/Problem" }
-        "409": { $ref: "#/components/responses/Problem" }
-
-  /tasks/analyze-case:
-    post:
-      tags: [internal]
-      operationId: runAnalyzeCaseTask
-      description: Worker only. Invoked by Cloud Tasks with an OIDC token. Not mounted on kredibel-web.
-      security:
-        - cloudTasksOidc: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/AnalyzeCaseTask" }
-      responses:
-        "200":
-          description: Done, already done, or stale
+          description: Count updated
           content:
             application/json:
               schema:
                 type: object
+                required: [updated]
                 properties:
-                  ok: { type: boolean }
-                  skipped: { type: string, enum: [stale, finished] }
+                  updated: { type: integer }
+
+  /api/dataset-exports:
+    get:
+      tags: [labels]
+      operationId: listDatasetExports
+      description: P2. Versioned exports of verified labels for tuning and evals.
+      responses:
+        "200":
+          description: Exports, newest first
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/DatasetExport" } }
+    post:
+      tags: [labels]
+      operationId: createDatasetExport
+      description: |
+        P2. Owner only. Writes JSONL (Gemini tuning format) to Cloud Storage and a table to BigQuery from
+        VERIFIED and CORRECTED labels, masked by learning.v1.yaml. Refused without the workspace's
+        consent (403 CONSENT_REQUIRED) or below the minimum examples per task (422).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tasks]
+              properties:
+                tasks: { type: array, minItems: 1, items: { $ref: "#/components/schemas/LabelTask" } }
+      responses:
+        "202":
+          description: Export started
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DatasetExport" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  # ------------------------------------------------------------------ assistant (P1)
+  /api/assistant/threads:
+    get:
+      tags: [assistant]
+      operationId: listThreads
+      responses:
+        "200":
+          description: The caller's threads, newest first
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/Thread" } }
+    post:
+      tags: [assistant]
+      operationId: createThread
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ThreadCreate" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Thread" }
+
+  /api/assistant/threads/{threadId}/messages:
+    parameters:
+      - { name: threadId, in: path, required: true, schema: { type: string, pattern: "^thr_[0-9A-HJKMNP-TV-Z]{26}$" } }
+    get:
+      tags: [assistant]
+      operationId: listMessages
+      responses:
+        "200":
+          description: Messages, oldest first
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/AssistantMessage" } }
+        "404": { $ref: "#/components/responses/Problem" }
+    post:
+      tags: [assistant]
+      operationId: ask
+      description: |
+        Ask a question. The answer is checked by the grounding guard before it is returned.
+        With `Accept: text/event-stream` the parts are streamed as `part` events and a final `done` event.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AskRequest" }
+      responses:
+        "200":
+          description: Answer
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AssistantMessage" }
+            text/event-stream:
+              schema: { type: string }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "429": { $ref: "#/components/responses/Problem" }
+
+  /api/assistant/memories:
+    get:
+      tags: [assistant]
+      operationId: listMemories
+      description: Preferences the assistant remembers for this user in this workspace (Memory Bank).
+      responses:
+        "200":
+          description: Memories
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/Memory" } }
+    delete:
+      tags: [assistant]
+      operationId: forgetMemories
+      description: Forget everything remembered for this user in this workspace.
+      responses:
+        "204": { description: Forgotten }
+
+  # ------------------------------------------------------------------ internal
+  /tasks/process-document:
+    post:
+      tags: [internal]
+      operationId: taskProcessDocument
+      security:
+        - cloudTasksOidc: []
+      description: kredibel-worker only. Runs document_workflow. Idempotent by runId.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProcessDocumentTask" }
+      responses:
+        "200":
+          description: Done, already done, or skipped
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TaskResult" }
+        "500":
+          description: Failed; Cloud Tasks will retry
+
+  /tasks/reconcile-month:
+    post:
+      tags: [internal]
+      operationId: taskReconcileMonth
+      security:
+        - cloudTasksOidc: []
+      description: |
+        kredibel-worker only. Runs month_workflow. Task name month-{orgId}-{yyyy-mm}-{generation};
+        a run whose generation is older than the month's current generation ends SUPERSEDED.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReconcileMonthTask" }
+      responses:
+        "200":
+          description: Done, already done, or superseded
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TaskResult" }
         "500":
           description: Failed; Cloud Tasks will retry
 
@@ -1019,21 +1255,48 @@ components:
       bearerFormat: Google-signed OIDC token (verified by Cloud Run IAM)
 
   parameters:
-    CaseId:
-      name: caseId
-      in: path
-      required: true
-      schema: { type: string, pattern: "^case_[0-9A-HJKMNP-TV-Z]{26}$" }
-    ApplicantId:
-      name: applicantId
-      in: path
-      required: true
-      schema: { type: string, pattern: "^apl_[0-9A-HJKMNP-TV-Z]{26}$" }
     DocId:
       name: docId
       in: path
       required: true
       schema: { type: string, pattern: "^doc_[0-9A-HJKMNP-TV-Z]{26}$" }
+    AccountId:
+      name: accountId
+      in: path
+      required: true
+      schema: { type: string, pattern: "^acc_[0-9a-f]{16}$" }
+    LabelId:
+      name: labelId
+      in: path
+      required: true
+      schema: { type: string, pattern: "^lbl_[0-9a-f]{16}$" }
+    ItemId:
+      name: itemId
+      in: path
+      required: true
+      schema: { type: string, pattern: "^itm_[0-9a-f]{16}$" }
+    Month:
+      name: month
+      in: path
+      required: true
+      schema: { type: string, pattern: "^\\d{4}-(0[1-9]|1[0-2])$", examples: ["2026-03"] }
+    MonthQuery:
+      name: month
+      in: query
+      schema: { type: string, pattern: "^\\d{4}-(0[1-9]|1[0-2])$" }
+    Framework:
+      name: framework
+      in: query
+      description: Accounting framework for classes and wording; defaults to the workspace's profile.accountingFramework. Does not change the setting.
+      schema: { $ref: "#/components/schemas/AccountingFramework" }
+    Period:
+      name: period
+      in: query
+      description: "A month (2026-03), quarter (2026-Q1), year (2026), range (2026-01..2026-06) or all"
+      schema:
+        type: string
+        default: all
+        pattern: "^(all|\\d{4}|\\d{4}-Q[1-4]|\\d{4}-(0[1-9]|1[0-2])|\\d{4}-(0[1-9]|1[0-2])\\.\\.\\d{4}-(0[1-9]|1[0-2]))$"
     Limit:
       name: limit
       in: query
@@ -1058,6 +1321,8 @@ components:
       properties:
         amount: { type: string, pattern: "^-?\\d+\\.\\d{2}$", examples: ["1250000.00"] }
         currency: { type: string, minLength: 3, maxLength: 3, examples: ["IDR"] }
+    YearMonth: { type: string, pattern: "^\\d{4}-(0[1-9]|1[0-2])$" }
+    Decimal: { type: string, pattern: "^-?\\d+(\\.\\d+)?$" }
     BBox:
       type: object
       description: Normalized to the page, origin top-left, 0..1
@@ -1075,59 +1340,103 @@ components:
         bbox: { $ref: "#/components/schemas/BBox" }
         txId: { type: string }
         invoiceId: { type: string }
+        receiptId: { type: string }
+        ledgerEntryId: { type: string }
+        matchId: { type: string }
         factId: { type: string }
         label: { type: string }
-    Provenance:
+    ValueReading:
       type: object
-      required: [docId, page, sources, status]
+      description: How one value was read (docs/07 §6).
+      required: [status]
       properties:
-        docId: { type: string }
+        status: { $ref: "#/components/schemas/ValueStatus" }
+        sources: { type: array, items: { $ref: "#/components/schemas/ReadingSource" } }
         page: { type: integer }
         bbox: { $ref: "#/components/schemas/BBox" }
-        sources:
-          type: array
-          description: Sources that agree on the chosen value. DOCAI = Form/Invoice Parser (escalation or thorough mode).
-          items: { $ref: "#/components/schemas/ReadingSource" }
-        status: { type: string, enum: [AGREED, CONFLICT, SINGLE_SOURCE, MISSING] }
         raw:
           type: object
+          description: 'Each source''s raw reading, e.g. {"GEMINI": "7.250.000,00", "TEXT_LAYER": "7.250.000,00"}'
           additionalProperties: { type: [string, "null"] }
+    Fact:
+      type: object
+      required: [factId, value]
+      properties:
+        factId: { type: string, examples: ["fact:2026-03:money_in"] }
+        value:
+          oneOf:
+            - { $ref: "#/components/schemas/Money" }
+            - { $ref: "#/components/schemas/Decimal" }
+            - { type: integer }
+        inputs: { type: array, items: { type: string }, description: "Fact or record IDs it was computed from" }
+    Problem:
+      type: object
+      required: [type, title, status, code]
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        code:
+          type: string
+          enum: [UNAUTHENTICATED, WORKSPACE_REQUIRED, ROLE_REQUIRED, SIGNUP_CLOSED, ALREADY_IN_WORKSPACE,
+                 TRIAL_EXPIRED, PLAN_LIMIT_REACHED, LANGUAGE_NOT_AVAILABLE, NOT_FOUND, VALIDATION_ERROR,
+                 UNSUPPORTED_MEDIA_TYPE, DOCUMENT_TOO_LARGE, TOO_MANY_PAGES, TOO_MANY_ROWS, ENCRYPTED_DOCUMENT,
+                 ACTION_NOT_ALLOWED, ITEM_ALREADY_RESOLVED, MATCH_AMOUNT_MISMATCH, ALREADY_MATCHED,
+                 REASON_REQUIRED, SUGGESTION_ALREADY_DECIDED, MONTH_LOCKED, RUN_QUOTA_EXCEEDED,
+                 RUNS_DISABLED, LAST_OWNER, INTERNAL]
+        instance: { type: string }
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field: { type: string }
+              message: { type: string }
+        limit: { type: string }
+        used: { type: integer }
+        max: { type: integer }
+        trialEndsAt: { type: string, format: date-time }
+        retryAfterSeconds: { type: integer }
+        requiredRoles: { type: array, items: { $ref: "#/components/schemas/Role" } }
+        allowedActions: { type: array, items: { $ref: "#/components/schemas/ResolveAction" } }
+        difference: { $ref: "#/components/schemas/Money" }
+        matchIds: { type: array, items: { type: string } }
+        maxPages: { type: integer }
+        splitAvailable: { type: boolean }
 
     # ---------- enums ----------
-    Role: { type: string, enum: [analyst, risk_lead, admin] }
-    ReadingSource: { type: string, enum: [GEMINI, TEXT_LAYER, OCR, DOCAI] }
-    ApplicantType: { type: string, enum: [INDIVIDUAL, COMPANY] }
-    LegalForm: { type: string, enum: [LIMITED_COMPANY, PARTNERSHIP, COOPERATIVE, OTHER] }
+    Role: { type: string, enum: [owner, accountant, reviewer, viewer] }
+    EntityType: { type: string, enum: [INDIVIDUAL, COMPANY] }
+    LegalForm: { type: string, enum: [LIMITED_COMPANY, PARTNERSHIP, SOLE_PROPRIETOR, COOPERATIVE, OTHER] }
     PlanStatus: { type: string, enum: [AVAILABLE, COMING_SOON] }
     SubscriptionStatus: { type: string, enum: [TRIALING, TRIAL_EXPIRED, ACTIVE] }
-    SuggestionStatus: { type: string, enum: [PENDING, ACCEPTED, REJECTED, CONFLICT] }
-    SuggestionField:
-      type: string
-      enum: [BANK_ACCOUNT, TAX_ID, ADDRESS, LEGAL_NAME, RELATED_PARTY, KEY_CLIENT, KEY_SUPPLIER]
-    CounterpartyRole:
-      type: string
-      enum: [CLIENT, SUPPLIER, LENDER, OWN_ACCOUNT, RELATED_PARTY, GOVERNMENT, OTHER_PAYEE, OTHER_PAYER]
-    CaseStatus:
-      type: string
-      enum: [DRAFT, PROCESSING, READY_FOR_REVIEW, ESCALATED, APPROVED, DECLINED, INFO_REQUESTED, FAILED]
+    ReadingSource: { type: string, enum: [GEMINI, TEXT_LAYER, OCR, DOCAI, PARSER] }
+    ReadingMethod: { type: string, enum: [AI_TEXT_LAYER, AI_OCR, AI_MIXED, LEDGER_PARSER] }
+    ValueStatus: { type: string, enum: [AGREED, CONFLICT, SINGLE_SOURCE, MISSING] }
     DocType:
       type: string
-      enum: [BANK_STATEMENT, SALES_INVOICE, PURCHASE_INVOICE, TAX_INVOICE, RECEIPT, OTHER, UNKNOWN]
+      enum: [BANK_STATEMENT, SALES_INVOICE, PURCHASE_INVOICE, RECEIPT, LEDGER_EXPORT, OTHER, UNKNOWN]
     DocStatus:
       type: string
-      enum: [UPLOADED, SCREENING, INSPECTING, CLASSIFYING, EXTRACTING, CHECKING, DONE, SKIPPED, FAILED, QUARANTINED]
+      enum: [UPLOADED, SCREENING, READING, CHECKING, DONE, DUPLICATE, NEEDS_INPUT, FAILED, QUARANTINED]
+    DuplicateKind: { type: string, enum: [EXACT, CONTENT] }
+    DuplicateDecision: { type: string, enum: [PENDING, CONFIRMED, REJECTED] }
     Verdict: { type: string, enum: [CLEAN, SUSPICIOUS, TAMPERED, UNVERIFIABLE] }
+    RiskLevel: { type: string, enum: [LOW, MEDIUM, HIGH, CRITICAL] }
     Severity: { type: string, enum: [CRITICAL, HIGH, MEDIUM, LOW, INFO] }
     FindingCategory:
       type: string
-      enum: [SCREENING, EXTRACTION, ARITHMETIC, STRUCTURE, VISUAL, CROSS_DOCUMENT, RECONCILIATION, CASHFLOW, BEHAVIOURAL]
-    FindingStatus: { type: string, enum: [OPEN, ACKNOWLEDGED, DISMISSED] }
+      enum: [SCREENING, EXTRACTION, DUPLICATE, ARITHMETIC, STRUCTURE, VISUAL, CROSS_DOCUMENT, RECONCILIATION, BEHAVIOURAL]
+    FindingScope: { type: string, enum: [DOCUMENT, MONTH] }
+    FindingStatus: { type: string, enum: [OPEN, ACKNOWLEDGED, DISMISSED, RESOLVED] }
     CashflowClass: { type: string, enum: [OPERATING, INVESTING, FINANCING, NON_CASH, UNCLASSIFIED] }
     Category:
       type: string
       enum:
         - SALES_RECEIPT
         - OTHER_OPERATING_INCOME
+        - INVENTORY_PURCHASE
         - SUPPLIER_PAYMENT
         - PAYROLL
         - RENT
@@ -1135,6 +1444,8 @@ components:
         - TAX_PAYMENT
         - BANK_FEES
         - OTHER_OPERATING_EXPENSE
+        - INTEREST_RECEIVED
+        - INTEREST_PAID
         - ASSET_SALE
         - ASSET_PURCHASE
         - LOAN_DISBURSEMENT
@@ -1147,9 +1458,45 @@ components:
     RiskTag:
       type: string
       enum: [GAMBLING, CRYPTO, P2P_LENDING, CASH_DEPOSIT, CASH_WITHDRAWAL, RETURNED_ITEM, ROUND_TRIP]
-    Recommendation: { type: string, enum: [APPROVE, APPROVE_WITH_CONDITIONS, REFER, DECLINE] }
-    Grade: { type: string, enum: [A, B, C, D, E] }
-    DecisionOutcome: { type: string, enum: [APPROVE, DECLINE, REQUEST_INFO, ESCALATE] }
+    MatchState: { type: string, enum: [UNMATCHED, AUTO, MANUAL, PROPOSED, EXCLUDED] }
+    MatchKind:
+      type: string
+      enum: [BANK_SALES_INVOICE, BANK_PURCHASE_INVOICE, BANK_RECEIPT, BANK_LEDGER, DOCUMENT_LEDGER]
+    MatchStatus: { type: string, enum: [CONFIRMED, PROPOSED, REJECTED] }
+    MatchReason: { type: string, enum: [AMOUNT_EXACT, NET_OF_TAX, PARTY_MATCH, REFERENCE_IN_TEXT, DATE_NEAR, SPLIT] }
+    PaymentState: { type: string, enum: [UNPAID, PAID, PARTIAL, NOT_DUE, WAITING_FOR_STATEMENT] }
+    MonthState: { type: string, enum: [COLLECTING, RECONCILING, NEEDS_REVIEW, RECONCILED, SIGNED_OFF] }
+    ReviewItemKind:
+      type: string
+      enum: [UNMATCHED_BANK_LINE, UNMATCHED_DOCUMENT, PROPOSED_MATCH, POSSIBLE_DUPLICATE,
+             LOW_CONFIDENCE_VALUE, LEDGER_DIFFERENCE, CONFIRM_TYPE, CONFIRM_LEDGER_MAPPING]
+    ReviewItemStatus: { type: string, enum: [OPEN, RESOLVED, DISMISSED] }
+    ResolveAction:
+      type: string
+      enum: [CONFIRM_MATCH, MATCH, REJECT_MATCH, NO_DOCUMENT_NEEDED, NOT_YET_PAID, IGNORE,
+             CONFIRM_DUPLICATE, NOT_DUPLICATE, CORRECT_VALUE, ACCEPT_AS_READ, EXPLAIN, SET_TYPE,
+             CONFIRM_MAPPING]
+    SuggestionField: { type: string, enum: [BANK_ACCOUNT, TAX_ID, ADDRESS, ALIAS, RELATED_PARTY] }
+    SuggestionStatus: { type: string, enum: [PENDING, CONFLICT, ACCEPTED, REJECTED] }
+    CounterpartyRole: { type: string, enum: [CLIENT, SUPPLIER, LENDER, OWNER, OWN_ACCOUNT, RELATED_PARTY, GOVERNMENT, OTHER] }
+    CounterpartyKind: { type: string, enum: [PERSON, BUSINESS, GOVERNMENT, BANK, UNKNOWN] }
+    Grounding: { type: string, enum: [VERIFIED, TEMPLATE] }
+    RunKind: { type: string, enum: [DOCUMENT, MONTH] }
+    RunStatus: { type: string, enum: [QUEUED, RUNNING, DONE, FAILED, SUPERSEDED] }
+    AccountingFramework:
+      type: string
+      enum: [IFRS, US_GAAP]
+      description: Decides each category's cash-flow class (contracts/policy/categories.v1.yaml)
+    PageType:
+      type: string
+      enum: [STATEMENT_TRANSACTIONS, STATEMENT_SUMMARY, INVOICE, RECEIPT, LEDGER_TABLE, TERMS_OR_COVER, BLANK, OTHER]
+    LabelTask: { type: string, enum: [DOC_TYPE, PAGE_TYPE, CATEGORY, COUNTERPARTY_ROLE, FIELD_VALUE] }
+    LabelStatus:
+      type: string
+      enum: [AI_PROPOSED, VERIFIED, CORRECTED]
+      description: VERIFIED = a person confirmed the AI's value; CORRECTED = a person replaced it
+    LabelSource: { type: string, enum: [MODEL, RULE, MATCH, PERSON] }
+    DatasetUse: { type: string, enum: [TRAIN, EVAL, EXCLUDED] }
 
     # ---------- system ----------
     Health:
@@ -1158,7 +1505,6 @@ components:
       properties:
         status: { type: string, enum: [ok] }
         version: { type: string }
-        role: { type: string, enum: [web, worker] }
     Me:
       type: object
       required: [uid, orgId, needsWorkspace]
@@ -1168,62 +1514,30 @@ components:
         displayName: { type: string }
         orgId: { type: [string, "null"] }
         role: { $ref: "#/components/schemas/Role" }
-        needsWorkspace: { type: boolean, description: "true when the user has no workspace yet" }
+        needsWorkspace: { type: boolean }
         language: { type: string, enum: [en], default: en }
         workspace:
           type: [object, "null"]
           properties:
             name: { type: string }
+            entityType: { $ref: "#/components/schemas/EntityType" }
             planId: { type: string }
             subscriptionStatus: { $ref: "#/components/schemas/SubscriptionStatus" }
-            trialEndsAt: { type: [string, "null"], format: date-time }
-        pendingInvites:
-          type: array
-          description: P1. Invites addressed to the user's verified email.
-          items:
-            type: object
-            properties:
-              inviteId: { type: string }
-              workspaceName: { type: string }
-              role: { $ref: "#/components/schemas/Role" }
-    Policy:
-      type: object
-      description: Parsed contents of contracts/policy/scorecard.v1.yaml
-      required: [version]
-      properties:
-        version: { type: integer }
-      additionalProperties: true
-    Problem:
-      type: object
-      required: [title, status, code]
-      properties:
-        type: { type: string }
-        title: { type: string }
-        status: { type: integer }
-        detail: { type: string }
-        code: { type: string }
-        instance: { type: string }
-        errors:
-          type: array
-          items:
-            type: object
-            properties:
-              field: { type: string }
-              message: { type: string }
-      additionalProperties: true
+            trialDaysLeft: { type: integer }
 
-    # ---------- workspace & plans ----------
+    # ---------- plans ----------
     PlanLimits:
       type: object
       properties:
         seats: { type: integer }
-        casesPerMonth: { type: integer }
-        documentsPerCase: { type: integer }
+        documentsPerMonth: { type: integer }
         pagesPerDocument: { type: integer }
         fileSizeMb: { type: integer }
         extractedPagesPerMonth: { type: integer }
-        runsPerDay: { type: integer }
+        ledgerRowsPerFile: { type: integer }
+        monthRunsPerDay: { type: integer }
         aiSpendUsdPerMonth: { type: string, pattern: "^\\d+\\.\\d{2}$" }
+        assistantQuestionsPerDay: { type: integer }
     Plan:
       type: object
       required: [id, label, status, highlights]
@@ -1233,13 +1547,16 @@ components:
         status: { $ref: "#/components/schemas/PlanStatus" }
         priceLabel: { type: string }
         trialDays: { type: [integer, "null"] }
-        highlights:
-          type: array
-          items: { type: string }
+        highlights: { type: array, items: { type: string } }
         limits: { $ref: "#/components/schemas/PlanLimits" }
-        features:
-          type: object
-          additionalProperties: true
+        features: { type: object, additionalProperties: true }
+    ComingSoonFeature:
+      type: object
+      required: [id, label]
+      properties:
+        id: { type: string, examples: [loan_readiness_report] }
+        label: { type: string }
+        description: { type: string }
     Language:
       type: object
       required: [code, label, status]
@@ -1251,68 +1568,97 @@ components:
       type: object
       required: [plans, languages]
       properties:
-        plans:
-          type: array
-          items: { $ref: "#/components/schemas/Plan" }
-        languages:
-          type: array
-          items: { $ref: "#/components/schemas/Language" }
-    PolicyOverrides:
-      type: object
-      description: P1. Bounded by policyOverrideBounds in contracts/plans.v1.yaml.
-      properties:
-        assumedAnnualRate: { type: string, pattern: "^0\\.\\d{2,4}$" }
-        targetDscr: { type: string, pattern: "^\\d\\.\\d{2}$" }
-        requiredMonths: { type: integer, minimum: 3, maximum: 12 }
-        minMonths: { type: integer, minimum: 1, maximum: 12 }
-    UsageSummary:
+        plans: { type: array, items: { $ref: "#/components/schemas/Plan" } }
+        comingSoonFeatures: { type: array, items: { $ref: "#/components/schemas/ComingSoonFeature" } }
+        languages: { type: array, items: { $ref: "#/components/schemas/Language" } }
+
+    # ---------- workspace ----------
+    Address:
       type: object
       properties:
-        month: { type: string, pattern: "^\\d{4}-\\d{2}$" }
-        casesCreated: { type: integer }
-        extractedPages: { type: integer, description: "Pages reserved or read this month, cache hits excluded" }
-        runsToday: { type: integer }
-        aiSpendUsd: { type: string }
-        seatsUsed: { type: integer }
+        line1: { type: string, maxLength: 200 }
+        city: { type: string, maxLength: 100 }
+    WorkspaceProfile:
+      type: object
+      properties:
+        legalName: { type: string, maxLength: 200 }
+        tradingName: { type: string, maxLength: 200 }
+        legalForm: { $ref: "#/components/schemas/LegalForm" }
+        industry: { type: string, maxLength: 100 }
+        taxIdMasked: { type: string, readOnly: true }
+        address: { $ref: "#/components/schemas/Address" }
+        aliases: { type: array, items: { type: string }, maxItems: 10 }
+        accountingFramework: { $ref: "#/components/schemas/AccountingFramework" }
+    LearningSettings:
+      type: object
+      properties:
+        shareVerifiedLabels:
+          type: boolean
+          default: false
+          description: Consent to use this workspace's verified labels, masked, in Kredibel's tuning datasets (P2). Off by default.
+    WorkspaceCreate:
+      type: object
+      required: [name, entityType, timezone]
+      properties:
+        name: { type: string, minLength: 2, maxLength: 100 }
+        entityType: { $ref: "#/components/schemas/EntityType" }
+        profile: { $ref: "#/components/schemas/WorkspaceProfile" }
+        taxId: { type: string, maxLength: 30, writeOnly: true, description: "Stored masked" }
+        country: { type: string, enum: [ID], default: ID }
+        timezone: { type: string, examples: [Asia/Jakarta] }
+        bankAccounts:
+          type: array
+          maxItems: 5
+          items: { $ref: "#/components/schemas/BankAccountCreate" }
+    WorkspaceUpdate:
+      type: object
+      properties:
+        name: { type: string, minLength: 2, maxLength: 100 }
+        profile: { $ref: "#/components/schemas/WorkspaceProfile" }
+        taxId: { type: string, maxLength: 30, writeOnly: true }
+        timezone: { type: string }
+        defaultLanguage: { type: string, enum: [en] }
+        learning: { $ref: "#/components/schemas/LearningSettings" }
     SubscriptionState:
       type: object
       required: [planId, status]
       properties:
         planId: { type: string }
         status: { $ref: "#/components/schemas/SubscriptionStatus" }
-        trialStartedAt: { type: [string, "null"], format: date-time }
-        trialEndsAt: { type: [string, "null"], format: date-time }
-        daysLeft: { type: [integer, "null"] }
+        trialEndsAt: { type: string, format: date-time }
+        trialDaysLeft: { type: integer }
         limits: { $ref: "#/components/schemas/PlanLimits" }
-    WorkspaceCreate:
-      type: object
-      required: [name, country, timezone]
-      properties:
-        name: { type: string, minLength: 2, maxLength: 80 }
-        country: { type: string, enum: [ID], description: "More markets are coming soon" }
-        timezone: { type: string, enum: [Asia/Jakarta, Asia/Makassar, Asia/Jayapura] }
-    WorkspaceUpdate:
+    UsageSummary:
       type: object
       properties:
-        name: { type: string, minLength: 2, maxLength: 80 }
-        timezone: { type: string, enum: [Asia/Jakarta, Asia/Makassar, Asia/Jayapura] }
-        defaultLanguage: { type: string, enum: [en] }
-        policyOverrides: { $ref: "#/components/schemas/PolicyOverrides" }
+        month: { $ref: "#/components/schemas/YearMonth" }
+        documentsUploaded: { type: integer }
+        extractedPages: { type: integer, description: "Pages reserved or read; cache hits and duplicates excluded" }
+        monthRunsToday: { type: integer }
+        assistantQuestionsToday: { type: integer }
+        aiSpendUsd: { type: string }
+        seatsUsed: { type: integer }
     Workspace:
       type: object
-      required: [orgId, name, country, timezone, defaultLanguage, currency, subscription, createdAt]
+      required: [orgId, name, entityType, currency, timezone, subscription]
       properties:
         orgId: { type: string }
         name: { type: string }
+        entityType: { $ref: "#/components/schemas/EntityType" }
+        profile: { $ref: "#/components/schemas/WorkspaceProfile" }
         country: { type: string }
         timezone: { type: string }
-        defaultLanguage: { type: string, enum: [en] }
-        currency: { type: string, enum: [IDR] }
-        policyVersion: { type: string }
-        policyOverrides: { $ref: "#/components/schemas/PolicyOverrides" }
+        currency: { type: string }
+        defaultLanguage: { type: string }
         subscription: { $ref: "#/components/schemas/SubscriptionState" }
         usage: { $ref: "#/components/schemas/UsageSummary" }
-        createdAt: { type: string, format: date-time }
+        learning: { $ref: "#/components/schemas/LearningSettings" }
+        counts:
+          type: object
+          properties:
+            documents: { type: integer }
+            openReviewItems: { type: integer }
+            openFindingsBySeverity: { type: object, additionalProperties: { type: integer } }
     Member:
       type: object
       required: [uid, role]
@@ -1321,7 +1667,7 @@ components:
         email: { type: string }
         displayName: { type: string }
         role: { $ref: "#/components/schemas/Role" }
-        joinedAt: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
     InviteCreate:
       type: object
       required: [email, role]
@@ -1336,64 +1682,28 @@ components:
         email: { type: string }
         role: { $ref: "#/components/schemas/Role" }
         status: { type: string, enum: [PENDING, ACCEPTED, REVOKED, EXPIRED] }
+        link: { type: string }
         expiresAt: { type: string, format: date-time }
     MemberList:
       type: object
       required: [members, invites]
       properties:
-        members:
-          type: array
-          items: { $ref: "#/components/schemas/Member" }
-        invites:
-          type: array
-          items: { $ref: "#/components/schemas/Invite" }
-
-    # ---------- applicants ----------
-    Address:
-      type: object
-      properties:
-        line1: { type: string, maxLength: 160 }
-        line2: { type: string, maxLength: 160 }
-        city: { type: string, maxLength: 80 }
-        province: { type: string, maxLength: 80 }
-        postalCode: { type: string, maxLength: 12 }
-        country: { type: string, minLength: 2, maxLength: 2, examples: [ID] }
-    IndividualProfile:
-      type: object
-      required: [fullName, industry]
-      properties:
-        fullName: { type: string, minLength: 2, maxLength: 120 }
-        tradingName: { type: string, maxLength: 120, description: "For sole traders, e.g. a shop name" }
-        occupation: { type: string, maxLength: 120 }
-        industry: { type: string, minLength: 2, maxLength: 120 }
-        yearsOperating: { type: integer, minimum: 0, maximum: 100 }
-        idLast4: { type: string, pattern: "^\\d{4}$", description: "Last 4 digits of the national ID only" }
-    CompanyProfile:
-      type: object
-      required: [legalName, legalForm, industry, yearsOperating]
-      properties:
-        legalName: { type: string, minLength: 2, maxLength: 160 }
-        tradingName: { type: string, maxLength: 120 }
-        legalForm: { $ref: "#/components/schemas/LegalForm" }
-        registrationNumber: { type: string, maxLength: 40 }
-        taxId: { type: string, maxLength: 32 }
-        industry: { type: string, minLength: 2, maxLength: 120 }
-        yearsOperating: { type: integer, minimum: 0, maximum: 100 }
-        website: { type: string, maxLength: 200 }
-    Contact:
-      type: object
-      properties:
-        email: { type: string, format: email }
-        phone: { type: string, maxLength: 32 }
-    BankAccountInput:
+        members: { type: array, items: { $ref: "#/components/schemas/Member" } }
+        invites: { type: array, items: { $ref: "#/components/schemas/Invite" } }
+    BankAccountCreate:
       type: object
       required: [bankName, accountNumber, holderName]
       properties:
-        bankName: { type: string, minLength: 2, maxLength: 120 }
-        accountNumber: { type: string, pattern: "^[0-9 -]{6,34}$", writeOnly: true, description: "Never returned; stored as mask + hash" }
-        holderName: { type: string, minLength: 2, maxLength: 160 }
-        currency: { type: string, default: IDR }
-        purpose: { type: string, enum: [OPERATING, PAYROLL, SAVINGS, OTHER], default: OPERATING }
+        bankName: { type: string, maxLength: 100 }
+        accountNumber: { type: string, pattern: "^[0-9 -]{6,30}$", writeOnly: true }
+        holderName: { type: string, maxLength: 200 }
+        nickname: { type: string, maxLength: 50 }
+        ledgerAccountCode: { type: string, maxLength: 30 }
+    BankAccountUpdate:
+      type: object
+      properties:
+        nickname: { type: string, maxLength: 50 }
+        ledgerAccountCode: { type: [string, "null"], maxLength: 30 }
     BankAccount:
       type: object
       required: [accountId, bankName, accountMasked, holderName, source]
@@ -1402,782 +1712,947 @@ components:
         bankName: { type: string }
         accountMasked: { type: string, examples: ["••••4821"] }
         holderName: { type: string }
-        currency: { type: string }
-        purpose: { type: string, enum: [OPERATING, PAYROLL, SAVINGS, OTHER] }
+        nickname: { type: string }
         source: { type: string, enum: [DECLARED, DETECTED] }
-        addedAt: { type: string, format: date-time }
-    RelatedPartyInput:
-      type: object
-      required: [name, kind, roles]
-      properties:
-        name: { type: string, minLength: 2, maxLength: 160 }
-        kind: { type: string, enum: [INDIVIDUAL, COMPANY] }
-        roles:
-          type: array
-          minItems: 1
-          items: { type: string, enum: [BENEFICIAL_OWNER, DIRECTOR, SHAREHOLDER, GUARANTOR, AUTHORIZED_SIGNATORY] }
-        ownershipPct: { type: string, pattern: "^\\d{1,3}(\\.\\d{1,2})?$" }
-        idLast4: { type: string, pattern: "^\\d{4}$" }
-    RelatedParty:
-      allOf:
-        - $ref: "#/components/schemas/RelatedPartyInput"
-        - type: object
-          required: [partyId, source]
-          properties:
-            partyId: { type: string }
-            source: { type: string, enum: [DECLARED, DETECTED] }
-    ApplicantCreate:
-      type: object
-      description: Exactly one of `individual` (type INDIVIDUAL) or `company` (type COMPANY) is required.
-      required: [type]
-      properties:
-        type: { $ref: "#/components/schemas/ApplicantType" }
-        individual: { $ref: "#/components/schemas/IndividualProfile" }
-        company: { $ref: "#/components/schemas/CompanyProfile" }
-        address: { $ref: "#/components/schemas/Address" }
-        contact: { $ref: "#/components/schemas/Contact" }
-        bankAccounts:
-          type: array
-          maxItems: 10
-          items: { $ref: "#/components/schemas/BankAccountInput" }
-        relatedParties:
-          type: array
-          maxItems: 20
-          items: { $ref: "#/components/schemas/RelatedPartyInput" }
-    ApplicantUpdate:
-      type: object
-      properties:
-        individual: { $ref: "#/components/schemas/IndividualProfile" }
-        company: { $ref: "#/components/schemas/CompanyProfile" }
-        address: { $ref: "#/components/schemas/Address" }
-        contact: { $ref: "#/components/schemas/Contact" }
-    Applicant:
-      type: object
-      required: [applicantId, type, displayName, bankAccounts, relatedParties, createdAt, updatedAt]
-      properties:
-        applicantId: { type: string }
-        type: { $ref: "#/components/schemas/ApplicantType" }
-        displayName: { type: string }
-        individual: { $ref: "#/components/schemas/IndividualProfile" }
-        company: { $ref: "#/components/schemas/CompanyProfile" }
-        address: { $ref: "#/components/schemas/Address" }
-        contact: { $ref: "#/components/schemas/Contact" }
-        bankAccounts:
-          type: array
-          items: { $ref: "#/components/schemas/BankAccount" }
-        relatedParties:
-          type: array
-          items: { $ref: "#/components/schemas/RelatedParty" }
-        aliases:
-          type: array
-          description: Accepted alternative names (e.g. the spelling printed on statements)
-          items: { type: string }
-        keyCounterparties:
-          type: array
-          description: P1. Accepted key clients and suppliers
-          items:
-            type: object
-            properties:
-              name: { type: string }
-              role: { type: string, enum: [CLIENT, SUPPLIER] }
-              lastSharePct: { type: string }
-              acceptedAt: { type: string, format: date-time }
-        pendingSuggestions: { type: integer }
-        caseCount: { type: integer }
-        createdBy: { type: string }
-        createdAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
-    ApplicantSummary:
-      type: object
-      required: [applicantId, type, displayName, industry]
-      properties:
-        applicantId: { type: string }
-        type: { $ref: "#/components/schemas/ApplicantType" }
-        displayName: { type: string }
-        legalForm: { $ref: "#/components/schemas/LegalForm" }
-        industry: { type: string }
-        yearsOperating: { type: [integer, "null"] }
-    ApplicantList:
-      type: object
-      required: [items]
-      properties:
-        items:
-          type: array
-          items: { $ref: "#/components/schemas/Applicant" }
-        nextCursor: { type: [string, "null"] }
-    ProfileSuggestion:
-      type: object
-      required: [suggestionId, field, display, confidence, evidence, status, createdAt]
-      properties:
-        suggestionId: { type: string }
-        field: { $ref: "#/components/schemas/SuggestionField" }
-        value:
-          type: object
-          description: Field-specific, e.g. {bankName, accountMasked, holderName} or {taxId}
-          additionalProperties: true
-        display: { type: string, examples: ["Archipelago Commerce Bank ••••4821, holder SUNRISE COFFEE ROASTERS"] }
-        confidence: { type: string, enum: [HIGH, MEDIUM, LOW] }
-        basis: { type: string, description: "Short reason, e.g. 'Statement header, agreed by both readings'" }
-        evidence:
-          type: array
-          items: { $ref: "#/components/schemas/EvidenceRef" }
-        sourceCaseId: { type: string }
-        sourceRunId: { type: string }
-        status: { $ref: "#/components/schemas/SuggestionStatus" }
-        conflictWith: { type: [string, "null"], description: "The profile value it disagrees with" }
-        decidedBy: { type: [string, "null"] }
-        decidedAt: { type: [string, "null"], format: date-time }
-        createdAt: { type: string, format: date-time }
-    SuggestionDecision:
-      type: object
-      required: [status]
-      properties:
-        status: { type: string, enum: [ACCEPTED, REJECTED] }
-        reason: { type: string, maxLength: 500 }
-        relatedPartyRoles:
-          type: array
-          description: Required when accepting a RELATED_PARTY suggestion (the analyst names the role)
-          items: { type: string, enum: [BENEFICIAL_OWNER, DIRECTOR, SHAREHOLDER, GUARANTOR, AUTHORIZED_SIGNATORY] }
-    Counterparty:
-      type: object
-      required: [counterpartyId, name, roles, txCount]
-      properties:
-        counterpartyId: { type: string }
-        name: { type: string }
-        aliases:
-          type: array
-          items: { type: string }
-        kind: { type: string, enum: [PERSON, BUSINESS, GOVERNMENT, BANK, UNKNOWN] }
-        roles:
-          type: array
-          items: { $ref: "#/components/schemas/CounterpartyRole" }
-        inflow: { $ref: "#/components/schemas/Money" }
-        outflow: { $ref: "#/components/schemas/Money" }
-        txCount: { type: integer }
-        firstDate: { type: string, format: date }
-        lastDate: { type: string, format: date }
-        invoiceCount: { type: integer }
-        invoiced: { $ref: "#/components/schemas/Money" }
-        matched: { $ref: "#/components/schemas/Money" }
-        shareOfOperatingInflow: { type: [string, "null"] }
-        source: { type: string, enum: [RULE, MODEL, INVOICE, PROFILE] }
-        sampleTxIds:
-          type: array
-          items: { type: string }
-    CounterpartyList:
-      type: object
-      required: [items]
-      properties:
-        items:
-          type: array
-          items: { $ref: "#/components/schemas/Counterparty" }
-        summary:
-          type: object
-          properties:
-            clients: { type: integer }
-            suppliers: { type: integer }
-            topClientShare: { type: [string, "null"] }
-
-    # ---------- cases ----------
-    LoanRequest:
-      type: object
-      required: [amount, tenorMonths, purpose]
-      properties:
-        amount: { $ref: "#/components/schemas/Money" }
-        tenorMonths: { type: integer, minimum: 1, maximum: 120 }
-        purpose: { type: string, minLength: 3, maxLength: 500 }
-        installmentOverride: { $ref: "#/components/schemas/Money" }
-    CaseCreate:
-      type: object
-      description: Give either `applicantId` (existing applicant) or `applicant` (created in the same call).
-      required: [request]
-      properties:
-        applicantId: { type: string }
-        applicant: { $ref: "#/components/schemas/ApplicantCreate" }
-        request: { $ref: "#/components/schemas/LoanRequest" }
-    CaseUpdate:
-      type: object
-      description: Applicant details are edited through /api/applicants; the case snapshot refreshes while DRAFT.
-      properties:
-        request: { $ref: "#/components/schemas/LoanRequest" }
-    CaseProgress:
-      type: object
-      properties:
-        stage: { type: string }
-        pct: { type: integer, minimum: 0, maximum: 100 }
-        message: { type: string }
-        updatedAt: { type: string, format: date-time }
-    CaseSummaryBlock:
-      type: object
-      properties:
-        score: { type: integer, minimum: 0, maximum: 100 }
-        grade: { $ref: "#/components/schemas/Grade" }
-        recommendation: { $ref: "#/components/schemas/Recommendation" }
-        hardStops:
-          type: array
-          items: { type: string }
-        worstVerdict: { $ref: "#/components/schemas/Verdict" }
-        openFindings:
-          type: object
-          properties:
-            critical: { type: integer }
-            high: { type: integer }
-            medium: { type: integer }
-            low: { type: integer }
-    Decision:
-      type: object
-      required: [outcome, decidedBy, decidedAt]
-      properties:
-        outcome: { $ref: "#/components/schemas/DecisionOutcome" }
-        reason: { type: string }
-        conditions:
-          type: array
-          items: { type: string }
-        decidedBy: { type: string }
-        decidedByRole: { $ref: "#/components/schemas/Role" }
-        decidedAt: { type: string, format: date-time }
-        overrodeRecommendation: { type: boolean }
-    Case:
-      type: object
-      required: [caseId, reference, status, applicant, request, counts, createdAt, updatedAt]
-      properties:
-        caseId: { type: string }
-        reference: { type: string, examples: ["KRD-8F3K2Q"] }
-        status: { $ref: "#/components/schemas/CaseStatus" }
-        applicant: { $ref: "#/components/schemas/ApplicantSummary" }
-        request: { $ref: "#/components/schemas/LoanRequest" }
-        counts:
-          type: object
-          properties:
-            documents: { type: integer }
-            documentsDone: { type: integer }
-            documentsFailed: { type: integer }
-        currentRunId: { type: [string, "null"] }
-        progress: { $ref: "#/components/schemas/CaseProgress" }
-        summary: { $ref: "#/components/schemas/CaseSummaryBlock" }
-        decision: { $ref: "#/components/schemas/Decision" }
-        policyVersion: { type: string }
-        createdBy: { type: string }
-        createdAt: { type: string, format: date-time }
-        updatedAt: { type: string, format: date-time }
-    CaseListItem:
-      type: object
-      required: [caseId, reference, status, applicantId, applicantName, applicantType, amount, createdAt]
-      properties:
-        caseId: { type: string }
-        reference: { type: string }
-        status: { $ref: "#/components/schemas/CaseStatus" }
-        applicantId: { type: string }
-        applicantName: { type: string }
-        applicantType: { $ref: "#/components/schemas/ApplicantType" }
-        amount: { $ref: "#/components/schemas/Money" }
-        grade: { $ref: "#/components/schemas/Grade" }
-        recommendation: { $ref: "#/components/schemas/Recommendation" }
-        openFindings:
-          type: object
-          properties:
-            critical: { type: integer }
-            high: { type: integer }
-        createdAt: { type: string, format: date-time }
-    CaseList:
-      type: object
-      required: [items]
-      properties:
-        items:
-          type: array
-          items: { $ref: "#/components/schemas/CaseListItem" }
-        nextCursor: { type: [string, "null"] }
+        ledgerAccountCode: { type: [string, "null"] }
+        firstMonth: { $ref: "#/components/schemas/YearMonth" }
+        lastMonth: { $ref: "#/components/schemas/YearMonth" }
 
     # ---------- documents ----------
-    DocClassification:
+    DuplicateInfo:
+      type: object
+      required: [kind, code, ofDocId, decision]
+      properties:
+        kind: { $ref: "#/components/schemas/DuplicateKind" }
+        code: { type: string, examples: [D01_EXACT_FILE_DUPLICATE] }
+        ofDocId: { type: string }
+        decision: { $ref: "#/components/schemas/DuplicateDecision" }
+        reviewItemId: { type: string }
+    PageInfo:
+      type: object
+      required: [pageNo, status]
+      properties:
+        pageNo: { type: integer }
+        status: { type: string, enum: [PENDING, READING, DONE, BLANK, FAILED] }
+        textLayer: { type: boolean }
+        witness: { type: string, enum: [TEXT_LAYER, OCR, NONE] }
+        agreement: { $ref: "#/components/schemas/Decimal" }
+    ReadingInfo:
       type: object
       properties:
-        docType: { $ref: "#/components/schemas/DocType" }
-        confidence: { type: number }
-        language: { type: string }
-        issuerName: { type: [string, "null"] }
-        counterpartyName: { type: [string, "null"] }
-        periodHint: { type: [string, "null"] }
-        reasons:
-          type: array
-          items: { type: string }
+        method: { $ref: "#/components/schemas/ReadingMethod" }
+        agreement: { $ref: "#/components/schemas/Decimal" }
+        fieldsCompared: { type: integer }
+        fieldsAgreed: { type: integer }
+        model: { type: string }
+        promptVersion: { type: string }
     StatementMeta:
       type: object
       properties:
         bankName: { type: string }
         accountHolder: { type: string }
-        accountMasked: { type: string, examples: ["••••1234"] }
+        accountMasked: { type: string }
+        accountId: { type: [string, "null"] }
         periodStart: { type: string, format: date }
         periodEnd: { type: string, format: date }
         opening: { $ref: "#/components/schemas/Money" }
         closing: { $ref: "#/components/schemas/Money" }
-        provenance:
-          type: object
-          additionalProperties: { $ref: "#/components/schemas/Provenance" }
+    LedgerMeta:
+      type: object
+      properties:
+        layoutSignature: { type: string }
+        mappingStatus: { type: string, enum: [PROPOSED, CONFIRMED] }
+        rows: { type: integer }
+        rowsImported: { type: integer }
+        dateFrom: { type: string, format: date }
+        dateTo: { type: string, format: date }
     Document:
       type: object
-      required: [docId, fileName, contentType, sizeBytes, pageCount, status, docType, uploadedAt]
+      required: [docId, fileName, contentType, docType, status, uploadedAt]
       properties:
         docId: { type: string }
         fileName: { type: string }
-        contentType: { type: string, enum: [application/pdf, image/png, image/jpeg] }
+        contentType: { type: string }
         sizeBytes: { type: integer }
         pageCount: { type: integer }
-        sha256: { type: string }
-        status: { $ref: "#/components/schemas/DocStatus" }
         docType: { $ref: "#/components/schemas/DocType" }
-        classification: { $ref: "#/components/schemas/DocClassification" }
-        screening:
-          type: object
-          properties:
-            verdict: { type: string, enum: [CLEAN, INJECTION_SUSPECTED, ERROR, SKIPPED] }
-            quarantined: { type: boolean }
-        pdf:
-          type: object
-          properties:
-            producer: { type: [string, "null"] }
-            creator: { type: [string, "null"] }
-            creationDate: { type: [string, "null"] }
-            modDate: { type: [string, "null"] }
-            revisions: { type: integer }
-            hasTextLayer: { type: boolean }
-        extraction:
-          type: object
-          properties:
-            method: { type: string, enum: [AI_TEXT_LAYER, AI_OCR, AI_MIXED, AI_ONLY, WITNESS_ONLY, THOROUGH] }
-            agreement: { type: string }
-            fieldsCompared: { type: integer }
-            fieldsAgreed: { type: integer }
-            pagesTextLayer: { type: integer }
-            pagesOcr: { type: integer }
-            pagesEscalated: { type: integer }
-            witnessOnlyRows: { type: integer }
+        typeConfidence: { $ref: "#/components/schemas/Decimal" }
+        status: { $ref: "#/components/schemas/DocStatus" }
+        statusDetail: { type: string, description: "Plain-language reason for NEEDS_INPUT or FAILED" }
+        months: { type: array, items: { $ref: "#/components/schemas/YearMonth" } }
+        duplicate: { oneOf: [{ $ref: "#/components/schemas/DuplicateInfo" }, { type: "null" }] }
+        heldAsDuplicate: { type: boolean }
+        countsAgainstLimits: { type: boolean }
+        pages: { type: array, items: { $ref: "#/components/schemas/PageInfo" } }
+        reading: { $ref: "#/components/schemas/ReadingInfo" }
         statementMeta: { $ref: "#/components/schemas/StatementMeta" }
-        invoiceId: { type: [string, "null"] }
+        ledgerMeta: { $ref: "#/components/schemas/LedgerMeta" }
         integrity:
           type: object
           properties:
             verdict: { $ref: "#/components/schemas/Verdict" }
-            score: { type: integer, minimum: 0, maximum: 100 }
-            findingIds:
-              type: array
-              items: { type: string }
-        sourceUploadId: { type: [string, "null"], description: "P1: set on parts created by split=auto" }
-        partOf: { type: [string, "null"], examples: ["part 2 of 3"] }
-        pages:
+            findingIds: { type: array, items: { type: string } }
+        risk:
+          type: object
+          properties:
+            level: { $ref: "#/components/schemas/RiskLevel" }
+        uploadedBy: { type: string }
+        uploadedAt: { type: string, format: date-time }
+        lastRunId: { type: string }
+    DocumentPage:
+      type: object
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/Document" } }
+        nextCursor: { type: [string, "null"] }
+    LedgerMapping:
+      type: object
+      required: [date, description, accountCode, dateFormat, decimalSeparator]
+      description: Column names of the export for each field; either debit/credit or amount (+ signConvention).
+      properties:
+        date: { type: string }
+        description: { type: string }
+        reference: { type: [string, "null"] }
+        accountCode: { type: string }
+        accountName: { type: [string, "null"] }
+        debit: { type: [string, "null"] }
+        credit: { type: [string, "null"] }
+        amount: { type: [string, "null"] }
+        signConvention: { type: [string, "null"], enum: [DEBIT_POSITIVE, CREDIT_POSITIVE, null] }
+        dateFormat: { type: string, examples: ["DD/MM/YYYY"] }
+        decimalSeparator: { type: string, enum: [".", ","] }
+    LedgerMappingView:
+      type: object
+      required: [docId, layoutSignature, status, mapping, header, sampleRows]
+      properties:
+        docId: { type: string }
+        layoutSignature: { type: string }
+        status: { type: string, enum: [PROPOSED, CONFIRMED] }
+        mapping: { $ref: "#/components/schemas/LedgerMapping" }
+        header: { type: array, items: { type: string } }
+        sampleRows:
+          type: array
+          maxItems: 5
+          items:
+            type: object
+            properties:
+              raw: { type: array, items: { type: string } }
+              parsed:
+                type: object
+                properties:
+                  date: { type: string, format: date }
+                  accountCode: { type: string }
+                  description: { type: string }
+                  debit: { $ref: "#/components/schemas/Money" }
+                  credit: { $ref: "#/components/schemas/Money" }
+              error: { type: [string, "null"] }
+        bankAccountCodes:
+          type: object
+          description: Bank account ID → ledger account code (pre-filled from hints, confirmed by the user)
+          additionalProperties: { type: string }
+
+    # ---------- books ----------
+    MatchRef:
+      type: object
+      required: [state]
+      properties:
+        state: { $ref: "#/components/schemas/MatchState" }
+        matchIds: { type: array, items: { type: string } }
+        matched: { $ref: "#/components/schemas/Money" }
+    BankLine:
+      type: object
+      required: [txId, docId, date, month, description, amount, match]
+      properties:
+        txId: { type: string }
+        docId: { type: string }
+        accountId: { type: [string, "null"] }
+        page: { type: integer }
+        rowIndex: { type: integer }
+        date: { type: string, format: date }
+        month: { $ref: "#/components/schemas/YearMonth" }
+        description: { type: string }
+        counterpartyId: { type: [string, "null"] }
+        counterpartyName: { type: [string, "null"] }
+        amount: { $ref: "#/components/schemas/Money" }
+        balance: { oneOf: [{ $ref: "#/components/schemas/Money" }, { type: "null" }] }
+        category: { $ref: "#/components/schemas/Category" }
+        cashflowClass: { $ref: "#/components/schemas/CashflowClass" }
+        riskTags: { type: array, items: { $ref: "#/components/schemas/RiskTag" } }
+        categorizedBy: { type: string, enum: [RULE, MODEL, MATCH, USER] }
+        readings:
+          type: object
+          description: Per field (date, description, amount, balance)
+          additionalProperties: { $ref: "#/components/schemas/ValueReading" }
+        match: { $ref: "#/components/schemas/MatchRef" }
+        heldAsDuplicate: { type: boolean }
+        corrected: { type: boolean }
+    BankLineUpdate:
+      type: object
+      required: [category]
+      properties:
+        category: { $ref: "#/components/schemas/Category" }
+    BankLinePage:
+      type: object
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/BankLine" } }
+        nextCursor: { type: [string, "null"] }
+        total: { $ref: "#/components/schemas/Money" }
+    PaymentRef:
+      type: object
+      required: [state]
+      properties:
+        state: { $ref: "#/components/schemas/PaymentState" }
+        paid: { $ref: "#/components/schemas/Money" }
+        matchIds: { type: array, items: { type: string } }
+    InvoiceLine:
+      type: object
+      properties:
+        description: { type: string }
+        qty: { $ref: "#/components/schemas/Decimal" }
+        unitPrice: { $ref: "#/components/schemas/Money" }
+        amount: { $ref: "#/components/schemas/Money" }
+    Invoice:
+      type: object
+      required: [invoiceId, docId, kind, number, issueDate, total, payment]
+      properties:
+        invoiceId: { type: string }
+        docId: { type: string }
+        kind: { type: string, enum: [SALES, PURCHASE] }
+        number: { type: string }
+        issuerName: { type: string }
+        issuerTaxIdMasked: { type: [string, "null"] }
+        buyerName: { type: string }
+        issueDate: { type: string, format: date }
+        dueDate: { type: [string, "null"], format: date }
+        month: { $ref: "#/components/schemas/YearMonth" }
+        subtotal: { $ref: "#/components/schemas/Money" }
+        tax: { $ref: "#/components/schemas/Money" }
+        total: { $ref: "#/components/schemas/Money" }
+        payToMasked: { type: [string, "null"], description: "Bank account printed on the invoice" }
+        lines: { type: array, items: { $ref: "#/components/schemas/InvoiceLine" } }
+        counterpartyId: { type: [string, "null"] }
+        payment: { $ref: "#/components/schemas/PaymentRef" }
+        readings: { type: object, additionalProperties: { $ref: "#/components/schemas/ValueReading" } }
+        heldAsDuplicate: { type: boolean }
+    InvoicePage:
+      type: object
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/Invoice" } }
+        nextCursor: { type: [string, "null"] }
+    Receipt:
+      type: object
+      required: [receiptId, docId, merchantName, date, total, payment]
+      properties:
+        receiptId: { type: string }
+        docId: { type: string }
+        merchantName: { type: string }
+        date: { type: string, format: date }
+        month: { $ref: "#/components/schemas/YearMonth" }
+        total: { $ref: "#/components/schemas/Money" }
+        tax: { oneOf: [{ $ref: "#/components/schemas/Money" }, { type: "null" }] }
+        paymentMethod: { type: string, enum: [CASH, CARD, TRANSFER, UNKNOWN] }
+        payment: { $ref: "#/components/schemas/PaymentRef" }
+        readings: { type: object, additionalProperties: { $ref: "#/components/schemas/ValueReading" } }
+        heldAsDuplicate: { type: boolean }
+    ReceiptPage:
+      type: object
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/Receipt" } }
+        nextCursor: { type: [string, "null"] }
+    LedgerEntry:
+      type: object
+      required: [entryId, docId, rowNumber, date, month, accountCode, match]
+      properties:
+        entryId: { type: string }
+        docId: { type: string }
+        rowNumber: { type: integer }
+        date: { type: string, format: date }
+        month: { $ref: "#/components/schemas/YearMonth" }
+        accountCode: { type: string }
+        accountName: { type: string }
+        description: { type: string }
+        reference: { type: [string, "null"] }
+        debit: { $ref: "#/components/schemas/Money" }
+        credit: { $ref: "#/components/schemas/Money" }
+        isBankCash: { type: boolean }
+        match: { $ref: "#/components/schemas/MatchRef" }
+        heldAsDuplicate: { type: boolean }
+    LedgerEntryPage:
+      type: object
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/LedgerEntry" } }
+        nextCursor: { type: [string, "null"] }
+
+    # ---------- months ----------
+    MonthRisk:
+      type: object
+      required: [level]
+      properties:
+        level: { $ref: "#/components/schemas/RiskLevel" }
+        summary: { type: string, description: "Explainer text with [[…]] citation markers" }
+        nextSteps: { type: array, items: { type: string } }
+        reasons: { type: array, items: { type: string }, description: "Finding IDs behind the level" }
+        grounding: { $ref: "#/components/schemas/Grounding" }
+    MonthSummary:
+      type: object
+      required: [month, state]
+      properties:
+        month: { $ref: "#/components/schemas/YearMonth" }
+        state: { $ref: "#/components/schemas/MonthState" }
+        statementsPresent: { type: integer }
+        statementsExpected: { type: integer, description: "Bank accounts active in the month" }
+        riskLevel: { $ref: "#/components/schemas/RiskLevel" }
+        autoMatchRate: { $ref: "#/components/schemas/Decimal" }
+        openReviewItems: { type: integer }
+        moneyIn: { $ref: "#/components/schemas/Money" }
+        moneyOut: { $ref: "#/components/schemas/Money" }
+    Month:
+      type: object
+      required: [month, state, figures]
+      properties:
+        month: { $ref: "#/components/schemas/YearMonth" }
+        state: { $ref: "#/components/schemas/MonthState" }
+        statements:
           type: array
           items:
             type: object
             properties:
-              pageNo: { type: integer }
-              width: { type: integer }
-              height: { type: integer }
-              textLayer: { type: string, enum: [USABLE, UNUSABLE, NONE] }
-              blank: { type: boolean }
-              witness: { type: [string, "null"], enum: [TEXT_LAYER, OCR, null] }
-              agreement: { type: [string, "null"] }
-              escalated: { type: boolean }
-        error:
+              accountId: { type: string }
+              accountMasked: { type: string }
+              docId: { type: string }
+        figures:
           type: object
+          description: Facts of docs/08 §5, keyed by camelCase name (moneyIn, moneyOut, net, opening, closing, autoMatchRate, …)
+          additionalProperties: { $ref: "#/components/schemas/Fact" }
+        risk: { $ref: "#/components/schemas/MonthRisk" }
+        openReviewItems: { type: integer }
+        signedOff:
+          type: [object, "null"]
           properties:
-            code: { type: string }
-            message: { type: string }
-        uploadedBy: { type: string }
-        uploadedAt: { type: string, format: date-time }
+            by: { type: string }
+            at: { type: string, format: date-time }
+        lastRunId: { type: string }
+        updatedAt: { type: string, format: date-time }
+    RunCreated:
+      type: object
+      required: [runId]
+      properties:
+        runId: { type: string }
 
-    UploadResult:
+    # ---------- matches ----------
+    Match:
+      type: object
+      required: [matchId, month, kind, amount, method, status]
+      properties:
+        matchId: { type: string }
+        month: { $ref: "#/components/schemas/YearMonth" }
+        kind: { $ref: "#/components/schemas/MatchKind" }
+        bankLineIds: { type: array, items: { type: string } }
+        invoiceIds: { type: array, items: { type: string } }
+        receiptIds: { type: array, items: { type: string } }
+        ledgerEntryIds: { type: array, items: { type: string } }
+        amount: { $ref: "#/components/schemas/Money" }
+        method: { type: string, enum: [AUTO, MANUAL] }
+        status: { $ref: "#/components/schemas/MatchStatus" }
+        score: { $ref: "#/components/schemas/Decimal" }
+        reasons: { type: array, items: { $ref: "#/components/schemas/MatchReason" } }
+        reasonText: { type: string, examples: ["Same amount, same client, invoice number in the transfer description"] }
+        createdBy: { type: string }
+        createdAt: { type: string, format: date-time }
+    MatchCreate:
+      type: object
+      properties:
+        bankLineIds: { type: array, items: { type: string }, maxItems: 3 }
+        invoiceIds: { type: array, items: { type: string }, maxItems: 5 }
+        receiptIds: { type: array, items: { type: string }, maxItems: 5 }
+        ledgerEntryIds: { type: array, items: { type: string }, maxItems: 5 }
+        note: { type: string, maxLength: 500 }
+    MatchPage:
       type: object
       required: [items]
       properties:
-        items:
-          type: array
-          description: One document, or the parts created by split=auto (P1)
-          items: { $ref: "#/components/schemas/Document" }
+        items: { type: array, items: { $ref: "#/components/schemas/Match" } }
+        nextCursor: { type: [string, "null"] }
 
-    # ---------- analysis ----------
-    RunCreated:
+    # ---------- review ----------
+    ReviewCandidate:
       type: object
-      required: [runId, status]
       properties:
-        runId: { type: string }
-        status: { type: string, enum: [QUEUED] }
-    RunStage:
+        matchId: { type: string }
+        bankLineIds: { type: array, items: { type: string } }
+        invoiceIds: { type: array, items: { type: string } }
+        receiptIds: { type: array, items: { type: string } }
+        ledgerEntryIds: { type: array, items: { type: string } }
+        score: { $ref: "#/components/schemas/Decimal" }
+        reasons: { type: array, items: { $ref: "#/components/schemas/MatchReason" } }
+        text: { type: string }
+    ReviewItem:
       type: object
-      required: [name, status]
+      required: [itemId, kind, status, priority, subject, allowedActions]
       properties:
-        name: { type: string }
-        status: { type: string, enum: [PENDING, RUNNING, DONE, SKIPPED, FAILED] }
-        startedAt: { type: [string, "null"], format: date-time }
-        finishedAt: { type: [string, "null"], format: date-time }
-        durationMs: { type: [integer, "null"] }
-        model: { type: [string, "null"] }
-        tokensIn: { type: [integer, "null"] }
-        tokensOut: { type: [integer, "null"] }
-        note: { type: [string, "null"] }
-    Run:
-      type: object
-      required: [runId, status, queuedAt, stages]
-      properties:
-        runId: { type: string }
-        status: { type: string, enum: [QUEUED, RUNNING, SUCCEEDED, FAILED] }
-        trigger: { type: string, enum: [ANALYST, RETRY] }
-        requestedBy: { type: string }
-        queuedAt: { type: string, format: date-time }
-        startedAt: { type: [string, "null"], format: date-time }
-        finishedAt: { type: [string, "null"], format: date-time }
-        stages:
-          type: array
-          items: { $ref: "#/components/schemas/RunStage" }
-        promptVersions: { type: object, additionalProperties: { type: string } }
-        modelVersions: { type: object, additionalProperties: { type: string } }
-        policyVersion: { type: string }
-        usage:
+        itemId: { type: string }
+        kind: { $ref: "#/components/schemas/ReviewItemKind" }
+        month: { oneOf: [{ $ref: "#/components/schemas/YearMonth" }, { type: "null" }] }
+        docId: { type: [string, "null"] }
+        status: { $ref: "#/components/schemas/ReviewItemStatus" }
+        priority: { type: integer }
+        title: { type: string, examples: ["Transfer of IDR 18,700,000 on 21 March has no invoice"] }
+        subject:
           type: object
           properties:
-            pagesRead: { type: integer, description: "Pages sent to the AI reader (cache hits excluded)" }
-            pagesCached: { type: integer }
-            ocrPages: { type: integer }
-            parserPages: { type: integer, description: "Form/Invoice Parser pages (escalation, thorough)" }
-            geminiTokensIn: { type: integer }
-            geminiTokensOut: { type: integer }
-            estimatedUsd: { type: string }
-        error:
+            bankLineIds: { type: array, items: { type: string } }
+            invoiceIds: { type: array, items: { type: string } }
+            receiptIds: { type: array, items: { type: string } }
+            ledgerEntryIds: { type: array, items: { type: string } }
+            docIds: { type: array, items: { type: string } }
+            matchId: { type: string }
+            field: { type: string, description: "For LOW_CONFIDENCE_VALUE, e.g. amount" }
+        suggestion:
           type: object
           properties:
-            code: { type: string }
-            message: { type: string }
-    MonthlyFlow:
-      type: object
-      required: [month, operatingInflow, operatingOutflow, nocf, cads, adb, negativeDays]
-      properties:
-        month: { type: string, pattern: "^\\d{4}-\\d{2}$" }
-        operatingInflow: { $ref: "#/components/schemas/Money" }
-        operatingOutflow: { $ref: "#/components/schemas/Money" }
-        ownerDrawings: { $ref: "#/components/schemas/Money" }
-        debtService: { $ref: "#/components/schemas/Money" }
-        nocf: { $ref: "#/components/schemas/Money" }
-        cads: { $ref: "#/components/schemas/Money" }
-        adb: { $ref: "#/components/schemas/Money" }
-        minBalance: { $ref: "#/components/schemas/Money" }
-        negativeDays: { type: integer }
-        byCategory:
-          type: object
-          additionalProperties: { $ref: "#/components/schemas/Money" }
-    Fact:
-      type: object
-      required: [id, label, value, unit]
-      properties:
-        id: { type: string, examples: ["fact:dscr_proxy"] }
-        label: { type: string }
-        value: { type: [string, "null"], description: Decimal string }
-        unit: { type: string, examples: [IDR, ratio, months, days, percent] }
-        inputs:
-          type: array
-          items: { type: string }
-    ScoreComponent:
-      type: object
-      required: [id, weight, points, contribution]
-      properties:
-        id: { type: string }
-        weight: { type: integer }
-        metric: { type: string }
-        value: { type: [string, "null"] }
-        points: { type: integer }
-        contribution: { type: number }
-    HardStop:
-      type: object
-      required: [id, recommendation]
-      properties:
-        id: { type: string }
-        recommendation: { $ref: "#/components/schemas/Recommendation" }
-        reason: { type: string }
-    Analysis:
-      type: object
-      required: [runId, coverage, monthly, facts, scorecard, recommendation]
-      properties:
-        runId: { type: string }
-        computedAt: { type: string, format: date-time }
-        coverage:
-          type: object
+            candidates: { type: array, items: { $ref: "#/components/schemas/ReviewCandidate" } }
+            reading: { $ref: "#/components/schemas/ValueReading" }
+            docType: { $ref: "#/components/schemas/DocType" }
+            mapping: { $ref: "#/components/schemas/LedgerMapping" }
+            difference: { $ref: "#/components/schemas/Money" }
+            evidence: { type: array, items: { $ref: "#/components/schemas/EvidenceRef" } }
+        allowedActions: { type: array, items: { $ref: "#/components/schemas/ResolveAction" } }
+        resolution:
+          type: [object, "null"]
           properties:
-            months:
-              type: array
-              items: { type: string }
-            start: { type: string, format: date }
-            end: { type: string, format: date }
-            accountsMasked:
-              type: array
-              items: { type: string }
-        monthly:
-          type: array
-          items: { $ref: "#/components/schemas/MonthlyFlow" }
-        facts:
-          type: array
-          items: { $ref: "#/components/schemas/Fact" }
-        scorecard:
-          type: object
-          required: [score, grade, components, hardStops]
-          properties:
-            score: { type: integer }
-            grade: { $ref: "#/components/schemas/Grade" }
-            components:
-              type: array
-              items: { $ref: "#/components/schemas/ScoreComponent" }
-            hardStops:
-              type: array
-              items: { $ref: "#/components/schemas/HardStop" }
-        recommendation:
-          type: object
-          required: [outcome]
-          properties:
-            outcome: { $ref: "#/components/schemas/Recommendation" }
-            conditions:
-              type: array
-              items: { type: string }
-            proposedInstallment: { $ref: "#/components/schemas/Money" }
-            maxSupportableInstallment: { $ref: "#/components/schemas/Money" }
-            maxSupportableAmount: { $ref: "#/components/schemas/Money" }
-        reconciliation:
-          type: object
-          properties:
-            salesInvoiced: { $ref: "#/components/schemas/Money" }
-            salesMatched: { $ref: "#/components/schemas/Money" }
-            ratio: { type: [string, "null"] }
-            counts:
-              type: object
-              properties:
-                matched: { type: integer }
-                partial: { type: integer }
-                unmatched: { type: integer }
-                notDue: { type: integer }
+            action: { $ref: "#/components/schemas/ResolveAction" }
+            note: { type: string }
+            resolvedBy: { type: string }
+            resolvedAt: { type: string, format: date-time }
+    ReviewItemPage:
+      type: object
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/ReviewItem" } }
+        nextCursor: { type: [string, "null"] }
+        countsByKind: { type: object, additionalProperties: { type: integer } }
+    ResolveRequest:
+      type: object
+      required: [action]
+      description: Fields depend on the action (docs/10 §4); unknown combinations return 422 ACTION_NOT_ALLOWED.
+      properties:
+        action: { $ref: "#/components/schemas/ResolveAction" }
+        matchId: { type: string }
+        bankLineIds: { type: array, items: { type: string }, maxItems: 3 }
+        invoiceIds: { type: array, items: { type: string }, maxItems: 5 }
+        receiptIds: { type: array, items: { type: string }, maxItems: 5 }
+        ledgerEntryIds: { type: array, items: { type: string }, maxItems: 5 }
+        category: { $ref: "#/components/schemas/Category" }
+        field: { type: string }
+        value: { type: string, maxLength: 200, description: "Corrected value as text (amounts as decimal strings, dates as YYYY-MM-DD)" }
+        docType: { $ref: "#/components/schemas/DocType" }
+        mapping: { $ref: "#/components/schemas/LedgerMapping" }
+        bankAccountCodes: { type: object, additionalProperties: { type: string } }
+        reason: { type: string, minLength: 10, maxLength: 500 }
+        note: { type: string, maxLength: 500 }
+    ReasonBody:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string, minLength: 10, maxLength: 500 }
+
+    # ---------- risk ----------
     Finding:
       type: object
-      required: [findingId, runId, code, category, severity, title, evidence, detectedBy, status]
+      required: [findingId, code, category, scope, severity, title, evidence, detectedBy, status]
       properties:
         findingId: { type: string }
-        runId: { type: string }
         code: { type: string, examples: [A01_RUNNING_BALANCE_BREAK] }
         category: { $ref: "#/components/schemas/FindingCategory" }
+        scope: { $ref: "#/components/schemas/FindingScope" }
+        docId: { type: [string, "null"] }
+        month: { oneOf: [{ $ref: "#/components/schemas/YearMonth" }, { type: "null" }] }
         severity: { $ref: "#/components/schemas/Severity" }
         title: { type: string }
-        facts:
-          type: object
-          additionalProperties: { type: string }
+        facts: { type: object, additionalProperties: { type: string } }
         explanation: { type: [string, "null"] }
-        evidence:
-          type: array
-          items: { $ref: "#/components/schemas/EvidenceRef" }
+        nextSteps: { type: array, items: { type: string } }
+        evidence: { type: array, items: { $ref: "#/components/schemas/EvidenceRef" } }
         detectedBy: { type: string, enum: [RULE, MODEL, MODEL_ARMOR] }
-        corroboratedBy:
-          type: array
-          items: { type: string }
+        corroboratedBy: { type: array, items: { type: string } }
         status: { $ref: "#/components/schemas/FindingStatus" }
-        statusReason: { type: [string, "null"] }
-        statusChangedBy: { type: [string, "null"] }
-        statusChangedAt: { type: [string, "null"], format: date-time }
-        docId: { type: [string, "null"] }
-        createdAt: { type: string, format: date-time }
+        dismissal:
+          type: [object, "null"]
+          properties:
+            reason: { type: string }
+            by: { type: string }
+            at: { type: string, format: date-time }
     FindingUpdate:
       type: object
       required: [status]
       properties:
         status: { type: string, enum: [ACKNOWLEDGED, DISMISSED] }
-        reason: { type: string, maxLength: 1000 }
-    Transaction:
-      type: object
-      required: [txId, docId, rowIndex, page, date, description, direction, amount, cashflowClass, category, riskTags]
-      properties:
-        txId: { type: string }
-        docId: { type: string }
-        accountMasked: { type: string }
-        rowIndex: { type: integer }
-        page: { type: integer }
-        date: { type: string, format: date }
-        month: { type: string }
-        description: { type: string }
-        counterparty: { type: [string, "null"] }
-        direction: { type: string, enum: [CREDIT, DEBIT] }
-        amount: { $ref: "#/components/schemas/Money" }
-        balanceAfter: { $ref: "#/components/schemas/Money" }
-        consensusStatus: { type: string, enum: [AGREED, CONFLICT, SINGLE_SOURCE] }
-        bbox: { $ref: "#/components/schemas/BBox" }
-        cashflowClass: { $ref: "#/components/schemas/CashflowClass" }
-        category: { $ref: "#/components/schemas/Category" }
-        riskTags:
-          type: array
-          items: { $ref: "#/components/schemas/RiskTag" }
-        categorizedBy: { type: string, enum: [RULE, MODEL, ANALYST] }
-        categoryConfidence: { type: [string, "null"] }
-        matchedInvoiceIds:
-          type: array
-          items: { type: string }
-    TransactionPage:
+        reason: { type: string, minLength: 10, maxLength: 500 }
+    FindingPage:
       type: object
       required: [items]
       properties:
-        items:
-          type: array
-          items: { $ref: "#/components/schemas/Transaction" }
+        items: { type: array, items: { $ref: "#/components/schemas/Finding" } }
         nextCursor: { type: [string, "null"] }
-    InvoiceLine:
+    PolicySummary:
       type: object
       properties:
-        description: { type: string }
-        quantity: { type: [string, "null"] }
-        unitPrice: { $ref: "#/components/schemas/Money" }
-        amount: { $ref: "#/components/schemas/Money" }
-    Invoice:
-      type: object
-      required: [invoiceId, docId, kind, total, match]
-      properties:
-        invoiceId: { type: string }
-        docId: { type: string }
-        kind: { type: string, enum: [SALES, PURCHASE, TAX] }
-        invoiceNumber: { type: [string, "null"] }
-        issuerName: { type: [string, "null"] }
-        buyerName: { type: [string, "null"] }
-        issueDate: { type: [string, "null"], format: date }
-        dueDate: { type: [string, "null"], format: date }
-        subtotal: { $ref: "#/components/schemas/Money" }
-        tax: { $ref: "#/components/schemas/Money" }
-        total: { $ref: "#/components/schemas/Money" }
-        lines:
+        versions: { type: object, additionalProperties: { type: string } }
+        checks:
           type: array
-          items: { $ref: "#/components/schemas/InvoiceLine" }
-        provenance:
-          type: object
-          additionalProperties: { $ref: "#/components/schemas/Provenance" }
-        match:
-          type: object
-          required: [status]
-          properties:
-            status: { type: string, enum: [MATCHED, PARTIAL, UNMATCHED, NOT_DUE] }
-            method: { type: string, enum: [EXACT, NET_OF_TAX, SPLIT, PARTIAL, NONE] }
-            txIds:
-              type: array
-              items: { type: string }
-            matchedAmount: { $ref: "#/components/schemas/Money" }
-            score: { type: [number, "null"] }
-    MemoSection:
-      type: object
-      required: [key, title, bodyMarkdown]
-      properties:
-        key:
-          type: string
-          enum: [summary, business, cashflow, integrity, revenue, risks, recommendation]
-        title: { type: string }
-        bodyMarkdown:
-          type: string
-          description: Markdown with citation markers like [[fact:dscr_proxy]], [[finding:fnd_…]], [[doc:doc_…#p2]]
-    Memo:
-      type: object
-      required: [runId, status, sections, grounding]
-      properties:
-        runId: { type: string }
-        status: { type: string, enum: [DRAFT, EDITED, FINAL] }
-        sections:
-          type: array
-          items: { $ref: "#/components/schemas/MemoSection" }
-        grounding:
-          type: object
-          required: [status]
-          properties:
-            status: { type: string, enum: [VERIFIED, UNVERIFIED] }
-            problems:
-              type: array
-              items:
-                type: object
-                properties:
-                  sectionKey: { type: string }
-                  sentence: { type: string }
-                  number: { type: string }
-                  reason: { type: string }
-            checkedAt: { type: string, format: date-time }
-        model: { type: string }
-        promptVersion: { type: string }
-        attempts: { type: integer }
-        editedBy: { type: [string, "null"] }
-        editedAt: { type: [string, "null"], format: date-time }
-        finalizedAt: { type: [string, "null"], format: date-time }
+          items:
+            type: object
+            properties:
+              code: { type: string }
+              title: { type: string }
+              enabled: { type: boolean }
+        reconciliation: { type: object, additionalProperties: true }
+        riskRules: { type: array, items: { type: string } }
 
-    # ---------- review ----------
-    DecisionRequest:
+    # ---------- insight ----------
+    Kpi:
       type: object
-      required: [outcome]
+      required: [id, value]
       properties:
-        outcome: { $ref: "#/components/schemas/DecisionOutcome" }
-        reason: { type: string, maxLength: 2000 }
-        conditions:
+        id: { type: string, enum: [MONEY_IN, MONEY_OUT, NET, AUTO_MATCH_RATE, OPEN_REVIEW_ITEMS, DOCUMENTS_WAITING] }
+        value:
+          oneOf:
+            - { $ref: "#/components/schemas/Money" }
+            - { $ref: "#/components/schemas/Decimal" }
+            - { type: integer }
+        factId: { type: string }
+        previous:
+          description: Same KPI for the previous period of equal length, when available
+          oneOf:
+            - { $ref: "#/components/schemas/Money" }
+            - { $ref: "#/components/schemas/Decimal" }
+            - { type: integer }
+            - { type: "null" }
+    Alert:
+      type: object
+      required: [severity, title, link]
+      properties:
+        severity: { $ref: "#/components/schemas/Severity" }
+        title: { type: string }
+        month: { $ref: "#/components/schemas/YearMonth" }
+        findingId: { type: string }
+        itemId: { type: string }
+        link: { type: string, description: "SPA route, e.g. /risk/fnd_7c1e…" }
+    Dashboard:
+      type: object
+      required: [period, kpis, months]
+      properties:
+        period: { type: string }
+        kpis: { type: array, items: { $ref: "#/components/schemas/Kpi" } }
+        months: { type: array, items: { $ref: "#/components/schemas/MonthSummary" } }
+        alerts: { type: array, maxItems: 5, items: { $ref: "#/components/schemas/Alert" } }
+        reviewPreview: { type: array, maxItems: 5, items: { $ref: "#/components/schemas/ReviewItem" } }
+        moneyFlowSummary:
+          type: object
+          description: Top 3 sources and uses for the dashboard card; the full chart comes from /api/money-flow
+          properties:
+            topSources: { type: array, items: { $ref: "#/components/schemas/FlowNode" } }
+            topUses: { type: array, items: { $ref: "#/components/schemas/FlowNode" } }
+    MoneyFlowView: { type: string, enum: [STATEMENT, COUNTERPARTIES], default: STATEMENT }
+    StatementLine:
+      type: string
+      enum: [REVENUE, OTHER_INCOME, COST_OF_SALES, OPERATING_EXPENSES, INCOME_TAX, FINANCE_COSTS, INVESTING, FINANCING, NONE]
+      description: Statement line a category rolls up to (contracts/policy/categories.v1.yaml); its wording depends on the framework
+    FlowNode:
+      type: object
+      required: [id, column, label]
+      properties:
+        id: { type: string, examples: ["src:client:cp_8e1d…", "acc:acc_9f1c…", "act:OPERATING", "line:COST_OF_SALES", "use:SUPPLIERS"] }
+        column:
+          type: string
+          enum: [SOURCE, ACCOUNT, ACTIVITY, LINE, USE]
+          description: STATEMENT view uses SOURCE, ACCOUNT, ACTIVITY and LINE; COUNTERPARTIES uses SOURCE, ACCOUNT and USE
+        label: { type: string, description: In the framework's wording, e.g. "Cost of sales" (IFRS) or "Cost of goods sold" (US GAAP) }
+        value: { $ref: "#/components/schemas/Money" }
+        cashflowClass: { $ref: "#/components/schemas/CashflowClass" }
+        statementLine: { $ref: "#/components/schemas/StatementLine" }
+    FlowLink:
+      type: object
+      required: [id, source, target, value]
+      properties:
+        id: { type: string, description: "Usable as flow= on /api/bank-lines" }
+        source: { type: string }
+        target: { type: string }
+        value: { $ref: "#/components/schemas/Money" }
+        lineCount: { type: integer }
+    MoneyFlow:
+      type: object
+      required: [period, nodes, links]
+      properties:
+        period: { type: string }
+        nodes: { type: array, items: { $ref: "#/components/schemas/FlowNode" } }
+        links: { type: array, items: { $ref: "#/components/schemas/FlowLink" } }
+        excludedHeld: { $ref: "#/components/schemas/Money" }
+        view: { $ref: "#/components/schemas/MoneyFlowView" }
+        framework: { $ref: "#/components/schemas/AccountingFramework" }
+        note: { type: string, description: "One sentence on what the framework changed, e.g. where interest paid went" }
+    CashFlow:
+      type: object
+      required: [period, framework, opening, closing, months, byActivity, byLine]
+      properties:
+        period: { type: string }
+        framework: { $ref: "#/components/schemas/AccountingFramework" }
+        opening: { $ref: "#/components/schemas/Money" }
+        closing: { $ref: "#/components/schemas/Money" }
+        balanced: { type: boolean, description: "opening + Σ byActivity = closing; false means a statement or month is missing" }
+        gapReason: { type: [string, "null"] }
+        months:
           type: array
-          items: { type: string, maxLength: 300 }
+          items:
+            type: object
+            required: [month, in, out, net]
+            properties:
+              month: { type: string, pattern: "^\\d{4}-\\d{2}$" }
+              in: { $ref: "#/components/schemas/Money" }
+              out: { $ref: "#/components/schemas/Money" }
+              net: { $ref: "#/components/schemas/Money" }
+              closing: { $ref: "#/components/schemas/Money" }
+              riskLevel: { $ref: "#/components/schemas/RiskLevel" }
+        byActivity:
+          type: object
+          required: [OPERATING, INVESTING, FINANCING]
+          properties:
+            OPERATING: { $ref: "#/components/schemas/Money" }
+            INVESTING: { $ref: "#/components/schemas/Money" }
+            FINANCING: { $ref: "#/components/schemas/Money" }
+        byLine:
+          type: array
+          items:
+            type: object
+            required: [line, label, cashflowClass, amount]
+            properties:
+              line: { $ref: "#/components/schemas/StatementLine" }
+              category: { $ref: "#/components/schemas/Category" }
+              label: { type: string }
+              cashflowClass: { $ref: "#/components/schemas/CashflowClass" }
+              amount: { $ref: "#/components/schemas/Money" }
+        note: { type: string }
+    Counterparty:
+      type: object
+      required: [counterpartyId, name, roles]
+      properties:
+        counterpartyId: { type: string }
+        name: { type: string }
+        aliases: { type: array, items: { type: string } }
+        kind: { $ref: "#/components/schemas/CounterpartyKind" }
+        roles: { type: array, items: { $ref: "#/components/schemas/CounterpartyRole" } }
+        totalIn: { $ref: "#/components/schemas/Money" }
+        totalOut: { $ref: "#/components/schemas/Money" }
+        totalsByMonth:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              in: { $ref: "#/components/schemas/Money" }
+              out: { $ref: "#/components/schemas/Money" }
+              count: { type: integer }
+        accountsSeen:
+          type: array
+          items:
+            type: object
+            properties:
+              accountMasked: { type: string }
+              firstSeen: { type: string, format: date }
+              lastSeen: { type: string, format: date }
+        openInvoices: { type: integer }
+        firstDate: { type: string, format: date }
+        lastDate: { type: string, format: date }
+    CounterpartyPage:
+      type: object
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/Counterparty" } }
+        nextCursor: { type: [string, "null"] }
+    Suggestion:
+      type: object
+      required: [suggestionId, field, display, confidence, status]
+      properties:
+        suggestionId: { type: string }
+        field: { $ref: "#/components/schemas/SuggestionField" }
+        value: { type: object, additionalProperties: true }
+        display: { type: string }
+        confidence: { type: string, enum: [HIGH, MEDIUM, LOW] }
+        basis: { type: string }
+        evidence: { type: array, items: { $ref: "#/components/schemas/EvidenceRef" } }
+        status: { $ref: "#/components/schemas/SuggestionStatus" }
+        conflictWith: { type: [string, "null"] }
+    SuggestionDecision:
+      type: object
+      required: [decision]
+      properties:
+        decision: { type: string, enum: [ACCEPT, REJECT] }
     Event:
       type: object
-      required: [eventId, type, actor, at]
+      required: [eventId, type, at]
       properties:
         eventId: { type: string }
-        type:
-          type: string
-          enum:
-            - CASE_CREATED
-            - CASE_UPDATED
-            - DOCUMENT_UPLOADED
-            - DOCUMENT_REMOVED
-            - RUN_QUEUED
-            - RUN_STARTED
-            - RUN_SUCCEEDED
-            - RUN_FAILED
-            - FINDING_ACKNOWLEDGED
-            - FINDING_DISMISSED
-            - TRANSACTION_RECATEGORIZED
-            - MEMO_EDITED
-            - DECISION_RECORDED
-            # applicant events (GET /api/applicants/{id}/events)
-            - APPLICANT_CREATED
-            - APPLICANT_UPDATED
-            - BANK_ACCOUNT_ADDED
-            - BANK_ACCOUNT_REMOVED
-            - RELATED_PARTY_ADDED
-            - RELATED_PARTY_REMOVED
-            - SUGGESTION_ACCEPTED
-            - SUGGESTION_REJECTED
-        actor:
-          type: object
-          required: [type]
-          properties:
-            type: { type: string, enum: [USER, SYSTEM] }
-            uid: { type: string }
-            role: { $ref: "#/components/schemas/Role" }
+        type: { type: string, examples: [DUPLICATE_CONFIRMED] }
+        actorUid: { type: string }
+        actorRole: { $ref: "#/components/schemas/Role" }
         at: { type: string, format: date-time }
-        data:
-          type: object
-          additionalProperties: true
+        subject: { type: object, additionalProperties: { type: string } }
+        details: { type: object, additionalProperties: true }
     EventPage:
       type: object
       required: [items]
       properties:
-        items:
-          type: array
-          items: { $ref: "#/components/schemas/Event" }
+        items: { type: array, items: { $ref: "#/components/schemas/Event" } }
+        nextCursor: { type: [string, "null"] }
+    RunStage:
+      type: object
+      required: [node, status]
+      properties:
+        node: { type: string, examples: [read_pages] }
+        status: { type: string, enum: [PENDING, RUNNING, DONE, SKIPPED, FAILED] }
+        startedAt: { type: string, format: date-time }
+        endedAt: { type: string, format: date-time }
+        model: { type: string }
+        tokensIn: { type: integer }
+        tokensOut: { type: integer }
+        traceSpanId: { type: string }
+        parent: { type: [string, "null"], description: "Parent node for fan-out (per page)" }
+        summary: { type: string, description: "One line written by the node, e.g. 'agreement 0.97'" }
+    Run:
+      type: object
+      required: [runId, kind, target, status]
+      properties:
+        runId: { type: string }
+        kind: { $ref: "#/components/schemas/RunKind" }
+        target: { type: string }
+        status: { $ref: "#/components/schemas/RunStatus" }
+        stages: { type: array, items: { $ref: "#/components/schemas/RunStage" } }
+        traceId: { type: string }
+        traceUrl: { type: string, description: "Cloud Trace link (developers)" }
+        models: { type: array, items: { type: string } }
+        promptVersions: { type: object, additionalProperties: { type: string }, description: "prompt file → version" }
+        labels:
+          type: object
+          description: Labels this run proposed, and how many a person later confirmed or corrected (P1)
+          properties:
+            proposed: { type: integer }
+            verified: { type: integer }
+            corrected: { type: integer }
+        usage:
+          type: object
+          properties:
+            pagesRead: { type: integer }
+            pagesCached: { type: integer }
+            ocrPages: { type: integer }
+            tokensIn: { type: integer }
+            tokensOut: { type: integer }
+            estimatedUsd: { type: string }
+        createdAt: { type: string, format: date-time }
+        endedAt: { type: [string, "null"], format: date-time }
+    RunPage:
+      type: object
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/Run" } }
         nextCursor: { type: [string, "null"] }
 
-    # ---------- assistant ----------
-    AssistantMessage:
+    # ---------- labels and learning (spec 016) ----------
+    LabelSubject:
       type: object
-      required: [messageId, role, text, createdAt]
+      required: [display]
       properties:
-        messageId: { type: string }
-        role: { type: string, enum: [USER, ASSISTANT] }
-        text: { type: string }
-        citations:
-          type: array
-          items: { type: string, description: "Resolved citation marker, e.g. fact:dscr_proxy" }
+        docId: { type: string }
+        pageNo: { type: integer }
+        field: { type: string, examples: [total, invoiceDate] }
+        txId: { type: string }
+        counterpartyId: { type: string }
+        display: { type: string, examples: ["ACB_Mar_2026.pdf, page 2"] }
+    Label:
+      type: object
+      required: [labelId, task, subject, final, status, needsCheck, dataset]
+      properties:
+        labelId: { type: string }
+        task: { $ref: "#/components/schemas/LabelTask" }
+        subject: { $ref: "#/components/schemas/LabelSubject" }
+        month: { oneOf: [{ $ref: "#/components/schemas/YearMonth" }, { type: "null" }] }
+        ai:
+          type: object
+          description: The latest automatic decision (model, rule or match)
+          required: [value, source, at]
+          properties:
+            value: { type: string, description: "A value of the task's vocabulary (DocType, PageType, Category, CounterpartyRole) or a decimal string" }
+            confidence: { type: [number, "null"], minimum: 0, maximum: 1 }
+            source: { $ref: "#/components/schemas/LabelSource" }
+            model: { type: [string, "null"] }
+            promptVersion: { type: [string, "null"] }
+            runId: { type: [string, "null"] }
+            traceId: { type: [string, "null"] }
+            spanId: { type: [string, "null"] }
+            at: { type: string, format: date-time }
+        final:
+          type: object
+          required: [value, source]
+          properties:
+            value: { type: string }
+            source: { $ref: "#/components/schemas/LabelSource" }
+        status: { $ref: "#/components/schemas/LabelStatus" }
+        needsCheck: { type: boolean }
+        framework: { oneOf: [{ $ref: "#/components/schemas/AccountingFramework" }, { type: "null" }] }
+        cashflowClass: { oneOf: [{ $ref: "#/components/schemas/CashflowClass" }, { type: "null" }] }
+        decidedBy: { type: [string, "null"] }
+        decidedAt: { type: [string, "null"], format: date-time }
+        note: { type: [string, "null"] }
+        aiDisagreesWithPerson: { type: boolean, description: "A later AI run proposed a different value than the person's" }
+        extractionUrl: { type: [string, "null"], description: "GET path of the page's extraction Markdown" }
+        pageImageUrl: { type: [string, "null"] }
+        dataset:
+          type: object
+          required: [use]
+          properties:
+            use: { $ref: "#/components/schemas/DatasetUse" }
+            reason: { type: [string, "null"], examples: ["no consent", "not checked by a person"] }
+    LabelDecision:
+      type: object
+      required: [action]
+      properties:
+        action: { type: string, enum: [CONFIRM, CORRECT] }
+        value: { type: string, description: "Required for CORRECT" }
+        note: { type: string, maxLength: 500 }
+        applyToSimilar: { type: boolean, default: false, description: "CATEGORY only: remember for this counterparty and direction" }
+    LabelSummary:
+      type: object
+      properties:
+        total: { type: integer }
+        needsCheck: { type: integer }
+        verified: { type: integer }
+        corrected: { type: integer }
+        aiAgreementOnChecked: { type: [number, "null"], description: "Share of person-checked labels where the AI was right" }
+    LabelPage:
+      type: object
+      required: [items, summary]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/Label" } }
+        nextCursor: { type: [string, "null"] }
+        summary: { $ref: "#/components/schemas/LabelSummary" }
+    DatasetExport:
+      type: object
+      required: [exportId, status, tasks]
+      properties:
+        exportId: { type: string }
+        status: { type: string, enum: [RUNNING, DONE, FAILED] }
+        tasks: { type: array, items: { $ref: "#/components/schemas/LabelTask" } }
+        counts: { type: object, additionalProperties: { type: integer } }
+        gcsUri: { type: [string, "null"] }
+        bigQueryTable: { type: [string, "null"] }
         createdAt: { type: string, format: date-time }
 
-    # ---------- internal ----------
-    AnalyzeCaseTask:
+    # ---------- agent events (spec 017, P1) ----------
+    AgentEvent:
       type: object
-      required: [orgId, caseId, runId]
+      required: [eventId, eventType, at]
+      properties:
+        eventId: { type: string }
+        eventType: { type: string, examples: [LLM_REQUEST, LLM_RESPONSE, TOOL_STARTING, TOOL_COMPLETED, AGENT_COMPLETED, NODE_OUTPUT, ERROR] }
+        node: { type: [string, "null"], examples: [read_page] }
+        agent: { type: [string, "null"] }
+        model: { type: [string, "null"] }
+        at: { type: string, format: date-time }
+        latencyMs: { type: [integer, "null"] }
+        tokensIn: { type: [integer, "null"] }
+        tokensOut: { type: [integer, "null"] }
+        status: { type: [string, "null"] }
+        error: { type: [string, "null"] }
+        spanId: { type: [string, "null"] }
+        parentSpanId: { type: [string, "null"] }
+        content: { type: [string, "null"], description: "Prompt or response text, only where content capture is on (ADR-017)" }
+        labelIds: { type: array, items: { type: string } }
+    AgentEventPage:
+      type: object
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/AgentEvent" } }
+        contentCaptured: { type: boolean }
+
+    # ---------- assistant (P1) ----------
+    Thread:
+      type: object
+      required: [threadId, title, createdAt]
+      properties:
+        threadId: { type: string }
+        title: { type: string }
+        scope: { type: string, description: "WORKSPACE or a month YYYY-MM" }
+        createdAt: { type: string, format: date-time }
+        lastMessageAt: { type: string, format: date-time }
+    ThreadCreate:
+      type: object
+      properties:
+        scope: { type: string, default: WORKSPACE }
+        title: { type: string, maxLength: 100 }
+    AskRequest:
+      type: object
+      required: [question]
+      properties:
+        question: { type: string, minLength: 2, maxLength: 1000 }
+    AnswerPart:
+      type: object
+      required: [type]
+      properties:
+        type: { type: string, enum: [text, table, chart] }
+        text: { type: string, description: "With [[…]] citation markers" }
+        columns: { type: array, items: { type: string } }
+        rows: { type: array, items: { type: array, items: { type: string } } }
+        chart: { type: string, enum: [MONEY_FLOW, MONTHLY_IN_OUT, CATEGORY_BREAKDOWN] }
+        query: { type: object, additionalProperties: true, description: "Parameters the UI uses to fetch the chart data" }
+    Citation:
+      type: object
+      required: [ref]
+      properties:
+        ref: { type: string, examples: ["fact:2026-03:money_in", "finding:fnd_7c1e…", "doc:doc_01J…#p2"] }
+        label: { type: string }
+    AssistantMessage:
+      type: object
+      required: [messageId, role, createdAt]
+      properties:
+        messageId: { type: string }
+        role: { type: string, enum: [user, assistant] }
+        question: { type: string }
+        answer:
+          type: object
+          properties:
+            parts: { type: array, items: { $ref: "#/components/schemas/AnswerPart" } }
+            citations: { type: array, items: { $ref: "#/components/schemas/Citation" } }
+            grounding: { $ref: "#/components/schemas/Grounding" }
+            toolsUsed: { type: array, items: { type: string } }
+        createdAt: { type: string, format: date-time }
+    Memory:
+      type: object
+      required: [memoryId, fact]
+      properties:
+        memoryId: { type: string }
+        fact: { type: string, examples: ["Prefers amounts in thousands"] }
+        updatedAt: { type: string, format: date-time }
+
+    # ---------- internal ----------
+    ProcessDocumentTask:
+      type: object
+      required: [orgId, docId, runId]
       properties:
         orgId: { type: string }
-        caseId: { type: string }
+        docId: { type: string }
         runId: { type: string }
+    ReconcileMonthTask:
+      type: object
+      required: [orgId, month, generation, runId]
+      properties:
+        orgId: { type: string }
+        month: { $ref: "#/components/schemas/YearMonth" }
+        generation: { type: integer }
+        runId: { type: string }
+    TaskResult:
+      type: object
+      properties:
+        ok: { type: boolean }
+        skipped: { type: string, enum: [finished, superseded] }

@@ -1,12 +1,12 @@
-# Plan 012 — Evals & Results
+# Plan 012 — Evals and Results
 
 | File | Content |
 |---|---|
-| `backend/evals/run.py` | uploads each scenario's files through the **API** (end-to-end, as a user would), starts runs, waits, collects results via the API and Firestore |
-| `backend/evals/metrics.py` | per-suite computations against `truth.json` (row F1, confusion matrices, recall per technique, macro-F1, match accuracy, grounding rates, latency percentiles, cost) |
-| `backend/evals/report.py` | Markdown + JSON report with targets and pass/miss markers |
-| `backend/evals/assistant/` | ADK eval sets (from 011) |
-| `tools/checks/readme_results.py` | README numbers ⊆ latest report |
-| `Makefile` | `evals` target with `EVAL_SEEDS`, `EVAL_SCENARIOS` |
+| `backend/evals/runner.py` | per scenario and seed: reset `org_eval`, upload in order through the API client, wait for months to settle (listener or polling of `months.dirty`), collect records |
+| `backend/evals/mapping.py` | map `truth.json` keys to Kredibel's deterministic IDs |
+| `backend/evals/suites/*.py` | one module per suite; each returns rows and a summary vs target |
+| `backend/evals/report.py` | Markdown and JSON writer; run IDs and trace links |
+| `backend/evals/assistant/` | DeepEval and ADK eval set (spec 011) |
+| `tools/checks/readme_results.py` | README numbers must exist in the latest report |
 
-Cost control: seeds default to 1–5; `EVAL_SEEDS=1` for a quick run. Each eval run records its usage.
+Judge model for DeepEval: `EVAL_JUDGE_MODEL` on Agent Platform; no third-party evaluation cloud.

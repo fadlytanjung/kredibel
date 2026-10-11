@@ -1,0 +1,53 @@
+# Kredibel fraud risk — version 1
+# Levels per document and month, and the next-step catalog. Semantics: docs/08-risk-engine.md §8.
+# The level is deterministic. Gemini only phrases the summary and orders these steps (grounded).
+
+version: 1
+id: risk.v1
+
+levels: [LOW, MEDIUM, HIGH, CRITICAL]
+
+document:
+  CRITICAL:
+    verdicts: [TAMPERED]
+    openCodes: [S01_EMBEDDED_INSTRUCTIONS]
+  HIGH:
+    verdicts: [SUSPICIOUS]
+    openSeverities: [HIGH]
+  MEDIUM:
+    verdicts: [UNVERIFIABLE]
+    openSeverities: [MEDIUM]
+
+month:
+  inheritFromDocuments: true
+  rules:
+    - { code: X08_SUPPLIER_ACCOUNT_CHANGED, level: HIGH }
+    - { code: D07_DOUBLE_PAYMENT, level: HIGH }
+    - { code: X09_LEDGER_BANK_MISMATCH, severity: HIGH, level: HIGH }
+    - { fact: auto_match_rate, below: "0.5", requiresStatement: true, level: MEDIUM }
+
+score:                              # for sorting only; the level is what users see
+  weights: { CRITICAL: 40, HIGH: 20, MEDIUM: 8, LOW: 2, INFO: 0 }
+  max: 100
+
+nextSteps:                          # deterministic catalog, keyed by finding code
+  A01_RUNNING_BALANCE_BREAK: "Ask the bank for the original statement or download it again from internet banking, and compare the highlighted row."
+  A02_OPENING_CLOSING_MISMATCH: "Ask the bank for the original statement; until then, do not rely on this month's balances."
+  M03_MULTIPLE_REVISIONS: "Find out who saved this file after the bank issued it and why."
+  M04_FONT_ANOMALY_IN_VALUES: "Compare the highlighted amount with the bank's own copy."
+  D02_STATEMENT_PERIOD_DUPLICATE: "Keep one copy of this statement; if the two copies differ, ask the bank which one is genuine."
+  D03_INVOICE_DUPLICATE: "Confirm it is the same invoice so it is counted once."
+  D04_INVOICE_NUMBER_REUSED: "Ask the issuer which invoice is valid; two invoices must not share a number."
+  D05_RECEIPT_DUPLICATE: "Confirm it is the same receipt so the expense is counted once."
+  D06_LEDGER_ENTRY_DUPLICATE: "Remove the second entry in your accounting tool."
+  D07_DOUBLE_PAYMENT: "Ask the supplier to refund or credit the second payment."
+  X01_STATEMENT_DISCONTINUITY: "Check that both statements are genuine and that no statement is missing between them."
+  X02_STATEMENT_MISSING: "Upload the missing month's statement."
+  X05_ACCOUNT_HOLDER_MISMATCH: "Check whose account this is; remove the statement if it is not yours."
+  X08_SUPPLIER_ACCOUNT_CHANGED: "Confirm the new account with the supplier using a phone number you already have before paying again."
+  X09_LEDGER_BANK_MISMATCH: "Compare the listed ledger entries with the bank lines and correct the ledger."
+  R01_SALES_INVOICE_OVERDUE: "Send a reminder to the client."
+  R02_SUPPLIER_INVOICE_UNKNOWN_PARTY: "Confirm with whoever ordered the goods that this supplier and invoice are real before paying."
+  B01_GAMBLING_INDICATORS: "Review these payments; business accounts should not pay gambling sites."
+  B04_RETURNED_ITEMS: "Check why these payments were returned."
+  C02_NEGATIVE_BALANCE_DAYS: "Plan payments so the account does not go below zero."

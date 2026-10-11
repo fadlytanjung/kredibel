@@ -4,10 +4,10 @@
 
 ## Context
 
-The product needs a commercial shape: lenders sign up as a **workspace**, start on a plan, and see
+The product needs a commercial shape: a business (or a person) signs up as a **workspace**, starts on a plan, and sees
 what paid tiers will offer. For the competition we must not take payments, must stay within a small
 cloud budget ([`21`](../21-cost-analysis.md)), and must keep the build small. Every AI-heavy action
-(new case, upload, analysis run) costs money, so limits need to be enforced on the server, not only
+(upload, reading, month runs, assistant questions) costs money, so limits need to be enforced on the server, not only
 shown in the UI.
 
 ## Decision
@@ -19,14 +19,15 @@ shown in the UI.
   is `AVAILABLE`: **Free trial** (30 days). `Starter`, `Professional` and `Enterprise` are listed as
   `COMING_SOON`: visible, disabled, no prices, no checkout.
 - **Entitlements are checked in the backend** (`domain/plans.py`, pure) at the points that cost money
-  or seats: create case, upload, start run, invite member. Errors are `403 PLAN_LIMIT_REACHED` (with
+  or seats: upload (documents, pages, size, rows, AI spend), month re-run, assistant question, invite
+  member. Errors are `403 PLAN_LIMIT_REACHED` (with
   the limit, usage and maximum) and `403 TRIAL_EXPIRED`.
-- **After the trial:** the workspace is read-only for AI actions (no new cases, uploads or runs), but
-  existing cases stay readable and decisions can still be recorded.
+- **After the trial:** no new uploads, re-runs or assistant questions, but the books stay readable and
+  review items and findings can still be resolved.
 - **Global guardrails stay above plans:** `RUNS_ENABLED`, `RUN_QUOTA_PER_ORG_PER_DAY`, `SIGNUP_MODE`
   and `MAX_WORKSPACES` (env) cap the whole deployment regardless of plan.
-- **Workspace settings stay narrow:** profile, language (English only), credit-policy overrides
-  (4 bounded values, P1), members (P1), plan and usage.
+- **Workspace settings stay narrow:** profile, bank accounts, language (English only), plan and usage,
+  members and roles (P1). The loan readiness report and bank feeds are listed as coming-soon features.
 
 ## Alternatives considered
 
@@ -35,7 +36,7 @@ shown in the UI.
 | Billing integration now | Payments are out of scope; no third-party SaaS (P7) |
 | Hard-code limits in code | Limits change per plan and per demo; config is reviewable and testable |
 | Limits only in the UI | Anyone with a token could still run up the bill |
-| No self-serve sign-up (seeded demo org only) | Judges and pilot lenders could not try it; the trial would be fiction |
+| No self-serve sign-up (seeded demo org only) | Judges and pilot businesses could not try it; the trial would be fiction |
 
 ## Consequences
 

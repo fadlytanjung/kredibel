@@ -1,0 +1,38 @@
+# Kredibel learning — version 1
+# How AI decisions become labels, when a label asks a person to check it, how verified labels are
+# used now (examples and rules in the prompt, evals) and later (tuning datasets).
+# Semantics: docs/specs/016-labels-and-learning/spec.md and ADR-016. Never hard-code these values.
+
+version: 1
+id: learning.v1
+
+# A label "needs a check" when the AI's confidence is below this value (per task).
+needsCheckBelow:
+  DOC_TYPE: 0.80
+  PAGE_TYPE: 0.80
+  CATEGORY: 0.70
+  COUNTERPARTY_ROLE: 0.70
+  FIELD_VALUE: 1.01        # every value the two readings did not agree on (CONFLICT, SINGLE_SOURCE)
+
+# Using verified labels now, without training (in-context).
+examples:
+  enabled: true
+  perCall: 5               # nearest verified examples from the same workspace, by description embedding
+  sameWorkspaceOnly: true  # never another workspace's labels
+  minSimilarity: 0.80
+rememberedCorrections:
+  enabled: true            # "Apply to similar lines": a person's correction becomes a workspace rule
+  matchOn: [counterpartyId, direction]
+
+# Datasets for evals now and tuning later (P2).
+dataset:
+  evalShare: 0.20          # deterministic split by hash of labelId, so a label never changes split
+  includeStatuses: [VERIFIED, CORRECTED]
+  requireConsent: true     # workspace.learning.shareVerifiedLabels must be true to leave the workspace
+  consentDefault: false
+  maskFields: [accountNumber, taxId, personName]   # masked before any export
+  minExamplesPerTask: 100  # below this an export is refused for that task
+
+# Calibration: confidence buckets reported in evals and on the Labels page.
+calibration:
+  buckets: [0.5, 0.7, 0.8, 0.9, 0.95, 1.0]

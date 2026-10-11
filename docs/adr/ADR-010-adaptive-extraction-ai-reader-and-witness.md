@@ -6,14 +6,13 @@
 ## Context
 
 ADR-004 reads every statement and invoice twice, with a Document AI parser and Gemini. The cost
-model in [`21`](../21-cost-analysis.md) §3 shows where the money goes for scenario S1 (28 pages):
+model in [`21`](../21-cost-analysis.md) §3 shows where the money goes for scenario S1's statements and invoices (58 pages):
 
-- the Invoice Parser (USD 0.10 per 10 pages, so USD 0.10 per one-page invoice) is about half of the
-  case cost;
+- the Invoice Parser (USD 0.10 per 10 pages, so USD 0.10 per one-page invoice) dominates the cost;
 - Form Parser (USD 30 per 1,000 pages) costs about 5× more per page than Gemini Flash reading the
   same page;
-- specialized parsers depend on layout, and every lender's applicants bring different banks and
-  invoice templates.
+- specialized parsers depend on layout, and every business deals with different banks, suppliers and
+  receipt formats.
 
 What we must keep is constitution **P6**: no fraud verdict from a single reading. What we don't need
 is a second *paid AI* on every page. Most statements and invoices are born-digital PDFs whose
@@ -37,7 +36,7 @@ is a second *paid AI* on every page. Most statements and invoices are born-digit
    witness-only rows, never silently dropped.
 5. **Escalation (P1):** a page whose agreement stays below `extraction.escalateBelow` (0.90) is read once
    more by a specialized Document AI processor (Form Parser for statement tables, Invoice Parser for
-   invoices), within a per-case page budget. With three sources, two that agree decide.
+   invoices), within a monthly page budget. With three sources, two that agree decide.
 6. **Modes:** `EXTRACTION_MODE = adaptive` (default) or `thorough` (the specialized Document AI
    processor also reads every page, as in ADR-004). `thorough` is reserved for evals and a future paid
    tier (shown as "coming soon").
@@ -52,18 +51,18 @@ witness row sits between the rows involved.
 
 ## Alternatives considered
 
-| Option | Cost, S1 case (28 pages) | Why not |
+| Option | Cost, S1 statements and invoices (58 pages) | Why not |
 |---|---|---|
-| ADR-004 with Bank Statement Parser | ≈ USD 5.8 | Most expensive; layout fit unproven |
-| ADR-004 with Form Parser + Invoice Parser | ≈ USD 1.9 | Two paid readers everywhere; Invoice Parser dominates cost |
-| Document AI only (Form + Invoice Parser) | ≈ USD 1.7 | One reading behind an accusation; brittle on new layouts |
-| Gemini only | ≈ USD 0.34 | Same cost as adaptive on digital pages (the witness is free), but no independent check (violates P6) |
-| Gemini twice (two prompts or two models) | ≈ USD 0.50 | Correlated errors; not independent |
-| **Adaptive: Gemini + witness (chosen)** | **≈ USD 0.34** all digital, **≈ 0.38** all scanned | — |
+| ADR-004 with Bank Statement Parser | ≈ USD 8.9 | Most expensive; layout fit unproven |
+| ADR-004 with Form Parser + Invoice Parser | ≈ USD 4.9 | Two paid readers everywhere; Invoice Parser dominates cost |
+| Document AI only (Form + Invoice Parser) | ≈ USD 4.6 | One reading behind an accusation; brittle on new layouts |
+| Gemini only | ≈ USD 0.35 | Same cost as adaptive on digital pages (the witness is free), but no independent check (violates P6) |
+| Gemini twice (two prompts or two models) | ≈ USD 0.61 | Correlated errors; not independent |
+| **Adaptive: Gemini + witness (chosen)** | **≈ USD 0.35** all digital, **≈ 0.44** all scanned | — |
 
 ## Consequences
 
-- Case cost falls about 5× (≈ USD 0.34 vs 1.9 per S1 case). Document AI is still used, but where
+- Reading cost falls more than 10× (≈ USD 0.35 vs 4.9 for S1's statements and invoices). Document AI is still used, but where
   it is cheapest and strongest: OCR for scans, and specialized parsers only on demand.
 - Gemini reads one page per call; page 1 runs first and passes its header (account, period, column
   order) as context to the other pages, which run in parallel.

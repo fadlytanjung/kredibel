@@ -1,8 +1,9 @@
 # 08 — Risk Engine
 
-> Everything deterministic that turns extracted data into findings, metrics, a score and a
-> recommendation. All of it lives in `backend/app/domain/` as pure, unit-tested functions.
-> Policy values come from versioned YAML in `contracts/policy/`, never from code constants.
+> Everything deterministic that turns extracted data into duplicates, findings, matches, month
+> figures, money flows, review items and a fraud risk level. All of it lives in `backend/app/domain/`
+> as pure, unit-tested functions. Thresholds come from versioned YAML in `contracts/policy/`
+> (`forensics.v1.yaml`, `reconciliation.v1.yaml`, `risk.v1.yaml`), never from code constants.
 
 ---
 
@@ -13,382 +14,421 @@ class EvidenceRef(BaseModel):
     doc_id: str | None = None
     page: int | None = None
     bbox: BBox | None = None          # normalized 0..1, top-left origin
-    tx_id: str | None = None
+    tx_id: str | None = None          # bank line
     invoice_id: str | None = None
-    fact_id: str | None = None        # e.g. "fact:dscr_proxy"
+    receipt_id: str | None = None
+    ledger_entry_id: str | None = None
+    match_id: str | None = None
+    fact_id: str | None = None        # e.g. "fact:2026-03:money_in"
     label: str | None = None          # short caption shown in the viewer
 
 class Finding(BaseModel):
-    finding_id: str                   # fnd_{sha1(runId|code|anchor)[:16]}
-    run_id: str
+    finding_id: str                   # fnd_{sha1(code|anchor)[:16]}; stable across re-runs
     code: str                         # e.g. "A01_RUNNING_BALANCE_BREAK"
-    category: Literal["SCREENING", "EXTRACTION", "ARITHMETIC", "STRUCTURE", "VISUAL",
-                      "CROSS_DOCUMENT", "RECONCILIATION", "CASHFLOW", "BEHAVIOURAL"]
+    category: Literal["SCREENING", "EXTRACTION", "DUPLICATE", "ARITHMETIC", "STRUCTURE", "VISUAL",
+                      "CROSS_DOCUMENT", "RECONCILIATION", "BEHAVIOURAL"]
+    scope: Literal["DOCUMENT", "MONTH"]
+    doc_id: str | None
+    month: str | None                 # "2026-03"
     severity: Literal["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"]
     title: str                        # templated, short
-    facts: dict[str, str]             # e.g. {"expected": "12500000.00", "printed": "18500000.00"}
-    explanation: str | None           # plain language, from finding_explainer or template
+    facts: dict[str, str]             # e.g. {"expected": "48500000.00", "printed": "42500000.00"}
+    explanation: str | None           # plain language, from the explainer or the template
+    next_steps: list[str]             # from risk.v1.yaml actions, phrased by the explainer
     evidence: list[EvidenceRef]
     detected_by: Literal["RULE", "MODEL", "MODEL_ARMOR"]
-    corroborated_by: list[str] = []   # finding IDs
-    status: Literal["OPEN", "ACKNOWLEDGED", "DISMISSED"] = "OPEN"
+    corroborated_by: list[str] = []
+    status: Literal["OPEN", "ACKNOWLEDGED", "DISMISSED", "RESOLVED"] = "OPEN"
 ```
 
-Every check implements one interface (`domain/forensics/base.py`):
+Every check implements one interface (`domain/checks/base.py`) and is registered in
+`domain/checks/registry.py`; a check runs only when its code is enabled in `forensics.v1.yaml`.
 
 ```python
 class Check(Protocol):
     code: str
-    scope: Literal["DOCUMENT", "CASE"]
+    scope: Literal["DOCUMENT", "MONTH"]
     def applies_to(self, ctx: CheckContext) -> bool: ...
     def run(self, ctx: CheckContext) -> list[Finding]: ...
 ```
 
-Checks are registered in `domain/forensics/registry.py`. A check is enabled when its code is listed in
-`contracts/policy/forensics.v1.yaml`.
+A re-run recomputes a document's or a month's findings and **upserts** them by ID: a finding that no
+longer applies becomes `RESOLVED`; `ACKNOWLEDGED` and `DISMISSED` keep their status and history.
 
 ---
 
 ## 2. Check catalog
 
-Severity shown is the default. "Agreed" means every value used was `AGREED` by two independent
-readings, the AI reader and the witness ([`07`](07-document-intelligence.md) §6.5).
+"Agreed" means every value used was `AGREED` by the AI reader and the witness
+([`07`](07-document-intelligence.md) §6).
 
-### 2.1 Screening & extraction
+### 2.1 Screening and extraction (per document)
 
 | Code | Detects | Severity | P |
 |---|---|---|---|
 | `S01_EMBEDDED_INSTRUCTIONS` | Model Armor prompt-injection match in the file | CRITICAL | P1 |
 | `E01_LOW_EXTRACTION_AGREEMENT` | Agreement < `minAgreement`, or a failing equation with non-agreed values | MEDIUM | P0 |
-| `E02_EXTRACTION_FAILED` | Neither reader produced usable output | HIGH | P0 |
-| `E03_UNCERTAIN_TYPE` | Classification confidence < 0.6 | LOW | P0 |
-| `E04_MULTIPLE_ACCOUNTS` | More than one account number in a statement | MEDIUM | P1 |
-| `E05_PARTY_UNCLEAR` | Invoice issuer and buyer both differ from the applicant (names and accepted aliases) | LOW | P0 |
+| `E02_EXTRACTION_FAILED` | Neither reading produced usable output | HIGH | P0 |
+| `E03_UNCERTAIN_TYPE` | Classification confidence < 0.6 (the user is asked to confirm the type) | LOW | P0 |
+| `E04_MULTIPLE_ACCOUNTS` | More than one account number in one statement | MEDIUM | P1 |
+| `E05_PARTY_UNCLEAR` | Neither the issuer nor the buyer of an invoice is the workspace (names, aliases) | LOW | P0 |
 
-### 2.2 Arithmetic (per document)
+### 2.2 Duplicates
+
+| Code | Rule | Severity | Effect | P |
+|---|---|---|---|---|
+| `D01_EXACT_FILE_DUPLICATE` | SHA-256 of the uploaded bytes equals an existing document's | INFO | Not read, not counted; library shows "Copy of …" | P0 |
+| `D02_STATEMENT_PERIOD_DUPLICATE` | Same account (bank + last 4 digits) and statement periods overlapping by ≥ 1 day | HIGH if the overlapping rows differ, MEDIUM if they are identical | Newer document held as possible duplicate | P0 |
+| `D03_INVOICE_DUPLICATE` | Same issuer (`token_set_ratio ≥ 90`) and invoice number, or same issuer, issue date and total | MEDIUM | Newer document held | P0 |
+| `D04_INVOICE_NUMBER_REUSED` | Same issuer and invoice number with a **different** total or date | HIGH | Both kept; both flagged | P0 |
+| `D05_RECEIPT_DUPLICATE` | Same merchant, date and total (± 1 unit), or page perceptual hash distance ≤ `pHashMaxDistance` (8) | MEDIUM | Newer document held | P0 |
+| `D06_LEDGER_ENTRY_DUPLICATE` | Two ledger entries with the same date, amount, account and reference (from one or several imports) | MEDIUM | Later entry held | P0 |
+| `D07_DOUBLE_PAYMENT` | Two bank debits matched (or matchable) to the same purchase invoice or receipt | HIGH | Second payment goes to review | P0 |
+
+"Held" means the document (or entry) is a **possible duplicate**: its values are excluded from month
+figures and matching until the user confirms ("it is a duplicate", values stay excluded) or rejects
+("it is a different document", values count). Confirmation is a review item (§7).
+
+### 2.3 Arithmetic (per document)
 
 | Code | Rule | Severity | P |
 |---|---|---|---|
-| `A01_RUNNING_BALANCE_BREAK` | For consecutive rows: `|balance[i-1] + credit[i] − debit[i] − balance[i]| > tol` (tol = 1 unit). The first row uses the opening balance. Witness-only rows are included in the sequence. | CRITICAL if agreed and no witness-only row sits between, else `E01` | P0 |
+| `A01_RUNNING_BALANCE_BREAK` | For consecutive rows: `abs(balance[i-1] + credit[i] − debit[i] − balance[i]) > tol` (tol = 1 unit); the first row uses the opening balance; witness-only rows are included | CRITICAL if agreed and no witness-only row sits between, else `E01` | P0 |
 | `A02_OPENING_CLOSING_MISMATCH` | `opening + Σcredits − Σdebits ≠ closing` | CRITICAL if agreed, else `E01` | P0 |
 | `A03_PRINTED_TOTALS_MISMATCH` | Printed total credits/debits ≠ sum of rows | HIGH | P1 |
-| `A04_INVOICE_TOTAL_MISMATCH` | `Σ line amounts ≠ subtotal`, or `subtotal + tax ≠ total`, or `qty × unit price ≠ line amount` (tol = 1 unit per line) | HIGH | P0 |
+| `A04_INVOICE_TOTAL_MISMATCH` | `Σ lines ≠ subtotal`, `subtotal + tax ≠ total`, or `qty × unit price ≠ line` (tol = 1 unit per line); receipts: `Σ items + tax ≠ total` | HIGH | P0 |
 | `A05_TAX_RATE_INCONSISTENT` | `tax / subtotal` not within ±0.5 pp of any rate in `policy.vatRates` | MEDIUM | P1 |
 
-A01 reports **one finding per broken row**, anchored to the row; the explanation names the printed
-and the expected balance. When the next row's balance is consistent with the *printed* (wrong)
-balance, the break was introduced at that row and not corrected later. The finding states this.
+`A01` reports one finding per broken row and states whether the following rows continue from the
+printed (wrong) balance, which shows where the edit was made.
 
-### 2.3 Structure (per document, PDF only)
+### 2.4 Structure (per document, PDF only)
 
 | Code | Rule | Severity | P |
 |---|---|---|---|
-| `M01_EDITING_SOFTWARE_PRODUCER` | `Producer`/`Creator` matches a pattern in `policy.editorProducerPatterns` | MEDIUM | P0 |
-| `M02_MODIFIED_AFTER_CREATION` | `ModDate − CreationDate > policy.modifiedAfterCreationMinutes` (default 10) | MEDIUM | P0 |
-| `M03_MULTIPLE_REVISIONS` | >1 revision. MEDIUM if later revisions only add signatures/annotations; HIGH if a later revision replaces page content streams; CRITICAL (P1) if the revision diff shows changed numeric values | MEDIUM / HIGH / CRITICAL | P0 (detect) / P1 (diff) |
-| `M04_FONT_ANOMALY_IN_VALUES` | In a numeric column, characters of one value use a font name or size not used by ≥90% of that column's values on the page | HIGH | P0 |
+| `M01_EDITING_SOFTWARE_PRODUCER` | `Producer`/`Creator` matches `policy.editorProducerPatterns` | MEDIUM | P0 |
+| `M02_MODIFIED_AFTER_CREATION` | `ModDate − CreationDate > policy.modifiedAfterCreationMinutes` (10) | MEDIUM | P0 |
+| `M03_MULTIPLE_REVISIONS` | > 1 revision: MEDIUM if later revisions only add signatures or annotations; HIGH if they replace page content; CRITICAL (P1) if the revision diff changes numbers | MEDIUM / HIGH / CRITICAL | P0 (detect) / P1 (diff) |
+| `M04_FONT_ANOMALY_IN_VALUES` | In a numeric column, one value's font or size is used by < 10% of that column's values on the page | HIGH | P0 |
 | `M05_COVERED_TEXT` | A filled rectangle overlaps existing characters and new characters are drawn on top | HIGH | P1 |
 | `M06_IMAGE_ONLY` | No text layer on a page | INFO | P0 |
 
-**Why M03 is graded:** genuine bank statements are often digitally signed, and signing appends a
-revision. A revision is suspicious only when it changes what the page shows.
-
-### 2.4 Visual (per page, P1)
+### 2.5 Visual (per page, P1)
 
 | Code | Rule | Severity |
 |---|---|---|
-| `V01_VISUAL_EDIT_SUSPECTED` | Gemini reports a region with signs of editing (misaligned digits, different weight or kerning, halo or background mismatch, inconsistent column alignment) | MEDIUM; **HIGH** if corroborated by `A01`, `M04` or `M05` on the same row or a box overlapping by IoU ≥ 0.3. Never CRITICAL. |
+| `V01_VISUAL_EDIT_SUSPECTED` | Gemini reports a region with signs of editing | MEDIUM; HIGH if corroborated by `A01`, `M04` or `M05` on the same row or an overlapping box (IoU ≥ 0.3). Never CRITICAL. |
 
-### 2.5 Cross-document (per case)
+### 2.6 Cross-document (per month)
 
 | Code | Rule | Severity | P |
 |---|---|---|---|
 | `X01_STATEMENT_DISCONTINUITY` | For the same account, `closing(month N) ≠ opening(month N+1)` | HIGH (anchored to the later statement) | P0 |
-| `X02_PERIOD_GAP` | Missing calendar months within the covered range | MEDIUM | P1 |
-| `X03_DUPLICATE_CONTENT` | Two invoices with the same number, issuer and total | LOW | P1 |
-| `X04_INVOICE_NUMBER_REUSED` | Same invoice number and issuer with a different total or date | HIGH | P1 |
-| `X05_ACCOUNT_HOLDER_MISMATCH` | Statement holder matches none of: applicant legal/full name, trading name, accepted aliases, declared account holders (`token_set_ratio < 80`) | HIGH | P0 |
-| `X06_UNDECLARED_ACCOUNT` | A statement's account matches none of the applicant's declared accounts (only when ≥ 1 is declared). Also creates a `BANK_ACCOUNT` suggestion | LOW | P0 |
-| `X07_TAX_ID_MISMATCH` | A sales invoice's issuer tax ID differs from the applicant's tax ID (company profile or accepted suggestion) | HIGH | P1 |
+| `X02_STATEMENT_MISSING` | A month between the first and last statement of an account has no statement | MEDIUM | P0 |
+| `X05_ACCOUNT_HOLDER_MISMATCH` | Statement holder matches none of the workspace's names, aliases or declared account holders (`token_set_ratio < 80`) | HIGH | P0 |
+| `X06_UNDECLARED_ACCOUNT` | A statement's account is not among the workspace's bank accounts (also creates a `BANK_ACCOUNT` suggestion) | LOW | P0 |
+| `X07_TAX_ID_MISMATCH` | A sales invoice's issuer tax ID differs from the workspace's tax ID | HIGH | P1 |
+| `X08_SUPPLIER_ACCOUNT_CHANGED` | A purchase invoice's pay-to account, or a bank debit to a known supplier, uses an account not seen before for that supplier while an earlier account exists | HIGH | P0 |
+| `X09_LEDGER_BANK_MISMATCH` | For a mapped bank account, ledger cash movement for the month differs from the statement's net movement by > tol; or a ledger cash entry has no bank line within the window | MEDIUM (per entry) / HIGH (month difference > 5%) | P0 |
 
-### 2.6 Reconciliation, cash flow, behaviour (per case)
+### 2.7 Reconciliation and behaviour (per month)
 
 | Code | Rule | Severity | P |
 |---|---|---|---|
-| `R01_UNMATCHED_SALES_INVOICES` | Revenue verification ratio < 0.8 (MEDIUM) or < 0.5 (HIGH); evidence lists each unmatched invoice | MEDIUM / HIGH | P0 |
-| `R02_REVENUE_INFLATION` | Invoiced sales in window > 1.5 × operating inflows in the same window | HIGH | P0 |
-| `R03_PAID_BEFORE_ISSUE` | Matched payment dated > 3 days before the invoice issue date | MEDIUM | P1 |
-| `C01_LOW_DSCR` | DSCR proxy < 1.25 (MEDIUM) or < 1.0 (HIGH) | MEDIUM / HIGH | P0 |
-| `C02_NEGATIVE_BALANCE_DAYS` | Days with end-of-day balance < 0 ≥ `policy.negativeDaysThreshold` (3) | MEDIUM | P0 |
-| `C03_VOLATILE_INFLOWS` | Operating inflow coefficient of variation > 0.5 | MEDIUM | P1 |
-| `C04_WINDOW_DRESSING` | A credit in the last 3 days of a period ≥ 30% of that month's inflows, followed by a debit of ≥ 90% of it within the first 5 days of the next period | HIGH | P1 |
-| `B01_GAMBLING_INDICATORS` | ≥1 transaction tagged `GAMBLING` | HIGH | P0 |
-| `B02_P2P_LENDING_DEPENDENCE` | Repayments tagged `P2P_LENDING` in ≥ 3 months | MEDIUM | P1 |
-| `B03_ROUND_TRIPPING` | Same counterparty in and out within 2 days at ±2%, ≥ 2 occurrences | HIGH | P1 |
-| `B04_RETURNED_ITEMS` | ≥1 transaction tagged `RETURNED_ITEM` (≥3 → HIGH) | MEDIUM / HIGH | P0 |
-| `B05_CASH_HEAVY_INFLOWS` | Cash deposits > 50% of operating inflows | LOW | P1 |
-| `B06_CUSTOMER_CONCENTRATION` | Top client (counterparty directory, §4.3) > 50% of operating inflows | LOW | P1 |
-| `B07_RELATED_PARTY_FLOWS` | Inflows from declared related parties ≥ 10% of operating inflows, or outflows to them ≥ 20% of operating outflows; those inflows are already re-classed as `OWNER_CAPITAL` (§4.2), the finding explains the effect | MEDIUM | P1 |
+| `R01_SALES_INVOICE_OVERDUE` | A sales invoice unpaid more than `graceDays` after its due date, statements covering that period present | LOW (MEDIUM if > 10% of the month's invoiced sales) | P0 |
+| `R02_SUPPLIER_INVOICE_UNKNOWN_PARTY` | A purchase invoice from a supplier with no bank history and no ledger entry, never paid | MEDIUM | P0 |
+| `R03_PAID_BEFORE_ISSUE` | A matched payment dated more than 3 days before the invoice issue date | MEDIUM | P1 |
+| `B01_GAMBLING_INDICATORS` | ≥ 1 bank line tagged `GAMBLING` | MEDIUM | P0 |
+| `B03_ROUND_TRIPPING` | Same counterparty in and out within 2 days at ±2%, ≥ 2 times | HIGH | P1 |
+| `B04_RETURNED_ITEMS` | ≥ 1 bank line tagged `RETURNED_ITEM` (≥ 3 → HIGH) | MEDIUM / HIGH | P0 |
+| `C02_NEGATIVE_BALANCE_DAYS` | Days with end-of-day balance < 0 ≥ `negativeDaysThreshold` (3) | MEDIUM | P0 |
 
 ---
 
 ## 3. Document integrity verdict
 
-Computed per document by `document_verdict` from its own findings (categories SCREENING, EXTRACTION,
-ARITHMETIC, STRUCTURE, VISUAL, plus `X01` anchored to it), evaluated top-down:
+Per document, from its own findings (screening, extraction, arithmetic, structure, visual, plus `X01`
+anchored to it), top-down:
 
 | Verdict | Rule |
 |---|---|
-| `TAMPERED` | ≥1 **CRITICAL** finding from `A01`, `A02` or `M03`-with-diff (all deterministic, all agreed) |
-| `SUSPICIOUS` | `S01`, or ≥1 HIGH integrity finding, or ≥2 MEDIUM integrity findings |
+| `TAMPERED` | ≥ 1 CRITICAL finding from `A01`, `A02` or `M03`-with-diff (deterministic, agreed) |
+| `SUSPICIOUS` | `S01`, or ≥ 1 HIGH integrity finding, or ≥ 2 MEDIUM integrity findings |
 | `UNVERIFIABLE` | `E01` or `E02` present |
 | `CLEAN` | none of the above |
 
-An **integrity score** (0–100) is also stored for display: `100 − 40·critical − 20·high − 8·medium −
-2·low`, floored at 0. The verdict, not the score, drives decisions.
+Ledger exports have no integrity verdict (no page to tamper with); their checks are `D06` and `X09`.
 
 ---
 
-## 4. Transaction categorization
+## 4. Categorization, counterparties and profile suggestions
 
-### 4.1 Taxonomy (IAS 7 / PSAK 207 aligned)
+### 4.1 Taxonomy and the accounting framework
 
-| `cashflowClass` | `category` | Direction |
-|---|---|---|
-| `OPERATING` | `SALES_RECEIPT`, `OTHER_OPERATING_INCOME` | in |
-| `OPERATING` | `SUPPLIER_PAYMENT`, `PAYROLL`, `RENT`, `UTILITIES`, `TAX_PAYMENT`, `BANK_FEES`, `OTHER_OPERATING_EXPENSE` | out |
-| `INVESTING` | `ASSET_SALE` / `ASSET_PURCHASE` | in / out |
-| `FINANCING` | `LOAN_DISBURSEMENT`, `OWNER_CAPITAL` | in |
-| `FINANCING` | `LOAN_REPAYMENT`, `OWNER_DRAWING` | out |
-| `NON_CASH` | `INTERNAL_TRANSFER`, `REVERSAL` | either |
-| `UNCLASSIFIED` | `UNKNOWN` | either |
+The category vocabulary and each category's cash-flow class live in
+[`contracts/policy/categories.v1.yaml`](../contracts/policy/categories.v1.yaml). The class depends on
+the workspace's **accounting framework** (`profile.accountingFramework`, [ADR-016](adr/ADR-016-human-verified-labels-and-learning-loop.md));
+code derives it, a model never sets it.
 
-**Risk tags** (zero or more): `GAMBLING`, `CRYPTO`, `P2P_LENDING`, `CASH_DEPOSIT`, `CASH_WITHDRAWAL`,
-`RETURNED_ITEM`, `ROUND_TRIP`.
+Each category has a **statement line** (for the dashboard's money flow and cash-flow statement, §5.1
+and §5.2) and, per framework, a **cash-flow class** (`OPERATING`, `INVESTING`, `FINANCING`, `NON_CASH`
+or `UNCLASSIFIED`). Line names follow each framework's usual wording:
 
-**Policy choice, stated openly:** loan repayments (principal and interest) are `FINANCING`, so that
-existing debt service is measured separately. Gambling and other personal spending are
-`OWNER_DRAWING` with the relevant tag.
+| `category` | Direction | Statement line: IFRS wording / US GAAP wording | Class under IFRS (IAS 7 as amended by IFRS 18) | Class under US GAAP (ASC 230) |
+|---|---|---|---|---|
+| `SALES_RECEIPT` | in | `REVENUE`: Revenue / Net sales | `OPERATING` | `OPERATING` |
+| `OTHER_OPERATING_INCOME` | in | `OTHER_INCOME`: Other income | `OPERATING` | `OPERATING` |
+| `INTEREST_RECEIVED` | in | `OTHER_INCOME`: Other income | `INVESTING` | `OPERATING` |
+| `INVENTORY_PURCHASE` (goods and materials for sale) | out | `COST_OF_SALES`: Cost of sales / Cost of goods sold | `OPERATING` | `OPERATING` |
+| `SUPPLIER_PAYMENT` (services), `PAYROLL`, `RENT`, `UTILITIES`, `BANK_FEES`, `OTHER_OPERATING_EXPENSE` | out | `OPERATING_EXPENSES`: Operating expenses / Selling, general and administrative | `OPERATING` | `OPERATING` |
+| `TAX_PAYMENT` | out | `INCOME_TAX`: Taxes paid | `OPERATING` | `OPERATING` |
+| `INTEREST_PAID` | out | `FINANCE_COSTS`: Finance costs / Interest expense | `FINANCING` | `OPERATING` |
+| `ASSET_SALE` / `ASSET_PURCHASE` | in / out | `INVESTING`: Equipment and investments / Capital expenditures | `INVESTING` | `INVESTING` |
+| `LOAN_DISBURSEMENT`, `OWNER_CAPITAL` | in | `FINANCING`: Loans and owner | `FINANCING` | `FINANCING` |
+| `LOAN_REPAYMENT` (principal), `OWNER_DRAWING` | out | `FINANCING`: Loans and owner | `FINANCING` | `FINANCING` |
+| `INTERNAL_TRANSFER`, `REVERSAL` | either | `NONE`: not a cash flow | `NON_CASH` | `NON_CASH` |
+| `UNKNOWN` | either | `NONE` until categorized | `UNCLASSIFIED` | `UNCLASSIFIED` |
 
-### 4.2 Order of precedence
+The dashboard splits `OPERATING_EXPENSES` further by category (payroll, rent and utilities, repairs and
+services, other), so the money flow shows the same rows a person expects in a statement. Statement
+lines are cash-basis groupings of bank lines, not an accrual income statement; the UI says so.
 
-1. **Analyst override** (P1): `categorizedBy = ANALYST`. Never overwritten by a re-run.
-2. **Internal-transfer rule (code):** counterparty `token_set_ratio ≥ 90` with the applicant's names or
-   a declared/accepted own account → `INTERNAL_TRANSFER`.
-3. **Related-party rule (code, P1 with `B07`):** counterparty `token_set_ratio ≥ 90` with a declared or
-   accepted related party → credit `OWNER_CAPITAL` (financing, not sales), debit `OWNER_DRAWING`.
-4. **Keyword rules** from `contracts/policy/categorization-rules.v1.yaml`, evaluated in order, first
-   match wins: `categorizedBy = RULE`, confidence 0.95.
-5. **Model** (`txn_categorizer`, batches of 100) for the rest: `categorizedBy = MODEL`. Confidence
-   < 0.5 → `UNKNOWN`. The same call returns a cleaned **counterparty name** and **kind** (`PERSON`,
-   `BUSINESS`, `GOVERNMENT`, `BANK`, `UNKNOWN`) for rows whose name the rules could not parse (§4.3).
+Goods or services: a debit matched to a purchase invoice is `INVENTORY_PURCHASE` when the invoice
+reader marks it `supplyKind = GOODS` (beans, packaging, stock) and `SUPPLIER_PAYMENT` when
+`SERVICES` (maintenance, delivery, consulting); `MIXED` follows the larger share. Either way it is a
+`CATEGORY` label a person can correct, and that correction is the kind of example the categorizer
+learns from first.
 
-Rule examples (the YAML is authoritative):
+IFRS 18's classification applies to periods from 1 Jan 2027; for earlier periods IAS 7 allows a policy
+choice, and Kredibel applies the IFRS 18 one for comparability and says so under the cash-flow table.
+⚠️ An accountant confirms these mappings before any real-data pilot.
 
-| Pattern (case-insensitive) | Direction | Result |
-|---|---|---|
-| `\b(PAYROLL\|SALARY\|SALARIES\|WAGES)\b` | out | `PAYROLL` |
-| `\b(ELECTRICITY\|WATER BILL\|INTERNET\|TELEPHONE\|UTILITY)\b` | out | `UTILITIES` |
-| `\b(VAT PAYMENT\|TAX PAYMENT\|INCOME TAX\|WITHHOLDING TAX)\b` | out | `TAX_PAYMENT` |
-| `\b(ADMIN FEE\|TRANSFER FEE\|SERVICE CHARGE\|STAMP DUTY)\b` | out | `BANK_FEES` |
-| `\b(RENT\|LEASE)\b` | out | `RENT` |
-| `\b(ONLINE LOAN\|P2P\|PAYDAY\|QUICKCASH)\b` | out | `LOAN_REPAYMENT` + `P2P_LENDING` |
-| `\b(LOAN INSTALLMENT\|INSTALLMENT\|LOAN REPAYMENT)\b` | out | `LOAN_REPAYMENT` |
-| `\b(SLOT\|CASINO\|JACKPOT\|BETTING\|LOTTERY\|GAMBLING)\b` | out | `OWNER_DRAWING` + `GAMBLING` |
-| `\b(RETURNED\|REJECTED\|REVERSAL\|BOUNCED)\b` | either | `REVERSAL` + `RETURNED_ITEM` |
-| `\b(CASH DEPOSIT)\b` | in | tag `CASH_DEPOSIT` (category left to model) |
-| `\b(CASH WITHDRAWAL\|ATM WITHDRAWAL)\b` | out | tag `CASH_WITHDRAWAL` (category left to model) |
-| `\b(INTEREST CREDIT\|INTEREST)\b` | in | `OTHER_OPERATING_INCOME` |
+**Risk tags:** `GAMBLING`, `CRYPTO`, `P2P_LENDING`, `CASH_DEPOSIT`, `CASH_WITHDRAWAL`, `RETURNED_ITEM`,
+`ROUND_TRIP`.
 
-Rules are English for the prototype. Local-language bank descriptions for other markets are added as
-separate market-pack rule files (P2); the model already handles any language for the long tail.
+**Order of precedence:** (1) a person's decision on the line's `CATEGORY` label (`categorizedBy =
+USER`, never overwritten); (2) a match decides it (a credit matched to a sales invoice is
+`SALES_RECEIPT`, a debit matched to a purchase invoice is `INVENTORY_PURCHASE` or `SUPPLIER_PAYMENT`
+by its `supplyKind`, a debit matched to a
+ledger entry takes that entry's account mapping); (3) internal transfer between the workspace's own
+accounts; (4) a **workspace rule** a person created with "Apply to similar lines" (P1,
+[`09`](09-data-model.md) §3.20); (5) related party (P1); (6) keyword rules in
+`contracts/policy/categorization-rules.v1.yaml`, first match wins; (7) Gemini (`txn_categorizer`,
+batches of 100, with up to 5 verified examples from the same workspace in the prompt, P1) for the rest;
+confidence < 0.5 → `UNKNOWN`. Every outcome is written as a `CATEGORY` label with its source and
+confidence, so a person can check it on the Labels page. The same call returns a cleaned
+counterparty name and kind for rows the rules cannot parse.
 
-### 4.3 Counterparty directory (spec 014)
+### 4.2 Counterparties
 
-After categorization and reconciliation, `build_counterparties` (pure) groups transactions by
-normalized counterparty name (`rapidfuzz.token_set_ratio ≥ 90` merges spellings; the longest spelling
-wins) and assigns **roles in code**:
+`build_counterparties` (pure) groups bank lines, invoices and receipts by normalized party name
+(`token_set_ratio ≥ 90` merges spellings) and assigns roles in code:
 
 | Role | Rule |
 |---|---|
-| `CLIENT` | Buyer on ≥ 1 sales invoice, **or** counterparty of ≥ 1 credit categorized `SALES_RECEIPT` |
-| `SUPPLIER` | Issuer of ≥ 1 purchase invoice, **or** counterparty of ≥ 1 debit categorized `SUPPLIER_PAYMENT` |
+| `CLIENT` | Buyer on ≥ 1 sales invoice, or counterparty of a `SALES_RECEIPT` |
+| `SUPPLIER` | Issuer of ≥ 1 purchase invoice or receipt, or counterparty of a `SUPPLIER_PAYMENT` |
 | `LENDER` | Counterparty of `LOAN_REPAYMENT` or `LOAN_DISBURSEMENT` |
-| `OWN_ACCOUNT` | Matches the applicant's names or own accounts (`INTERNAL_TRANSFER`) |
-| `RELATED_PARTY` | Matches a declared or accepted related party |
-| `GOVERNMENT` | Counterparty of `TAX_PAYMENT`, or kind `GOVERNMENT` |
-| `OTHER_PAYEE` / `OTHER_PAYER` | Named party with debits / credits and none of the roles above |
+| `OWNER` | Counterparty of `OWNER_DRAWING` or `OWNER_CAPITAL` (feeds the "Owner" nodes of the money flow) |
+| `OWN_ACCOUNT` | One of the workspace's names or accounts (`INTERNAL_TRANSFER`) |
+| `RELATED_PARTY` | A declared or accepted related person (P1) |
+| `GOVERNMENT` | Counterparty of `TAX_PAYMENT` |
+| `OTHER` | Anyone else |
 
-Rows without a parsable name (e.g. `LOAN INSTALLMENT 0042`, `VAT PAYMENT MAR`) are grouped by category
-into a named bucket ("Loan installments", "VAT payments", "Payroll", "Bank fees") with kind `UNKNOWN`
-and a role from the category (`LENDER` for loans, `GOVERNMENT` for tax, `OTHER_PAYEE` or
-`OTHER_PAYER` otherwise), so totals stay complete. A party can hold several roles (e.g. a client that is
-also a related party). Each counterparty stores
-inflow, outflow, counts, first/last date, invoiced and matched totals, its share of operating inflow,
-and up to 10 sample transactions as evidence. The directory feeds `B03`, `B06`, `B07`, the
-`KEY_CLIENT`/`KEY_SUPPLIER` suggestions (§4.4) and the memo's "business" section.
+Unnamed rows (e.g. `VAT PAYMENT MAR`) go to named buckets ("VAT payments", "Bank fees") so totals stay
+complete. Each counterparty keeps totals per month, first and last date, **the bank accounts seen for
+it** (masked, with a hash in `orgPrivate`; this feeds `X08`) and sample evidence.
 
-### 4.4 Applicant profile suggestions (spec 014)
+### 4.3 Profile suggestions
 
-`build_applicant_profile` (pure) compares what the documents show with the applicant's profile and
-proposes changes. Nothing is written to the profile until an analyst accepts.
+`build_profile_suggestions` (pure) proposes profile changes; nothing changes until the user accepts.
 
-| Suggestion | Source | Confidence |
-|---|---|---|
-| `BANK_ACCOUNT` | Statement header (bank, holder, account number) not among declared accounts; also invoice payment instructions | `HIGH` if the header values are `AGREED`, else `MEDIUM` |
-| `TAX_ID` | Issuer tax ID printed on sales invoices (most frequent value), when the profile has none | `HIGH` if agreed on ≥ 2 invoices |
-| `ADDRESS` | Statement holder address or invoice issuer address, when the profile has none | `MEDIUM` |
-| `LEGAL_NAME` | Statement holder or invoice issuer name that differs in spelling only (`token_set_ratio ≥ 90`), proposed as an **alias** | `MEDIUM` |
-| `RELATED_PARTY` | A `PERSON` counterparty receiving `OWNER_DRAWING` debits in ≥ 3 months, or sending credits in ≥ 2 months, and not already declared | `LOW` |
-| `KEY_CLIENT` / `KEY_SUPPLIER` | Top clients/suppliers by flow with share ≥ 10% (max 5 each) | `MEDIUM` |
-
-A suggestion whose value contradicts a single-valued profile field (tax ID, legal name) is stored as
-`CONFLICT` with the current value, and the related check (`X05`, `X07`) carries the evidence. A value
-an analyst rejected is never suggested again for that applicant (deterministic suggestion ID).
-
----
-
-## 5. Cash-flow metrics
-
-All computations use `Decimal`. Months are the calendar months fully covered by statements of the
-applicant's accounts (every statement in the case, declared or not). Flows are summed across accounts after excluding `NON_CASH`.
-
-### 5.1 Per month `m`
-
-| Metric | Formula |
-|---|---|
-| `operating_inflow[m]` | Σ credits with class `OPERATING` |
-| `operating_outflow[m]` | Σ debits with class `OPERATING` |
-| `owner_drawings[m]` | Σ debits with category `OWNER_DRAWING` |
-| `debt_service[m]` | Σ debits with category `LOAN_REPAYMENT` |
-| `nocf[m]` | `operating_inflow − operating_outflow` |
-| `cads[m]` (cash available for debt service) | `nocf − owner_drawings` |
-| `eod_balance[d]` | balance after the last transaction of day `d`; carried forward on days without transactions; the opening balance before the first row |
-| `adb[m]` (average daily balance) | mean of `eod_balance[d]` over the days of `m` inside the statement period |
-| `min_balance[m]` | min of `eod_balance[d]` |
-| `negative_days[m]` | count of days with `eod_balance[d] < 0` |
-
-### 5.2 Aggregates
-
-| Metric | Formula |
-|---|---|
-| `coverage_months` | number of months |
-| `avg_operating_inflow`, `avg_cads`, `avg_debt_service`, `adb_avg` | arithmetic means over months |
-| `inflow_cv` | population std-dev / mean of `operating_inflow[m]` (None if mean = 0) |
-| `inflow_trend_pct` | OLS slope of `operating_inflow[m]` vs month index, ÷ mean × 100 (% per month) |
-| `negative_days_total` | Σ `negative_days[m]` |
-| `proposed_installment` | analyst override, else annuity: `P·r / (1 − (1+r)^−n)` with `r = policy.pricing.assumedAnnualRate / 12`, `n = tenorMonths` (`P/n` if `r = 0`) |
-| `dscr_proxy` | `avg_cads / (avg_debt_service + proposed_installment)` |
-| `max_supportable_installment` | `max(0, avg_cads / policy.pricing.targetDscr − avg_debt_service)` |
-| `max_supportable_amount` | `max_supportable_installment · (1 − (1+r)^−n) / r` |
-| `liquidity_buffer` | `adb_avg / proposed_installment` (months of installments held on average) |
-| `sales_invoiced` | Σ totals of `SALES_INVOICE`s issued within the coverage window, excluding `NOT_DUE` |
-| `sales_matched` | Σ matched amounts of those invoices |
-| `revenue_verification_ratio` | `sales_matched / sales_invoiced` (None if no invoices) |
-| `invoice_to_inflow_ratio` | `sales_invoiced / Σ operating_inflow` over the same window |
-
-Every aggregate is published as a **fact** with ID `fact:<name>`, its value as a decimal string, its
-unit, and the IDs of its inputs. Facts are what the memo cites.
-
----
-
-## 6. Invoice ↔ bank reconciliation
-
-For each `SALES_INVOICE` (total `T`, issue date `dᵢ`, due date `d_d`, default `dᵢ + policy.defaultTermsDays` (30)):
-
-1. **Window:** credits dated in `[dᵢ − 3 days, d_d + policy.graceDays (30)]`, class `OPERATING` or
-   `UNCLASSIFIED`, not yet matched. If `d_d` is after the coverage end, the invoice is `NOT_DUE` and
-   leaves the ratio.
-2. **Score each candidate credit `c`:**
-   - `amount_score` = 1.0 if `|c − T| ≤ tol` (tol = max(IDR 1,000, 0.5% of T)); 0.8 if
-     `T·(1 − policy.maxWithholding) ≤ c < T` (net of withholding tax, default 2%); else 0.
-   - `party_score` = `token_set_ratio(buyer, counterparty or description) / 100`.
-   - `date_score` = `1 − min(1, |date − d_d| / window_days)`.
-   - `score = 0.5·amount + 0.35·party + 0.15·date`.
-3. **Single match:** best candidate with `score ≥ policy.minMatchScore` (0.75) → `MATCHED`
-   (`EXACT` or `NET_OF_TAX`).
-4. **Split payment:** otherwise, combinations of 2–3 credits from candidates with `party_score ≥ 0.8`
-   whose sum is within tol → `MATCHED` (`SPLIT`).
-5. **Partial:** otherwise, one credit with `party_score ≥ 0.8` and `0.3·T ≤ c < T·(1 − maxWithholding)`
-   → `PARTIAL` with `matchedAmount = c`.
-6. Else `UNMATCHED`.
-
-Assignment is greedy, ordered by issue date, then by score; a credit is used at most once. The
-algorithm is deterministic for equal inputs (ties broken by transaction date, then ID).
-
-Purchase invoices are matched against debits the same way (P1, informational only).
-
----
-
-## 7. Scorecard and recommendation
-
-The authoritative policy is [`contracts/policy/scorecard.v1.yaml`](../contracts/policy/scorecard.v1.yaml).
-Summary:
-
-| Component | Weight | Metric | Points |
+| Suggestion | Source | Confidence | P |
 |---|---|---|---|
-| Repayment capacity | 30 | `dscr_proxy` | ≥2.0: 100 · ≥1.5: 80 · ≥1.25: 60 · ≥1.0: 30 · else 0 |
-| Cash-flow stability | 20 | `inflow_cv` (lower is better), minus 5 per negative-balance day | ≤0.2: 100 · ≤0.35: 75 · ≤0.5: 50 · ≤0.8: 25 · else 0 |
-| Liquidity buffer | 15 | `liquidity_buffer` | ≥3: 100 · ≥2: 75 · ≥1: 50 · ≥0.5: 25 · else 0 |
-| Revenue verification | 15 | `revenue_verification_ratio` | ≥0.9: 100 · ≥0.75: 75 · ≥0.5: 40 · else 0 · no invoices: 50 |
-| Document integrity | 20 | worst document verdict | CLEAN 100 · UNVERIFIABLE 50 · SUSPICIOUS 20 · TAMPERED 0 |
+| `BANK_ACCOUNT` | Statement header (bank, holder, account) not among the workspace's accounts | `HIGH` if agreed, else `MEDIUM` | P0 |
+| `TAX_ID` | Issuer tax ID on the workspace's sales invoices (most frequent), when the profile has none | `HIGH` if agreed on ≥ 2 invoices | P0 |
+| `ADDRESS` | Statement holder address or invoice issuer address, when the profile has none | `MEDIUM` | P0 |
+| `ALIAS` | A holder or issuer spelling of the workspace's name (`token_set_ratio ≥ 90`) | `MEDIUM` | P1 |
+| `RELATED_PARTY` | A person receiving `OWNER_DRAWING` debits in ≥ 3 months | `LOW` | P1 |
 
-```mermaid
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "Arial, Helvetica, sans-serif", "fontSize": "14px", "primaryColor": "#E3F1EE", "primaryBorderColor": "#0F5E56", "primaryTextColor": "#14201C", "lineColor": "#55625D", "pie1": "#0F766E", "pie2": "#1D4ED8", "pie3": "#B45309", "pie4": "#7C3AED", "pie5": "#64748B", "pieSectionTextColor": "#FFFFFF", "pieStrokeColor": "#FFFFFF", "pieOuterStrokeColor": "#FFFFFF"}}}%%
-pie showData
-    title Scorecard weights (points of 100)
-    "Repayment capacity" : 30
-    "Document integrity" : 20
-    "Cash-flow stability" : 20
-    "Liquidity buffer" : 15
-    "Revenue verification" : 15
-```
-
-
-`score = round(Σ weight × points / 100)` → grade **A** ≥80, **B** ≥65, **C** ≥50, **D** ≥35, **E** <35.
-
-| Grade | Recommendation |
-|---|---|
-| A | `APPROVE` |
-| B | `APPROVE_WITH_CONDITIONS` |
-| C | `REFER` |
-| D, E | `DECLINE` |
-
-**Hard stops** override the grade. The final recommendation is the most severe of the grade's
-recommendation and every triggered hard stop (`APPROVE < APPROVE_WITH_CONDITIONS < REFER < DECLINE`):
-
-| Hard stop | Trigger | Recommendation |
-|---|---|---|
-| `TAMPERED_DOCUMENT` | any document `TAMPERED` | `DECLINE` (and refer to fraud review) |
-| `SUSPICIOUS_DOCUMENT` | any document `SUSPICIOUS` | `REFER` |
-| `EMBEDDED_INSTRUCTIONS` | any `S01` | `REFER` |
-| `REVENUE_NOT_EVIDENCED` | `revenue_verification_ratio < 0.5` (only when sales invoices were supplied) | `REFER` |
-| `DSCR_BELOW_ONE` | `dscr_proxy < 1.0` | `DECLINE` |
-| `HOLDER_MISMATCH` | any `X05` | `REFER` |
-| `INSUFFICIENT_COVERAGE` | `coverage_months < policy.coverage.minMonths` (3) | `REFER` |
-
-**Conditions** (for `APPROVE_WITH_CONDITIONS`) are templated per component scoring < 60 points, e.g.
-"Reduce the amount to the maximum supportable: IDR {max_supportable_amount}" or "Provide 3 further
-months of statements".
-
-**Workspace overrides (P1).** A workspace may tune four values within bounds set in
-[`contracts/plans.v1.yaml`](../contracts/plans.v1.yaml) (`policyOverrideBounds`): `pricing.assumedAnnualRate`
-(6–36%), `pricing.targetDscr` (1.00–2.00), `coverage.requiredMonths` (3–12) and `coverage.minMonths`
-(≤ required). Weights, bands and hard stops are not tunable. Each run stores the effective policy's
-hash (`case.policyHash`) so a decision can always be traced to the exact numbers used.
-
-> **Honesty note for the pitch:** this scorecard is an illustrative, transparent policy for a
-> prototype. A lender would calibrate weights and bands on its own repayment outcomes. Kredibel's
-> value is that the policy is explicit, versioned and explainable, not that these particular numbers
-> are right.
+A suggestion that contradicts a single-valued field is stored as `CONFLICT` with the current value.
+A rejected value is never suggested again (deterministic suggestion ID).
 
 ---
 
-## 8. Determinism and testing
+## 5. Month figures and money flows
 
-- Every function in this document is pure: same inputs, same outputs, no clock, no I/O.
-- Unit tests cover every rule boundary (just below / at / above thresholds) and use **hypothesis**
-  property tests for arithmetic (e.g. a generated consistent statement never yields A01; flipping one
-  digit of one balance always does).
-- Scenario ground truth ([`18`](18-synthetic-data.md)) lists the expected codes per scenario; the
-  scenario test asserts exactly those (no more, no fewer) for P0 codes.
+All `Decimal`. A month's figures use bank lines of the workspace's accounts dated in that month,
+excluding `NON_CASH` and lines of held (possible duplicate) statements.
+
+| Fact (`fact:<yyyy-mm>:<name>`) | Formula |
+|---|---|
+| `money_in`, `money_out` | Σ credits, Σ debits |
+| `net` | `money_in − money_out` |
+| `operating_in`, `operating_out` | by class `OPERATING` |
+| `opening`, `closing` | per account from statements; Σ over accounts |
+| `negative_days` | days with end-of-day balance < 0 |
+| `bank_lines`, `auto_matched`, `manually_matched`, `unmatched`, `excluded` | counts of bank lines by match state |
+| `auto_match_rate` | `auto_matched / (bank_lines − excluded)` |
+| `invoiced_sales`, `invoiced_purchases`, `receipts_total` | Σ document totals dated in the month |
+| `ledger_cash_movement` | Σ ledger entries on mapped bank accounts |
+| `open_review_items` | count |
+
+Aggregates for a period (quarter, year, all) sum or recompute from months. Every figure is a **fact**
+with an ID, a decimal-string value and its inputs; explanations and the assistant cite facts.
+
+### 5.1 Money flow
+
+`build_money_flow(period, view, framework)` (pure) returns `{nodes, links}`. Two views; the dashboard
+opens on `STATEMENT`, and the framework defaults to the workspace's `profile.accountingFramework`:
+
+**`STATEMENT` (default):** four columns, so the flow reads like a cash-flow statement.
+
+| Column | Nodes | Rule |
+|---|---|---|
+| Revenue and other money in | Top 5 clients by inflow, "Other clients", "Cash sales deposited", then one node per other inflow line (other income, loans and owner, equipment sold), and "Taken from balance" when the period's net is negative | Credits by counterparty (for `REVENUE`) or by statement line |
+| Accounts | One node per bank account (masked label) | Credits into, debits out of each account |
+| Activity | Operating, Investing, Financing (classes under the chosen framework), and "Kept" when net is positive | Debits grouped by class |
+| Statement line | Cost of sales, Payroll, Rent and utilities, Repairs and services, Other operating expenses, Taxes paid, Finance costs, Equipment and investments, Loan principal repaid, Owner drawings (framework wording) | Debits grouped by statement line, operating expenses split by category |
+
+**`COUNTERPARTIES`:** three columns, clients and other sources → accounts → "Suppliers", "Payroll",
+"Rent and utilities", "Tax", "Loan payments", "Owner drawings", "Other spending" and "Kept in the
+account". Same totals, grouped by who was paid instead of by statement line.
+
+Links carry `amountMinor` and the query that lists their bank lines. Σ in = Σ out + kept for each
+account, in both views. Internal transfers between own accounts are drawn as account-to-account links
+only when the user chooses "show transfers" (off by default). Switching the framework moves interest
+(and dividends, when present) between activities; nothing else changes, and the totals never do.
+
+The same data gives the dashboard's **Bars** (statement lines grouped by activity) and **Table** views,
+so a person who cannot read a Sankey sees the same numbers.
+
+### 5.2 Cash-flow series and statement
+
+`build_cash_flow(period, framework)` (pure) returns what the dashboard's two other charts need:
+
+| Part | Content |
+|---|---|
+| `months[]` | Per month: `in`, `out`, `net`, closing balance (Σ over accounts) |
+| `byActivity` | Opening balance, net operating, net investing, net financing, closing balance (a waterfall) |
+| `byLine[]` | Per statement line: class under the framework, amount |
+| `framework`, `note` | The framework used and the sentence shown under the chart (for example, where interest paid went) |
+
+`opening + Σ byActivity = closing` is checked in code; a gap means a statement is missing or a month
+is incomplete, and the chart says so instead of drawing a balance that does not exist.
+
+---
+
+## 6. Reconciliation
+
+Policy: `contracts/policy/reconciliation.v1.yaml` (tolerances, windows, weights, thresholds).
+
+### 6.1 Order independence
+
+`reconcile_month(month, data)` is a pure function of **all** current data for the month and its
+neighbours (a ±1 month window for cross-month payments), not of the order it arrived in. The month
+workflow re-runs it whenever the month is marked dirty (a document read, a value corrected, a
+duplicate decided, a manual match made). User decisions (manual matches, rejections, duplicate
+decisions, ignored items) are **inputs** and are never undone by a re-run. Same inputs, same
+output: uploading S1 in reverse order (scenario S5) ends in the same matches.
+
+### 6.2 What is matched
+
+| Pair | Left | Right | Notes |
+|---|---|---|---|
+| Sales | Bank credit | Sales invoice(s) | exact, net of withholding tax, split (2–3 credits), several invoices in one credit |
+| Purchases | Bank debit | Purchase invoice(s) or receipt | receipts paid by card or transfer only |
+| Ledger cash | Bank line | Ledger entry on a mapped bank account | same date ±3 days and same amount |
+| Ledger documents | Invoice or receipt | Ledger entry (receivable, payable or expense) | invoice number in the reference, or party + amount + date |
+
+A bank line is matched when its amount is fully explained by documents or ledger entries; a document
+is paid when its total is fully covered by bank lines (net-of-tax counts as fully covered).
+
+### 6.3 Scoring and assignment
+
+For each left item, candidates within the window (`[issue − 3 days, due + graceDays]` for invoices,
+`±3 days` for receipts and ledger entries) are scored:
+
+- `amount_score` = 1.0 if within tol (max(IDR 1,000, 0.5%)); 0.8 if net of withholding
+  (`T·(1 − maxWithholding) ≤ c < T`); else 0.
+- `party_score` = `token_set_ratio(party, counterparty or description) / 100`.
+- `reference_score` = 1.0 if the invoice number or ledger reference appears in the description, else 0.
+- `date_score` = `1 − min(1, distance / window)`.
+- `score = 0.45·amount + 0.25·party + 0.15·reference + 0.15·date`.
+
+Assignment is greedy by score, then date, then ID (deterministic); an item is used at most once except
+in split or multi-invoice matches (subset sums of up to 3 items within tol, same party ≥ 0.8).
+
+| Result | Rule | Status |
+|---|---|---|
+| **Auto-confirmed** | Best score ≥ `autoConfirmScore` (0.85) **and** the runner-up < best − `ambiguityMargin` (0.10) **and** no value used is `CONFLICT` | `CONFIRMED`, method `AUTO` |
+| **Proposed** | Best score ≥ `proposeScore` (0.60) but not auto-confirmable | `PROPOSED`; becomes a review item with the candidates |
+| **None** | Otherwise | Left item stays unmatched |
+
+Every match stores its reason codes (`AMOUNT_EXACT`, `NET_OF_TAX`, `PARTY_MATCH`, `REFERENCE_IN_TEXT`,
+`DATE_NEAR`, `SPLIT`) shown as plain text in the UI ("Same amount, same client, invoice number in the
+transfer description").
+
+---
+
+## 7. Review items
+
+Created and closed by `reconcile_month` and the document workflow; never by a model.
+
+| Kind | Created when | Resolutions |
+|---|---|---|
+| `UNMATCHED_BANK_LINE` | A bank line of a month with a statement has no match after reconciliation | Match manually · categorize and mark "no document needed" · ignore with reason |
+| `UNMATCHED_DOCUMENT` | An invoice or receipt is unpaid while statements cover its window, or a ledger cash entry has no bank line | Match manually · mark as not yet paid · ignore with reason |
+| `PROPOSED_MATCH` | A match is proposed (§6.3) | Confirm · choose another candidate · reject |
+| `POSSIBLE_DUPLICATE` | `D02`, `D03`, `D05`, `D06`, `D07` | Confirm duplicate · not a duplicate |
+| `LOW_CONFIDENCE_VALUE` | A value needed for matching or a check is `CONFLICT` or `SINGLE_SOURCE` | Correct the value on the page (both readings shown) · accept as read |
+| `LEDGER_DIFFERENCE` | `X09` for a month | Explain (note) · match entries · ignore with reason |
+| `CONFIRM_TYPE` | `E03` | Choose the document type |
+| `CONFIRM_LEDGER_MAPPING` | A ledger file layout seen for the first time | Confirm or edit the proposed column mapping |
+
+One problem, one item: a bank line that is already the subject of a `LEDGER_DIFFERENCE` or
+`POSSIBLE_DUPLICATE` item gets no `UNMATCHED_BANK_LINE` item of its own. A month whose statement is
+missing keeps documents as "waiting for the bank statement" rather than creating `UNMATCHED_DOCUMENT`
+items. Resolving an item writes an event, marks the month dirty and re-runs `reconcile_month`.
+
+---
+
+## 8. Fraud risk level
+
+Policy: [`contracts/policy/risk.v1.yaml`](../contracts/policy/risk.v1.yaml).
+
+**Document level** from its findings: `CRITICAL` if the verdict is `TAMPERED` or an open `S01`;
+`HIGH` if `SUSPICIOUS` or an open HIGH finding; `MEDIUM` if an open MEDIUM finding or `UNVERIFIABLE`;
+otherwise `LOW`.
+
+**Month level:** the highest of (a) its documents' levels, (b) its month findings mapped the same way,
+and (c) these month rules:
+
+| Rule | Level |
+|---|---|
+| Any `X08_SUPPLIER_ACCOUNT_CHANGED` open | `HIGH` |
+| `D07_DOUBLE_PAYMENT` open | `HIGH` |
+| `auto_match_rate < 0.5` with a statement present | `MEDIUM` |
+| `X09` month difference > 5% | `HIGH` |
+
+A **risk score** 0–100 is stored for sorting only: `min(100, 40·critical + 20·high + 8·medium +
+2·low)` over open findings. The level, not the score, is shown.
+
+**Next steps** come from a deterministic catalog keyed by finding code (e.g. `A01` → "Ask the bank
+for the original statement or download it again from internet banking"; `X08` → "Confirm the new
+account with the supplier using a phone number you already have"; `D07` → "Ask the supplier to refund
+the second payment"). The explainer (Gemini) phrases the month summary and orders the steps; it may
+only cite findings and facts that exist (grounding guard, [`06`](06-agent-design.md) §5.1).
+
+---
+
+## 9. Determinism and testing
+
+- Every function here is pure: same inputs, same outputs, no clock, no I/O.
+- Unit tests cover every threshold (just below, at, above); **hypothesis** property tests cover
+  arithmetic (a consistent statement never yields `A01`; one changed balance always does) and
+  matching (**any permutation of the inputs gives the same matches**; adding an unrelated document
+  never removes a confirmed match).
+- Scenario ground truth ([`18`](18-synthetic-data.md)) lists expected findings, duplicates, matches and
+  review items; the scenario test asserts exactly those for P0 codes and **zero wrong automatic
+  matches**.

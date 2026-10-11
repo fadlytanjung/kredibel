@@ -12,122 +12,136 @@
 |---|---|
 | Base path | `/api` on `kredibel-web`. Worker endpoints live under `/tasks` on `kredibel-worker` only. |
 | Auth | `Authorization: Bearer <Firebase ID token>` on every `/api` route except `GET /api/health`. |
-| Workspace scoping | `orgId` (the workspace) comes **only** from the verified token's custom claim, never from the path or body. A case or applicant from another workspace returns `404` (not `403`) so IDs can't be probed. Without a workspace, only `GET /api/me`, `GET /api/plans`, `POST /api/workspaces` and `POST /api/invites/{id}/accept` work; everything else returns `403 WORKSPACE_REQUIRED`. |
-| Plan entitlements | Checked server-side where money or seats are spent: create case, upload, start run, invite ([`specs/013`](specs/013-workspace-and-plans/spec.md)). |
+| Workspace scoping | `orgId` comes **only** from the verified token's custom claim, never from the path or body. A record of another workspace returns `404` (not `403`) so IDs cannot be probed. Without a workspace, only `GET /api/me`, `GET /api/plans`, `POST /api/workspaces` and `POST /api/invites/{inviteId}/accept` work; everything else returns `403 WORKSPACE_REQUIRED`. |
+| Roles | P0: the creator is `owner` and may do everything. P1 adds `accountant`, `reviewer`, `viewer` (§5). Checked in the service layer, not only hidden in the UI. |
+| Plan entitlements | Checked server-side where money or seats are spent: upload, month run, assistant question, invite ([spec 013](specs/013-workspace-and-plans/spec.md)). |
+| Realtime | The SPA listens to Firestore for `documents/{docId}` (status, pages), `months/{yyyy-mm}` (state, figures, risk) and `runs/{runId}`; the API is used for everything else. |
 | Language | Responses are English. Errors carry a stable `code` so a future UI language can localize them. |
-| Content type | `application/json; charset=utf-8`, except uploads (`multipart/form-data`) and file/page downloads. |
+| Content type | `application/json; charset=utf-8`, except uploads (`multipart/form-data`) and file or page downloads. |
 | Naming | `camelCase` JSON. |
-| Money | `{"amount": "1250000.00", "currency": "IDR"}` |
-| Dates | Calendar dates `YYYY-MM-DD`; instants RFC 3339 UTC (`2026-10-12T03:15:00Z`). |
+| Money | `{"amount": "1250000.00", "currency": "IDR"}`, signed for bank lines (+ in, − out). |
+| Dates and months | Calendar dates `YYYY-MM-DD`; months `YYYY-MM`; instants RFC 3339 UTC. |
+| Periods | `period=` is a month (`2026-03`), a quarter (`2026-Q1`), a year (`2026`), a range (`2026-01..2026-06`) or `all`. |
 | Pagination | Cursor-based: `?limit=` (default 50, max 200) and `?cursor=`; responses `{items, nextCursor}`. |
-| Idempotency | `POST /analysis-runs` is safe to repeat: while a run is `QUEUED`/`RUNNING` it returns `409 ANALYSIS_ALREADY_RUNNING` with the existing `runId`. |
-| Versioning | Additive changes only during the competition; breaking changes need an ADR. |
+| Idempotency | Uploads are keyed by SHA-256 (an exact copy returns the existing record as a duplicate, never an error). Resolving a review item that is already resolved returns `409 ITEM_ALREADY_RESOLVED`. Worker tasks are idempotent by `runId`. |
+| Versioning | Additive changes only during the competition; breaking changes need an ADR. Response bodies never expose `schemaVersion`. |
 | Types for the SPA | Generated with `openapi-typescript` into `frontend/src/shared/api/schema.d.ts` (`npm run gen:api`). |
 
 ---
 
 ## 2. Endpoints
 
-### 2.1 System
+### 2.1 System, workspace and plans
 
 | Method & path | Purpose | P |
 |---|---|---|
 | `GET /api/health` | Liveness + version (no auth) | P0 |
-| `GET /api/me` | Current user: uid, email, name, `orgId` (null before onboarding), role, `needsWorkspace`, workspace plan summary, language | P0 |
+| `GET /api/me` | Current user: uid, email, name, `orgId` (null before onboarding), role, `needsWorkspace`, plan summary | P0 |
+| `GET /api/plans` | Plan catalog (Free trial `AVAILABLE`; others `COMING_SOON`), coming-soon features, UI languages | P0 |
+| `POST /api/workspaces` | Create the workspace: name, `entityType` (`INDIVIDUAL` or `COMPANY`), profile basics, time zone; starts the free trial; caller becomes `owner` | P0 |
+| `GET /api/workspace` | Profile, subscription (trial days left, effective limits), usage this month, counts | P0 |
+| `PATCH /api/workspace` | Profile fields (incl. `accountingFramework`: `IFRS` or `US_GAAP`), time zone, language (`en` only), `learning.shareVerifiedLabels`; entity type is fixed | P0 / P1 |
+| `GET /api/bank-accounts` · `POST /api/bank-accounts` · `PATCH /api/bank-accounts/{accountId}` · `DELETE /api/bank-accounts/{accountId}` | The workspace's bank accounts (full number in, mask + hash stored); `ledgerAccountCode` for ledger reconciliation | P0 |
+| `GET /api/workspace/members` · `POST /api/workspace/invites` · `DELETE /api/workspace/members/{uid}` · `POST /api/invites/{inviteId}/accept` | Team members and roles (nothing is emailed; invite link only) | P1 |
 
-### 2.1a Workspace & plans ([spec 013](specs/013-workspace-and-plans/spec.md))
-
-| Method & path | Purpose | P |
-|---|---|---|
-| `GET /api/plans` | Plan catalog (Free trial `AVAILABLE`; Starter, Professional, Enterprise `COMING_SOON`) and UI languages (English `available`, others `coming_soon`) | P0 |
-| `POST /api/workspaces` | Create a workspace for a user who has none; starts the free trial; caller becomes `admin`; sets custom claims (client refreshes its token) | P0 |
-| `GET /api/workspace` | Workspace profile, subscription state (trial days left, effective limits) and usage this month | P0 |
-| `PATCH /api/workspace` | Name, time zone, language (`en` only) — admin; policy overrides (P1) — admin or risk lead | P0 / P1 |
-| `GET /api/workspace/members` | Members and pending invites | P1 |
-| `POST /api/workspace/invites` | Invite by email with a role (counts against seats; nothing is emailed) | P1 |
-| `DELETE /api/workspace/members/{uid}` | Remove a member (not the last admin) | P1 |
-| `POST /api/invites/{inviteId}/accept` | Join a workspace; the caller's verified email must match | P1 |
-
-### 2.1b Applicants ([spec 003](specs/003-case-intake/spec.md), [spec 014](specs/014-applicant-profile-intelligence/spec.md))
+### 2.2 Documents
 
 | Method & path | Purpose | P |
 |---|---|---|
-| `POST /api/applicants` | Onboard an applicant: `INDIVIDUAL` or `COMPANY`, optional address, contact, bank accounts, related parties | P0 |
-| `GET /api/applicants?q=&type=&limit=&cursor=` | List or search (name prefix) | P0 |
-| `GET /api/applicants/{applicantId}` | Profile with bank accounts (masked), related parties, pending suggestion count | P0 |
-| `PATCH /api/applicants/{applicantId}` | Edit profile fields (type is fixed) | P0 |
-| `POST /api/applicants/{applicantId}/bank-accounts` · `DELETE …/{accountId}` | Add or remove a bank account (full number in, mask + hash stored) | P0 |
-| `POST /api/applicants/{applicantId}/related-parties` · `DELETE …/{partyId}` | Add or remove a beneficial owner, director, shareholder, guarantor or signatory | P0 |
-| `GET /api/applicants/{applicantId}/suggestions?status=` | AI-detected profile suggestions with evidence | P0 |
-| `PATCH /api/applicants/{applicantId}/suggestions/{suggestionId}` | Accept (writes into the profile) or reject | P0 |
-| `GET /api/applicants/{applicantId}/events` | Applicant audit trail | P0 |
+| `POST /api/documents` | Upload one file (multipart field `file`; optional `docTypeHint`). Returns `201` with the document: `UPLOADED`, or `DUPLICATE` with `duplicate.kind = EXACT` and `ofDocId` when the same file exists (not read, not counted) | P0 |
+| `GET /api/documents?type=&month=&status=&duplicate=&risk=&limit=&cursor=` | Library, newest first | P0 |
+| `GET /api/documents/{docId}` | Detail: classification, reading, statement or ledger meta, integrity verdict, risk, duplicate state, pages | P0 |
+| `DELETE /api/documents/{docId}` | Remove a document and everything read from it; marks its months dirty (blocked in a signed-off month, P1) | P0 |
+| `GET /api/documents/{docId}/file` | Original file stream | P0 |
+| `GET /api/documents/{docId}/pages/{pageNo}?variant=full\|thumb` | Rendered page PNG | P0 |
+| `GET /api/documents/{docId}/pages/{pageNo}/extraction.md` | The page as read, in Markdown: page type and confidence, reading method, witness text, line items, both readings of each value ([ADR-016](adr/ADR-016-human-verified-labels-and-learning-loop.md)) | P1 |
+| `GET /api/documents/{docId}/ledger-mapping` | The proposed or confirmed column mapping with the header and 5 sample rows parsed both ways | P0 |
+| `POST /api/documents/{docId}/reprocess` | Read again (after a type change or a failure); counts against the page limit | P1 |
 
-### 2.2 Cases
-
-| Method & path | Purpose | P |
-|---|---|---|
-| `POST /api/cases` | Create a case (`DRAFT`) for an existing `applicantId` or an inline new applicant | P0 |
-| `GET /api/cases?status=&applicantId=&limit=&cursor=` | List cases, newest first | P0 |
-| `GET /api/cases/{caseId}` | Case detail incl. applicant snapshot, summary and decision | P0 |
-| `PATCH /api/cases/{caseId}` | Edit the loan request while `DRAFT` or `INFO_REQUESTED` (applicant details via `/api/applicants`) | P0 |
-
-### 2.3 Documents
+### 2.3 Books: bank lines, invoices, receipts, ledger
 
 | Method & path | Purpose | P |
 |---|---|---|
-| `POST /api/cases/{caseId}/documents?split=none\|auto` | Upload one file (multipart field `file`); the server splits it into pages and triages each page. Returns `{items: [Document]}`. `split=auto` cuts an over-long PDF into parts (P1) | P0 / P1 |
-| `GET /api/cases/{caseId}/documents` | List documents | P0 |
-| `GET /api/cases/{caseId}/documents/{docId}` | Document detail (classification, extraction, integrity) | P0 |
-| `DELETE /api/cases/{caseId}/documents/{docId}` | Remove while `DRAFT`/`INFO_REQUESTED` | P0 |
-| `GET /api/cases/{caseId}/documents/{docId}/file` | Original file stream | P0 |
-| `GET /api/cases/{caseId}/documents/{docId}/pages/{pageNo}?variant=full\|thumb` | Rendered page PNG | P0 |
-| `PATCH /api/cases/{caseId}/documents/{docId}` | Override `docType` (re-run required) | P1 |
+| `GET /api/bank-lines?month=&accountId=&matchState=&category=&counterpartyId=&q=&flow=` | Bank lines; `flow` is a money-flow link ID (Sankey drill-down) | P0 |
+| `PATCH /api/bank-lines/{txId}` | Change the category (`categorizedBy: USER`); same as correcting its `CATEGORY` label (§2.10); marks the month dirty | P0 |
+| `GET /api/invoices?kind=&month=&paymentState=&counterpartyId=` · `GET /api/invoices/{invoiceId}` | Sales and purchase invoices with payment state and matches | P0 |
+| `GET /api/receipts?month=&paymentState=` · `GET /api/receipts/{receiptId}` | Receipts | P0 |
+| `GET /api/ledger-entries?month=&isBankCash=&matchState=&accountCode=` | Imported ledger entries | P0 |
 
-### 2.4 Analysis & results
+### 2.4 Months and reconciliation
 
 | Method & path | Purpose | P |
 |---|---|---|
-| `POST /api/cases/{caseId}/analysis-runs` | Start a run → `202 {runId}` | P0 |
-| `GET /api/cases/{caseId}/analysis-runs/{runId}` | Run status and stages | P0 |
-| `GET /api/cases/{caseId}/analysis` | Current run's metrics, monthly flows, facts, scorecard, recommendation, reconciliation | P0 |
-| `GET /api/cases/{caseId}/findings?severity=&category=&docId=&status=` | Current run's findings, most severe first | P0 |
-| `PATCH /api/cases/{caseId}/findings/{findingId}` | Acknowledge or dismiss (reason required for dismiss) | P0 |
-| `GET /api/cases/{caseId}/transactions?docId=&month=&category=&riskTag=&q=&limit=&cursor=` | Transactions | P0 |
-| `PATCH /api/cases/{caseId}/transactions/{txId}` | Analyst re-categorization | P1 |
-| `GET /api/cases/{caseId}/invoices?kind=` | Invoices with match status | P0 |
-| `GET /api/cases/{caseId}/counterparties?role=` | Clients, suppliers, lenders, own accounts, related parties and other payees of the current run | P0 |
-| `GET /api/cases/{caseId}/memo` | Memo with sections and grounding status | P0 |
-| `PUT /api/cases/{caseId}/memo` | Save analyst edits; re-runs the grounding guard | P1 |
+| `GET /api/months` | Every month with data: state, statement presence per account, risk level, auto-match rate, open items (the month strip) | P0 |
+| `GET /api/months/{month}` | Figures (facts), risk (level, summary, next steps, reasons), statements, counts, last run | P0 |
+| `POST /api/months/{month}/reconcile` | Re-run now (normally automatic after any change) → `202 {runId}` | P0 |
+| `GET /api/matches?month=&status=&kind=` | Matches with members, method, score and reasons | P0 |
+| `POST /api/matches` | Manual match: bank line IDs + invoice, receipt or ledger entry IDs (amounts must agree within tolerance); marks the month dirty | P0 |
+| `DELETE /api/matches/{matchId}` | Unmatch: the match becomes `REJECTED` and is never proposed again | P0 |
+| `POST /api/months/{month}/sign-off` · `POST /api/months/{month}/reopen` | Lock a reconciled month; reopen with a reason | P1 |
+| `GET /api/exports/reconciliation.csv?month=` | Reconciliation and review log | P1 |
 
-### 2.5 Decision & audit
+### 2.5 Review queue
 
 | Method & path | Purpose | P |
 |---|---|---|
-| `POST /api/cases/{caseId}/decision` | Record `APPROVE`, `DECLINE`, `REQUEST_INFO` or `ESCALATE` | P0 |
-| `GET /api/cases/{caseId}/events?limit=&cursor=` | Audit events, newest first | P0 |
-| `POST /api/cases/{caseId}/info-request/draft` | Draft a borrower information request from findings (copy only, nothing sent) | P1 |
+| `GET /api/review-items?status=&kind=&month=&limit=&cursor=` | Open items, highest priority first | P0 |
+| `GET /api/review-items/{itemId}` | Item with its subject records, the suggested fix and candidates | P0 |
+| `POST /api/review-items/{itemId}/resolve` | Resolve with one action allowed for the item's kind (§4); writes an event and marks the month dirty | P0 |
 
-### 2.6 Assistant (P1)
+Every exception in the product (proposed match, unmatched line, possible duplicate, uncertain value,
+ledger difference, document type, ledger mapping) is closed through this one endpoint.
+
+### 2.6 Risk and evidence
+
+| Method & path | Purpose | P |
+|---|---|---|
+| `GET /api/findings?scope=&month=&docId=&severity=&status=&code=` | Findings, most severe first | P0 |
+| `GET /api/findings/{findingId}` | Finding with facts, evidence, explanation and next steps | P0 |
+| `PATCH /api/findings/{findingId}` | Acknowledge or dismiss (reason required to dismiss a `CRITICAL` or `HIGH` finding) | P0 |
+| `GET /api/policy` | Read-only summary of the active checks, reconciliation thresholds and risk rules ("How is this decided?") | P1 |
+
+### 2.7 Dashboard and insight
+
+| Method & path | Purpose | P |
+|---|---|---|
+| `GET /api/dashboard?period=` | KPIs (money in, money out, net, auto-match rate, open review items, documents waiting), months with risk, top alerts, review preview | P0 |
+| `GET /api/money-flow?period=&view=&framework=&accountId=&showTransfers=` | Sankey `{nodes, links}`. `view=STATEMENT` (default): sources → accounts → activity → statement line under the framework (default: the workspace's); `view=COUNTERPARTIES`: sources → accounts → who was paid ([`08`](08-risk-engine.md) §5.1). Each link has an ID usable as `flow=` on `/api/bank-lines` | P0 |
+| `GET /api/cash-flow?period=&framework=` | Months in, out, net and closing balance; the cash-flow statement by activity and by line, with the opening-to-closing check ([`08`](08-risk-engine.md) §5.2) | P0 |
+| `GET /api/counterparties?role=&q=` · `GET /api/counterparties/{counterpartyId}` | Clients and suppliers with totals per month and accounts seen | P0 |
+| `GET /api/suggestions?status=` · `PATCH /api/suggestions/{suggestionId}` | Profile suggestions from documents; accept or reject | P0 |
+| `GET /api/events?subject=&type=&limit=&cursor=` | Audit trail, newest first | P0 |
+| `GET /api/runs?kind=&target=&status=&hasCorrections=` · `GET /api/runs/{runId}` | Workflow runs with stages, models, prompt versions, label counts and the Cloud Trace link; the run graph (P1) draws from `stages[]` | P0 / P1 |
+| `GET /api/runs/{runId}/events` | The run's agent events from BigQuery (LLM and tool calls, node outputs, errors) with span IDs, tokens and latency, joined to the labels they produced; content only where captured ([ADR-017](adr/ADR-017-agent-observability-on-google-cloud.md)); owner only | P1 |
+
+### 2.8 Finance Assistant (P1, [ADR-014](adr/ADR-014-finance-assistant-tools-rag-memory.md))
 
 | Method & path | Purpose |
 |---|---|
-| `GET /api/cases/{caseId}/assistant/messages` | Conversation history for the current user |
-| `POST /api/cases/{caseId}/assistant/messages` | Ask a question → `{reply, citations}` (non-streaming) |
+| `GET /api/assistant/threads` · `POST /api/assistant/threads` | The user's conversations; a thread may be scoped to a month |
+| `GET /api/assistant/threads/{threadId}/messages` | Messages from the managed session |
+| `POST /api/assistant/threads/{threadId}/messages` | Ask → `{answer: {parts[], citations[], grounding}}`; `Accept: text/event-stream` streams the same parts |
+| `GET /api/assistant/memories` · `DELETE /api/assistant/memories` | What the assistant remembers about the user's preferences; forget all |
 
-### 2.7 Policy (P1)
+### 2.10 Labels and learning (P1, [ADR-016](adr/ADR-016-human-verified-labels-and-learning-loop.md))
 
-| Method & path | Purpose |
-|---|---|
-| `GET /api/policy` | The active scorecard policy with the workspace's overrides applied, read-only, for the "how is this scored?" panel |
+| Method & path | Purpose | P |
+|---|---|---|
+| `GET /api/labels?task=&status=&needsCheck=&docId=&month=&datasetUse=&sort=&limit=&cursor=` | Labels, lowest confidence first, with a summary (total, needs a check, verified, corrected, AI agreement on checked labels) | P1 |
+| `GET /api/labels/{labelId}` | One label with its subject, AI and final values, page and extraction links | P1 |
+| `POST /api/labels/{labelId}/decision` | `{action: CONFIRM \| CORRECT, value?, note?, applyToSimilar?}`; writes an event; `CATEGORY` and `DOC_TYPE` changes mark months dirty; a run never overwrites it | P1 |
+| `POST /api/labels/bulk-confirm` | Confirm up to 200 labels as proposed | P1 |
+| `GET /api/dataset-exports` · `POST /api/dataset-exports` | Masked JSONL and BigQuery export of verified labels, owner only, with the workspace's consent (`403 CONSENT_REQUIRED`) and the minimum examples per task | later |
 
-### 2.8 Worker (internal)
+### 2.9 Worker (internal)
 
 | Method & path | Caller | Body |
 |---|---|---|
-| `POST /tasks/analyze-case` | Cloud Tasks with an OIDC token for `kredibel-tasks-invoker` | `{orgId, caseId, runId}` |
+| `POST /tasks/process-document` | Cloud Tasks with an OIDC token for `kredibel-tasks-invoker` | `{orgId, docId, runId}` |
+| `POST /tasks/reconcile-month` | Cloud Tasks (task name `month-{orgId}-{yyyy-mm}-{generation}`, 20 s delay) | `{orgId, month, generation, runId}` |
 
-Returns `200` on success or when the run is already finished (idempotent); `5xx` to request a retry.
-Returns `200` with `{"skipped": "stale"}` if `case.currentRunId != runId`.
+Both return `200` on success or when the run is already finished (idempotent), `5xx` to request a
+retry, and `200 {"skipped": "superseded"}` when a newer generation exists for the month.
 
 ---
 
@@ -137,103 +151,177 @@ All errors use **RFC 9457** `application/problem+json`:
 
 ```json
 {
-  "type": "/problems/open-critical-findings",
-  "title": "Approval blocked by open critical findings",
-  "status": 409,
-  "detail": "2 critical findings are still open. Acknowledge or dismiss them first.",
-  "code": "OPEN_CRITICAL_FINDINGS",
-  "instance": "/api/cases/case_01J…/decision",
-  "findingIds": ["fnd_7c1e…", "fnd_a90b…"]
+  "type": "/problems/plan-limit-reached",
+  "title": "Plan limit reached",
+  "status": 403,
+  "detail": "This file has 6 pages but only 4 of your 400 monthly pages are left.",
+  "code": "PLAN_LIMIT_REACHED",
+  "instance": "/api/documents",
+  "limit": "extractedPagesPerMonth",
+  "used": 396,
+  "max": 400
 }
 ```
 
 | `code` | HTTP | When |
 |---|---|---|
 | `UNAUTHENTICATED` | 401 | Missing, invalid or expired token |
-| `WORKSPACE_REQUIRED` | 403 | Signed in but no workspace yet (onboarding not done) |
-| `ROLE_REQUIRED` | 403 | Action needs `risk_lead` or `admin` |
+| `WORKSPACE_REQUIRED` | 403 | Signed in but no workspace yet |
+| `ROLE_REQUIRED` | 403 | The caller's role may not do this (P1; `requiredRoles` included) |
 | `SIGNUP_CLOSED` | 403 | `SIGNUP_MODE` is `closed`, or `invite_only` without an invite, or `MAX_WORKSPACES` reached |
 | `ALREADY_IN_WORKSPACE` | 409 | Creating a workspace or accepting an invite while already in one |
-| `TRIAL_EXPIRED` | 403 | New case, upload or run after the free trial ended (`trialEndsAt` included); reads and decisions still work |
-| `PLAN_LIMIT_REACHED` | 403 | A plan limit would be exceeded (`limit`, `used`, `max` included, e.g. `extractedPagesPerMonth`) |
+| `TRIAL_EXPIRED` | 403 | Upload, month run or assistant question after the trial ended (`trialEndsAt` included); reads still work |
+| `PLAN_LIMIT_REACHED` | 403 | A plan limit would be exceeded (`limit`, `used`, `max`) |
 | `LANGUAGE_NOT_AVAILABLE` | 422 | A language marked `coming_soon` was requested |
-| `SUGGESTION_ALREADY_DECIDED` | 409 | Accepting or rejecting a suggestion that is no longer `PENDING`/`CONFLICT` |
-| `LAST_ADMIN` | 409 | Removing or demoting the last admin (P1) |
-| `NOT_FOUND` | 404 | Case/document/finding not found **or not in the caller's org** |
-| `VALIDATION_ERROR` | 422 | Body/query invalid (`errors[]` lists fields) |
-| `CASE_NOT_EDITABLE` | 409 | Edit or upload outside `DRAFT`/`INFO_REQUESTED` |
-| `UNSUPPORTED_MEDIA_TYPE` | 415 | Not PDF/PNG/JPEG by magic bytes |
-| `DOCUMENT_TOO_LARGE` | 413 | Larger than the plan's `fileSizeMb` (20 MB on the free trial) |
-| `TOO_MANY_PAGES` | 422 | More pages than the plan's `pagesPerDocument` (20); `maxPages` and `splitAvailable` included |
-| `TOO_MANY_DOCUMENTS` | 409 | More than the plan's `documentsPerCase` (20) |
-| `DUPLICATE_DOCUMENT` | 409 | Same SHA-256 already in the case (`existingDocId` included) |
+| `NOT_FOUND` | 404 | Not found **or not in the caller's workspace** |
+| `VALIDATION_ERROR` | 422 | Body or query invalid (`errors[]` lists fields) |
+| `UNSUPPORTED_MEDIA_TYPE` | 415 | Not PDF, PNG, JPEG, CSV or XLSX by content |
+| `DOCUMENT_TOO_LARGE` | 413 | Larger than `fileSizeMb` |
+| `TOO_MANY_PAGES` | 422 | More pages than `pagesPerDocument` (`maxPages`, `splitAvailable` included) |
+| `TOO_MANY_ROWS` | 422 | A ledger file with more rows than `ledgerRowsPerFile` |
 | `ENCRYPTED_DOCUMENT` | 422 | Password-protected PDF |
-| `NO_DOCUMENTS` | 409 | Starting analysis with no documents |
-| `ANALYSIS_ALREADY_RUNNING` | 409 | A run is queued or running (`runId` included) |
-| `RUN_QUOTA_EXCEEDED` | 429 | Org's daily run quota or the per-user rate limit reached (`retryAfterSeconds` included) |
-| `RUNS_DISABLED` | 503 | New runs switched off by the `RUNS_ENABLED` kill switch; existing results stay readable |
-| `ANALYSIS_NOT_READY` | 409 | Results requested before any successful run |
-| `INVALID_TRANSITION` | 409 | Decision not valid from the current status |
-| `OPEN_CRITICAL_FINDINGS` | 409 | Approve while a critical finding is open |
-| `REASON_REQUIRED` | 422 | Dismiss/decline/override without a reason |
+| `ACTION_NOT_ALLOWED` | 422 | A resolve action that does not fit the item's kind (`allowedActions` included) |
+| `ITEM_ALREADY_RESOLVED` | 409 | The review item is no longer `OPEN` |
+| `MATCH_AMOUNT_MISMATCH` | 422 | A manual match whose two sides differ by more than the tolerance (`difference` included) |
+| `ALREADY_MATCHED` | 409 | A record in a manual match is already fully matched (`matchIds` included) |
+| `REASON_REQUIRED` | 422 | Ignore, dismiss or reopen without a reason (at least 10 characters) |
+| `SUGGESTION_ALREADY_DECIDED` | 409 | Accepting or rejecting a suggestion that is no longer `PENDING`/`CONFLICT` |
+| `MONTH_LOCKED` | 409 | A change to a signed-off month (P1) |
+| `RUN_QUOTA_EXCEEDED` | 429 | `monthRunsPerDay` or the per-user rate limit reached (`retryAfterSeconds` included) |
+| `RUNS_DISABLED` | 503 | New reading and runs switched off by `RUNS_ENABLED`; existing data stays readable |
+| `LAST_OWNER` | 409 | Removing or demoting the last owner (P1) |
+| `LABEL_VALUE_INVALID` | 422 | A label correction whose value is not in the task's vocabulary (`allowedValues` included) |
+| `CONSENT_REQUIRED` | 403 | A dataset export while `learning.shareVerifiedLabels` is off |
+| `DATASET_TOO_SMALL` | 422 | Fewer verified labels than `minExamplesPerTask` for a requested task (`counts` included) |
 | `INTERNAL` | 500 | Unexpected; `detail` is generic, the log has the cause |
 
 ---
 
-## 4. Representative payloads
+## 4. Review item actions
 
-### Create a case
+`POST /api/review-items/{itemId}/resolve` takes `{"action": …, …}`. Allowed actions per kind
+([`08`](08-risk-engine.md) §7):
+
+| Kind | Actions and their fields |
+|---|---|
+| `PROPOSED_MATCH` | `CONFIRM_MATCH` {`matchId`} · `MATCH` {`bankLineIds`, `invoiceIds?`, `receiptIds?`, `ledgerEntryIds?`} · `REJECT_MATCH` {`matchId`} |
+| `UNMATCHED_BANK_LINE` | `MATCH` {…} · `NO_DOCUMENT_NEEDED` {`category`} · `IGNORE` {`reason`} |
+| `UNMATCHED_DOCUMENT` | `MATCH` {…} · `NOT_YET_PAID` · `IGNORE` {`reason`} |
+| `POSSIBLE_DUPLICATE` | `CONFIRM_DUPLICATE` · `NOT_DUPLICATE` |
+| `LOW_CONFIDENCE_VALUE` | `CORRECT_VALUE` {`field`, `value`} · `ACCEPT_AS_READ` |
+| `LEDGER_DIFFERENCE` | `EXPLAIN` {`note`} · `MATCH` {…} · `IGNORE` {`reason`} |
+| `CONFIRM_TYPE` | `SET_TYPE` {`docType`} |
+| `CONFIRM_LEDGER_MAPPING` | `CONFIRM_MAPPING` {`mapping`} (as proposed or edited) |
+
+Every resolution is stored on the item (`resolution`), written to `events`, and marks the affected
+months dirty; the month workflow then re-reconciles them. User decisions are inputs to
+reconciliation and are never undone by a re-run ([`08`](08-risk-engine.md) §6.1).
+
+---
+
+## 5. Who may call what (P1 roles)
+
+In P0 every member is `owner`. P1 roles map to actions like this (enforced by
+`domain/access.py`, tested per endpoint):
+
+| Action | owner | accountant | reviewer | viewer |
+|---|:-:|:-:|:-:|:-:|
+| Read everything in the workspace | ✓ | ✓ | ✓ | ✓ |
+| Upload and delete documents, confirm type and ledger mapping | ✓ | ✓ | ✓ | |
+| Match, unmatch, correct values, change categories | ✓ | ✓ | ✓ | |
+| Decide duplicates, ignore items, explain ledger differences | ✓ | | ✓ | |
+| Acknowledge or dismiss findings | ✓ | | ✓ | |
+| Sign off and reopen months | ✓ | | ✓ | |
+| Accept or reject profile suggestions, edit bank accounts | ✓ | | ✓ | |
+| Ask the Finance Assistant | ✓ | ✓ | ✓ | ✓ |
+| Confirm or correct labels | ✓ | ✓ | ✓ | |
+| See the Runs page and agent events | ✓ | | | |
+| Members, invites, workspace settings (incl. accounting framework, training consent), dataset exports | ✓ | | | |
+
+---
+
+## 6. Representative payloads
+
+### Upload: an exact copy
 
 ```http
-POST /api/cases
+POST /api/documents
+Content-Type: multipart/form-data; boundary=…
 ```
 
 ```json
 {
-  "applicant": {
-    "type": "COMPANY",
-    "company": {"legalName": "Sunrise Coffee Roasters", "legalForm": "PARTNERSHIP",
-                "industry": "Coffee roasting & wholesale", "yearsOperating": 4},
-    "bankAccounts": [{"bankName": "Archipelago Commerce Bank", "accountNumber": "9900004821",
-                      "holderName": "SUNRISE COFFEE ROASTERS", "purpose": "OPERATING"}],
-    "relatedParties": [{"name": "Andi Pratama", "kind": "INDIVIDUAL",
-                        "roles": ["BENEFICIAL_OWNER", "DIRECTOR"], "ownershipPct": "60"}]
+  "docId": "doc_01JC2Q…",
+  "fileName": "BCA_March_2026 (1).pdf",
+  "status": "DUPLICATE",
+  "duplicate": {"kind": "EXACT", "code": "D01_EXACT_FILE_DUPLICATE", "ofDocId": "doc_01JB7K…",
+                "decision": "CONFIRMED"},
+  "countsAgainstLimits": false
+}
+```
+
+### Month
+
+```json
+{
+  "month": "2026-03",
+  "state": "NEEDS_REVIEW",
+  "statements": [{"accountId": "acc_9f1c…", "accountMasked": "••••4821", "docId": "doc_01JB7K…"}],
+  "figures": {
+    "moneyIn": {"factId": "fact:2026-03:money_in", "value": {"amount": "231400000.00", "currency": "IDR"}},
+    "moneyOut": {"factId": "fact:2026-03:money_out", "value": {"amount": "218900000.00", "currency": "IDR"}},
+    "autoMatchRate": {"factId": "fact:2026-03:auto_match_rate", "value": "0.8667"}
   },
-  "request": {"amount": {"amount": "250000000.00", "currency": "IDR"}, "tenorMonths": 12,
-              "purpose": "Working capital for green bean inventory"}
+  "risk": {
+    "level": "CRITICAL",
+    "summary": "The March statement for ••••4821 was edited after it was created: on 14 March a credit of IDR 7,250,000 does not add up with the printed balance [[finding:fnd_7c1e…]].",
+    "nextSteps": ["Download the March statement again from internet banking and upload it [[finding:fnd_7c1e…]]"],
+    "reasons": ["fnd_7c1e09a2b3d4e5f6"],
+    "grounding": "VERIFIED"
+  },
+  "openReviewItems": 2
 }
 ```
 
-Or, for a returning applicant: `{"applicantId": "apl_01JA…", "request": {…}}`.
-
-### Plan limit reached
+### Review item: a proposed match
 
 ```json
 {
-  "type": "/problems/plan-limit-reached",
-  "title": "Plan limit reached",
-  "status": 403,
-  "detail": "This run needs 28 new pages but only 12 of your 300 monthly pages are left.",
-  "code": "PLAN_LIMIT_REACHED",
-  "limit": "extractedPagesPerMonth",
-  "used": 288,
-  "max": 300
+  "itemId": "itm_51c0…",
+  "kind": "PROPOSED_MATCH",
+  "month": "2026-03",
+  "status": "OPEN",
+  "subject": {"bankLineIds": ["tx_3f2a…"]},
+  "suggestion": {
+    "candidates": [
+      {"matchId": "mat_aa01…", "invoiceIds": ["inv_19d2…"], "score": "0.78",
+       "reasons": ["AMOUNT_EXACT", "DATE_NEAR"], "text": "Same amount, paid 4 days after the invoice; client name differs"},
+      {"matchId": "mat_aa02…", "invoiceIds": ["inv_77b0…"], "score": "0.71",
+       "reasons": ["AMOUNT_EXACT", "PARTY_MATCH"], "text": "Same amount and client, paid 41 days after the invoice"}
+    ]
+  }
 }
 ```
 
-### Profile suggestion (abridged)
+```json
+{"action": "CONFIRM_MATCH", "matchId": "mat_aa02…"}
+```
+
+### Money flow (abridged)
 
 ```json
 {
-  "suggestionId": "sug_4b1d0e9a7c2f3a11",
-  "field": "TAX_ID",
-  "value": {"taxId": "99-731.204.5-018.000"},
-  "display": "Tax ID 99-731.204.5-018.000",
-  "confidence": "HIGH",
-  "basis": "Printed as the issuer's tax ID on 10 sales invoices; agreed by both readings",
-  "evidence": [{"docId": "doc_01JB…", "page": 1, "bbox": {"x0": 0.08, "y0": 0.16, "x1": 0.34, "y1": 0.18},
-                "label": "Issuer tax ID"}],
-  "status": "PENDING"
+  "period": "2026-Q1",
+  "nodes": [
+    {"id": "src:client:cp_8e1d…", "column": "SOURCE", "label": "Harborview Hotel Group"},
+    {"id": "acc:acc_9f1c…", "column": "ACCOUNT", "label": "Archipelago ••••4821"},
+    {"id": "use:SUPPLIERS", "column": "USE", "label": "Suppliers"},
+    {"id": "use:KEPT", "column": "USE", "label": "Kept in the account"}
+  ],
+  "links": [
+    {"id": "lnk_2c4e…", "source": "src:client:cp_8e1d…", "target": "acc:acc_9f1c…",
+     "value": {"amount": "182500000.00", "currency": "IDR"}, "lineCount": 9}
+  ]
 }
 ```
 
@@ -242,23 +330,37 @@ Or, for a returning applicant: `{"applicantId": "apl_01JA…", "request": {…}}
 ```json
 {
   "findingId": "fnd_7c1e09a2b3d4e5f6",
-  "runId": "run_01JA…",
   "code": "A01_RUNNING_BALANCE_BREAK",
   "category": "ARITHMETIC",
+  "scope": "DOCUMENT",
+  "docId": "doc_01JB7K…",
+  "month": "2026-03",
   "severity": "CRITICAL",
   "title": "Running balance does not add up",
-  "facts": {"previousBalance": "41250000.00", "credit": "7250000.00", "debit": "0.00",
-            "expectedBalance": "48500000.00", "printedBalance": "42500000.00"},
-  "explanation": "On 14 March the statement adds a credit of IDR 7,250,000 but the printed balance rises by only IDR 1,250,000. Both readers agree on these values.",
-  "evidence": [{"docId": "doc_01JA…", "page": 2, "bbox": {"x0": 0.71, "y0": 0.42, "x1": 0.93, "y1": 0.45},
+  "facts": {"previousBalance": "41250000.00", "credit": "7250000.00", "expectedBalance": "48500000.00",
+            "printedBalance": "42500000.00"},
+  "explanation": "On 14 March the statement adds a credit of IDR 7,250,000 but the printed balance rises by only IDR 1,250,000. Both readings agree on these values.",
+  "nextSteps": ["Download the March statement again from internet banking and upload it"],
+  "evidence": [{"docId": "doc_01JB7K…", "page": 2, "bbox": {"x0": 0.71, "y0": 0.42, "x1": 0.93, "y1": 0.45},
                 "txId": "tx_3f2a…", "label": "Credit amount"}],
   "detectedBy": "RULE",
   "status": "OPEN"
 }
 ```
 
-### Decision
+### Assistant answer (P1)
 
 ```json
-{"outcome": "DECLINE", "reason": "March statement altered; revenue not supported by bank inflows."}
+{
+  "messageId": "msg_01JC…",
+  "answer": {
+    "parts": [
+      {"type": "text", "text": "You paid Green Valley Farms IDR 96,400,000 in March across 3 transfers [[fact:q_5e1a:total]]. None of them went to a new account."},
+      {"type": "table", "columns": ["Date", "Amount", "Account"], "rows": [["2026-03-05", "IDR 32,100,000", "••••0912"]]},
+      {"type": "chart", "chart": "MONEY_FLOW", "query": {"period": "2026-03", "counterpartyId": "cp_31aa…"}}
+    ],
+    "citations": [{"ref": "fact:q_5e1a:total", "label": "Payments to Green Valley Farms, March 2026"}],
+    "grounding": "VERIFIED"
+  }
+}
 ```

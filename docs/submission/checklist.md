@@ -11,19 +11,21 @@
 
 ## Artefacts
 
-- [ ] **Prototype URL** works logged out; demo accounts listed in the submission notes.
+- [ ] **Prototype URL** works logged out; the demo account is listed in the submission notes.
 - [ ] **Video** ≤ 3:00, public link, follows `demo-script.md`, English, captions on.
 - [ ] **Proposal** (`proposal.md`) final; all `⟨…⟩` replaced; numbers match the eval report; under
       portal limits (measure: `python3 -c "print(len(open('brief.txt').read()))"`).
-- [ ] **Repository** link works; README renders; docs and code in English.
+- [ ] **Repository** link works; README renders with the logo; docs and code in English.
 - [ ] **Theme** stated: Theme 1 — BFSI.
 
 ## Verification (run `/submission-check`)
 
-- [ ] S1 → APPROVE/APPROVE_WITH_CONDITIONS; S2 → DECLINE (TAMPERED_DOCUMENT); S3 → REFER.
-- [ ] Evidence viewer opens the edited March row with highlights.
-- [ ] Analyst cannot approve S2; decline with reason works; event visible.
-- [ ] Second org account sees no cases.
+- [ ] S1: months reconciled or with the expected short queue; ≥ 85% matched automatically; LOW risk.
+- [ ] S3: exact copy "not read again"; four content duplicates held and confirmable; figures equal S1.
+- [ ] S2: March `CRITICAL`; evidence viewer lights the edited value with both readings.
+- [ ] S4: May `HIGH` with the supplier's old and new account.
+- [ ] Dashboard Sankey opens the bank lines behind a band.
+- [ ] A second workspace's account sees nothing of the demo workspace.
 - [ ] Worker rejects unauthenticated calls (403).
 - [ ] No secrets in the repo or image; `scan_secrets.py` clean.
 - [ ] README "Results" passes `readme_results.py`.

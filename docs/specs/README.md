@@ -10,50 +10,54 @@ documents sit under `docs/`. Paths to other docs are relative (`../01-…`, `../
 | # | Spec | Priority | Owner role | Depends on | Day |
 |---|---|---|---|---|---|
 | 001 | [Foundation](001-foundation/spec.md) | P0 | D (+C) | — | D0–D1 |
-| 013 | [Workspace, plans & settings](013-workspace-and-plans/spec.md) | P0 (phases 1–4) / P1 (members, policy overrides) | D + C | 001 | D1 (backend, onboarding) · D5–D6 (settings UI) |
-| 002 | [Synthetic data](002-synthetic-data/spec.md) | P0 (S1–S3, applicants, scan variant) / P1 | B | 001 | D0–D1 |
-| 003 | [Case intake (applicant onboarding, cases, uploads)](003-case-intake/spec.md) | P0 | C (+B/D) | 001, 013 | D1–D2 |
-| 004 | [Analysis orchestration](004-analysis-orchestration/spec.md) | P0 | A (+C) | 001, 003, 013 | D2 |
-| 005 | [Document extraction (adaptive reading)](005-document-extraction/spec.md) | P0 / P1 (escalation) | A + B | 002, 003, 004 | D2–D3 |
-| 006 | [Document forensics](006-document-forensics/spec.md) | P0 | B | 005 | D3 |
-| 007 | [Cash flow & reconciliation](007-cashflow-and-reconciliation/spec.md) | P0 | B | 005, 006 | D4 |
-| 008 | [Scoring & memo](008-scoring-and-memo/spec.md) | P0 | B + A | 006, 007 | D4–D5 |
-| 009 | [Review & decision](009-review-and-decision/spec.md) | P0 (+P1 section) | C | 003, 008 | D4–D5 |
-| 010 | [Trust extensions](010-trust-extensions/spec.md) | P1 | A, B, C | 006, 008, 009 | D6 |
-| 011 | [Case assistant](011-case-assistant/spec.md) | P1 | A (+C) | 008, 009 | D6 |
-| 012 | [Evals & results](012-evals/spec.md) | P1 (P0 suites always) | A | 002, 008 | D6 |
-| 014 | [Applicant profile intelligence](014-applicant-profile-intelligence/spec.md) | P0 (counterparties, header suggestions, `X06`, Applicant tab) / P1 | B + C (+A) | 003, 005, 007 | D4–D5 |
+| 013 | [Workspace, plans, settings and roles](013-workspace-and-plans/spec.md) | P0 / P1 (roles) | D + C | 001 | D1 (backend, onboarding) · D5 (settings UI) |
+| 002 | [Synthetic data](002-synthetic-data/spec.md) | P0 / P1 (S6) | B | 001 | D0–D1 |
+| 003 | [Document intake](003-document-intake/spec.md) | P0 | C + D | 001, 013 | D1–D2 |
+| 004 | [Workflows: documents and months](004-workflows/spec.md) | P0 | A (+D) | 001, 003, 013 | D2 |
+| 005 | [Reading](005-reading/spec.md) | P0 / P1 (escalation) | A + B | 002, 003, 004 | D2–D3 |
+| 006 | [Duplicates and document forensics](006-duplicates-and-forensics/spec.md) | P0 | B | 005 | D3 |
+| 007 | [Categorization and month reconciliation](007-reconciliation/spec.md) | P0 | B (+A) | 004, 005, 006 | D3–D4 |
+| 014 | [Profile suggestions and counterparties](014-profile-and-counterparties/spec.md) | P0 / P1 | B + C | 005, 007, 013 | D4 |
+| 008 | [Fraud risk and explanations](008-risk-and-explanations/spec.md) | P0 | B + A + C | 006, 007 | D4–D5 |
+| 009 | [Review queue](009-review-queue/spec.md) | P0 | C + B | 005–008 | D4–D5 |
+| 010 | [Dashboard and money flow](010-dashboard-and-money-flow/spec.md) | P0 | C (+B) | 007, 008 | D5 |
+| 012 | [Evals and results](012-evals/spec.md) | P0 suites / P1 suites | A | 002, 005–009 | D6 |
+| 011 | [Finance Assistant](011-finance-assistant/spec.md) | P1 | A (+C) | 007, 008, 010 | D6 |
+| 015 | [Trust extensions](015-trust-extensions/spec.md) | P1 | A, B, C | 004, 006, 008, 009 | D6 |
+| 016 | [Labels and learning from people](016-labels-and-learning/spec.md) | P1 (writers early) · export later | A, B, C | 005, 007, 013 | D3 (writers) · D6 (page) |
+| 017 | [Agent observability](017-agent-observability/spec.md) | P0 (traces, dev UI) · P1 (BigQuery, Runs page) | A, D, C | 004, 016 | D2 (traces) · D6 |
 
-Spec numbers are identifiers, not the build order: 013 was added later but is built right after 001,
-because 003 and 004 call its entitlement checks.
+Spec numbers are identifiers, not the build order: 013 is built right after 001, because 003 and 004
+call its entitlement checks.
 
 ```mermaid
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "Arial, Helvetica, sans-serif", "fontSize": "14px", "primaryColor": "#E3F1EE", "primaryBorderColor": "#0F5E56", "primaryTextColor": "#14201C", "lineColor": "#55625D", "secondaryColor": "#F0F2EF", "tertiaryColor": "#FFFFFF", "clusterBkg": "#F7F8F6", "clusterBorder": "#B8BFB9", "noteBkgColor": "#FEF0C7", "noteTextColor": "#14201C"}, "htmlLabels": false, "flowchart": {"htmlLabels": false, "padding": 16, "nodeSpacing": 40, "rankSpacing": 50, "wrappingWidth": 220}, "sequence": {"wrap": true, "useMaxWidth": true, "noteFontFamily": "Arial, Helvetica, sans-serif", "messageFontFamily": "Arial, Helvetica, sans-serif", "actorFontFamily": "Arial, Helvetica, sans-serif"}}}%%
+%%{init: {"theme": "base", "themeVariables": {"fontFamily": "Arial, Helvetica, sans-serif", "fontSize": "14px", "primaryColor": "#E7F2EE", "primaryBorderColor": "#0E5A47", "primaryTextColor": "#16212B", "lineColor": "#56636F", "secondaryColor": "#E8ECEE", "tertiaryColor": "#FFFFFF", "clusterBkg": "#F2F4F5", "clusterBorder": "#B9C2CA", "noteBkgColor": "#FFF5D6", "noteTextColor": "#16212B"}, "htmlLabels": false, "flowchart": {"htmlLabels": false, "padding": 16, "nodeSpacing": 40, "rankSpacing": 50, "wrappingWidth": 220}, "sequence": {"wrap": true, "useMaxWidth": true, "noteFontFamily": "Arial, Helvetica, sans-serif", "messageFontFamily": "Arial, Helvetica, sans-serif", "actorFontFamily": "Arial, Helvetica, sans-serif"}}}%%
 flowchart TB
     s001["001 foundation"] --> s013["013 workspace + plans"]
-    s013 --> s003["003 intake + applicants"]
-    s001 --> s002["002 synthetic"]
-    s003 --> s004["004 orchestration"]
+    s001 --> s002["002 synthetic data"]
+    s013 --> s003["003 document intake"]
+    s003 --> s004["004 workflows"]
     s013 --> s004
-    s003 --> s005
-    s002 --> s005["005 extraction"]
+    s002 --> s005["005 reading"]
     s004 --> s005
-    s005 --> s006["006 forensics"]
-    s005 --> s007["007 cash flow"]
-    s006 --> s007
-    s006 --> s008["008 scoring & memo"]
-    s007 --> s008
-    s008 --> s009["009 review"]
-    s003 --> s009
-    s008 --> s010["010 trust (P1)"]
-    s009 --> s010
-    s009 --> s011["011 assistant (P1)"]
-    s008 --> s012["012 evals"]
-    s005 --> s014["014 profile intelligence"]
-    s007 --> s014
+    s005 --> s006["006 duplicates + forensics"]
+    s006 --> s007["007 reconciliation"]
+    s007 --> s014["014 profile + counterparties"]
+    s007 --> s008["008 risk + explanations"]
+    s006 --> s008
+    s008 --> s009["009 review queue"]
+    s007 --> s009
+    s008 --> s010["010 dashboard + money flow"]
+    s009 --> s012["012 evals"]
+    s010 --> s011["011 finance assistant (P1)"]
+    s009 --> s015["015 trust extensions (P1)"]
+    s007 --> s016["016 labels (P1)"]
+    s016 --> s017["017 agent observability (P1)"]
+    s004 --> s017
 ```
 
-The frontend parts of 009 can start on D3 against MSW mocks generated from `contracts/openapi.yaml`.
+The frontend parts of 009 and 010 can start on D3 against MSW mocks generated from
+`contracts/openapi.yaml` and the HTML mocks in `design/mocks/`.
 
 ## How a coding agent works a spec
 

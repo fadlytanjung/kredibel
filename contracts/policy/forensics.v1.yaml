@@ -1,4 +1,4 @@
-# Kredibel forensic checks — version 1
+# Kredibel checks — version 1
 # Which checks run, and their thresholds. Semantics: docs/08-risk-engine.md §2–§3.
 # A check runs only if its code is listed under `enabled` (P1 checks are switched on when built).
 
@@ -11,6 +11,13 @@ enabled:
   - E02_EXTRACTION_FAILED
   - E03_UNCERTAIN_TYPE
   - E05_PARTY_UNCLEAR
+  - D01_EXACT_FILE_DUPLICATE
+  - D02_STATEMENT_PERIOD_DUPLICATE
+  - D03_INVOICE_DUPLICATE
+  - D04_INVOICE_NUMBER_REUSED
+  - D05_RECEIPT_DUPLICATE
+  - D06_LEDGER_ENTRY_DUPLICATE
+  - D07_DOUBLE_PAYMENT
   - A01_RUNNING_BALANCE_BREAK
   - A02_OPENING_CLOSING_MISMATCH
   - A04_INVOICE_TOTAL_MISMATCH
@@ -20,14 +27,16 @@ enabled:
   - M04_FONT_ANOMALY_IN_VALUES
   - M06_IMAGE_ONLY
   - X01_STATEMENT_DISCONTINUITY
+  - X02_STATEMENT_MISSING
   - X05_ACCOUNT_HOLDER_MISMATCH
   - X06_UNDECLARED_ACCOUNT
-  - R01_UNMATCHED_SALES_INVOICES
-  - R02_REVENUE_INFLATION
-  - C01_LOW_DSCR
-  - C02_NEGATIVE_BALANCE_DAYS
+  - X08_SUPPLIER_ACCOUNT_CHANGED
+  - X09_LEDGER_BANK_MISMATCH
+  - R01_SALES_INVOICE_OVERDUE
+  - R02_SUPPLIER_INVOICE_UNKNOWN_PARTY
   - B01_GAMBLING_INDICATORS
   - B04_RETURNED_ITEMS
+  - C02_NEGATIVE_BALANCE_DAYS
   # P1 — uncomment as each is implemented
   # - S01_EMBEDDED_INSTRUCTIONS
   # - E04_MULTIPLE_ACCOUNTS
@@ -35,18 +44,16 @@ enabled:
   # - A05_TAX_RATE_INCONSISTENT
   # - M05_COVERED_TEXT
   # - V01_VISUAL_EDIT_SUSPECTED
-  # - X02_PERIOD_GAP
-  # - X03_DUPLICATE_CONTENT
-  # - X04_INVOICE_NUMBER_REUSED
   # - X07_TAX_ID_MISMATCH
   # - R03_PAID_BEFORE_ISSUE
-  # - C03_VOLATILE_INFLOWS
-  # - C04_WINDOW_DRESSING
-  # - B02_P2P_LENDING_DEPENDENCE
   # - B03_ROUND_TRIPPING
-  # - B05_CASH_HEAVY_INFLOWS
-  # - B06_CUSTOMER_CONCENTRATION
-  # - B07_RELATED_PARTY_FLOWS
+
+duplicates:
+  statementOverlapMinDays: 1
+  invoiceIssuerMinScore: 90         # rapidfuzz token_set_ratio
+  receiptTotalToleranceMinor: 100
+  pHashMaxDistance: 8               # 64-bit perceptual hash of page 1 (receipts and images)
+  ledgerKey: [date, amountMinor, accountCode, reference]
 
 arithmetic:
   balanceToleranceMinor: 100        # 1.00 currency unit
@@ -74,16 +81,14 @@ visual:
   renderDpi: 150
 
 crossDocument:
-  holderNameMinScore: 80            # rapidfuzz token_set_ratio, against applicant names and declared holders
+  holderNameMinScore: 80            # token_set_ratio against the workspace's names, aliases, account holders
   continuityToleranceMinor: 100
-  undeclaredAccountSeverity: LOW    # X06; only when the applicant declared at least one account
+  undeclaredAccountSeverity: LOW    # X06; also creates a BANK_ACCOUNT suggestion
+  ledgerMonthDifferenceHigh: "0.05" # X09 HIGH when the month's ledger cash movement differs by > 5%
 
-profile:                            # applicant profile intelligence (spec 014)
-  relatedPartyNameMinScore: 90      # counterparty ↔ declared related party
-  relatedPartyInflowShare: "0.10"   # B07 when inflows from related parties ≥ 10% of operating inflows
-  relatedPartyOutflowShare: "0.20"  # or outflows to them ≥ 20% of operating outflows
-  keyCounterpartyMinShare: "0.10"   # KEY_CLIENT / KEY_SUPPLIER suggestions at ≥ 10% of the flow
-  keyCounterpartyMax: 5             # at most 5 suggestions per role per run
+profile:
+  aliasNameMinScore: 90
+  relatedPartyMinMonths: 3          # P1
 
 verification:                       # AI reader vs witness (docs/07 §6)
   descriptionMinScore: 85           # rapidfuzz partial_ratio
@@ -91,37 +96,22 @@ verification:                       # AI reader vs witness (docs/07 §6)
   textLayerMinPrintableShare: "0.80"
   blankPageWhiteShare: "0.995"
 
-reconciliation:
-  verificationRatioMedium: "0.8"
-  verificationRatioHigh: "0.5"
-  revenueInflationRatio: "1.5"
-  paidBeforeIssueDays: 3
-
-cashflow:
-  dscrMedium: "1.25"
-  dscrHigh: "1.0"
-  negativeDaysThreshold: 3
-  inflowCvThreshold: "0.5"
-  windowDressing:
-    lastDays: 3
-    firstDays: 5
-    minShareOfMonthlyInflow: "0.3"
-    minReversalShare: "0.9"
+reconciliationChecks:
+  overdueGraceDays: 30              # R01 after due date + grace
+  overdueMediumShare: "0.10"
+  paidBeforeIssueDays: 3            # R03 (P1)
 
 behaviour:
   gamblingMinCount: 1
   returnedItemsMedium: 1
   returnedItemsHigh: 3
-  p2pMinMonths: 3
-  roundTrip:
+  negativeDaysThreshold: 3
+  roundTrip:                        # P1
     maxDays: 2
     amountTolerance: "0.02"
     minOccurrences: 2
-  cashHeavyShare: "0.5"
-  concentrationShare: "0.5"
 
 verdict:
   integrityCategories: [SCREENING, EXTRACTION, ARITHMETIC, STRUCTURE, VISUAL]
   tamperedCodes: [A01_RUNNING_BALANCE_BREAK, A02_OPENING_CLOSING_MISMATCH, M03_MULTIPLE_REVISIONS]
   suspiciousMediumCount: 2
-  scoreWeights: { CRITICAL: 40, HIGH: 20, MEDIUM: 8, LOW: 2, INFO: 0 }

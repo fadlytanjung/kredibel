@@ -12,10 +12,10 @@ Assign a name to each role at the review meeting. With fewer people, merge as sh
 
 | Role | Owns | Specs | 3 people | 2 people |
 |---|---|---|---|---|
-| **A: Agents** | ADK workflow, LLM nodes, prompts, recordings, evals | 004, 005 (page reader, OCR adapter), 008 (memo), 010 ①④, 011, 012, 014 (categorizer names) | A | Person 1 |
-| **B: Risk engine** | Normalization, verifier, forensics, metrics, reconciliation, counterparties, profile suggestions, scorecard, synthetic generator | 002, 005 (verifier), 006, 007, 008 (scorecard), 014 (domain), 010 ②⑤ | B | Person 1 |
-| **C: Frontend** | Design system, onboarding, wizard, upload, progress, workspace, evidence viewer, applicant tab, settings, decision | 003 (UI), 004 (UI), 009, 013 (UI), 014 (UI), 010 ③ | C | Person 2 |
-| **D: Platform & story** | GCP bootstrap, auth, workspaces and plans API, CI/CD, deploy, observability, demo video, proposal, social post | 001, 013 (API), submission | C | Person 2 |
+| **A: Agents** | ADK workflows, LLM nodes, prompts, recordings, explainer, assistant, evals, traces, labels and agent analytics | 004, 005 (readers, OCR, ledger mapper), 007 (categorizer), 008 (explainer), 011, 012, 015 ①④, 016 (writers, examples), 017 | A | Person 1 |
+| **B: Risk engine** | Normalization, verifier, ledger parser, duplicates, forensics, reconciliation, figures, risk levels, money flow, counterparties, synthetic generator | 002, 005 (verifier, parser), 006, 007, 008 (levels), 010 (flow builder), 014 | B | Person 1 |
+| **C: Frontend** | Design system, shell, onboarding, upload, documents, months, review queue, risk and evidence viewer, dashboard and Sankey, settings, Labels and Runs pages | 003 (UI), 007 (UI), 008 (UI), 009, 010, 013 (UI), 014 (UI), 016 (UI), 017 (UI) | C | Person 2 |
+| **D: Platform & story** | GCP bootstrap, auth, workspaces and plans API, queues, CI/CD, deploy, observability, demo video, proposal, social post | 001, 003 (API), 004 (queues), 013 (API), submission | C | Person 2 |
 
 ---
 
@@ -23,42 +23,42 @@ Assign a name to each role at the review meeting. With fewer people, merge as sh
 
 | Day | Date | Goal by end of day | Specs / tasks | Owner |
 |---|---|---|---|---|
-| **D0** | Sat 10 Oct | Docs reviewed and locked. **Registration confirmed.** GCP project with billing, budget alerts and credits checked ([`21`](21-cost-analysis.md) §7), bootstrap done. Spikes S1–S5 run and recorded in [`02`](02-research.md) §6 (S1 = page-image reading + witness, [ADR-010](adr/ADR-010-adaptive-extraction-ai-reader-and-witness.md)). Repo scaffolded with the i18n scaffold. | review · 001 (T001-01…05) · spikes | all |
-| **D1** | Sun 11 Oct | **Walking skeleton deployed:** sign-in → onboarding (create workspace, free trial) → empty case list on Cloud Run. Plans config and entitlement checks done. S1–S3 generated with truth, applicants and the scanned variant. Applicant onboarding + case wizard + upload with page split working locally. | 001 · 013 (phases 1–3) · 002 · 003 | D · B · C |
-| **D2** | Mon 12 Oct | A run goes `QUEUED → RUNNING → READY_FOR_REVIEW` with stub nodes, plan checks at run start, live page-level progress in the UI. Inspection, classification, Gemini page reader and the text-layer/OCR witness working on S1. | 004 · 005 (part 1) | A · C · B |
-| **D3** | Tue 13 Oct | Verifier + provenance; P0 forensics; S2 shows `TAMPERED` with correct codes. Recordings captured for S1–S3 and scanned S1. | 005 (part 2) · 006 | B · A |
-| **D4** | Wed 14 Oct | Categorization (with counterparty names), metrics, reconciliation, counterparty directory, profile suggestions, case-level checks incl. `X06`, scorecard; S1/S2/S3 give the expected recommendation and suggestions in scenario tests. | 007 · 014 (domain, nodes) · 008 (scorecard) | B · A |
-| **D5** | Thu 15 Oct | Memo + grounding guard. Workspace, findings, **evidence viewer**, decision panel, **Applicant tab** (suggestions + counterparties), Plan & usage page. **CUT-LINE CHECK 20:00:** full P0 path on Cloud Run for S1–S3. | 008 (memo) · 009 · 014 (UI) · 013 (UI) | A · C |
-| **D6** | Fri 16 Oct | P1 in priority order (stop at freeze): ① Model Armor + S6 ② revision diff ③ related parties + `B07` ④ run timeline ⑤ visual forensics ⑥ split upload ⑦ assistant ⑧ members/policy overrides. P0 evals run (incl. E-EXT cost per page). **Feature freeze 20:00.** | 010 · 014 (P1) · 003 (P1) · 011 · 013 (P1) · 012 | all |
+| **D0** | Sat 10 Oct | Docs reviewed and locked. **Registration confirmed.** GCP project with billing, budget alerts and credits checked ([`21`](21-cost-analysis.md) §7), bootstrap done. Spikes S1–S3 run and recorded in [`02`](02-research.md) §6. Repo scaffolded with tokens, shell and i18n. | review · 001 (phases 1, 4a) · spikes | all |
+| **D1** | Sun 11 Oct | **Walking skeleton deployed:** sign-in → onboarding (individual or company, free trial) → empty dashboard on Cloud Run. Plans and entitlements done. S1–S5 generated with truth. Upload with exact-duplicate check and page split working locally. | 001 · 013 (phases 1–3) · 002 · 003 | D · B · C |
+| **D2** | Mon 12 Oct | Both workflows run with stub nodes through both queues; month generations and debounce work; live document progress in the library. Classification, Gemini page reader and the witness working on S1. | 004 · 005 (part 1) | A · D · C |
+| **D3** | Tue 13 Oct | Verifier, receipts and ledger import; content duplicates and P0 forensics: S2 March `TAMPERED`, S3 duplicates held. Recordings captured for S1–S5. Reconciliation core started. | 005 (part 2) · 006 · 007 (start) | B · A |
+| **D4** | Wed 14 Oct | Categorization, reconciliation (S1 ≥ 85% automatic, 0 wrong; S5 = S1), month figures and checks (S4 `X08`), counterparties and suggestions, risk levels. Months page and match picker. | 007 · 014 · 008 (levels) | B · A · C |
+| **D5** | Thu 15 Oct | Explainer with grounding guard; **review queue**; Risk page and **evidence viewer**; **dashboard with the money-flow Sankey**; Plan & usage. **CUT-LINE CHECK 20:00:** full P0 path on Cloud Run for S1–S4. | 008 · 009 · 010 · 013 (UI) | A · C |
+| **D6** | Fri 16 Oct | P1 in priority order (stop at freeze): ① Model Armor + S6 ② run graph ③ Finance Assistant ④ labels page (016) ⑤ run history in BigQuery and the Runs page (017) ⑥ roles ⑦ month sign-off ⑧ revision diff ⑨ visual forensics ⑩ exports. P0 evals run (E-REC and E-DUP first). **Feature freeze 20:00.** | 015 · 011 · 013 (P1) · 012 | all |
 | **D7** | Sat 17 Oct | UX polish, README results from the eval report, rehearsal, **video recorded**, proposal final, final deploy, **SUBMIT by 21:00**. | submission | all |
 | **D8** | Sun 18 Oct | Buffer only: fix submission problems. No new features. | — | D |
 
 ```mermaid
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "Arial, Helvetica, sans-serif", "fontSize": "14px", "primaryColor": "#E3F1EE", "primaryBorderColor": "#0F5E56", "primaryTextColor": "#14201C", "lineColor": "#55625D", "taskBkgColor": "#E3F1EE", "taskBorderColor": "#0F5E56", "taskTextColor": "#14201C", "taskTextOutsideColor": "#14201C", "taskTextDarkColor": "#14201C", "critBkgColor": "#FEE4E2", "critBorderColor": "#B42318", "sectionBkgColor": "#F7F8F6", "altSectionBkgColor": "#FFFFFF", "sectionBkgColor2": "#F7F8F6", "gridColor": "#DDE1DC", "todayLineColor": "#B42318"}, "gantt": {"barHeight": 22, "fontSize": 12, "sectionFontSize": 13, "leftPadding": 150}}}%%
+%%{init: {"theme": "base", "themeVariables": {"fontFamily": "Arial, Helvetica, sans-serif", "fontSize": "14px", "primaryColor": "#E7F2EE", "primaryBorderColor": "#0E5A47", "primaryTextColor": "#16212B", "lineColor": "#56636F", "taskBkgColor": "#E7F2EE", "taskBorderColor": "#0E5A47", "taskTextColor": "#16212B", "taskTextOutsideColor": "#16212B", "taskTextDarkColor": "#16212B", "critBkgColor": "#FEE4E2", "critBorderColor": "#B42318", "sectionBkgColor": "#F2F4F5", "altSectionBkgColor": "#FFFFFF", "sectionBkgColor2": "#F2F4F5", "gridColor": "#DCE1E5", "todayLineColor": "#B42318"}, "gantt": {"useWidth": 1600, "useMaxWidth": true, "barHeight": 26, "barGap": 6, "topPadding": 56, "fontSize": 13, "sectionFontSize": 14, "leftPadding": 170, "rightPadding": 60, "gridLineStartPadding": 40}}}%%
 gantt
     title Delivery plan, 10 to 18 Oct 2026
     dateFormat YYYY-MM-DD
+    todayMarker off
     axisFormat %d %b
     section Platform (D)
     Bootstrap + skeleton (001)     :d1, 2026-10-10, 2d
     Workspace + plans API (013)    :d4, 2026-10-11, 1d
-    Guardrails + daily deploys     :d2, after d1, 4d
+    Queues + daily deploys         :d2, after d1, 4d
     Video + proposal               :crit, d3, 2026-10-17, 1d
     section Risk engine (B)
-    Synthetic data (002)           :b1, 2026-10-10, 2d
-    Verifier + forensics           :b2, 2026-10-12, 2d
-    Cash flow + profile + score    :b3, 2026-10-14, 1d
-    Remaining checks (P1)          :b4, 2026-10-16, 1d
+    Synthetic books (002)          :b1, 2026-10-10, 2d
+    Verifier + duplicates + forensics :b2, 2026-10-12, 2d
+    Reconciliation + risk (007, 008) :b3, 2026-10-13, 2d
+    Money flow + counterparties    :b4, 2026-10-15, 1d
     section Agents (A)
-    ADK spike + pipeline (004)     :a1, 2026-10-11, 2d
-    Page reader + OCR (005)        :a2, 2026-10-12, 2d
-    Memo + guard (008)             :a3, 2026-10-14, 2d
-    P1 trust + evals               :a4, 2026-10-16, 1d
+    ADK spike + workflows (004)    :a1, 2026-10-11, 2d
+    Readers + ledger mapper (005)  :a2, 2026-10-12, 2d
+    Explainer + guard (008)        :a3, 2026-10-14, 2d
+    P1 + evals                     :a4, 2026-10-16, 1d
     section Frontend (C)
-    Onboarding + wizard (013, 003) :c1, 2026-10-11, 2d
-    Live progress (004)            :c2, 2026-10-13, 1d
-    Workspace + evidence (009)     :c3, 2026-10-13, 2d
-    Applicant tab + plans (014)    :c5, 2026-10-15, 1d
+    Shell + onboarding + upload    :c1, 2026-10-10, 3d
+    Documents + months             :c2, 2026-10-13, 2d
+    Review + risk + dashboard      :c3, 2026-10-14, 2d
     UX polish                      :c4, 2026-10-16, 1d
     section Milestones
     Registration closes            :milestone, m0, 2026-10-11, 0d
@@ -71,15 +71,16 @@ gantt
 
 ### 2.1 The cut line (D5, 20:00)
 
-If the full P0 path does not run on Cloud Run for S1–S3 by then:
+If the full P0 path does not run on Cloud Run for S1–S4 by then:
 
 1. Stop all P1 work.
-2. Drop, in this order, until it runs: Settings sections other than Plan & usage → Applicant tab
-   counterparties (keep suggestions) → memo writer (show findings + metrics + scorecard only) →
-   reconciliation UI (keep the backend) → OCR witness (digital PDFs only; scans `UNVERIFIABLE`
+2. Drop, in this order, until it runs: Settings sections other than Plan & usage → counterparty pages
+   (keep `X08`) → the explainer (template text only) → the Sankey (keep the flow table) → receipts
+   (statements, invoices and ledger only) → OCR witness (digital PDFs only; scans `UNVERIFIABLE`
    honestly).
-3. Keep at all costs: S2 caught as `TAMPERED` with the evidence viewer, the decision guard, the free
-   trial with server-side limits, and applicant onboarding (individual or company).
+3. Keep at all costs: S3 duplicates caught, S2 caught as `TAMPERED` with the evidence viewer, S1
+   reconciled with a short review queue, the dashboard, the free trial with server-side limits, and
+   onboarding as an individual or a company.
 
 ---
 
@@ -97,24 +98,25 @@ If the full P0 path does not run on Cloud Run for S1–S3 by then:
 
 ## 4. Definition of done (P0 demo)
 
-- [ ] Deployed URL works in a logged-out browser: sign in with a demo account; a **new** Google account
-      lands on onboarding, creates a workspace and sees "Free trial · 30 days left".
-- [ ] Plan & usage shows the free trial with usage meters and Starter/Professional/Enterprise as
-      "Coming soon"; the language picker offers English only.
-- [ ] Onboard Sunrise Coffee Roasters as a company (one account, one beneficial owner), create a case,
-      upload S2 documents (Digital badges), run analysis, watch page-level progress (< 3 min).
-- [ ] Overview shows grade, recommendation `DECLINE`, hard stop `TAMPERED_DOCUMENT`.
-- [ ] Findings list contains A01/A02/M01–M04 on the March statement; the evidence viewer highlights
-      the edited row and shows printed vs expected balance and both readings' values.
-- [ ] S3 shows unmatched invoices and `REFER`.
-- [ ] The Applicant tab shows the tax ID and address suggestions with evidence; accepting one updates
-      the profile; counterparties list the six clients and three suppliers.
+- [ ] Deployed URL works in a logged-out browser: sign in with the demo account; a **new** Google
+      account lands on onboarding, chooses company or individual, and sees "Free trial · 30 days left".
+- [ ] Plan & usage shows usage meters, Starter/Professional/Enterprise and the Loan readiness report
+      as "Coming soon"; the language picker offers English only.
+- [ ] Upload S1 (statements, invoices, receipts, ledger CSV) in one go: live progress per document;
+      the ledger mapping is confirmed once; every month ends `RECONCILED` or `NEEDS_REVIEW` with
+      ≥ 85% of bank lines matched automatically and the expected short review queue.
+- [ ] The dashboard shows money in and out, the month strip and the **money-flow Sankey**; clicking a
+      band lists its bank lines.
+- [ ] S3: the exact copy is "not read again"; the four content duplicates are held and confirmed in
+      the review queue; figures equal S1's.
+- [ ] S2: March is `CRITICAL`; the evidence viewer lights the edited value, shows both readings and the
+      broken balance; the next step reads "Download the March statement again from internet banking".
+- [ ] S4: May is `HIGH` with the supplier's old and new account side by side; two unpaid invoices from
+      an unknown supplier are listed.
+- [ ] A review item resolved on a phone (390 px) updates its month within seconds.
 - [ ] A 21-page PDF is rejected with `TOO_MANY_PAGES`; the scanned S1 variant reads through the OCR
       witness.
-- [ ] S1 shows `APPROVE`/`APPROVE_WITH_CONDITIONS` with no high/critical findings.
-- [ ] Memo renders with citation chips, grounding badge `Verified`.
-- [ ] Analyst cannot approve S2; decline with reason works; the event appears in Activity.
-- [ ] A user from another org sees nothing.
+- [ ] A user from another workspace sees nothing.
 - [ ] `make check` is green on `main`.
 
 ---
@@ -126,8 +128,9 @@ If the full P0 path does not run on Cloud Run for S1–S3 by then:
 | Spike S1 shows Gemini misreads page images | Field accuracy < 0.98 on S1 | Try `ultra_high` media resolution; crop the table region; if still low, escalate those pages to Form Parser (P1 path pulled into P0) |
 | Verifier struggles with a layout (multi-line rows, merged cells) | Agreement < 0.9 on clean S1 | Widen row bands to the next anchor; header-based column ranges; values stay `SINGLE_SOURCE` rather than wrong (honest `E01`) |
 | Self-serve sign-up eats the budget during judging | `workspaces_created` alert; budget 50% | `SIGNUP_MODE=invite_only` or `closed`; lower `MAX_WORKSPACES`; kill switch |
-| ADK 2.x API differs from the docs | S2 spike fails | Keep node functions and contracts; orchestrate with plain asyncio behind the same `case_pipeline` interface; re-attempt ADK on D6 |
-| Model quota or availability | 429/404 | Switch `MODEL_*` to the next model in the ladder; reduce `DOC_CONCURRENCY` |
-| Frontend falls behind | D4 without workspace skeleton | Backend owner builds the evidence viewer; drop charts to tables |
+| ADK 2.x API differs from the docs | S2 spike fails | Keep node functions and contracts; orchestrate with plain asyncio behind the same workflow interfaces; re-attempt ADK on D6 |
+| Matching below 85% or a wrong automatic match | Scenario test on D4 | Raise `autoConfirmScore`, widen windows only with a test; a wrong match is worse than a review item |
+| Model quota or availability | 429/404 | Switch `MODEL_*` to the next model in the ladder; reduce `PAGE_CONCURRENCY` |
+| Frontend falls behind | D4 without the review queue | Backend owner builds the review queue from the mocks; the Sankey falls back to its table |
 | Video takes longer than planned | D7 midday not recorded | Use the scripted 10-shot plan in [`docs/submission/demo-script.md`](submission/demo-script.md); record screen + voice-over separately |
 | Deadline time zone | — | Submit 17 Oct 21:00 UTC+7 |

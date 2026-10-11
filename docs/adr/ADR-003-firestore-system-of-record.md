@@ -4,14 +4,15 @@
 
 ## Context
 
-We need durable storage for cases, documents, hundreds of transactions per case, findings, analysis
-results, memos and an audit trail, plus a way to push live progress to the browser. 7 build days; no
+We need durable storage for a workspace's documents, hundreds of bank lines, invoices, receipts and
+ledger entries per month, matches, review items, findings, month results and an audit trail, plus a
+way to push live progress to the browser. 7 build days; no
 appetite for VPCs or connection pools.
 
 ## Decision
 
 **Firestore (Native mode, `(default)` database, `asia-southeast1`)** for all structured data, with
-subcollections per case; **Cloud Storage** for files and raw extractor output. The browser reads
+subcollections per workspace; **Cloud Storage** for files and raw extractor output. The browser reads
 progress fields through Firestore listeners; all writes go through the API (rules deny client writes).
 
 ## Alternatives considered
@@ -27,7 +28,8 @@ progress fields through Firestore listeners; all writes go through the API (rule
 
 - Money stored as integer minor units; decimals as strings ([`09`](../09-data-model.md) §2).
 - Writes are chunked (≤ 400 per batch); deterministic IDs make re-runs idempotent.
-- Cross-case analytics (portfolio views) would need a BigQuery export (P2).
+- Cross-workspace analytics (an accounting firm's clients) would need a BigQuery export (later).
+- Assistant retrieval (P1) uses Firestore's own vector search, so no second store is added ([ADR-014](ADR-014-finance-assistant-tools-rag-memory.md)).
 - Org isolation is enforced twice: API (claims) and rules (for client reads).
 
 ## Cost

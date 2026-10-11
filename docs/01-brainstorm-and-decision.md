@@ -9,6 +9,24 @@ It is the first thing to review. If the team picks a different idea, everything 
 
 ---
 
+## 0. Revision, 10 Oct 2026: from loan review to checking your books
+
+The team reviewed the first decision (§5, idea C1: forensic underwriting for SME loans) and changed
+the scope ([ADR-015](adr/ADR-015-scope-finance-workspace-not-loan-review.md)). Kredibel is now a
+**finance workspace that checks a business's own books**: it combines the reading and reconciliation
+engine of **C9** (our previous platform), the forensics of **C1** and the duplicate detection of
+**C3**. A person or company uploads bank statements, invoices, receipts and ledger exports in any
+order; Kredibel reads them twice, catches duplicates and edited documents, reconciles each month
+incrementally, gives a fraud risk level with evidence, and leaves the remaining 15–20% to a review
+queue. Loan review becomes a *coming soon* report built on the same verified data.
+
+What stays true from the analysis below: the judging weights (§1.2), our constraints (§1.3), the
+reuse table (§1.4), the name (§7) and most idea-level risks (§8). §5–§6 describe the original
+decision and are kept for the record; the current scope is in [`01a`](01a-concept-deep-dive.md) and
+[`03`](03-prd.md).
+
+---
+
 ## 1. Inputs
 
 ### 1.1 The theme, in its own words
@@ -158,7 +176,7 @@ are **gates**, not scores. An idea that fails a gate is risky regardless of its 
 | C9 | SME Close Copilot | 4 | 3 | 2 | 4 | 3.25 | Risky | Very high |
 
 ```mermaid
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "Arial, Helvetica, sans-serif", "fontSize": "14px", "primaryColor": "#E3F1EE", "primaryBorderColor": "#0F5E56", "primaryTextColor": "#14201C", "lineColor": "#55625D"}, "quadrantChart": {"chartWidth": 640, "chartHeight": 520, "pointLabelFontSize": 12}}}%%
+%%{init: {"theme": "base", "themeVariables": {"fontFamily": "Arial, Helvetica, sans-serif", "fontSize": "14px", "primaryColor": "#E7F2EE", "primaryBorderColor": "#0E5A47", "primaryTextColor": "#16212B", "lineColor": "#56636F"}, "quadrantChart": {"chartWidth": 640, "chartHeight": 520, "pointLabelFontSize": 12}}}%%
 quadrantChart
     title Idea map
     x-axis Shallow GenAI --> Deep GenAI

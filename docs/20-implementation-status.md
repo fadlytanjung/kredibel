@@ -4,7 +4,7 @@
 > a component. Statuses: **Specified** → **In progress** → **Built** (tests green) → **Deployed**
 > (running on Cloud Run) · **Cut** (deliberately dropped, with reason).
 
-_Last updated: 10 Oct 2026 — documentation complete, no code yet._
+_Last updated: 11 Oct 2026 — documentation complete (finance-workspace scope, ADR-015; labels ADR-016; agent observability ADR-017), no code yet._
 
 ## Foundation & platform
 
@@ -12,82 +12,86 @@ _Last updated: 10 Oct 2026 — documentation complete, no code yet._
 |---|---|---|---|
 | Repo layout, Makefile, quality gates | 001 | Specified | |
 | Settings, logging, errors, auth, security headers | 001 | Specified | |
-| SPA shell, sign-in, API client | 001 | Specified | |
+| Design foundation: tokens, app shell, Storybook, visual tests, raw-style gate | 001 | Specified | `contracts/design/tokens.json`, docs/12 |
+| Data-migration foundation: versions, upcasters, runner, job, backups | 001 | Specified | ADR-013, docs/22 |
 | Dockerfile, Cloud Build, bootstrap, Firebase | 001 | Specified | |
 | Cost guardrails: budget, AR cleanup, run quotas, kill switch | 001, 004 | Specified | docs/21 |
-| Per-page content-addressed extraction cache | 005 | Specified | docs/21 §5 |
 | i18n scaffold (English only) | 001 | Specified | NFR-11 |
-| Synthetic generator S1–S3 + applicants + scanned variant + fixtures | 002 | Specified | |
-| Synthetic generator S4–S7 | 002 | Specified (P1) | |
+| Synthetic books S1–S5, scan variant, fixtures | 002 | Specified | |
+| Synthetic S6 (hidden instructions) | 002 | Specified (P1) | |
 
 ## Workspace & plans
 
 | Component | Spec | Status | Notes |
 |---|---|---|---|
 | Plans config + entitlement checks | 013 | Specified | `contracts/plans.v1.yaml`, ADR-011 |
-| Workspace onboarding (self-serve, free trial, claims) | 013 | Specified | `SIGNUP_MODE`, `MAX_WORKSPACES` |
-| Usage counters + page reservation | 013, 004 | Specified | |
-| Settings: workspace, language (English only), plan & usage | 013 | Specified | Coming-soon tiers and languages |
-| Members & invites | 013 | Specified (P1) | |
-| Credit-policy overrides | 013 | Specified (P1) | |
+| Onboarding as individual or company (free trial, claims, first bank account) | 013 | Specified | `SIGNUP_MODE`, `MAX_WORKSPACES` |
+| Usage counters + page reservation at upload | 013, 003 | Specified | |
+| Settings: profile, bank accounts, language, plan & usage (coming soon items) | 013 | Specified | |
+| Members and roles (owner, accountant, reviewer, viewer) | 013 | Specified (P1) | |
 
-## Intake & orchestration
-
-| Component | Spec | Status | Notes |
-|---|---|---|---|
-| Applicant onboarding (individual / company, accounts, related parties) | 003 | Specified | ADR-012 |
-| Cases API + wizard UI | 003 | Specified | |
-| Documents upload/view API + UI, page split + triage | 003 | Specified | |
-| Split and upload for long PDFs | 003 | Specified (P1) | |
-| Runs API, Cloud Tasks, worker, inline mode | 004 | Specified | |
-| ADK `case_pipeline` skeleton + progress | 004 | Specified | Depends on spike S2 |
-| Live progress UI | 004 | Specified | |
-
-## Document intelligence & risk engine
+## Intake & workflows
 
 | Component | Spec | Status | Notes |
 |---|---|---|---|
-| PDF inspector | 005 | Specified | |
-| Classifier (Flash-Lite, page 1) | 005 | Specified | |
-| Gemini page reader (image only) | 005 | Specified | Depends on spike S1 |
-| Witness: text layer + Document AI OCR | 005 | Specified | ADR-010 |
+| Upload API + sheet (camera on phones), page split + triage | 003 | Specified | |
+| Exact duplicates (`D01`) | 003 | Specified | |
+| Documents library + document page | 003 | Specified | |
+| Queues, runs, worker endpoints, inline mode | 004 | Specified | |
+| `document_workflow` and `month_workflow` skeletons; generations and debounce | 004 | Specified | Depends on spike S2 |
+| Live progress (documents and months) | 004 | Specified | |
+
+## Reading, checks and reconciliation
+
+| Component | Spec | Status | Notes |
+|---|---|---|---|
+| Classifier (Flash-Lite) + `CONFIRM_TYPE` | 005 | Specified | |
+| Gemini page and receipt readers (image only) | 005 | Specified | Depends on spike S1 |
+| Witness: text layer + Document AI OCR | 005 | Specified | ADR-010; spike S3 |
 | Normalization + verifier + provenance | 005 | Specified | |
+| Ledger import (mapper proposes, user confirms, code parses) | 005 | Specified | |
 | Escalation to Form/Invoice Parser, thorough mode | 005 | Specified (P1) | |
-| Forensics P0 (A01, A02, A04, M01–M04, M06, X01, X05, E01–E05) | 006 | Specified | |
-| Integrity verdict + explanations | 006 | Specified | |
+| Content duplicates `D02`–`D06` (held) | 006 | Specified | |
+| Integrity checks `A01`, `A02`, `A04`, `M01`–`M04`, `M06`, `E0x`, `X05`, `X06` + verdict | 006 | Specified | |
 | Categorization | 007 | Specified | |
-| Cash-flow metrics + facts | 007 | Specified | |
-| Reconciliation | 007 | Specified | |
-| Case-wide findings P0 (R01, R02, C01, C02, B01, B04) | 007 | Specified | |
-| Counterparty directory | 014 | Specified | |
-| Profile suggestions + `X06` | 014 | Specified | |
-| Scorecard + hard stops | 008 | Specified | |
-| Memo writer + grounding guard | 008 | Specified | |
+| `reconcile_month` (order-independent) + figures | 007 | Specified | |
+| Month checks `X01`, `X02`, `X08`, `X09`, `R01`, `R02`, `B01`, `B04`, `C02`, `D07` | 007 | Specified | |
+| Months page, manual match and unmatch | 007 | Specified | |
+| Counterparties (accounts seen) + profile suggestions | 014 | Specified | |
+| Risk levels + next-step catalog | 008 | Specified | |
+| Explainer + grounding guard | 008 | Specified | |
 
-## Review
+## Review, risk and insight
 
 | Component | Spec | Status | Notes |
 |---|---|---|---|
-| Case state machine + decision API | 009 | Specified | |
-| Workspace tabs | 009 | Specified | |
-| Evidence viewer | 009 | Specified | |
-| Decision panel | 009 | Specified | |
-| Applicant tab (profile, suggestions, counterparties) | 014 | Specified | |
+| Review queue (8 kinds, actions, auto-advance) | 009 | Specified | |
+| Risk page + evidence viewer | 008 | Specified | |
+| Dashboard (KPIs, month strip, alerts, review preview) | 010 | Specified | |
+| Money flow (Flow, Bars, Table, By client and supplier) + drill-down | 010 | Specified | Statement view (IFRS or US GAAP) by default; full-width charts, one per row |
+| Months in and out, cash-flow statement waterfall | 010 | Specified | `GET /api/cash-flow`; docs/08 §5.2 |
+| Category → cash-flow class per framework | 007, 016 | Specified | `contracts/policy/categories.v1.yaml` |
+| Traces in Cloud Trace + ADK dev UI (`make dev-agents`) | 001, 004, 017 | Specified | ADR-017 |
 
 ## P1
 
 | Component | Spec | Status | Notes |
 |---|---|---|---|
-| Model Armor screening + quarantine | 010 | Specified | Depends on spike S4 |
-| Revision recovery | 010 | Specified | |
-| Run timeline | 010 | Specified | |
-| Visual forensics | 010 | Specified | Depends on spike S5 |
-| Remaining checks | 010 | Specified | |
-| Case assistant | 011 | Specified | |
-| Evals + README results | 012 | Specified | |
-| Memo edit, re-categorize, info-request letter | 009 (P1) | Specified | |
-| Related parties, key counterparties, `B07`, `X07` | 014 (P1) | Specified | |
-| Pre-fill on upload, applicant list page | 014 (P1) | Specified | |
+| Model Armor screening + quarantine | 015 | Specified | Depends on spike S4 |
+| Run graph | 015 | Specified | ADK traces, docs/17 §5 |
+| Finance Assistant (tools, Firestore vector retrieval, Sessions, Memory Bank) | 011 | Specified | ADR-014; spike S5 |
+| DeepEval suite for the assistant | 011, 012 | Specified | Gemini judge on Agent Platform |
+| Month sign-off | 015 | Specified | |
+| Revision diff, `M05`, `A03`, `A05` | 015 | Specified | |
+| Visual forensics | 015 | Specified | |
+| Reconciliation CSV export | 015 | Specified | |
+| Split and upload | 015 | Specified | |
+| Aliases and related parties | 014 | Specified | |
+| Evals + README results | 012 | Specified | P0 suites always on D6 |
+| Labels: writers, Labels page, decisions, verified examples, E-LBL | 016 | Specified | ADR-016; `learning.v1.yaml` |
+| Page extraction Markdown | 016 | Specified | GCS `extractions/` |
+| Run history in BigQuery (ADK plugin), Runs page, Looker Studio report | 017 | Specified | ADR-017 |
+| Dataset export for tuning (consent, masking) | 016 | Later | Not in the hackathon |
 
 ## Deviations from the docs
 

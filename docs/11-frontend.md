@@ -1,37 +1,54 @@
 # 11 — Frontend
 
-> The lender's workspace: onboarding, applicants, cases, evidence and decisions, plus a small
-> settings area with the plan. Visual language and components are in
-> [`12-design-system.md`](12-design-system.md). The UI is **English**; it is built for more languages
-> (§10) but only English is selectable today.
+> The finance workspace in the browser: a dashboard, the documents, each month's reconciliation, one
+> review queue, risk with evidence, clients and suppliers, the Finance Assistant (P1) and a small
+> settings area with the plan. It works from a 360 px phone to a wide desktop. Visual rules, tokens
+> and components are in [`12-design-system.md`](12-design-system.md); the high-fidelity mocks are in
+> [`design/mocks/`](../design/mocks/index.html) and their screenshots appear below. The UI is
+> **English**; it is built for more languages (§10) but only English is selectable today.
 
 ---
 
 ## 1. Principles
 
-1. **Evidence first.** Any number or finding is one click from the page it came from.
-2. **Live, not refresh.** Pipeline progress streams in; the analyst never presses F5.
-3. **Calm under alarm.** Severity is clear but not shouty: one red thing at a time, with a reason.
-4. **The decision is the destination.** Every screen leads to the decision panel, and the panel
-   explains why an action is blocked.
-5. **The API is the contract.** Firestore listeners are a change signal only; data comes from the API
+1. **One sentence first.** Every page opens with where things stand in plain words ("2 of 6 months
+   are reconciled. 9 things need you.") before any chart or table.
+2. **Evidence one tap away.** Any number, match or finding opens the page it came from with the value
+   lit ([`12`](12-design-system.md) §6.3).
+3. **The person settles the rest.** What Kredibel could not settle goes to one review queue; each item
+   offers only the actions that make sense for its kind ([`10`](10-api-contract.md) §4).
+4. **Live, not refresh.** Uploads, reading and reconciliation stream in; nobody presses F5.
+5. **Calm under alarm.** Severity is clear but not shouty: one red thing at a time, always with a
+   reason and a next step.
+6. **The API is the contract.** Firestore listeners are a change signal only; data comes from the API
    ([`09`](09-data-model.md) §6).
-6. **The AI proposes, the person disposes.** Anything the AI detects about an applicant appears as a
-   suggestion with its evidence and an Accept / Reject choice; nothing changes silently.
-7. **Honest about limits.** Plan limits, trial days and "coming soon" features are visible before a
-   user hits them, never as a surprise error.
+7. **The AI suggests, the user accepts.** Profile details, ledger column mappings and uncertain
+   matches appear as suggestions with their evidence; nothing changes silently.
+8. **Honest about limits.** Trial days, usage and coming-soon features are visible before anyone hits
+   a limit, never as a surprise error.
+9. **Responsive by construction.** Every screen is designed and tested at 390, 834 and 1440 px (§9).
+   Layout adapts by window size class; components adapt to their container
+   ([`12`](12-design-system.md) §5).
 
 ---
 
 ## 2. Stack
 
-React 19 · Vite · TypeScript (strict) · Tailwind CSS v4 (tokens from [`12`](12-design-system.md)) ·
-TanStack Query v5 · React Router v7 (data routers) · react-hook-form + zod · Firebase JS SDK (Auth,
-Firestore listeners) · `react-pdf` (pdf.js) · Recharts · `i18next` + `react-i18next` ·
-`openapi-typescript` for API types · Vitest + Testing Library + MSW · Playwright (smoke).
+React 19 · Vite · TypeScript (strict) · Tailwind CSS v4 with the generated theme
+(`app/styles/tailwind-theme.css`, from [`contracts/design/tokens.json`](../contracts/design/tokens.json))
+· Radix UI primitives (dialog, popover, tooltip, tabs, radio group, select, collapsible) ·
+`class-variance-authority` + `tailwind-merge` for variants · `lucide-react` icons ·
+`@fontsource-variable/archivo` · TanStack Query v5 · React Router v7 (data routers) ·
+react-hook-form + zod · Firebase JS SDK (Auth, Firestore listeners) · `react-pdf` (pdf.js) ·
+`d3-sankey` (layout only; we draw the SVG) · Recharts (bars and lines) · `i18next` + `react-i18next` ·
+`openapi-typescript` for API types.
 
-The production build is copied into the backend image and served by `kredibel-web` at `/`
-(same origin as `/api`, so no CORS).
+Quality tooling: Vitest + Testing Library + MSW · Storybook 9 (stories per component state, a11y
+addon) · Playwright (smoke E2E and visual regression at 390/834/1440) · `@axe-core/playwright` ·
+Lighthouse CI.
+
+The production build is copied into the backend image and served by `kredibel-web` at `/` (same
+origin as `/api`, so no CORS).
 
 ---
 
@@ -39,53 +56,159 @@ The production build is copied into the backend image and served by `kredibel-we
 
 ```
 frontend/src/
-├── app/            providers (QueryClient, Auth, Router), route table, global styles, error boundary
-├── pages/          route components: Login, Onboarding, CaseList, CaseNew, CaseWorkspace,
-│                   ApplicantList (P1), ApplicantDetail, Settings, NotFound
-├── widgets/        page sections: AppHeader (trial badge), TrialBanner, CaseHeader, RiskSummary,
-│                   PipelineProgress, DocumentsPanel, FindingsPanel, EvidenceViewer, CashflowPanel,
-│                   ReconciliationPanel, ApplicantPanel, SuggestionsPanel, CounterpartiesPanel,
-│                   MemoPanel, DecisionPanel, ActivityPanel, PlanAndUsage, RunTimeline (P1),
-│                   AssistantDrawer (P1)
-├── features/       user actions: sign-in, create-workspace, create-case (wizard), onboard-applicant,
-│                   upload-documents, split-upload (P1), start-analysis, review-finding,
-│                   decide-suggestion, decide-case, update-workspace, invite-member (P1),
-│                   edit-memo (P1), ask-assistant (P1), recategorize-transaction (P1)
-├── entities/       workspace, plan, applicant, suggestion, counterparty, case, document, finding,
-│                   transaction, invoice, analysis, memo, event: query hooks, mappers, UI atoms
-└── shared/         api/ (client, generated schema.d.ts, problem), firebase/, ui/ (design system),
-                    lib/ (formatMoney, formatDate, citations, bbox), config/,
-                    i18n/ (setup, languages, locales/en/*.json)
+├── app/        providers (QueryClient, Auth, Router), route table, error boundary,
+│               styles/ (tokens.css and tailwind-theme.css GENERATED by `make tokens`, base.css)
+├── pages/      Login, Onboarding, Dashboard, Documents, Document, Months, Month, Review, Risk,
+│               Counterparties, Counterparty, Assistant (P1), Labels (P1), Runs (P1), Settings, NotFound
+├── widgets/    AppShell (sidebar, rail, top bar, bottom nav, upload dock), TrialBanner, StatusHero,
+│               KpiGrid, MoneyFlow (SankeyChart, StatementBars, FlowList, FlowTable, FlowLinesDrawer),
+│               CashFlow (MonthBars, CashFlowWaterfall), MonthStrip, ReviewPreview, AlertList,
+│               UploadTray, DocumentTable, MonthHeader, Explanation, BankLineTable, MatchReason,
+│               ReviewQueue, FixPanel, EvidenceViewer, SuggestionCard, PlanAndUsage, MoreSheet,
+│               RunGraph (P1), AssistantChat (P1), LabelTable and LabelPanel (P1),
+│               RunTable, RunWaterfall and EventInspector (P1)
+├── features/   sign-in, create-workspace, upload-documents, confirm-ledger-mapping, resolve-review-item,
+│               review-finding, decide-suggestion, update-profile, manage-bank-accounts,
+│               ask-assistant (P1), forget-memory (P1), sign-off-month (P1), invite-member (P1),
+│               decide-label (P1), bulk-confirm-labels (P1), switch-framework-view
+├── entities/   workspace, plan, document, bank-line, invoice, receipt, ledger-entry, month, match,
+│               review-item, finding, counterparty, suggestion, run, event, label: query hooks,
+│               mappers, atoms
+└── shared/     api/ (client, generated schema.d.ts, problem), firebase/, ui/ (design system: one
+                folder per component with `.tsx`, `.stories.tsx`, `.test.tsx`), lib/ (formatMoney,
+                formatDate, citations, bbox, useSizeClass), config/, i18n/ (setup, locales/en/*.json)
 ```
 
 Import rule: a layer may import only from layers below it (`app → pages → widgets → features →
-entities → shared`). Enforced by `eslint-plugin-boundaries`.
+entities → shared`), enforced by `eslint-plugin-boundaries`. Pages and widgets compose components;
+they never set colours, font sizes or shadows ([`12`](12-design-system.md) §0).
 
 ---
 
-## 4. Routes
+## 4. Navigation, routes and flows
 
-| Path | Page | Auth | Notes |
+### 4.1 Navigation
+
+| Group | Item (short label in the rail) | Route | Count badge |
 |---|---|---|---|
-| `/login` | Login | public | Email/password + Google |
-| `/onboarding` | Onboarding | ✔, no workspace | Create a workspace (or accept an invite, P1). Every other route redirects here while `me.needsWorkspace` |
-| `/` | → redirect `/cases` | ✔ | |
-| `/cases` | CaseList | ✔ | Filter by status; search by applicant/reference |
-| `/cases/new` | CaseNew (wizard) | ✔ | Applicant → Loan request → Documents; creates the case at step 2 |
-| `/cases/:caseId` | CaseWorkspace | ✔ | Default tab depends on status (below) |
-| `/cases/:caseId/:tab` | CaseWorkspace | ✔ | `overview`, `applicant`, `documents`, `findings`, `cashflow`, `reconciliation`, `memo`, `activity` |
-| `/applicants` | ApplicantList | ✔ | P1 page (the picker in the wizard is P0) |
-| `/applicants/:applicantId` | ApplicantDetail | ✔ | Profile, suggestions across cases, cases of this applicant |
-| `/settings/:section` | Settings | ✔ | `workspace`, `language`, `plan`, `policy` (P1), `members` (P1) |
-| `/cases/:caseId/evidence/:findingId` | CaseWorkspace + EvidenceViewer open | ✔ | Deep link for a finding |
-| `*` | NotFound | — | |
+| — | Dashboard | `/` | — |
+| Books | Documents | `/documents` | total, neutral (sidebar only) |
+| Books | Reconciliation (Reconcile) | `/months` | — |
+| Books | Review | `/review` | open items, alert colour |
+| Books | Risk | `/risk` | months at High or Critical with open findings, alert colour |
+| Insight | Clients and suppliers (Clients) | `/counterparties` | — |
+| Insight | Assistant (P1) | `/assistant` | — |
+| AI quality | Labels (P1) | `/labels` | labels that need a check, neutral |
+| AI quality | Runs (P1, owner only) | `/runs` | — |
+| Footer | Settings | `/settings` | — |
 
-Default tab: `DRAFT`/`INFO_REQUESTED` → `documents`; `PROCESSING` → `overview` (with pipeline);
-others → `overview`.
+The logo, the workspace switcher (one workspace in P0; its subtitle shows the type, currency and
+accounting framework), the trial card and a global **Upload** action are always reachable: in the
+sidebar and top bar from 600 px, as the floating **Upload** button and the bottom navigation
+(Dashboard, Documents, Review, Risk, More) below 600 px. **More** opens a sheet with Reconciliation,
+Clients and suppliers, Assistant, Labels, Runs and Settings; `Esc` or a tap outside closes it.
+
+### 4.2 Routes
+
+| Path | Page | Notes |
+|---|---|---|
+| `/login` | Login | Public. Email and password, or Google |
+| `/onboarding` | Onboarding | Signed in, no workspace yet. Every other route redirects here while `me.needsWorkspace` |
+| `/` | Dashboard | Period picker in the top bar (default: the months with data) |
+| `/documents` | Documents | Filters by type and state; `?upload=1` opens the upload tray focused |
+| `/documents/:docId` | Document | Page viewer, read values, its findings, matches and events |
+| `/months` | Months | One row per month with state, matched share and risk level |
+| `/months/:month` | Month | `yyyy-mm`. Tabs: `lines` (default), `documents`, `ledger`, `findings` |
+| `/review` | Review | Queue; filters by kind and month |
+| `/review/:itemId` | Review | Same page with the item open (split view from 980 px of container, full page below) |
+| `/risk` | Risk | Findings grouped by month and severity |
+| `/risk/:findingId` | Risk + EvidenceViewer | Deep link to a finding's evidence |
+| `/counterparties`, `/counterparties/:id` | Clients and suppliers | List and detail with totals by month and accounts seen |
+| `/assistant`, `/assistant/:threadId` | Assistant (P1) | |
+| `/labels`, `/labels/:labelId` | Labels (P1) | Filters `task`, `status`, `docId`, `needsCheck` (default: needs a check, lowest confidence first); the ID opens the label panel |
+| `/runs`, `/runs/:runId` | Runs (P1) | Owner only. Filters `kind`, `status`, `hasCorrections`; the ID opens the span waterfall; `?span=` selects a call |
+| `/settings/:section` | Settings | `profile`, `bank-accounts`, `language`, `plan`, `members` (P1). Compact: `/settings` is a list of sections |
+| `*` | NotFound | |
+
+### 4.3 Screen map
+
+How the screens link, with the mocks as thumbnails:
+
+![Screen flow: the mocks linked by what a person clicks](diagrams/screen-flow.drawio.svg)
+
+*Source: [`screen-flow.drawio.svg`](diagrams/screen-flow.drawio.svg). Open it in VS Code with the draw.io extension to edit; the file stays a valid SVG.*
+
+The same map as text. Every arrow is a link a person can follow; the dashed ones open an overlay.
+
+```mermaid
+%%{init: {"theme": "base", "themeVariables": {"fontFamily": "Arial, Helvetica, sans-serif", "fontSize": "14px", "primaryColor": "#E7F2EE", "primaryBorderColor": "#0E5A47", "primaryTextColor": "#16212B", "lineColor": "#56636F", "secondaryColor": "#E8ECEE", "tertiaryColor": "#FFFFFF", "clusterBkg": "#F2F4F5", "clusterBorder": "#B9C2CA", "noteBkgColor": "#FFF5D6", "noteTextColor": "#16212B"}, "htmlLabels": false, "flowchart": {"htmlLabels": false, "padding": 16, "nodeSpacing": 40, "rankSpacing": 50, "wrappingWidth": 220}, "sequence": {"wrap": true, "useMaxWidth": true, "noteFontFamily": "Arial, Helvetica, sans-serif", "messageFontFamily": "Arial, Helvetica, sans-serif", "actorFontFamily": "Arial, Helvetica, sans-serif"}}}%%
+flowchart LR
+    onb["Onboarding<br/>whose books are these?"] --> dash["Dashboard<br/>status sentence, figures,<br/>charts, months"]
+    dash --> docs["Documents<br/>upload tray and library"]
+    dash --> month["Month<br/>figures, explanation,<br/>bank lines and matches"]
+    dash --> review["Review<br/>queue and fix panel"]
+    dash --> risk["Risk<br/>findings by month"]
+    dash -->|"click a Sankey band"| lines["Flow lines drawer<br/>the bank lines behind a band"]
+    docs --> doc["Document<br/>pages, read values, events"]
+    docs -->|"held copy or new ledger layout"| review
+    month --> review
+    month -.->|"citation chip"| ev["Evidence viewer<br/>the lamp, calculation,<br/>two readings"]
+    review -.->|"See on the page"| ev
+    risk -.-> ev
+    doc -.-> ev
+    dash --> cp["Clients and suppliers<br/>new account flagged"]
+    cp -->|"flagged supplier"| risk
+    dash --> asst["Assistant (P1)"]
+    asst -.->|"citation chip"| ev
+    dash --> settings["Settings<br/>profile, bank accounts,<br/>plan and usage"]
+    docs -->|"document name"| labels["Labels (P1)<br/>check or correct what AI decided"]
+    labels -->|"run"| runs["Runs (P1)<br/>spans, calls, tokens, cost"]
+    runs -->|"Open the label"| labels
+    labels -.->|"extraction file"| md["Page extraction<br/>Markdown"]
+```
+
+The mocks in [`design/mocks/`](../design/mocks/index.html) are linked the same way, so they work as a
+clickable prototype: every navigation item, card, row, chip and button leads to another mock, and a
+small script (`assets/proto.js`) switches the segmented controls (framework, chart view, label task),
+picks a review candidate and selects a table row. Start at `dashboard.html`.
+
+### 4.4 The main flow: from upload to a reconciled month
+
+Amber rounded boxes are what the person does; green boxes are what the screen shows. The order of
+uploads never changes the result ([ADR-015](adr/ADR-015-scope-finance-workspace-not-loan-review.md)).
+
+```mermaid
+%%{init: {"theme": "base", "themeVariables": {"fontFamily": "Arial, Helvetica, sans-serif", "fontSize": "14px", "primaryColor": "#E7F2EE", "primaryBorderColor": "#0E5A47", "primaryTextColor": "#16212B", "lineColor": "#56636F", "secondaryColor": "#E8ECEE", "tertiaryColor": "#FFFFFF", "clusterBkg": "#F2F4F5", "clusterBorder": "#B9C2CA", "noteBkgColor": "#FFF5D6", "noteTextColor": "#16212B"}, "htmlLabels": false, "flowchart": {"htmlLabels": false, "padding": 16, "nodeSpacing": 40, "rankSpacing": 50, "wrappingWidth": 220}, "sequence": {"wrap": true, "useMaxWidth": true, "noteFontFamily": "Arial, Helvetica, sans-serif", "messageFontFamily": "Arial, Helvetica, sans-serif", "actorFontFamily": "Arial, Helvetica, sans-serif"}}}%%
+flowchart TB
+    p1(["The person drops files on Upload<br/>(any page, any order)"])
+    a1["Tray: Already uploaded,<br/>not read again (exact copy)"]
+    a2["Tray: Reading page 2 of 3"]
+    a3["Tray: Looks like Receipt 0617.jpg,<br/>held until you decide"]
+    p2(["Confirms the ledger columns<br/>once per layout"])
+    p3(["Decides the held copy:<br/>Same document or Different"])
+    m["Month tab: Reconciling,<br/>then 2 need you"]
+    d["Dashboard: sentence, figures<br/>and money flow update"]
+    p4(["Fixes an item in Review:<br/>picks a match, explains, corrects"])
+    p5(["Reads the month: figures,<br/>explanation, next steps"])
+    p1 --> a1
+    p1 --> a2
+    p1 --> a3
+    a2 -->|"ledger file with a new layout"| p2
+    a3 --> p3
+    a2 -->|"statement, invoice or receipt read"| m
+    p2 --> m
+    p3 --> m
+    m --> d
+    m -->|"review items"| p4
+    p4 -->|"each fix re-reconciles the month"| m
+    d --> p5
+    classDef person fill:#FFF5D6,stroke:#7F5A00,color:#16212B
+    class p1,p2,p3,p4,p5 person
+```
 
 ---
 
-## 5. Data & realtime
+## 5. Data and realtime
 
 ### 5.1 Server state
 
@@ -96,252 +219,386 @@ TanStack Query, one hook per endpoint in `entities/*/api.ts`:
 | `['me']` | `GET /api/me` | 5 min (refetched after workspace creation and token refresh) |
 | `['plans']` | `GET /api/plans` | ∞ |
 | `['workspace']` | `GET /api/workspace` | 60 s (usage meters) |
-| `['applicants', {q, type, cursor}]` | `GET /api/applicants` | 30 s |
-| `['applicant', applicantId]` | `GET /api/applicants/{id}` | 0 after a suggestion decision |
-| `['suggestions', applicantId, status]` | `GET …/suggestions` | invalidated on decide |
-| `['counterparties', caseId, runId, role]` | `GET …/counterparties` | ∞ per run |
-| `['cases', {status, cursor}]` | `GET /api/cases` | 10 s |
-| `['case', caseId]` | `GET /api/cases/{id}` | 0 (driven by listener) |
-| `['documents', caseId]` | `GET …/documents` | 0 |
-| `['analysis', caseId, runId]` | `GET …/analysis` | ∞ per run |
-| `['findings', caseId, runId, filters]` | `GET …/findings` | ∞ per run, invalidated on PATCH |
-| `['transactions', caseId, filters, cursor]` | `GET …/transactions` | ∞ per run |
-| `['invoices', caseId, runId]` | `GET …/invoices` | ∞ per run |
-| `['memo', caseId, runId]` | `GET …/memo` | ∞ per run |
-| `['events', caseId]` | `GET …/events` | 10 s |
+| `['dashboard', period]` | `GET /api/dashboard` | 0 (driven by month listeners) |
+| `['money-flow', period, view, framework]` | `GET /api/money-flow` | 0 (driven by month listeners) |
+| `['cash-flow', period, framework]` | `GET /api/cash-flow` | 0 (driven by month listeners) |
+| `['documents', filters, cursor]` | `GET /api/documents` | 0 (driven by document listeners) |
+| `['document', docId]` | `GET /api/documents/{id}` | 0 |
+| `['months']` | `GET /api/months` | 0 |
+| `['month', month]` | `GET /api/months/{month}` | 0 |
+| `['bank-lines', filters, cursor]` | `GET /api/bank-lines` | invalidated with its month |
+| `['invoices' \| 'receipts' \| 'ledger-entries', filters]` | `GET /api/…` | invalidated with its month |
+| `['review-items', filters]` | `GET /api/review-items` | 0 |
+| `['findings', filters]` | `GET /api/findings` | invalidated with its month |
+| `['counterparties', filters]` | `GET /api/counterparties` | 60 s |
+| `['suggestions', status]` | `GET /api/suggestions` | invalidated on decide |
+| `['run', runId]` | `GET /api/runs/{id}` | 0 while running (P1 run graph) |
+| `['events', subject]` | `GET /api/events` | 10 s |
+| `['labels', filters, cursor]` | `GET /api/labels` | 0; invalidated on decide and bulk confirm |
+| `['label', labelId]` | `GET /api/labels/{id}` | 0 |
+| `['runs', filters, cursor]` | `GET /api/runs` | 30 s |
+| `['run-events', runId]` | `GET /api/runs/{id}/events` | ∞ once the run has finished |
 
-Mutations invalidate the narrowest keys (`decide-case` → `case`, `events`, `memo`).
+Mutations invalidate the narrowest keys: resolving a review item invalidates `review-items` and the
+month's keys; the month's listener then brings the new figures.
 
 ### 5.2 Realtime channel
 
-`shared/firebase/listeners.ts` exposes:
+`shared/firebase/listeners.ts`:
 
-- `useCaseLive(caseId)`: `onSnapshot(orgs/{orgId}/cases/{caseId})`, picking `status`, `progress`,
-  `currentRunId`, `counts`, `updatedAt`.
-- `useRunLive(caseId, runId)`: `stages`, `status`.
-- `useDocumentsLive(caseId)`: `status`, `docType`, `integrity.verdict` and `pages[].status` per
-  document (drives "Reading page 4 of 18").
+- `useDocumentsLive()`: `status`, `docType`, `pages[].status`, `heldAsDuplicate` on recent documents
+  (drives the upload tray and "Reading page 2 of 3").
+- `useMonthsLive()`: `state`, `generation`, `updatedAt` per month (drives the month tabs and the
+  "Reconciling March" indicator).
+- `useRunLive(runId)` (P1): `stages` for the run graph.
 
 When a watched field changes, the hook updates a small live view model **and** invalidates the
-matching query keys. If a listener errors (e.g. rules or network), the hook falls back to polling
-`GET /api/cases/{id}` every 3 s and shows a subtle "live updates paused" indicator.
+matching query keys. If a listener errors, the hook falls back to polling every 3 s and shows a
+quiet "Live updates paused" indicator.
 
-### 5.3 API client
+### 5.3 The fix loop
 
-`shared/api/client.ts`: a typed `fetch` wrapper using generated `paths` types; adds
+```mermaid
+%%{init: {"theme": "base", "themeVariables": {"fontFamily": "Arial, Helvetica, sans-serif", "fontSize": "14px", "primaryColor": "#E7F2EE", "primaryBorderColor": "#0E5A47", "primaryTextColor": "#16212B", "lineColor": "#56636F", "secondaryColor": "#E8ECEE", "tertiaryColor": "#FFFFFF", "clusterBkg": "#F2F4F5", "clusterBorder": "#B9C2CA", "noteBkgColor": "#FFF5D6", "noteTextColor": "#16212B"}, "htmlLabels": false, "flowchart": {"htmlLabels": false, "padding": 16, "nodeSpacing": 40, "rankSpacing": 50, "wrappingWidth": 220}, "sequence": {"wrap": true, "useMaxWidth": true, "noteFontFamily": "Arial, Helvetica, sans-serif", "messageFontFamily": "Arial, Helvetica, sans-serif", "actorFontFamily": "Arial, Helvetica, sans-serif"}}}%%
+sequenceDiagram
+    actor U as Person
+    participant UI as Review page
+    participant API as kredibel-web
+    participant FS as Firestore
+    participant W as month_workflow
+    U->>UI: Match with invoice 0003
+    UI->>API: POST /api/review-items/{id}/resolve {CONFIRM_MATCH}
+    API->>FS: resolution, event, months/2026-02 dirty, generation 7
+    API-->>UI: 200, item resolved
+    UI->>UI: next item opens, February tab shows Reconciling
+    API->>W: Cloud Task month-org-2026-02-7 (20 s debounce)
+    W->>FS: figures, matches, review items, risk for generation 7
+    FS-->>UI: months listener: generation 7 written
+    UI->>API: GET /api/months/2026-02, /api/dashboard
+    UI->>U: February tab shows 1 needs you, the dashboard says 8 things
+```
+
+### 5.4 API client
+
+`shared/api/client.ts`: a typed `fetch` wrapper on the generated `paths` types; adds
 `Authorization: Bearer ${await user.getIdToken()}`; parses `application/problem+json` into
-`ApiError {status, code, title, detail, extras}`. `401` → sign out and redirect to `/login`;
+`ApiError {status, code, title, detail, extras}`. `401` → sign out and `/login`;
 `403 WORKSPACE_REQUIRED` → `/onboarding`; `403 PLAN_LIMIT_REACHED` / `TRIAL_EXPIRED` → the
-`PlanLimitDialog` (what limit, how much is used, link to **Plan & usage**).
+`PlanLimitDialog` (which limit, how much is used, a link to **Plan and usage**).
+
+---
+
+## 5a. Responsive behaviour
+
+Size classes and the shell are defined in [`12`](12-design-system.md) §5. `shared/lib/useSizeClass`
+returns `compact | medium | expanded | large` from `matchMedia` on the token breakpoints; components
+prefer CSS (Tailwind variants and container queries) and use the hook only for behaviour CSS cannot
+express (drawer versus full page).
+
+| Screen | Compact (< 600) | Medium and expanded (600–1199) | Large (≥ 1200) |
+|---|---|---|---|
+| App frame | Top bar (mark or back, title, bell); bottom nav; floating **Upload** | Rail with short labels; top bar with breadcrumbs, search and **Upload** | Labelled sidebar with workspace, trial card and user |
+| Dashboard | Sentence, figures in 2 columns, **Needs you**, risk, then the charts one under the other (money flow as ranked bars), months scroll with snap | Figures in 2 columns; Needs you and Risk stacked; charts full width, medium drawings (Sankey from 640 px of panel) | Figures in 6 columns; Needs you beside Risk; charts full width, one per row, wide drawings from 960 px of panel; months in one row |
+| Labels (P1) | Rows as cards (subject, value, confidence, status); the label panel opens as a page | Table from 760 px of container; panel below the table | Table with source, extraction, run and dataset columns; panel below with the form beside the provenance |
+| Runs (P1) | Runs as cards; span waterfall with the bar under each name; inspector below | Table; waterfall beside names | Table; waterfall; inspector below with the call beside its request and response |
+| Documents | **Choose files** and **Photo of a receipt**; rows as cards (risk, status) | Drop area; table from 760 px of container | Drop area and full table |
+| Month | Figures in 2 columns; explanation; bank lines as cards with the match chip and reason | Figures in 2 columns; table | Figures in 6 columns; table |
+| Review | Queue as a list; an item opens full page with a sticky primary action | Same; split view from 980 px of container | Queue beside the fix panel, `j`/`k` to move |
+| Evidence viewer | Full screen; page zoomed to the evidence with **Whole page**; finding below; sticky actions | Full screen; page above the finding | Drawer with page and finding side by side |
+| Assistant (P1) | Chat only; remembered items in a sheet | Chat; aside below | Chat with the remembered panel beside |
+| Settings | List of sections → section page with back | Section links scroll at the top | Section list on the left |
 
 ---
 
 ## 6. Screens
 
-### 6.0 Onboarding (workspace) and the app frame
+The screenshots come from the mocks (`make mock-shots`) and show the demo workspace of
+[`18`](18-synthetic-data.md): Sunrise Coffee Roasters, January to June 2026, with scenarios S1 to S4
+together (the edited March statement, the duplicates, the changed supplier account, the unpaid bills). Where the text and a mock disagree on behaviour, the text
+wins; on looks, the mock and [`12`](12-design-system.md) win.
 
-- **First sign-in:** one screen, "Set up your workspace": workspace name, country (Indonesia; other
-  markets listed as "coming soon"), time zone. Below the form: "You start on the **Free trial**:
-  30 days, 3 members, 300 pages per month. Paid plans are coming soon." Submit → `POST
-  /api/workspaces` → refresh the ID token → `/cases`.
-- **App header:** workspace name, a **trial badge** ("Free trial · 23 days left"), user menu
-  (Settings, Sign out). A **TrialBanner** appears in the last 7 days and after expiry ("Your trial has
-  ended. Cases stay readable; new analyses are paused.").
+### 6.1 Onboarding
 
-![Wireframe: plans and usage, free trial active, other tiers coming soon](diagrams/ui-plans.drawio.svg)
+<p><img src="assets/mocks/onboarding-desktop.png" alt="Onboarding at 1440 px: dark ledger-paper brand panel with the logo, tagline and three ledger lines; the form asks whose books these are" width="66%"> <img src="assets/mocks/onboarding-mobile.png" alt="Onboarding on a phone: brand band with the tagline above the form" width="26%"></p>
 
-*Source: [`ui-plans.drawio.svg`](diagrams/ui-plans.drawio.svg). Edit in VS Code with the draw.io extension.*
+- One question first: **Whose books are these?** *Myself* (freelancer or sole trader) or *A
+  company*. The choice switches the fields: legal or full name, trading name (optional), industry,
+  time zone (months are counted in it), and an optional main bank account.
+- The trial terms are stated before the button: "30-day free trial. 150 documents and 400 pages a
+  month. No card, no payment. Paid plans are coming soon." **Start the free trial** →
+  `POST /api/workspaces` → refresh the ID token → `/documents?upload=1`.
+- The brand panel shows three ledger lines with what Kredibel does to each (read twice, matched,
+  copy not read). It is the only decorative surface in the product.
 
-### 6.1 Case list
+### 6.2 Dashboard
 
-Table: reference · applicant (with an Individual/Company icon) · amount (right-aligned, tabular) ·
-status badge · grade badge · critical/high finding counts · created. Row click → workspace. Empty
-state: "No cases yet" + **New case** button. Filters: status chips.
+<p><img src="assets/mocks/dashboard-desktop.png" alt="Dashboard at 1440 px: status sentence, six figures, Needs you beside Risk, then three full-width chart panels one under the other: the money flow by statement line, money in and out by month, and the cash-flow statement" width="66%"> <img src="assets/mocks/dashboard-mobile.png" alt="Dashboard on a phone: status sentence, figures in two columns, bottom navigation and Upload button" width="26%"></p>
 
-### 6.2 New case: a three-step wizard
+<p><img src="assets/mocks/dashboard-tablet.png" alt="Dashboard at 834 px: rail, figures, Needs you and Risk stacked before the charts" width="45%"></p>
 
-1. **Applicant.** Search an existing applicant (picker) **or** onboard a new one: a segmented control
-   **Individual | Company**, then the type's fields (zod mirrors `ApplicantCreate`):
-   - *Individual:* full name, trading name (optional, for sole traders), occupation, industry, years
-     operating, last 4 digits of the national ID (optional).
-   - *Company:* legal name, legal form (limited company, partnership, cooperative, other),
-     registration number, tax ID, industry, years operating.
-   - *Optional, collapsed:* address and contact; **bank accounts** (bank, account number, holder,
-     purpose); **people** (beneficial owners, directors, shareholders, guarantors, signatories with
-     ownership %). A hint says: "Skip what you don't have. Kredibel will suggest these from the
-     documents, with the page they came from."
-2. **Loan request.** Amount (IDR with thousand separators), tenor (months), purpose, optional
-   installment override. Submit → `POST /api/cases` (with `applicantId` or the inline applicant).
-3. **Documents.** The Documents tab's dropzone, inline, with plan limits shown ("up to 20 files,
-   20 pages and 20 MB each"); **Run analysis** when ready.
+Top to bottom:
 
-![Wireframe: new case wizard, applicant step, company selected](diagrams/ui-applicant-onboarding.drawio.svg)
+- **Status hero:** one sentence ("2 of 6 months are reconciled. 9 things need you."), up to two
+  reasons with severity icons, **Open review (9)** and a link to the worst month.
+- **Figures:** money in, money out, net, matched by Kredibel (share and count of bank lines), needs
+  you, documents. Money figures carry their reading mark.
+- **Needs you** and **Risk:** the top review items (highest risk first, each opening the fix panel)
+  and the open findings (severity badge, title, one line of evidence, opening the evidence viewer).
+  Side by side from 980 px of content, stacked below.
+- **Where the money went:** a section with a **Framework** switch (IFRS or US GAAP, default the
+  workspace's `profile.accountingFramework`; switching it here does not change the setting) and three
+  chart panels. **Charts never share a row:** each panel takes the full content width beside the
+  navigation and they stack in one column ([`12`](12-design-system.md) §2.3).
+  1. **Money flow** with four views: **Flow** (Sankey: revenue by client → bank account → activity →
+     statement line, in the framework's wording, such as Cost of sales or Cost of goods sold),
+     **Bars** (statement lines grouped by activity), **Table**, and **By client and supplier** (the
+     counterparties view, [`08`](08-risk-engine.md) §5.1). A callout written from facts ("Cost of sales
+     took 41.6% of revenue") and a note on what the framework changes ("IFRS: interest paid is a
+     financing cash flow…"). Clicking a band opens the **flow lines drawer** with its bank lines.
+     Possible copies are left out until decided. On phones the flow becomes ranked bars.
+  2. **Money in and out by month:** grouped bars with the net above each pair, the month with a
+     Critical or High risk outlined; second view **Net and balance**.
+  3. **Cash-flow statement:** opening balance → operating → investing → financing → closing balance
+     as a waterfall, with **By month** to the month table.
+- **Months:** one binder tab per month with state, matched share, risk level and its reason; a
+  critical month is tinted. Clicking opens the month.
+- **Profile suggestions:** one card when details were found in documents ([spec 014](specs/014-profile-and-counterparties/spec.md)).
 
-*Source: [`ui-applicant-onboarding.drawio.svg`](diagrams/ui-applicant-onboarding.drawio.svg). Edit in VS Code with the draw.io extension.*
+### 6.3 Documents
 
-### 6.3 Case workspace layout
+<p><img src="assets/mocks/documents-desktop.png" alt="Documents at 1440 px: drop area with four just-uploaded files (exact copy, held copy, reading, new ledger layout), filter chips and the library table" width="66%"> <img src="assets/mocks/documents-mobile.png" alt="Documents on a phone: Choose files and Photo of a receipt, tray rows as cards" width="26%"></p>
 
-![Wireframe: case workspace, Overview tab, scenario S2](diagrams/ui-case-workspace.drawio.svg)
+- **Upload tray:** many files at once, any type and order. Client-side pre-checks against the plan
+  (size, page count read with pdf.js) are early warnings only. Each file gets a row that changes live.
 
-*Source: [`ui-case-workspace.drawio.svg`](diagrams/ui-case-workspace.drawio.svg). Low-fidelity wireframe; the numbered annotations are part of the spec. Edit in VS Code with the draw.io extension.*
+```mermaid
+%%{init: {"theme": "base", "themeVariables": {"fontFamily": "Arial, Helvetica, sans-serif", "fontSize": "14px", "primaryColor": "#E7F2EE", "primaryBorderColor": "#0E5A47", "primaryTextColor": "#16212B", "lineColor": "#56636F", "secondaryColor": "#E8ECEE", "tertiaryColor": "#FFFFFF", "clusterBkg": "#F2F4F5", "clusterBorder": "#B9C2CA", "noteBkgColor": "#FFF5D6", "noteTextColor": "#16212B"}, "htmlLabels": false, "flowchart": {"htmlLabels": false, "padding": 16, "nodeSpacing": 40, "rankSpacing": 50, "wrappingWidth": 220}, "sequence": {"wrap": true, "useMaxWidth": true, "noteFontFamily": "Arial, Helvetica, sans-serif", "messageFontFamily": "Arial, Helvetica, sans-serif", "actorFontFamily": "Arial, Helvetica, sans-serif"}}}%%
+stateDiagram-v2
+    [*] --> Uploading
+    Uploading --> AlreadyUploaded: same SHA-256 as an earlier file (D01)
+    Uploading --> Reading: accepted
+    Reading --> Checked: read and verified
+    Reading --> NeedsColumns: ledger file with a new layout
+    Reading --> Held: content looks like an earlier file (D02 to D06)
+    Reading --> CouldNotRead: neither reading usable (E02)
+    NeedsColumns --> Checked: columns confirmed
+    Held --> Checked: Different document
+    Held --> KeptAsCopy: Same document
+    AlreadyUploaded --> [*]
+    Checked --> [*]
+    KeptAsCopy --> [*]
+    CouldNotRead --> Reading: Try again
+```
 
-The decision panel is a sticky right column on ≥1280 px and a bottom sheet below that. It is hidden
-while `DRAFT`/`PROCESSING`.
-
-### 6.4 Overview tab
-
-- **RiskSummary card:** score gauge (0–100) with grade, recommendation, hard stops with reasons,
-  maximum supportable amount vs requested.
-- **Key metric tiles:** avg monthly operating inflow, avg CADS, DSCR proxy, ADB, negative days, revenue
-  verification ratio. Each tile has a "?" popover with the formula and inputs (from `explain` data in
-  facts) and a link to the cash-flow tab.
-- **Document integrity strip:** one chip per statement month and one grouped chip for invoices (worst
-  invoice verdict), each with verdict colour, icon and text; click → evidence viewer at that document's
-  worst finding (grouped chip → Documents tab filtered to invoices).
-- **Top findings:** the 3 most severe, each with title, one-line explanation, "View evidence".
-- While `PROCESSING`: replaced by **PipelineProgress**: case-level stages (from the run) and a
-  per-document row showing its current status. Each stage ticks as the listener reports it.
-
-### 6.5 Documents tab
-
-- Dropzone (in `DRAFT`/`INFO_REQUESTED`): multiple files, client-side pre-checks against the plan's
-  limits (type by extension for UX only, size, page count read with pdf.js), parallel uploads (max 3)
-  with per-file progress; server errors shown inline per file (`DUPLICATE_DOCUMENT`,
-  `TOO_MANY_PAGES`, …). For `TOO_MANY_PAGES`, P0 says "Upload one file per month"; P1 offers
-  **Split and upload** ("This PDF has 47 pages. Split into 3 parts of up to 20 pages?").
-- Document list: thumbnail, file name, type badge, pages, **Digital / Scanned** badge (from page
-  triage), reading method and agreement %, verdict badge, status, and while processing "Reading page
-  4 of 18". Row click → document detail drawer: metadata (producer, dates, revisions), per-page
-  table (text layer, witness, agreement, escalated), list of its findings.
-- **Run analysis** button (primary) with the count of documents; disabled with reason when not allowed.
-
-### 6.5a Applicant tab
-
-Three blocks, top to bottom ([spec 014](specs/014-applicant-profile-intelligence/spec.md)):
-
-1. **Profile:** type, names, IDs, address, bank accounts (masked, `Declared` or `Detected` badge),
-   people with roles and ownership. **Edit** opens the same form as the wizard.
-2. **Suggestions from the documents** (badge with the pending count): one card per suggestion with
-   the value, confidence, basis ("Statement header, agreed by both readings") and an evidence chip
-   that opens the page with the box highlighted; **Accept** / **Reject** (reject asks for an optional
-   reason). `CONFLICT` cards show both values side by side ("Profile says … / Documents say …").
-3. **Counterparties:** tabs Clients · Suppliers · Lenders · Related parties · Other; table of name,
-   roles, inflow/outflow, transactions, invoices matched, share of operating inflow; row click → the
-   Cash flow tab filtered to that counterparty.
-
-![Wireframe: applicant tab with AI suggestions and counterparties](diagrams/ui-applicant-profile.drawio.svg)
-
-*Source: [`ui-applicant-profile.drawio.svg`](diagrams/ui-applicant-profile.drawio.svg). Edit in VS Code with the draw.io extension.*
-
-### 6.6 Findings tab
-
-Grouped by severity (Critical → Info), then by document. Each row: severity badge (icon + text),
-code, title, document/page, status. Filters: severity, category, document, status. Row click → evidence
-viewer. Actions: **Acknowledge**; **Dismiss** (dialog with a required reason).
-
-### 6.7 Evidence viewer
-
-Opens as a large right-side drawer (route `/cases/:id/evidence/:findingId`).
-
-![Wireframe: evidence viewer drawer, finding A01 in scenario S2](diagrams/ui-evidence-viewer.drawio.svg)
-
-*Source: [`ui-evidence-viewer.drawio.svg`](diagrams/ui-evidence-viewer.drawio.svg). Edit in VS Code with the draw.io extension.*
-
-- Renders the PDF page with `react-pdf` (text PDFs) or the server-rendered PNG (images/scans).
-- Overlays: absolutely positioned boxes from normalized bboxes × rendered size; severity colour **and**
-  a numbered marker; hover shows the label.
-- Multiple evidence refs: list on the right, clicking pans/zooms to each.
-- Keyboard: `j`/`k` next/previous finding, `+`/`-` zoom, `Esc` close.
-- Evidence without a bbox: page shown with a notice "Exact location not available (scanned page)".
-
-### 6.8 Cash flow tab
-
-- Monthly bars: operating inflow vs outflow; line: ADB; markers for negative-balance days.
-- Category breakdown per month (table with sparkline per category).
-- Transactions table: date, description, counterparty, amount (signed, tabular), category chip,
-  risk-tag chips, "categorized by" icon (rule/model/analyst), consensus status icon. Filters: month,
-  category, risk tag, text. Row click → evidence viewer at that row.
-- P1: inline re-categorize (select) → `PATCH` → banner "Analysis is out of date. Re-run".
-
-### 6.9 Reconciliation tab
-
-- Summary: invoiced sales vs matched (two horizontal bars) and the ratio.
-- Table of sales invoices: number, buyer, issue/due date, total, status chip (Matched, Partial,
-  Unmatched, Not due), matched transactions (links), score. Unmatched rows are highlighted and
-  link to their `R01` finding.
-
-### 6.10 Memo tab
-
-- Renders `bodyMarkdown` per section with a safe markdown renderer (no raw HTML).
-- Citation markers become **CitationChips**: `fact:` → popover with value, label, formula, inputs;
-  `finding:` → opens the evidence viewer; `doc:…#pN` → opens the page.
-- Grounding badge: **Verified** (green) or **Unverified figures** (amber banner listing problems).
-- P1: Edit mode per section (textarea with marker autocomplete); Save → `PUT` → new grounding result.
-
-### 6.11 Decision panel
-
-| Situation | UI behaviour |
-|---|---|
-| Open critical findings | **Approve** disabled; tooltip and inline list "Resolve 2 critical findings first" with links |
-| Recommendation `DECLINE` or hard stop, user is `analyst` | **Approve** disabled; hint "Only a risk lead can override. Escalate instead." |
-| User is `risk_lead` or `admin` overriding | Approve enabled; reason required; confirm dialog states the override |
-| `DECLINE`, `REQUEST_INFO`, `ESCALATE` | Reason required (min 10 chars) |
-| `APPROVE_WITH_CONDITIONS` recommended | Conditions pre-filled from analysis, editable list |
-| After decision | Panel shows outcome, who, when, reason; memo marked Final |
-
-Server errors are still handled (`409 OPEN_CRITICAL_FINDINGS`, `403 ROLE_REQUIRED`), because the UI
-rules are hints and the server enforces.
-
-### 6.12 Activity tab
-
-Audit events timeline (who, what, when, details). P1: **RunTimeline** shows each pipeline stage
-with duration, model and token counts: the "agent trace" view.
-
-### 6.12a Settings
-
-Narrow on purpose. Sections in a left rail:
-
-| Section | Who can edit | Content |
+| Tray state | What the row says | Action |
 |---|---|---|
-| Workspace | admin | Name, country (read-only: Indonesia), time zone |
-| Language & formats | admin (workspace default), everyone (own) | Language: **English** (selected); Bahasa Indonesia, Bahasa Melayu, Thai, Vietnamese shown disabled with "Coming soon". Currency IDR and date format shown read-only |
-| Plan & usage | everyone sees, admin acts | Current plan and trial days left; usage meters (cases this month, pages this month, runs today, AI spend this month, seats); plan cards: **Free trial** (current), **Starter**, **Professional**, **Enterprise** with "Coming soon" badges and disabled buttons |
-| Credit policy (P1) | admin, risk lead | The active scorecard (read-only) and four bounded overrides: assumed annual rate, target DSCR, required months, minimum months. Saving shows "Applies to new runs" |
-| Members (P1) | admin | Members with roles; invite by email with a role; remove; seats used vs plan |
+| AlreadyUploaded | "Already uploaded on 2 Jul as ACB_Feb_2026.pdf. Not read again and not counted." | — |
+| Reading | "Reading page 2 of 3" with a progress bar | — |
+| Held | "Looks like Receipt 0617.jpg (same merchant, date and total). Held until you decide." | **Decide** |
+| NeedsColumns | "New column layout. Check the columns once and every row is imported." | **Check columns** |
+| CouldNotRead | "Could not read this file." | **Try again** |
 
-### 6.13 Assistant drawer (P1)
+- **Library:** chips by type with counts (Statements, Sales invoices, Purchase invoices, Receipts,
+  Ledger, Possible copies); table of document (type icon, name, what it is), status, check (Clean,
+  Edited, Not checked), risk level, months, uploaded. A row with a critical finding is tinted. On
+  compact each row is a card with risk and status.
+- **Document page** (`/documents/:docId`): the pages with read values lit, the two readings, its
+  findings, the matches it takes part in, its events, and P1 "How this was processed" (run graph,
+  [`17`](17-observability.md) §5).
 
-Floating "Ask about this case" button → drawer with conversation; suggested questions ("Why is March
-flagged?", "Which invoices were never paid?", "What drives the DSCR?"). Replies render citation chips.
+### 6.4 Month
+
+<p><img src="assets/mocks/month-desktop.png" alt="March 2026 at 1440 px: six figures with reading marks, the critical explanation with citations and next steps, match meter, bank lines with match chips and reasons" width="66%"> <img src="assets/mocks/month-mobile.png" alt="March 2026 on a phone: figures in two columns and the explanation" width="26%"></p>
+
+- **Header:** month name with previous and next, state, risk badge; what the month holds ("ACB ••4821.
+  Statement, 9 invoices, 4 receipts and 52 ledger entries").
+- **Figures:** opening balance, money in, money out, closing balance, matched by Kredibel, ledger
+  difference. Each figure carries its reading mark.
+- **Explanation** (when the level is MEDIUM or higher): the risk level as a heading, the Gemini
+  summary with citation chips (`[[fact:…]]`, `[[finding:…]]` → evidence), **What to do next** as a
+  numbered list, and the by-line "Written by Gemini. Every figure checked by Kredibel." If the
+  grounding guard failed, the template text is shown and the by-line says "Written from a template".
+- **Match meter:** matched by Kredibel, matched by you, open.
+- **Tabs:** Bank lines (default), Documents, Ledger (with the difference count), Findings.
+- **Bank lines:** date and description, amount (signed, reading mark), **Matched with** as a chip
+  (auto, manual, proposed, no match) and the reason in plain words ("Paid 2% below the total:
+  withholding tax"). A line tied to a finding is tinted and shows **Evidence**.
+- P1: **Sign off** when the month is reconciled; **Reopen** with a reason.
+
+### 6.5 Review
+
+<p><img src="assets/mocks/review-desktop.png" alt="Review at 1440 px: queue grouped by month beside the fix panel for a bank line that fits two invoices" width="66%"> <img src="assets/mocks/review-mobile.png" alt="Review on a phone: the item as a full page with candidates and a sticky Match button" width="26%"></p>
+
+- **Queue:** filter chips by kind and month; items grouped by month, each with a kind tile, a title
+  that names the money, and one line of context. The eight kinds of [`08`](08-risk-engine.md) §7
+  have these names on screen:
+
+| Kind | Chip | Kind | Chip |
+|---|---|---|---|
+| `POSSIBLE_DUPLICATE` | Possible copies | `LEDGER_DIFFERENCE` | Explain a difference |
+| `PROPOSED_MATCH` | Choose a match | `LOW_CONFIDENCE_VALUE` | Check a value |
+| `UNMATCHED_DOCUMENT` | Not paid | `CONFIRM_TYPE` | Confirm type |
+| `UNMATCHED_BANK_LINE` | Not in the ledger | `CONFIRM_LEDGER_MAPPING` | Check columns |
+
+- **Fix panel:** the kind and month; a title ("IDR 18,700,000 on 9 Feb fits two invoices"); why it
+  is here ("Kredibel only matches on its own when one answer is clearly better"); the **subject**
+  (the bank line, file or value) with **See on the page**; the **candidates** as radio cards with
+  reason tags (✓ same amount, ✓ same client, ✗ no invoice number) and the fit score; a hint written
+  from facts; the other allowed actions as quiet buttons; the primary action named after the choice
+  (**Match with invoice 0003**) and **Skip**.
+- Only actions allowed for the kind are shown ([`10`](10-api-contract.md) §4). After a fix the next
+  item opens and the month shows "Reconciling" until the month run finishes (§5.3).
+- Keyboard on wide screens: `j`/`k` next and previous, `Enter` the primary action, `Esc` close.
+
+### 6.6 Evidence viewer
+
+<p><img src="assets/mocks/evidence-viewer-desktop.png" alt="Evidence viewer at 1440 px: statement page with two lit values, the calculation and the two readings" width="66%"> <img src="assets/mocks/evidence-viewer-mobile.png" alt="Evidence viewer on a phone: page zoomed to the evidence, Whole page button, finding below" width="26%"></p>
+
+Opens as a drawer at 1200 px and wider and full screen below (`/risk/:findingId`, or from any
+citation chip).
+
+- Renders the PDF page with `react-pdf` (text PDFs) or the server-rendered PNG (images and scans).
+- **The lamp** ([`12`](12-design-system.md) §6.3): boxes from normalized bboxes × rendered size in
+  evidence violet with numbered markers that match the calculation rows. It sweeps once when the
+  viewer opens. On compact the page opens zoomed to the evidence with **Whole page**.
+- **Finding pane:** what was found (consequence first); **How the balance should add up** (a
+  calculation with reading marks); **Two readings** (Gemini and the witness side by side with the
+  result; a CRITICAL arithmetic finding needs values both agreed on); **What to do next**.
+- **Acknowledge**, or **Dismiss, with a reason** (at least 10 characters); either writes an event.
+- Evidence without a box: the whole page with "Exact location not available (scanned page)".
+
+### 6.7 Risk, and Clients and suppliers
+
+<p><img src="assets/mocks/risk-desktop.png" alt="Risk at 1440 px: a sentence on the two months that need attention, the month tabs, severity chips and findings grouped by month with code, title, where and status" width="66%"> <img src="assets/mocks/risk-mobile.png" alt="Risk on a phone: findings as cards grouped by month" width="26%"></p>
+
+- **Risk:** one sentence on the months that need attention and why, the month tabs with their
+  levels, chips by severity and **Held copies** with counts, then findings grouped by month (worst
+  month first): severity badge, code (`A01`) beside the title, where (document and page, or the bank
+  line), status (Open, Held, Acknowledged). A row opens the evidence viewer; the month heading links
+  to the month.
+
+<p><img src="assets/mocks/clients-desktop.png" alt="Clients and suppliers at 1440 px: role chips, a table of names with amounts, share bars, transfers and accounts seen; Roastline Equipment Service is flagged for a new account" width="66%"> <img src="assets/mocks/clients-mobile.png" alt="Clients and suppliers on a phone" width="26%"></p>
+
+- **Clients and suppliers:** chips All, Clients, Suppliers, Lenders, Owner with counts; table of
+  name and role, amount for the period (signed), share of money in or out (bar and %), transfers,
+  accounts seen. A new account for a known supplier is flagged (`X08`) and a supplier with unpaid
+  invoices and no transfers is flagged (`R02`); both rows link to Risk. A row opens its detail:
+  totals by month, accounts seen with first and last dates, and its bank lines. A wrong role is
+  corrected on the Labels page (`COUNTERPARTY_ROLE`).
+
+### 6.8 Finance Assistant (P1)
+
+<p><img src="assets/mocks/assistant-desktop.png" alt="Assistant at 1440 px: an answer with a citation chip and a small chart, a second answer with next actions, and the remembered panel" width="66%"> <img src="assets/mocks/assistant-mobile.png" alt="Assistant on a phone" width="26%"></p>
+
+- Questions about the workspace's books, answered from read-only tools with citation chips and,
+  when useful, a small bar chart drawn from tool output ([ADR-014](adr/ADR-014-finance-assistant-tools-rag-memory.md)).
+  "Every number checked against your books" appears when the grounding guard passed.
+- Answers can end in actions that are links (**Open the evidence**, **Go to March**); the assistant
+  never changes data.
+- **Remembered for you:** the preferences in Memory Bank with **Forget** and **Forget all**; "Only
+  preferences are remembered. Figures are always read fresh from your books."
+- Suggested questions on an empty thread ("Why is March critical?", "Which invoices were never
+  paid?", "Who are my biggest suppliers?").
+
+### 6.9 Settings: profile, bank accounts, plan and usage
+
+<p><img src="assets/mocks/plan-usage-desktop.png" alt="Plan and usage at 1440 px: trial track, usage meters, plan cards and coming-soon features" width="66%"> <img src="assets/mocks/plan-usage-mobile.png" alt="Plan and usage on a phone" width="26%"></p>
+
+| Section | Content |
+|---|---|
+| Profile | Type (read-only after onboarding), names, tax ID, address, industry, time zone; pending suggestions with evidence and **Accept** / **Reject** |
+| Bank accounts | Bank, masked number, holder, purpose; `Declared` or `Detected` (from an accepted suggestion) |
+| Language and formats | **English** (selected); other languages disabled with "Coming soon"; currency and date format read-only |
+| Plan and usage | Trial hero (days left as a 30-cell track, end date, what happens after); usage meters from `contracts/plans.v1.yaml` (documents, pages read, AI use, month reconciliations today, members, assistant questions) that warn at 80%; plan cards **Free trial** (current), **Starter**, **Professional**, **Enterprise** with "Coming soon", no price and disabled buttons; coming-soon features **Loan readiness report** and **Bank feeds**. Nothing here starts a payment |
+| Members (P1) | Members with roles (owner, accountant, reviewer, viewer); invite by email; seats used |
+
+### 6.10 Logo and brand
+
+<p><img src="assets/mocks/brand-desktop.png" alt="Logo and brand page: the k-and-tick mark, its construction on a 64-unit grid, versions, colours, misuse and uses in the product" width="66%"> <img src="assets/mocks/brand-mobile.png" alt="Logo and brand page on a phone" width="26%"></p>
+
+The mark, its construction and where it is used are in [`12`](12-design-system.md) §9 and the
+[`brand`](../design/mocks/brand.html) page.
+
+### 6.11 Labels (P1)
+
+<p><img src="assets/mocks/labels-desktop.png" alt="Labels at 1440 px: a sentence on how many labels people checked and how often the AI was right, task and status filters, the table of labels with per-page types, confidence, status, extraction file and run, and the panel for one label below" width="66%"> <img src="assets/mocks/labels-mobile.png" alt="Labels on a phone: labels as cards with confidence and status" width="26%"></p>
+
+Every decision the AI made that a person can check: document type, page type, category, counterparty
+role and read values ([ADR-016](adr/ADR-016-human-verified-labels-and-learning-loop.md),
+[spec 016](specs/016-labels-and-learning/spec.md)).
+
+- **Header sentence** from the `summary` returned with `GET /api/labels`: "212 of 1,284 labels checked by people; the
+  AI was right on 94.8% of them. 37 need a check."
+- **Filters:** a segmented control by task (All, Document type, Page type, Category, Role, Value,
+  with counts); chips by status (Needs a check, AI proposed, Verified, Corrected). The framework in
+  use is stated with a link to change it in Settings. Default order: needs a check, lowest
+  confidence first.
+- **Table:** subject (file and page, or the bank line) with its **per-page type chips** (`p1 Summary
+  0.99`, `p3 Terms or cover 0.62`, low ones tinted); the value; confidence as a small meter; status
+  (Needs a check, AI proposed, Verified by a person, Corrected by a person); source (model, rule,
+  match or person); the **extraction file** (`p2.md`, the page as Markdown); the run; dataset use
+  (Eval, Train, Excluded). On phones each row is a card.
+- **Bulk:** select several and **Confirm as proposed**; corrections are one at a time.
+- **Label panel:** what the AI proposed with its confidence and reason, a field to correct it (the
+  category list shows each category's statement line under the workspace's framework), **Apply to
+  similar lines from …** (creates a workspace rule), an optional note, **Confirm** or **Save
+  correction**; beside it, the extraction preview with **Open p1.md** and the provenance (model,
+  prompt version, run and span, dataset use).
+- The footer says that verified labels are used only as examples and evals inside this workspace
+  while training consent is off; **Export dataset** stays disabled until P2.
+
+### 6.12 Runs (P1, owner only)
+
+<p><img src="assets/mocks/runs-desktop.png" alt="Runs at 1440 px: a table of runs with status, duration, calls, tokens, cost, models and labels; the selected run's span waterfall; and the inspector for one model call with its request and response" width="66%"> <img src="assets/mocks/runs-mobile.png" alt="Runs on a phone: runs as cards and the waterfall with each bar under its name" width="26%"></p>
+
+The in-app view of [ADR-017](adr/ADR-017-agent-observability-on-google-cloud.md): what a tracing tool
+shows, for the owner, without leaving Kredibel ([`17`](17-observability.md) §8).
+
+- **Runs table** from `GET /api/runs`: run (document, month or assistant question), status, started,
+  duration, LLM calls, tokens in and out, cost in USD, models, labels it produced. Chips by kind,
+  **Failed** and **Corrected by a person**.
+- **Span waterfall** for the selected run (`GET /api/runs/{id}/events`): workflow, nodes and calls
+  on one time axis, model calls in evidence violet, code in slate; each bar shows its duration and one
+  line of detail (model, tokens, output).
+- **Inspector** for the selected call: model, prompt version, latency, tokens, span and trace;
+  **Open the label**, **Cloud Trace** and **BigQuery rows**; the request and response when content
+  was captured (synthetic data only, `AI_CONTENT_CAPTURE=synthetic`), otherwise "Content not
+  captured for real data".
 
 ---
 
-## 7. States & errors
+## 7. States and errors
 
-- Every data panel has **loading** (skeletons matching the final layout), **empty** (explains what
-  will appear and what action creates it) and **error** (problem title + retry) states.
-- `FAILED` case: banner with the run's error message and **Retry analysis**.
-- Network offline: toast; mutations disabled.
+- Every data panel has **loading** (skeletons matching the final layout at each size class),
+  **empty** (says what will appear and the action that creates it: "No documents yet. Drop a bank
+  statement to start.") and **error** (problem title + **Try again**).
+- A month with no statement shows **Collecting** and lists what it has ("4 invoices, no statement
+  yet").
+- A month waiting for its run shows **Reconciling**; its old figures stay visible, dimmed.
+- Network offline: a toast; uploads queue in the tray and resume.
 
 ---
 
 ## 7a. Plan limits in the UI
 
-- Limits come from `GET /api/workspace` (`subscription.limits`, `usage`), so the UI can warn early:
-  the dropzone says "12 of 300 pages left this month" when fewer than 50 remain; **Run analysis**
-  shows the pages this run will use ("Uses ~28 new pages; 14 are cached").
-- The server is the authority: a `403 PLAN_LIMIT_REACHED` opens the `PlanLimitDialog`; a
-  `403 TRIAL_EXPIRED` shows the TrialBanner and disables create, upload and run buttons with a tooltip.
-- Coming-soon features (thorough mode, more seats, other languages) are visible and disabled with a
-  "Coming soon" badge; none of them is clickable.
+- Limits and usage come from `GET /api/workspace`, so the UI warns early: the tray says "14 of 400
+  pages left this month" when fewer than 50 remain.
+- The server is the authority: `403 PLAN_LIMIT_REACHED` opens the `PlanLimitDialog`; `403
+  TRIAL_EXPIRED` shows the TrialBanner ("Your trial has ended. Your books stay readable; new uploads
+  are paused.") and disables Upload with its reason.
+- Coming-soon plans and features are visible and disabled with a "Coming soon" badge; none is
+  clickable.
 
 ---
 
 ## 8. Accessibility
 
-WCAG 2.1 AA contrast; focus-visible rings; all icons have labels; severity uses colour **plus** icon
-**plus** text; charts have a table alternative ("View as table"); the evidence viewer is keyboard
-operable; dialogs trap focus and restore it.
+WCAG 2.1 AA: contrast (token pairs checked by `make tokens`, components by axe); focus-visible rings;
+icons labelled or hidden; severity uses colour **plus** icon **plus** text; reading marks differ in
+shape; the Sankey has a table alternative and a ranked-list form; the evidence viewer and review queue
+are keyboard operable; dialogs and drawers trap and restore focus; targets ≥ 44 px on touch; usable at
+200% zoom and at 360 px without sideways page scroll; `prefers-reduced-motion` respected. Checklist:
+[`12`](12-design-system.md) §10.
 
 ---
 
@@ -349,27 +606,31 @@ operable; dialogs trap focus and restore it.
 
 | Level | Tool | Covers |
 |---|---|---|
-| Unit | Vitest | `formatMoney`, citation parser, bbox scaling, decision-panel rules |
-| Component | Testing Library + MSW | each widget's loading/empty/error/success; decision panel guards |
+| Unit | Vitest | `formatMoney`, citation parser, bbox scaling, Sankey layout input, allowed actions per review kind, `useSizeClass` |
+| Component | Testing Library + MSW | each widget's loading, empty, error and success states; the fix panel per kind |
+| Stories | Storybook 9 + test runner | every `shared/ui` component in each state; interaction tests; axe on every story |
+| Visual regression | Playwright `toHaveScreenshot` | the 8 screens of §6 at 390, 834 and 1440 px with fixed data and fonts; baselines change only in a reviewed PR |
+| Accessibility E2E | `@axe-core/playwright` | each screen at each width: no serious or critical violations |
+| Performance | Lighthouse CI (mobile profile) | `/` and `/months/:month`: performance ≥ 85, accessibility ≥ 95, best practices ≥ 95; JS ≤ 250 KB gzip on first load |
 | Contract | `tsc` against generated `schema.d.ts` | API drift breaks the build |
-| Smoke E2E | Playwright | new user → create workspace → new case wizard (company applicant) → upload S2 → run (mock or real) → open A01 evidence → accept a suggestion → decline |
-| i18n | Vitest + ESLint | `i18next/no-literal-string` in `src/` (tests excluded); every key in `locales/en` is used; missing keys fail the build |
+| Smoke E2E | Playwright | new user → company workspace → upload S1 in a shuffled order → exact copy recognised → confirm ledger columns → resolve the 18.7 M match → March shows its critical explanation → open A01 evidence; once at 1440 px and once at 390 px |
+| i18n | Vitest + ESLint | `i18next/no-literal-string` in `src/`; every key in `locales/en` is used; missing keys fail the build |
+| Styles | `tools/checks/no_raw_styles.py` | no raw colours, arbitrary values or inline styles outside the allow-list |
+
+Details and CI wiring: [`15`](15-testing-and-evaluation.md) §2.6.
 
 ---
 
 ## 10. Internationalization
 
-- **English is the primary and only selectable language.** The app is built so adding one is a
-  translation job, not a refactor.
-- All user-visible strings live in `shared/i18n/locales/en/{common,case,applicant,settings,errors}.json`
-  and are read with `useTranslation()`. ESLint `i18next/no-literal-string` blocks hard-coded strings
-  in components.
-- `shared/i18n/languages.ts` mirrors the `languages` list of `GET /api/plans`; `coming_soon` entries are
-  rendered disabled.
+- **English is the primary and only selectable language.** Adding one is a translation job, not a
+  refactor.
+- All user-visible strings live in `shared/i18n/locales/en/{common,dashboard,documents,months,review,
+  risk,assistant,settings,errors}.json` and are read with `useTranslation()`.
 - Numbers, money and dates go through `Intl` helpers with the active locale (`en`) and the workspace
-  currency (`IDR`): `formatMoney` → `IDR 1,250,000`.
-- API errors are mapped by `code` to `errors.json` messages; the server's English `title`/`detail` is
-  the fallback.
+  currency (`IDR`): `formatMoney` → `IDR 1,250,000`; compact `IDR 1,355.8 M`.
+- Layouts leave room for longer strings (labels wrap; no fixed-width buttons).
+- API errors are mapped by `code` to `errors.json`; the server's English `title`/`detail` is the
+  fallback.
 - **Documents can be in any language.** The UI language does not limit what Kredibel can read.
-- The memo and finding explanations are generated in English (prompts state `Write in English`);
-  the language is stored on the memo for later localization.
+- Explanations and assistant answers are generated in English; the language is stored with them.

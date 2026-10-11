@@ -86,12 +86,12 @@ Vertex AI is now **Gemini Enterprise Agent Platform** ("Agent Platform"). Names 
 
 | Role in Kredibel | Model ID | Status |
 |---|---|---|
-| Fast multimodal work: classification, extraction, visual forensics, assistant | `gemini-3.8-flash` | Listed, not marked preview |
-| Bulk, cheap work: transaction categorization | `gemini-3.5-flash-lite` | Listed, not marked preview |
-| Long-form reasoning: credit memo | `gemini-3.1-pro-preview` | **Preview**; fall back to `gemini-3.8-flash` |
-| Embeddings (P2 only) | `gemini-embedding-2` | Listed |
+| Fast multimodal work: page and receipt reading, month explanations, assistant, visual forensics | `gemini-3.8-flash` | Listed, not marked preview |
+| Bulk, cheap work: classification, ledger column mapping, categorization | `gemini-3.5-flash-lite` | Listed, not marked preview |
+| Embeddings for assistant retrieval (P1) | `gemini-embedding-001` at 768 dimensions (`gemini-embedding-2` to compare) | Listed |
+| DeepEval judge (evals only) | a Gemini model on Agent Platform (`EVAL_JUDGE_MODEL`) | — |
 
-Model IDs are **configuration** (`MODEL_FAST`, `MODEL_LITE`, `MODEL_REASONING`), never hard-coded.
+Model IDs are **configuration** (`MODEL_FAST`, `MODEL_LITE`, `MODEL_EMBEDDING`), never hard-coded.
 The location is `global`. ⚠️ Confirm availability in Model Garden for our project on day 0.
 
 ### 2.3 Agent Development Kit (ADK)
@@ -104,8 +104,8 @@ The location is `global`. ⚠️ Confirm availability in Model Garden for our pr
 - **Dynamic workflows:** a `@node(rerun_on_resume=True)` orchestrator calls
   `await ctx.run_node(child, input)` in ordinary Python loops; parallelism with `asyncio.gather`.
 - **Human input:** a node yields `RequestInput(message=..., payload=..., response_schema=...)`
-  (`google.adk.events`) to pause. ⚠️ The Python resume call shape is not documented on the
-  human-input page; spike S3 (see §5) decides whether we use it.
+  (`google.adk.events`) to pause. We do **not** pause workflows: anything that needs a person becomes
+  a review item and a new run ([`06`](06-agent-design.md) §9).
 - Agents in a graph run in `single_turn` (default) or `task` mode and accept Pydantic
   `input_schema` / `output_schema`.
 - `Event(state={...})` writes session state; the docs advise against putting large payloads in
@@ -126,7 +126,7 @@ Prices checked on 10 Oct 2026 on the Document AI pricing page; no Document AI fr
 | Form Parser | v2.0 | 15 | many incl. `us` | USD 30 per 1,000 pages; tables with cell boxes; escalation and thorough mode only (P1) |
 | Invoice Parser | v2.0 (2023-12-06) | 10 (sync) | `us`, `eu`, `asia-southeast1`, … | USD 0.10 for every 10 pages in a document; escalation and thorough mode only (P1) |
 | Bank Statement Parser | `pretrained-bankstatement-v5.0-2023-12-06` | 15 | `us`, `eu` | USD 0.75 per classified document; **not used** (cost, [`21`](21-cost-analysis.md) §3.6) |
-| Expense Parser (receipts) | v1.4.2 (2024-09-12) | 10 | `us`, `eu`, `asia-southeast1`, … | P2 only |
+| Expense Parser (receipts) | v1.4.2 (2024-09-12) | 10 | `us`, `eu`, `asia-southeast1`, … | Not used: receipts are read by Gemini with an OCR witness; a candidate for P1 escalation |
 | Custom Classifier | v1.5 GA (zero-shot) | 15 | many incl. `asia-southeast1` | Optional; we classify with Gemini first |
 | Custom Extractor (generative) | v1.5 / v1.5-pro GA; Gemini 3.x-based versions in preview | 15 | US, EU, `asia-southeast1` (generative) | Production path for data residency (see ADR-009) |
 | Layout Parser | v1.0 | 15 | `us`, `eu` | Fallback for table structure, P2 |
@@ -150,7 +150,22 @@ plus native text). Google recommends `medium` for PDFs and `high` for images. We
   `sanitization_result.filter_match_state` (`MATCH_FOUND` / `NO_MATCH_FOUND`) and per-filter
   results.
 
-### 2.6 Antigravity (our coding agent)
+### 2.6 Assistant, retrieval, traces and evaluation (checked 10 Oct 2026)
+
+| Building block | What we rely on | Used in |
+|---|---|---|
+| **Memory Bank** | ADK `VertexAiMemoryBankService(project, location, agent_engine_id)` with `PreloadMemoryTool` (memories added to the instruction at the start of a turn) or `LoadMemoryTool`; `add_events_to_memory` (recommended, incremental) or `add_session_to_memory` from a callback; memories scoped by user ID and app name and consolidated in the background; works with an agent running on Cloud Run; a Memory Bank can be created without deploying code (`client.memory_banks.create()`) | [ADR-014](adr/ADR-014-finance-assistant-tools-rag-memory.md), spec 011 |
+| **Sessions** | `VertexAiSessionService(project, location, agent_engine_id)` with a Sessions instance ID; any ADK session service works | spec 011 |
+| **RAG Engine** | Managed RAG corpora; the default `RagManagedDb` runs on Spanner with tiers (Basic = 100 processing units), so it has a fixed monthly cost | Not chosen for P1 ([ADR-014](adr/ADR-014-finance-assistant-tools-rag-memory.md)) |
+| **Firestore vector search** | `find_nearest` with `EUCLIDEAN`, `COSINE` or `DOT_PRODUCT`; flat vector indexes; ≤ 2,048 dimensions; ≤ 1,000 results; a `where` pre-filter needs a composite vector index | Assistant retrieval ([`09`](09-data-model.md) §3.17) |
+| **ADK traces** | Spans `invoke_agent`, `call_llm`, `generate_content`, `execute_tool`; export with `google_cloud.get_gcp_exporters(enable_cloud_tracing=True)` + `maybe_set_otel_providers`; outside Agent Runtime set `ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS=false` to keep prompts and responses out of spans | [`17`](17-observability.md) |
+| **DeepEval** | Open-source (Apache-2.0) evaluation library; `GeminiModel(model, project, location, temperature)` uses Gemini on Agent Platform as the judge; `deepeval set-gemini --model … --project … --location …` | [`15`](15-testing-and-evaluation.md) §5.1 |
+
+⚠️ Memory Bank pricing: only third-party summaries were found (per GiB-month of storage and per
+vCPU-hour of processing, with a small free tier, billed from 2026). Read the official pricing page
+before enabling memory on the demo.
+
+### 2.7 Antigravity (our coding agent)
 
 - Reads **`AGENTS.md`** (or `GEMINI.md`) at the workspace root. These files take **no frontmatter**.
 - Workspace rules: `.agents/rules/*.md` with required YAML frontmatter `trigger:` one of
@@ -177,22 +192,26 @@ plus native text). Google recommends `medium` for PDFs and `high` for images. We
 | Altered documents that changed financial data (balances, deposits, transactions) | 91.2% in 2025 | Vendor-reported. |
 | Template-based fakes | ~1 in 5 flagged documents in 2025, up from 1 in 14 in 2024; templates sell for as little as USD 10 | Vendor-reported. |
 | Growth in AI-generated documents flagged | ~4× from Jun 2025 to May 2026 | Vendor-reported. |
+| Business email compromise (payment diversion) losses reported to the FBI | ≈ USD 2.8 billion in 2024; ≈ USD 8.5 billion over 2022–2024 | FBI IC3 2024 Annual Report, via Nacha (2025). US data only. |
 
 **How to use these in the pitch:** state them as reported by their source; do not combine them into
-a market-size claim of our own.
+a market-size claim of our own. The SME figures describe how many businesses exist and how thin their
+finance teams are; the fraud figures describe what goes wrong with documents and payments.
 
 ### 3.1 Domain anchors we design against
 
 - **IAS 7 *Statement of Cash Flows*** classifies cash flows as operating, investing or financing.
   Indonesia's equivalent is **PSAK 207** (formerly PSAK 2) after the IAI renumbering. Kredibel's
   categorization taxonomy follows these classes.
-- **Cash-flow underwriting** metrics lenders commonly use: average daily balance, inflow stability,
-  negative-balance days, existing debt service, and a debt-service-coverage proxy. Our formulas are in
-  [`08-risk-engine.md`](08-risk-engine.md). The scorecard is **illustrative policy**, not a validated
-  credit model.
+- **Bank reconciliation practice:** each month, bank lines are matched to the books (invoices,
+  receipts, ledger cash entries); differences are explained or corrected before the month is closed.
+  Kredibel automates the matching and keeps the explanation and correction with a person.
+- **Payment-diversion controls:** a change to a supplier's bank account is confirmed through a known
+  phone number before paying. Kredibel flags a payment to an account not seen before for that
+  supplier (`X08`).
 - **Regulatory context for production (not the prototype):** Indonesia's Personal Data Protection Law
-  (Law No. 27 of 2022) and OJK IT-risk regulation for banks. ⚠️ Have a compliance reviewer
-  confirm before any real-data pilot. The prototype uses synthetic data only.
+  (Law No. 27 of 2022) and record-keeping rules for accounting documents. ⚠️ Have a compliance
+  reviewer confirm before any real-data pilot. The prototype uses synthetic data only.
 
 ---
 
@@ -213,11 +232,12 @@ Each spike answers one question and records the result in this file (§6).
 
 | ID | Question | Time-box | Decides |
 |---|---|---|---|
-| **S1** | Reading pages as images: how accurate is Gemini Flash on S1 statement and invoice page images at media resolution `high` vs `ultra_high` (date, amount, direction, description, balance), how many tokens per page, and what agreement does the verifier reach against the text layer (digital) and Enterprise OCR (scanned variant)? | 1.5 h | `READ_MEDIA_RESOLUTION`, verifier thresholds, cost per page ([`07`](07-document-intelligence.md) §5–§6, [`21`](21-cost-analysis.md) §3.2) |
-| **S2** | Does ADK 2.11 run a `Workflow` with a dynamic `@node` orchestrator inside FastAPI on Cloud Run, calling Gemini on the Agent Platform global endpoint via ADC? | 1.5 h | [`06`](06-agent-design.md) as written, or the fallback to plain asyncio orchestration |
-| **S3** | Can a paused `RequestInput` be resumed from our API using a persistent session (Agent Platform Sessions)? | 1 h | Whether clarifications use `RequestInput` (P1) or stay in the case state machine ([ADR-007](adr/ADR-007-hitl-state-machine.md)) |
-| **S4** | Does Model Armor flag our synthetic "hidden instruction" invoice when the PDF is sent as a file? Which location works for our project? | 45 min | Screening node design, demo scenario S6 |
-| **S5** | Does `gemini-3.8-flash` return usable `box_2d` boxes for a highlighted region on a rendered statement page? | 45 min | Visual forensics (P1) |
+| **S1** | Reading pages as images: how accurate is Gemini Flash on S1 statement, invoice and receipt images at media resolution `high` vs `ultra_high`, how many tokens per page, and what agreement does the verifier reach against the text layer? | 1.5 h | `READ_MEDIA_RESOLUTION`, verifier thresholds, cost per page ([`07`](07-document-intelligence.md) §5–§6, [`21`](21-cost-analysis.md) §3) |
+| **S2** | Does ADK 2.11 run a `Workflow` with a dynamic `@node` orchestrator inside FastAPI on Cloud Run, calling Gemini on the Agent Platform global endpoint via ADC, with spans in Cloud Trace? | 1.5 h | [`06`](06-agent-design.md) as written, or the fallback to plain asyncio orchestration |
+| **S3** | Enterprise OCR on the scanned S1 variant and on receipt photos: box quality, orientation, latency | 45 min | OCR witness settings; receipt tolerance |
+| **S4** | Does Model Armor flag our synthetic "hidden instruction" invoice when the PDF is sent as a file? Which location works for our project? (P1) | 45 min | Screening node design, scenario S6 |
+| **S5** | Sessions and Memory Bank from Cloud Run without deployed agent code: one instance or two, region, custom memory topics, `PreloadMemoryTool` latency (P1) | 1 h | ADR-014 details, spec 011 |
+| **S6** | Does `gemini-3.8-flash` return usable `box_2d` boxes for a suspicious region on a rendered statement page? (P1) | 45 min | Visual forensics |
 
 ---
 
@@ -232,6 +252,7 @@ _To be filled in on day 0._
 | S3 | | |
 | S4 | | |
 | S5 | | |
+| S6 | | |
 
 ---
 
@@ -258,3 +279,10 @@ _To be filled in on day 0._
 - Market: [SME funding gap article](https://www.crowdfundinsider.com/2020/07/164576-300-billion-funding-gap-for-smes-in-southeast-asia-is-critical-because-they-account-for-42-of-regions-gdp-report/),
   [bank statement fraud report](https://www.inscribe.ai/blog/why-bank-statement-fraud-is-the-1-document-concern-for-lenders-in-2026)
 - PSAK renumbering: [IAI publication](https://web.iaiglobal.or.id/assets/files/file_publikasi/Perubahan_Penomoran_PSAK_ISAK_dalam_SAK_Indonesia.pdf)
+- Payment diversion: [FBI IC3 2024 report figures via Nacha](https://www.nacha.org/news/fbis-ic3-finds-almost-85-billion-lost-business-email-compromise-last-three-years)
+- Memory Bank and Sessions: [Memory Bank quickstart with ADK](https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/memory-bank/adk-quickstart)
+- RAG Engine: [Understanding RagManagedDb](https://docs.cloud.google.com/gemini-enterprise-agent-platform/build/rag-engine/understanding-ragmanageddb),
+  [RAG Engine billing](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/rag-engine/rag-engine-billing)
+- Firestore: [vector search](https://docs.cloud.google.com/firestore/docs/vector-search)
+- ADK traces: [Cloud Trace observability for ADK](https://adk.dev/integrations/cloud-trace/)
+- DeepEval: [Vertex AI (Gemini) as the judge](https://www.deepeval.com/integrations/models/vertex-ai)

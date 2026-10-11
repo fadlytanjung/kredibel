@@ -10,86 +10,69 @@
 | FR | Requirement (short) | Spec | Acceptance criteria | Test location |
 |---|---|---|---|---|
 | FR-001 | Verified Firebase ID token on every API call | 001 | AC-001-5 | `backend/tests/integration/test_auth.py` |
-| FR-002 | Workspace (org) + role from custom claims | 001, 013 | AC-001-3, AC-001-4, AC-001-6, AC-013-1 | `test_auth.py` |
-| FR-003 | Org isolation | 003 | AC-003-5 | `tests/integration/test_org_isolation.py` |
-| FR-004 | Create case for an applicant | 003 | AC-003-1…3 | `tests/unit/test_case_service.py` |
-| FR-005 | List cases | 003 | AC-003-4 | `tests/integration/test_cases_api.py`, `frontend/src/pages/CaseListPage.test.tsx` |
-| FR-010 | Upload with type and plan limits | 003, 013 | AC-003-7…9, AC-003-12, AC-013-7 | `tests/unit/test_document_service.py`, `tests/unit/test_plans.py` |
-| FR-011 | Duplicate rejection | 003 | AC-003-10 | `test_document_service.py` |
-| FR-012 | Remove document in DRAFT | 003 | AC-003-16 | `test_document_service.py` |
-| FR-013 | View pages | 003 | AC-003-15 | `tests/integration/test_documents_api.py` |
-| FR-014 | Page split and triage | 003 | AC-003-11, AC-003-22 | `tests/unit/test_page_triage.py`, `test_document_service.py` |
-| FR-020 | Start analysis async | 004 | AC-004-1…3 | `tests/unit/test_analysis_service.py` |
-| FR-021 | Live progress | 004 | AC-004-4, AC-004-5, AC-004-10, AC-004-11 | `tests/scenarios/test_pipeline_skeleton.py`, `frontend/src/shared/firebase/listeners.test.ts` |
-| FR-022 | Classification | 005 | AC-005-2…4 | `tests/scenarios/test_extraction.py` |
-| FR-023 | Adaptive reading: AI reader + witness + verifier + provenance | 005 | AC-005-5…14, AC-005-16…20 | `tests/unit/test_verify.py`, `test_normalize.py`, `test_bbox.py`, `test_extraction_cache.py`, `tests/scenarios/test_extraction.py` |
-| FR-024 | Low agreement → UNVERIFIABLE | 005 | AC-005-15 | `test_verify.py` |
-| FR-025 | Forensic checks with evidence | 006, 007, 010 | AC-006-1…10, AC-006-13…15, AC-007-9, AC-007-11 | `tests/unit/forensics/*`, `tests/scenarios/test_forensics.py` |
-| FR-026 | Integrity verdict + corroboration | 006, 010 | AC-006-11, AC-006-12, AC-010-10 | `tests/unit/forensics/test_verdict.py` |
-| FR-027 | Categorization | 007 | AC-007-1…4 | `tests/unit/test_categorize.py` |
-| FR-028 | Cash-flow metrics | 007 | AC-007-5…7 | `tests/unit/test_metrics.py` |
-| FR-029 | Reconciliation | 007 | AC-007-8…10 | `tests/unit/test_reconciliation.py` |
-| FR-030 | Scorecard + hard stops + recommendation | 008 | AC-008-1…5 | `tests/unit/test_scorecard.py`, `tests/scenarios/test_recommendation.py` |
-| FR-031 | Memo with citations | 008 | AC-008-6…9 | `tests/scenarios/test_memo.py` |
-| FR-032 | Grounding guard | 008 | AC-008-10…12 | `tests/unit/test_grounding.py` |
-| FR-033 | No silent failures | 004 | AC-004-8, AC-004-9 | `test_analysis_service.py` |
-| FR-040 | Workspace tabs | 009 | AC-009-1, AC-009-8…10, AC-009-15 | `frontend/src/widgets/**/*.test.tsx` |
-| FR-041 | Evidence viewer | 009 | AC-009-5…7 | `widgets/EvidenceViewer/*.test.tsx`, Playwright smoke |
-| FR-042 | Acknowledge / dismiss | 009 | AC-009-4 | `tests/unit/test_review_service.py` |
-| FR-043 | Decision outcomes | 009 | AC-009-11, AC-009-13 | `test_review_service.py` |
-| FR-044 | No approve over open critical | 009 | AC-009-11, AC-009-12 | `tests/unit/test_case_state.py` |
-| FR-045 | Override needs risk_lead + reason | 009 | AC-009-11, AC-009-14 | `test_case_state.py` |
-| FR-046 | Audit events | 003, 004, 009 | AC-003-3, AC-003-13, AC-009-13 | `tests/integration/test_events.py` |
-| FR-050 | Model Armor screening + quarantine (P1) | 010 | AC-010-1…5 | `tests/scenarios/test_s6_injection.py` |
-| FR-051 | Visual forensics capped (P1) | 010 | AC-010-9…11 | `tests/unit/forensics/test_visual.py` |
-| FR-052 | Revision recovery (P1) | 010 | AC-010-6, AC-010-7 | `tests/unit/test_revision_diff.py` |
-| FR-053 | Case assistant (P1) | 011 | AC-011-1…9 | `tests/unit/test_case_tools.py`, `backend/evals/assistant/` |
-| FR-054 | Memo edit (P1) | 009 | AC-009-16 | `tests/integration/test_memo_api.py` |
-| FR-055 | Run timeline (P1) | 010 | AC-010-8 | `widgets/RunTimeline/*.test.tsx` |
-| FR-060 | Create workspace, free trial starts | 013 | AC-013-1, AC-013-2 | `tests/unit/test_workspace_service.py`, `tests/integration/test_workspace_api.py` |
-| FR-061 | Sign-up modes and cap | 013 | AC-013-3 | `test_workspace_service.py` |
-| FR-062 | Plans config; coming-soon tiers not selectable | 013 | AC-013-5, AC-013-6, AC-013-13 | `tests/unit/test_plans.py`, `widgets/PlanAndUsage/*.test.tsx` |
-| FR-063 | Plan limits enforced server-side | 013, 003, 004 | AC-013-7, AC-013-9, AC-013-10, AC-003-23, AC-004-16 | `test_plans.py`, `tests/integration/test_entitlements.py` |
-| FR-064 | Trial expiry behaviour | 013 | AC-013-8, AC-013-14 | `test_plans.py`, `test_entitlements.py` |
-| FR-065 | Plan and usage visible | 013 | AC-013-12, AC-013-13, AC-013-15 | `test_workspace_api.py`, `widgets/PlanAndUsage/*.test.tsx` |
-| FR-066 | Workspace settings; English only | 013 | AC-013-16…18 | `test_workspace_api.py`, ESLint i18n rule |
-| FR-067 | Members and invites (P1) | 013 | AC-013-19, AC-013-20 | `tests/integration/test_members_api.py` |
-| FR-068 | Credit-policy overrides (P1) | 013 | AC-013-21 | `tests/unit/test_policy_overrides.py` |
-| FR-070 | Onboard individual or company applicant | 003 | AC-003-17, AC-003-21 | `tests/unit/test_applicant_service.py` |
-| FR-071 | Account numbers masked + hashed; ID last 4 only | 003 | AC-003-18, AC-003-19 | `tests/unit/test_accounts.py`, `test_applicant_service.py` |
-| FR-072 | Related parties with ownership | 003 | AC-003-19 | `test_applicant_service.py` |
-| FR-073 | Case ↔ applicant snapshot | 003 | AC-003-1, AC-003-6 | `test_case_service.py` |
-| FR-074 | Applicant audit events | 003, 014 | AC-003-20, AC-014-9 | `tests/integration/test_events.py` |
-| FR-075 | Counterparty directory | 014 | AC-014-1…4 | `tests/unit/test_counterparties.py`, `tests/scenarios/test_profile.py` |
-| FR-076 | Profile suggestions with evidence | 014 | AC-014-5…8 | `tests/unit/test_profile_suggestions.py`, `test_profile.py` |
-| FR-077 | Analyst accepts or rejects | 014 | AC-014-9, AC-014-10, AC-014-15 | `tests/unit/test_applicant_service.py`, `widgets/SuggestionsPanel/*.test.tsx` |
-| FR-078 | Holder check with profile; undeclared accounts | 014, 006 | AC-014-11, AC-014-12, AC-006-10 | `tests/unit/forensics/test_profile_checks.py` |
-| FR-079 | Invoice tax-ID check (P1) | 014 | AC-014-13 | `test_profile_checks.py` |
-| FR-080 | Related-party flows (P1) | 014 | AC-014-14 | `test_categorize.py`, `tests/scenarios/test_s7_related_party.py` |
-| FR-081 | Pre-fill on upload (P1) | 014 | AC-014-17 | `tests/integration/test_prefill.py` |
+| FR-002 | Workspace isolation (API and rules) | 001, 003, 013 | AC-001-4, AC-003-11, AC-013-1 | `tests/integration/test_org_isolation.py`, rules tests in the emulator |
+| FR-003 | Create a workspace for an individual or a company; free trial starts | 013 | AC-013-1…4 | `tests/unit/test_workspace_service.py`, `tests/integration/test_workspace_api.py` |
+| FR-004 | Plan limits enforced by the server; usage visible | 013, 003, 004 | AC-013-7…13, AC-003-3, AC-004-11 | `tests/unit/test_plans.py`, `tests/integration/test_entitlements.py` |
+| FR-005 | Paid plans and the loan readiness report shown as coming soon | 013 | AC-013-6, AC-013-11 | `test_plans.py`, `widgets/PlanAndUsage/*.test.tsx` |
+| FR-010 | Upload PDF, images, CSV, XLSX within limits; pages split and triaged | 003 | AC-003-1…4 | `tests/unit/test_file_types.py`, `test_page_triage.py`, `test_document_service.py` |
+| FR-011 | Exact copies recorded, not read, not counted | 003 | AC-003-5, AC-003-6 | `test_document_service.py` |
+| FR-012 | Content duplicates held until a person decides | 006, 009 | AC-006-1…6, AC-009-9 | `tests/unit/test_duplicates.py`, `tests/scenarios/test_s3_duplicates.py` |
+| FR-013 | Documents library with live status and filters | 003 | AC-003-7…10 | `tests/integration/test_documents_api.py`, `pages/DocumentsPage.test.tsx` |
+| FR-020 | Classification; uncertain type asks the user | 005 | AC-005-1…3 | `tests/scenarios/test_reading.py` |
+| FR-021 | AI reader + witness + verifier with provenance | 005 | AC-005-4…9 | `tests/unit/test_verify.py`, `test_normalize.py`, `tests/scenarios/test_reading.py` |
+| FR-022 | Ledger import with a confirmed mapping | 005 | AC-005-10…12 | `tests/unit/test_ledger_parse.py`, `tests/scenarios/test_ledger.py` |
+| FR-023 | Integrity checks with evidence and verdicts | 006 | AC-006-7…12 | `tests/unit/checks/*`, `tests/scenarios/test_s2_tampered.py` |
+| FR-024 | Categorization with precedence | 007 | AC-007-1, AC-007-2 | `tests/unit/test_categorize.py` |
+| FR-030 | Months reconcile on every change, order-independent | 004, 007 | AC-004-4…7, AC-007-3, AC-007-7 | `tests/unit/test_reconcile_order.py` (hypothesis), `tests/scenarios/test_s5_reverse.py` |
+| FR-031 | Deterministic, explainable matching; automatic only when unique | 007 | AC-007-5, AC-007-8 | `tests/unit/test_reconcile.py` |
+| FR-032 | Exact, split, multi-invoice, net-of-tax, ledger matches | 007 | AC-007-4, AC-007-6 | `test_reconcile.py` |
+| FR-033 | Exceptions become review items | 009 | AC-009-1…3 | `tests/unit/test_review_items.py` |
+| FR-034 | Resolve by match, correction, duplicate decision or ignore; audited; month re-runs | 009, 007 | AC-009-4…7, AC-007-13 | `tests/unit/test_review_service.py`, `tests/integration/test_review_api.py` |
+| FR-035 | Month summary (figures, auto-match rate, items, risk) | 007 | AC-007-9, AC-007-12 | `tests/unit/test_figures.py`, `pages/MonthPage.test.tsx` |
+| FR-040 | Cross-document and month checks | 007 | AC-007-10, AC-007-11 | `tests/unit/checks/test_month_checks.py`, `tests/scenarios/test_s4_diversion.py` |
+| FR-041 | Risk level per document and month from policy | 008 | AC-008-1…3, AC-008-11 | `tests/unit/test_risk.py` |
+| FR-042 | Explanation and next steps, grounded or template | 008 | AC-008-4…6 | `tests/unit/test_grounding.py`, `tests/scenarios/test_explanations.py` |
+| FR-043 | Acknowledge or dismiss findings with reasons | 008 | AC-008-9 | `tests/unit/test_finding_service.py` |
+| FR-050 | Dashboard KPIs, month strip, alerts, review preview | 010 | AC-010-1…4, AC-010-9 | `tests/unit/test_insight_service.py`, `pages/DashboardPage.test.tsx` |
+| FR-051 | Money flow by statement line under the framework, with bars, table and client and supplier views, and drill-down | 010 | AC-010-5…8, AC-010-12 | `tests/unit/test_money_flow.py`, `widgets/MoneyFlow/*.test.tsx` |
+| FR-052 | Month strip states | 010 | AC-010-9 | `widgets/MonthStrip.test.tsx` |
+| FR-053 | Months in and out, and the cash-flow statement; full-width charts | 010 | AC-010-4, AC-010-13, AC-010-14 | `tests/unit/test_cash_flow.py`, `widgets/CashFlow/*.test.tsx` |
+| FR-060 | Profile and bank accounts (masked) | 013 | AC-013-2, AC-013-14 | `test_workspace_service.py`, `tests/unit/test_accounts.py` |
+| FR-061 | Profile suggestions with evidence; user decides | 014 | AC-014-4…7 | `tests/unit/test_profile_suggestions.py`, `tests/scenarios/test_profile.py` |
+| FR-062 | Clients and suppliers with accounts seen | 014 | AC-014-1…3 | `tests/unit/test_counterparties.py` |
+| FR-070 | Finance Assistant: tools, retrieval, memory (P1) | 011 | AC-011-1…13 | `tests/unit/test_finance_tools.py`, `backend/evals/assistant/` |
+| FR-071 | Roles restrict actions (P1) | 013 | AC-013-17…19 | `tests/unit/test_access.py` (table-driven) |
+| FR-072 | Model Armor screening and quarantine (P1) | 015 | AC-015-1 | `tests/scenarios/test_s6_injection.py` |
+| FR-073 | Run graph (P1) | 015 | AC-015-4 | `widgets/RunGraph/*.test.tsx` |
+| FR-074 | Every classification and categorization is a label a person can confirm or correct; people win (P1) | 016 | AC-016-1…7 | `tests/unit/test_labels.py` (property test over re-runs), `tests/integration/test_labels_api.py`, `pages/LabelsPage.test.tsx` |
+| FR-075 | Cash-flow class follows the workspace's framework (IFRS or US GAAP) | 016, 010 | AC-016-8, AC-010-12 | `tests/unit/test_categories.py`, `tests/unit/test_money_flow.py` |
+| FR-076 | Run history of every model and tool call, with feedback joined; content only with synthetic data (P1) | 017 | AC-017-2…7 | `tests/unit/test_settings_content_capture.py`, `tests/integration/test_run_events_api.py`, `pages/RunsPage.test.tsx` |
 
 ## 2. Non-functional requirements
 
 | NFR | Target | Verified by |
 |---|---|---|
-| NFR-01 | S1 end-to-end ≤ 3 min p50 | E-PERF (spec 012) |
-| NFR-02 | Progress visible ≤ 2 s | Manual on deployed env + listener tests |
-| NFR-03 | Read API p95 ≤ 500 ms | Cloud Monitoring on demo env |
-| NFR-04 | Seeded tampering detected; 0 false TAMPERED | Scenario tests (gate) + E-FOR |
-| NFR-05 | Memo figures grounded or labelled | Grounding unit tests + E-MEMO |
-| NFR-06 | Org isolation in API and rules; no secrets | `test_org_isolation.py`, rules review, secret scan in CI |
-| NFR-07 | ≤ USD 0.50 per new case, ≤ USD 0.01 per page read, ≤ USD 0.25 per re-run | E-PERF, E-EXT cost columns; [`21`](21-cost-analysis.md) |
-| NFR-08 | WCAG AA contrast; no colour-only meaning | axe in component tests |
-| NFR-09 | Idempotent runs | AC-004-6, AC-006-14 |
-| NFR-10 | Correlated logs and traces | Manual check in Cloud Logging/Trace |
+| NFR-01 | ≤ 60 s p50 per 3-page statement; month run ≤ 20 s p50 | E-PERF (spec 012) |
+| NFR-02 | Progress visible ≤ 2 s | Listener tests; manual check on the deployed env; AC-004-8 |
+| NFR-03 | Read API p95 ≤ 500 ms | AC-010-10; Cloud Monitoring on the demo env |
+| NFR-04 | Seeded tampering and duplicates detected; 0 false `TAMPERED` | Scenario tests (gate) + E-FOR, E-DUP |
+| NFR-05 | ≥ 85% auto-matched on S1; 0 wrong automatic matches | AC-007-8 (gate) + E-REC |
+| NFR-06 | Workspace isolation in API and rules; no secrets | `test_org_isolation.py`, rules tests, secret scan in CI |
+| NFR-07 | ≤ USD 0.01 per page; ≤ USD 0.40 for S1's statements and invoices; exact duplicates free | E-EXT, E-PERF; [`21`](21-cost-analysis.md) |
+| NFR-08 | WCAG AA contrast; no colour-only meaning; chart table alternatives | axe in stories and E2E; AC-008-10, AC-010-7 |
+| NFR-09 | Idempotent workflows; order-independent months | AC-004-3, AC-004-5, AC-007-7 |
+| NFR-10 | Correlated logs and traces | AC-004-12; manual check in Cloud Logging and Trace |
 | NFR-11 | English UI, all strings externalized | ESLint `i18next/no-literal-string` in `make check`; AC-001-14 |
-| NFR-12 | Personal data minimization | `test_accounts.py`, log review, AC-003-18/19 |
+| NFR-12 | Personal data minimization | `test_accounts.py`, log review, AC-003-4, AC-013-2 |
+| NFR-13 | Responsive and touch-friendly | Visual tests at 390/834/1440; 360 px check; AC-001-16 |
+| NFR-14 | UI quality gates | `make check` (tokens-check, no_raw_styles), Storybook axe, visual tests, Lighthouse; AC-001-15, AC-001-17, AC-001-18, AC-010-11 |
+| NFR-15 | Safe data evolution | Upcaster and migration tests, schema drift gate; AC-001-19 – AC-001-22 |
 
 ## 3. Judging criteria → evidence
 
 | Criterion (weight) | What we show | Where |
 |---|---|---|
-| **Technical Merit & Gen AI (40%)** | ADK 2.x graph/dynamic workflow with page-level parallel branches; adaptive reading (Gemini on page images + text-layer/OCR witness + verifier) at ≈ 1/5 the cost of dual parsers; AI-suggested applicant profiles with evidence; Gemini structured outputs everywhere; grounding guard; Model Armor; Agent Platform Sessions; idempotent async runs on Cloud Run + Cloud Tasks; evals with real numbers | [`06`](06-agent-design.md), [`07`](07-document-intelligence.md), eval report, run timeline in the demo |
-| **Problem Alignment & Impact (25%)** | Theme 1 fraud + risk + process automation for SME lending; sourced problem evidence; human-in-the-loop; Indonesia-first, SEA-ready policy | [`01`](01-brainstorm-and-decision.md), [`02`](02-research.md) §3, proposal |
-| **Innovation & Creativity (25%)** | "Two readings before an accusation", the second one free; a profile the documents fill in, with proof; evidence-linked memo with a verifier; recovering the original value from a PDF's revision history; catching an attempt to talk to the AI | demo moments ([`01`](01-brainstorm-and-decision.md) §5.3) |
-| **UX & Solution Design (10%)** | Evidence viewer, live pipeline, decision panel that explains itself, calm forensic design system | [`11`](11-frontend.md), [`12`](12-design-system.md) |
+| **Technical Merit & Gen AI (40%)** | Two ADK workflows (dynamic per-document with per-page parallel reads; static per-month) on Cloud Run + Cloud Tasks; adaptive reading (Gemini on page images + free text-layer or OCR witness + verifier); Gemini proposes ledger mappings from shapes only; order-independent reconciliation; grounded explanations; Finance Assistant with tools, Firestore vector retrieval, Sessions and Memory Bank; ADK traces as a run graph; DeepEval with a Gemini judge; evals with real numbers | [`06`](06-agent-design.md), [`07`](07-document-intelligence.md), [`17`](17-observability.md), eval report, the run graph in the demo |
+| **Problem Alignment & Impact (25%)** | Theme 1 fraud and risk detection + process automation for small businesses: duplicates, edited statements and payment diversion caught before month close; 80–85% of matching automated with a short, honest review queue | [`01`](01-brainstorm-and-decision.md), [`01a`](01a-concept-deep-dive.md), [`02`](02-research.md), proposal |
+| **Innovation & Creativity (25%)** | "Two readings before an accusation", the second one free; uploads in any order with the same result; a supplier's changed bank account found across documents; a profile the documents fill in, with proof; catching an attempt to talk to the AI | hero scenarios ([`01a`](01a-concept-deep-dive.md) §5) |
+| **UX & Solution Design (10%)** | Dashboard separate from the tables; money-flow Sankey; evidence viewer with the lamp; a review queue that works on a phone; a friendly, accessible design system with a real logo | [`11`](11-frontend.md), [`12`](12-design-system.md), `design/mocks/` |

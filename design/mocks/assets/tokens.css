@@ -1,0 +1,224 @@
+/* GENERATED from contracts/design/tokens.json by tools/design/build_tokens.py.
+   Do not edit. Change the tokens and run `make tokens`. */
+
+:root {
+  --k-font-family-sans: "Archivo Variable", Archivo, ui-sans-serif, system-ui, sans-serif;
+  --k-font-weight-regular: 400;
+  --k-font-weight-medium: 520;
+  --k-font-weight-semibold: 620;
+  --k-font-weight-bold: 720;
+  --k-font-stretch-code: 80;
+  --k-font-stretch-normal: 100;
+  --k-font-stretch-figure: 108;
+  --k-font-stretch-display: 116;
+  --k-space-0: 0px;
+  --k-space-1: 4px;
+  --k-space-2: 8px;
+  --k-space-3: 12px;
+  --k-space-4: 16px;
+  --k-space-5: 20px;
+  --k-space-6: 24px;
+  --k-space-8: 32px;
+  --k-space-10: 40px;
+  --k-space-12: 48px;
+  --k-space-16: 64px;
+  --k-radius-xs: 6px;
+  --k-radius-sm: 10px;
+  --k-radius-md: 16px;
+  --k-radius-lg: 24px;
+  --k-radius-full: 999px;
+  --k-shadow-raised: 0px 1px 2px 0px #16212B14, 0px 8px 24px -8px #16212B1F;
+  --k-shadow-overlay: 0px 24px 48px -12px #16212B29;
+  --k-border-width-hairline: 1px;
+  --k-border-width-strong: 2px;
+  --k-motion-duration-instant: 80ms;
+  --k-motion-duration-fast: 140ms;
+  --k-motion-duration-base: 220ms;
+  --k-motion-duration-slow: 320ms;
+  --k-motion-duration-sweep: 720ms;
+  --k-motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+  --k-motion-easing-emphasized: cubic-bezier(0.3, 0, 0, 1);
+  --k-motion-easing-exit: cubic-bezier(0.3, 0, 1, 1);
+  --k-layout-breakpoint-medium: 600px;
+  --k-layout-breakpoint-expanded: 840px;
+  --k-layout-breakpoint-large: 1200px;
+  --k-layout-breakpoint-wide: 1600px;
+  --k-layout-touch-target: 44px;
+  --k-layout-control-height-sm: 32px;
+  --k-layout-control-height-md: 40px;
+  --k-layout-control-height-lg: 48px;
+  --k-layout-rail-width: 88px;
+  --k-layout-sidebar-width: 248px;
+  --k-layout-panel-width: 440px;
+  --k-layout-content-max: 1280px;
+  --k-layout-prose-max: 72ch;
+  --k-layout-gutter-compact: 16px;
+  --k-layout-gutter-medium: 24px;
+  --k-layout-gutter-expanded: 32px;
+  --k-layout-drawer-md: 480px;
+  --k-layout-drawer-lg: 960px;
+  --k-layout-drawer-xl: 1200px;
+  --k-z-sticky: 10;
+  --k-z-header: 20;
+  --k-z-nav: 30;
+  --k-z-sheet: 40;
+  --k-z-dialog: 50;
+  --k-z-toast: 60;
+  --k-color-bg-canvas: #F2F4F5;
+  --k-color-bg-surface: #FFFFFF;
+  --k-color-bg-sunken: #E8ECEE;
+  --k-color-bg-raised: #FFFFFF;
+  --k-color-bg-inverse: #16212B;
+  --k-color-border-default: #DCE1E5;
+  --k-color-border-strong: #828E99;
+  --k-color-text-default: #16212B;
+  --k-color-text-muted: #56636F;
+  --k-color-text-subtle: #6B7782;
+  --k-color-text-on-brand: #FFFFFF;
+  --k-color-text-on-inverse: #F2F4F5;
+  --k-color-brand-default: #0E5A47;
+  --k-color-brand-hover: #0A4738;
+  --k-color-brand-soft: #E7F2EE;
+  --k-color-brand-line: #2E8B6A;
+  --k-color-brand-accent: #9FE0C6;
+  --k-color-evidence-line: #6B4EFF;
+  --k-color-evidence-fill: #6B4EFF29;
+  --k-color-evidence-soft: #F1EEFF;
+  --k-color-evidence-text: #4A2FCC;
+  --k-color-reading-agreed: #17714F;
+  --k-color-reading-single-source: #828E99;
+  --k-color-reading-conflict: #B42318;
+  --k-color-severity-critical-fg: #B42318;
+  --k-color-severity-critical-bg: #FDECEA;
+  --k-color-severity-critical-line: #F0857A;
+  --k-color-severity-high-fg: #A6420A;
+  --k-color-severity-high-bg: #FEF0E1;
+  --k-color-severity-high-line: #F2A766;
+  --k-color-severity-medium-fg: #7F5A00;
+  --k-color-severity-medium-bg: #FFF5D6;
+  --k-color-severity-medium-line: #E8C25A;
+  --k-color-severity-low-fg: #2F5C93;
+  --k-color-severity-low-bg: #E8EFF7;
+  --k-color-severity-low-line: #8FB1DA;
+  --k-color-severity-info-fg: #3B4652;
+  --k-color-severity-info-bg: #E8ECEE;
+  --k-color-severity-info-line: #B9C2CA;
+  --k-color-verdict-clean-fg: #17663F;
+  --k-color-verdict-clean-bg: #E3F3EA;
+  --k-color-verdict-suspicious-fg: #7F5A00;
+  --k-color-verdict-suspicious-bg: #FFF5D6;
+  --k-color-verdict-tampered-fg: #B42318;
+  --k-color-verdict-tampered-bg: #FDECEA;
+  --k-color-verdict-unverifiable-fg: #3B4652;
+  --k-color-verdict-unverifiable-bg: #E8ECEE;
+  --k-color-chart-inflow: #2E8B6A;
+  --k-color-chart-outflow: #B9C2CA;
+  --k-color-chart-net: #16212B;
+  --k-color-chart-balance: #56636F;
+  --k-color-chart-negative: #B42318;
+  --k-color-chart-flow-in: #7DB9A28C;
+  --k-color-chart-flow-out: #B9C2CA99;
+  --k-color-chart-flow-hover: #2E8B6A8C;
+  --k-color-chart-node-source: #2E8B6A;
+  --k-color-chart-node-account: #0E5A47;
+  --k-color-chart-node-use: #56636F;
+  --k-color-chart-kept: #9FE0C6;
+  --k-color-chart-taken: #E8C25A;
+  --k-color-chart-operating: #56636F;
+  --k-color-chart-investing: #3E6E8E;
+  --k-color-chart-financing: #8C5E9E;
+  --k-color-chart-grid: #DCE1E5;
+  --k-color-focus-ring: #5A3DF0;
+  --k-color-scrim: #0F171F8C;
+}
+
+/* Dark theme (P2): opt-in with <html data-theme="dark"> until it is reviewed. */
+:root[data-theme="dark"] {
+  --k-color-bg-canvas: #0F171F;
+  --k-color-bg-surface: #1C252E;
+  --k-color-bg-sunken: #16212B;
+  --k-color-bg-raised: #26303A;
+  --k-color-bg-inverse: #F2F4F5;
+  --k-color-border-default: #3B4652;
+  --k-color-border-strong: #6B7782;
+  --k-color-text-default: #F2F4F5;
+  --k-color-text-muted: #B9C2CA;
+  --k-color-text-subtle: #828E99;
+  --k-color-text-on-brand: #0F171F;
+  --k-color-text-on-inverse: #16212B;
+  --k-color-brand-default: #7DB9A2;
+  --k-color-brand-hover: #CFE6DD;
+  --k-color-brand-soft: #7DB9A229;
+  --k-color-brand-line: #7DB9A2;
+  --k-color-brand-accent: #9FE0C6;
+  --k-color-evidence-line: #A99BFF;
+  --k-color-evidence-fill: #A99BFF33;
+  --k-color-evidence-soft: #A99BFF26;
+  --k-color-evidence-text: #E2DBFF;
+  --k-color-reading-agreed: #7DB9A2;
+  --k-color-reading-single-source: #828E99;
+  --k-color-reading-conflict: #F0857A;
+  --k-color-severity-critical-fg: #F0857A;
+  --k-color-severity-critical-bg: #B4231833;
+  --k-color-severity-critical-line: #F0857A;
+  --k-color-severity-high-fg: #F2A766;
+  --k-color-severity-high-bg: #A6420A33;
+  --k-color-severity-high-line: #F2A766;
+  --k-color-severity-medium-fg: #E8C25A;
+  --k-color-severity-medium-bg: #7F5A0033;
+  --k-color-severity-medium-line: #E8C25A;
+  --k-color-severity-low-fg: #8FB1DA;
+  --k-color-severity-low-bg: #2F5C9333;
+  --k-color-severity-low-line: #8FB1DA;
+  --k-color-severity-info-fg: #B9C2CA;
+  --k-color-severity-info-bg: #26303A;
+  --k-color-severity-info-line: #6B7782;
+  --k-color-verdict-clean-fg: #7CC79E;
+  --k-color-verdict-clean-bg: #17663F33;
+  --k-color-verdict-suspicious-fg: #E8C25A;
+  --k-color-verdict-suspicious-bg: #7F5A0033;
+  --k-color-verdict-tampered-fg: #F0857A;
+  --k-color-verdict-tampered-bg: #B4231833;
+  --k-color-verdict-unverifiable-fg: #B9C2CA;
+  --k-color-verdict-unverifiable-bg: #26303A;
+  --k-color-chart-inflow: #7DB9A2;
+  --k-color-chart-outflow: #56636F;
+  --k-color-chart-net: #F2F4F5;
+  --k-color-chart-balance: #B9C2CA;
+  --k-color-chart-negative: #F0857A;
+  --k-color-chart-flow-in: #7DB9A266;
+  --k-color-chart-flow-out: #56636F99;
+  --k-color-chart-flow-hover: #9FE0C64D;
+  --k-color-chart-node-source: #7DB9A2;
+  --k-color-chart-node-account: #9FE0C6;
+  --k-color-chart-node-use: #B9C2CA;
+  --k-color-chart-kept: #9FE0C6;
+  --k-color-chart-taken: #E8C25A;
+  --k-color-chart-operating: #B9C2CA;
+  --k-color-chart-investing: #8FB6D1;
+  --k-color-chart-financing: #C9A8D6;
+  --k-color-chart-grid: #2B3640;
+  --k-color-focus-ring: #A99BFF;
+  --k-color-scrim: #000000A6;
+}
+
+/* Typography styles */
+.type-figure-xl { font-family: var(--k-font-family-sans); font-size: 40px; line-height: 44px; font-weight: 640; letter-spacing: -0.01em; font-stretch: 116%; font-variant-numeric: tabular-nums lining-nums; }
+.type-figure-lg { font-family: var(--k-font-family-sans); font-size: 26px; line-height: 32px; font-weight: 620; letter-spacing: -0.005em; font-stretch: 108%; font-variant-numeric: tabular-nums lining-nums; }
+.type-figure-md { font-family: var(--k-font-family-sans); font-size: 17px; line-height: 24px; font-weight: 600; letter-spacing: 0; font-stretch: 108%; font-variant-numeric: tabular-nums lining-nums; }
+.type-title { font-family: var(--k-font-family-sans); font-size: 34px; line-height: 40px; font-weight: 680; letter-spacing: -0.015em; font-stretch: 116%; }
+.type-h1 { font-family: var(--k-font-family-sans); font-size: 24px; line-height: 30px; font-weight: 640; letter-spacing: -0.01em; font-stretch: 108%; }
+.type-h2 { font-family: var(--k-font-family-sans); font-size: 18px; line-height: 26px; font-weight: 620; letter-spacing: -0.005em; font-stretch: 100%; }
+.type-h3 { font-family: var(--k-font-family-sans); font-size: 15px; line-height: 22px; font-weight: 620; letter-spacing: 0; font-stretch: 100%; }
+.type-body { font-family: var(--k-font-family-sans); font-size: 15px; line-height: 22px; font-weight: 400; letter-spacing: 0; font-stretch: 100%; }
+.type-body-sm { font-family: var(--k-font-family-sans); font-size: 13px; line-height: 18px; font-weight: 400; letter-spacing: 0.005em; font-stretch: 100%; }
+.type-label { font-family: var(--k-font-family-sans); font-size: 13px; line-height: 18px; font-weight: 560; letter-spacing: 0.01em; font-stretch: 100%; }
+.type-code { font-family: var(--k-font-family-sans); font-size: 13px; line-height: 18px; font-weight: 640; letter-spacing: 0.02em; font-stretch: 80%; font-variant-numeric: tabular-nums; }
+.type-page-print { font-family: var(--k-font-family-sans); font-size: 11px; line-height: 16px; font-weight: 400; letter-spacing: 0; font-stretch: 100%; }
+@media (width < 600px) {
+  .type-figure-xl { font-size: 32px; line-height: 36px; }
+  .type-figure-lg { font-size: 22px; line-height: 28px; }
+  .type-title { font-size: 26px; line-height: 32px; }
+  .type-body { font-size: 16px; line-height: 24px; }
+  .type-body-sm { font-size: 14px; line-height: 20px; }
+}

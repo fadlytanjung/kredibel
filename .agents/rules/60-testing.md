@@ -12,7 +12,9 @@ description: Testing and evaluation rules. Read when writing or changing tests, 
   loudly; re-record with `make record` after prompt or processor changes.
 - Entitlement tests cover each limit at, below and above the boundary, with an injected clock.
 - Expected values come from the generator's `truth.json`; do not hand-write expected numbers.
-- Property tests (hypothesis) for arithmetic and consensus invariants.
+- Property tests (hypothesis) for arithmetic and consensus invariants and for **order independence**
+  of `reconcile_month` (random permutations of a month's inputs give identical results).
 - Domain coverage ≥ 90%, services ≥ 80%.
 - Evals (`make evals`) call real models, run on demand, and are never part of `make check` or Cloud
-  Build. README and proposal numbers come only from the latest eval report.
+  Build. README and proposal numbers come only from the latest eval report. The assistant is
+  measured with DeepEval using a Gemini judge on Agent Platform (`docs/15` §5.1).

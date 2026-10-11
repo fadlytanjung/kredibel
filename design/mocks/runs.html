@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<title>Kredibel mock: Runs</title>
+<meta name="description" content="High-fidelity mock with synthetic data. Tokens: contracts/design/tokens.json. Components: docs/12-design-system.md."/>
+<link rel="icon" href="../brand/favicon.svg"/>
+<link rel="stylesheet" href="assets/tokens.css"/>
+<link rel="stylesheet" href="assets/kit.css"/>
+<script src="assets/proto.js" defer></script>
+</head>
+<body>
+<div class="viewport"><div class="app"><aside class="side">
+  <a href="dashboard.html" aria-label="Kredibel home"><img class="lockup" src="../brand/kredibel-logo.svg" alt="Kredibel"/><img class="side-mark" src="../brand/kredibel-mark.svg" alt="Kredibel"/></a>
+  <a class="workspace" href="plan-usage.html"><span class="ws-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V5.5A1.5 1.5 0 0 1 5.5 4h8A1.5 1.5 0 0 1 15 5.5V21"/><path d="M15 10h3.5a1.5 1.5 0 0 1 1.5 1.5V21M3 21h18M8 8h3M8 12h3M8 16h3"/></svg></span><span><strong>Sunrise Coffee Roasters</strong><span class="sub">Company, IDR, IFRS</span></span><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9.5 6 6 6-6"/></svg></a>
+  <nav class="nav" aria-label="Main"><a class="nav-item" href="dashboard.html" title="Dashboard"><span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="8" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="5" rx="1.5"/><rect x="13.5" y="11.5" width="7" height="9" rx="1.5"/><rect x="3.5" y="14.5" width="7" height="6" rx="1.5"/></svg></span><span class="nav-label-long hide-below-large">Dashboard</span><span class="nav-label-short hide-large">Dashboard</span></a>
+    <span class="nav-group-label">Books</span><a class="nav-item" href="documents.html" title="Documents"><span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 3H8.5A1.5 1.5 0 0 0 7 4.5v12A1.5 1.5 0 0 0 8.5 18h9a1.5 1.5 0 0 0 1.5-1.5V7z"/><path d="M15 3v4h4"/><path d="M4 7.5v12A1.5 1.5 0 0 0 5.5 21H14"/></svg></span><span class="nav-label-long hide-below-large">Documents</span><span class="nav-label-short hide-large">Documents</span><span class="nav-count is-neutral" aria-label="92 items">92</span></a><a class="nav-item" href="month.html" title="Reconciliation"><span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h11.5M12 3.5 15.5 7 12 10.5"/><path d="M20 17H8.5M12 13.5 8.5 17l3.5 3.5"/></svg></span><span class="nav-label-long hide-below-large">Reconciliation</span><span class="nav-label-short hide-large">Reconcile</span></a><a class="nav-item" href="review.html" title="Review"><span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 13.5 6 5.5A1.5 1.5 0 0 1 7.4 4.5h9.2A1.5 1.5 0 0 1 18 5.5l2.5 8"/><path d="M3.5 13.5V18A1.5 1.5 0 0 0 5 19.5h14a1.5 1.5 0 0 0 1.5-1.5v-4.5h-5a3.5 3.5 0 0 1-7 0z"/></svg></span><span class="nav-label-long hide-below-large">Review</span><span class="nav-label-short hide-large">Review</span><span class="nav-count" aria-label="9 items">9</span></a><a class="nav-item" href="risk.html" title="Risk"><span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4.5 6v5.5c0 4.6 3.1 8 7.5 9.5 4.4-1.5 7.5-4.9 7.5-9.5V6z"/><path d="M12 8.5v4M12 15.5h.01"/></svg></span><span class="nav-label-long hide-below-large">Risk</span><span class="nav-label-short hide-large">Risk</span><span class="nav-count" aria-label="2 items">2</span></a>
+    <span class="nav-group-label">Insight</span><span class="nav-sep" aria-hidden="true"></span><a class="nav-item" href="clients.html" title="Clients and suppliers"><span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 19.5c.8-3.2 3.4-5 6.5-5s5.7 1.8 6.5 5"/><path d="M15.5 4.8a3.5 3.5 0 0 1 0 6.4"/><path d="M18 14.8c1.8.7 3.1 2.3 3.5 4.7"/></svg></span><span class="nav-label-long hide-below-large">Clients and suppliers</span><span class="nav-label-short hide-large">Clients</span></a><a class="nav-item" href="assistant.html" title="Assistant"><span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 13.7 8.3 18.5 10l-4.8 1.7L12 16.5l-1.7-4.8L5.5 10l4.8-1.7z"/><path d="M18.5 15.5 19.3 17.7 21.5 18.5l-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></svg></span><span class="nav-label-long hide-below-large">Assistant</span><span class="nav-label-short hide-large">Assistant</span></a>
+    <span class="nav-group-label">AI quality</span><span class="nav-sep" aria-hidden="true"></span><a class="nav-item" href="labels.html" title="Labels"><span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7a1 1 0 0 1 .7.3l7.8 7.8a1 1 0 0 1 0 1.4l-7.7 7.7a1 1 0 0 1-1.4 0l-7.8-7.8a1 1 0 0 1-.3-.7z"/><circle cx="8" cy="8" r="1.5"/></svg></span><span class="nav-label-long hide-below-large">Labels</span><span class="nav-label-short hide-large">Labels</span><span class="nav-count is-neutral" aria-label="37 items">37</span></a><a class="nav-item" href="runs.html" aria-current="page" title="Runs"><span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h4c4 0 6 12 10 12h4"/><path d="M3 18h4c4 0 6-12 10-12h4"/></svg></span><span class="nav-label-long hide-below-large">Runs</span><span class="nav-label-short hide-large">Runs</span></a>
+  </nav>
+  <div class="side-foot">
+    <div class="trial-card"><strong>Free trial: 23 days left</strong><span>286 of 400 pages read this month</span><span class="bar"><i></i></span><a href="plan-usage.html">Plan and usage</a></div>
+    <nav class="nav" aria-label="Settings"><a class="nav-item" href="plan-usage.html" title="Settings"><span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></span><span class="nav-label-long hide-below-large">Settings</span><span class="nav-label-short hide-large">Settings</span></a></nav>
+    <a class="user" href="plan-usage.html"><span class="avatar" role="img" aria-label="Signed in as Maya Sari">MS</span><span><strong>Maya Sari</strong>Owner</span></a>
+  </div>
+</aside><div class="main"><header class="topbar">
+  <a class="only-compact" href="dashboard.html"><img class="mark" src="../brand/kredibel-mark.svg" alt="Kredibel"/></a>
+  <p class="topbar-title only-compact">Runs</p>
+  <nav class="crumbs" aria-label="Breadcrumb"><span aria-current="page">Runs</span></nav>
+  <div class="topbar-actions">
+    
+    <a class="search-field" href="#"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>Search books<span class="kbd">/</span></a>
+    <a class="icon-button" href="risk.html" aria-label="Notifications, 2 new"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z"/><path d="M10 20.5h4"/></svg><span class="dot"></span></a>
+    <a class="button button-primary hide-compact" href="documents.html"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5"/><path d="M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15"/></svg>Upload</a>
+  </div>
+</header><main id="content">
+<div class="page">
+  <div class="page-head">
+    <div class="spread"><h1 class="type-title">Runs</h1><span class="badge badge-outline">Owner only</span></div>
+    <p>Every document, month and assistant run, call by call: what ran, how long it took, what it cost, and what people corrected afterwards. Traces live in Cloud Trace; every call is a row in BigQuery.</p>
+  </div>
+  <div class="stack gap-5">
+    <div class="chips" role="group" aria-label="Filter runs"><a class="chip" href="runs.html" aria-pressed="true">All <span class="n">214</span></a><a class="chip" href="runs.html">Document <span class="n">182</span></a><a class="chip" href="runs.html">Month <span class="n">26</span></a><a class="chip" href="runs.html">Assistant <span class="n">6</span></a><a class="chip" href="runs.html">Failed <span class="n">0</span></a><a class="chip" href="runs.html">Corrected by a person <span class="n">9</span></a></div>
+    <div class="table-panel rt-wrap"><table class="data-table rt runs-table">
+      <thead><tr><th>Run</th><th>Status</th><th class="hide-rt">Started</th><th class="r">Duration</th><th class="r hide-rt">LLM calls</th><th class="r hide-rt">Tokens in / out</th><th class="r hide-rt">USD</th><th class="hide-rt">Models</th><th class="hide-rt">Labels</th></tr></thead>
+      <tbody><tr data-row class="is-selected">
+  <td data-cell="wide"><span class="doc-cell"><span class="thumb"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 3H8.5A1.5 1.5 0 0 0 7 4.5v12A1.5 1.5 0 0 0 8.5 18h9a1.5 1.5 0 0 0 1.5-1.5V7z"/><path d="M15 3v4h4"/><path d="M4 7.5v12A1.5 1.5 0 0 0 5.5 21H14"/></svg></span><span><strong>ACB_Mar_2026.pdf</strong><span class="sub">Document run</span></span></span></td>
+  <td><span class="status-line ok">Done</span></td>
+  <td class="hide-rt">2 Jul, 09:14</td>
+  <td class="r">41.2 s</td>
+  <td class="r hide-rt">5</td>
+  <td class="r hide-rt">18.4k / 3.1k</td>
+  <td class="r hide-rt">0.021</td>
+  <td class="hide-rt small">Flash, Flash-Lite</td>
+  <td class="hide-rt small">4 proposed, 2 verified</td>
+</tr><tr data-row>
+  <td data-cell="wide"><span class="doc-cell"><span class="thumb"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h11.5M12 3.5 15.5 7 12 10.5"/><path d="M20 17H8.5M12 13.5 8.5 17l3.5 3.5"/></svg></span><span><strong>2026-03, generation 7</strong><span class="sub">Month run</span></span></span></td>
+  <td><span class="status-line ok">Done</span></td>
+  <td class="hide-rt">12 Jul, 10:02</td>
+  <td class="r">6.8 s</td>
+  <td class="r hide-rt">1</td>
+  <td class="r hide-rt">4.2k / 0.6k</td>
+  <td class="r hide-rt">0.004</td>
+  <td class="hide-rt small">Flash</td>
+  <td class="hide-rt small">45 proposed, 1 corrected</td>
+</tr><tr data-row>
+  <td data-cell="wide"><span class="doc-cell"><span class="thumb"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h11.5M12 3.5 15.5 7 12 10.5"/><path d="M20 17H8.5M12 13.5 8.5 17l3.5 3.5"/></svg></span><span><strong>2026-03, generation 6</strong><span class="sub">Month run</span></span></span></td>
+  <td><span class="status-line wait">Superseded</span></td>
+  <td class="hide-rt">12 Jul, 10:01</td>
+  <td class="r">2.1 s</td>
+  <td class="r hide-rt">0</td>
+  <td class="r hide-rt">none</td>
+  <td class="r hide-rt">0.000</td>
+  <td class="hide-rt small">none</td>
+  <td class="hide-rt small">none</td>
+</tr><tr data-row>
+  <td data-cell="wide"><span class="doc-cell"><span class="thumb"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 13.7 8.3 18.5 10l-4.8 1.7L12 16.5l-1.7-4.8L5.5 10l4.8-1.7z"/><path d="M18.5 15.5 19.3 17.7 21.5 18.5l-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></svg></span><span><strong>Why is March critical?</strong><span class="sub">Assistant run</span></span></span></td>
+  <td><span class="status-line ok">Done</span></td>
+  <td class="hide-rt">12 Jul, 10:20</td>
+  <td class="r">3.9 s</td>
+  <td class="r hide-rt">2</td>
+  <td class="r hide-rt">6.1k / 0.4k</td>
+  <td class="r hide-rt">0.003</td>
+  <td class="hide-rt small">Flash</td>
+  <td class="hide-rt small">none</td>
+</tr><tr data-row>
+  <td data-cell="wide"><span class="doc-cell"><span class="thumb"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"/><path d="M3.5 9.5h17M3.5 14.5h17M9.5 9.5v10"/></svg></span><span><strong>ledger-2026-H1.csv</strong><span class="sub">Document run</span></span></span></td>
+  <td><span class="status-line ok">Done</span></td>
+  <td class="hide-rt">2 Jul, 09:11</td>
+  <td class="r">4.4 s</td>
+  <td class="r hide-rt">2</td>
+  <td class="r hide-rt">1.9k / 0.3k</td>
+  <td class="r hide-rt">0.001</td>
+  <td class="hide-rt small">Flash-Lite</td>
+  <td class="hide-rt small">1 proposed, 1 verified</td>
+</tr><tr data-row>
+  <td data-cell="wide"><span class="doc-cell"><span class="thumb"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 3H8.5A1.5 1.5 0 0 0 7 4.5v12A1.5 1.5 0 0 0 8.5 18h9a1.5 1.5 0 0 0 1.5-1.5V7z"/><path d="M15 3v4h4"/><path d="M4 7.5v12A1.5 1.5 0 0 0 5.5 21H14"/></svg></span><span><strong>ACB_Jun_2026.pdf</strong><span class="sub">Document run</span></span></span></td>
+  <td><span class="status-line busy">Reading page 2 of 3</span></td>
+  <td class="hide-rt">Today, 10:31</td>
+  <td class="r">18.0 s</td>
+  <td class="r hide-rt">2</td>
+  <td class="r hide-rt">7.0k / 1.2k</td>
+  <td class="r hide-rt">0.008</td>
+  <td class="hide-rt small">Flash</td>
+  <td class="hide-rt small">2 proposed</td>
+</tr><tr data-row>
+  <td data-cell="wide"><span class="doc-cell"><span class="thumb"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 3H8.5A1.5 1.5 0 0 0 7 4.5v12A1.5 1.5 0 0 0 8.5 18h9a1.5 1.5 0 0 0 1.5-1.5V7z"/><path d="M15 3v4h4"/><path d="M4 7.5v12A1.5 1.5 0 0 0 5.5 21H14"/></svg></span><span><strong>Receipt 0617 (2).jpg</strong><span class="sub">Document run</span></span></span></td>
+  <td><span class="status-line wait">Held as a possible copy</span></td>
+  <td class="hide-rt">10 Jul, 16:40</td>
+  <td class="r">7.2 s</td>
+  <td class="r hide-rt">2</td>
+  <td class="r hide-rt">3.3k / 0.4k</td>
+  <td class="r hide-rt">0.003</td>
+  <td class="hide-rt small">Flash, OCR</td>
+  <td class="hide-rt small">2 proposed</td>
+</tr></tbody></table></div>
+    <section class="run-detail" aria-labelledby="rd-h">
+      <div class="spread"><div><h2 class="type-h2" id="rd-h">document_workflow on ACB_Mar_2026.pdf</h2><p class="muted small">2 Jul 2026, 09:14. 41.2 s, 5 LLM calls, 18.4k tokens in, 3.1k out, about USD 0.021. Prompts: classify v2, read_page v3, categorize v4.</p></div>
+        <span class="row"><a class="link" href="evidence-viewer.html">Findings A01, M03, M04</a></span></div>
+      <div class="run-layout">
+        <div class="panel waterfall-panel">
+          <div class="span-axis" aria-hidden="true"><span class="span-name"></span><span class="span-track"><span style="left:0.0%">0 s</span><span style="left:24.3%">10 s</span><span style="left:48.5%">20 s</span><span style="left:72.8%">30 s</span><span style="left:97.1%">40 s</span></span></div>
+          <ol class="spans"><li class="span-row d0 wf">
+  <span class="span-name">workflow:document_workflow</span>
+  <span class="span-track"><i style="left:0.00%;width:100.00%"></i></span>
+  <span class="span-dur">41.2 s</span>
+  <span class="span-detail">ACB_Mar_2026.pdf, 3 pages</span>
+</li><li class="span-row d1 code">
+  <span class="span-name">node:inspect</span>
+  <span class="span-track"><i style="left:0.49%;width:2.18%"></i></span>
+  <span class="span-dur">0.9 s</span>
+  <span class="span-detail">pikepdf, 2 revisions</span>
+</li><li class="span-row d1 llm">
+  <span class="span-name">node:classify</span>
+  <span class="span-track"><i style="left:2.67%;width:4.61%"></i></span>
+  <span class="span-dur">1.9 s</span>
+  <span class="span-detail">Flash-Lite, 2.1k in, 0.1k out: BANK_STATEMENT 0.99</span>
+</li><li class="span-row d1 node">
+  <span class="span-name">node:read_pages</span>
+  <span class="span-track"><i style="left:7.28%;width:82.04%"></i></span>
+  <span class="span-dur">33.8 s</span>
+  <span class="span-detail">page 1 first, then 2 and 3 in parallel</span>
+</li><li class="span-row d2 llm">
+  <span class="span-name">read_page p1</span>
+  <span class="span-track"><i style="left:7.28%;width:22.82%"></i></span>
+  <span class="span-dur">9.4 s</span>
+  <span class="span-detail">Flash, 3.4k in, 0.9k out: STATEMENT_SUMMARY 0.99</span>
+</li><li class="span-row d2 code">
+  <span class="span-name">witness p1 to p3 (text layer)</span>
+  <span class="span-track"><i style="left:7.28%;width:1.46%"></i></span>
+  <span class="span-dur">0.6 s</span>
+  <span class="span-detail">1,204 words with boxes</span>
+</li><li class="span-row d2 llm">
+  <span class="span-name">read_page p2</span>
+  <span class="span-track"><i style="left:30.34%;width:30.10%"></i></span>
+  <span class="span-dur">12.4 s</span>
+  <span class="span-detail">Flash, 3.6k in, 1.4k out: STATEMENT_TRANSACTIONS 0.98</span>
+</li><li class="span-row d2 llm sel">
+  <span class="span-name">read_page p3</span>
+  <span class="span-track"><i style="left:30.34%;width:16.02%"></i></span>
+  <span class="span-dur">6.6 s</span>
+  <span class="span-detail">Flash, 3.3k in, 0.3k out: TERMS_OR_COVER 0.62</span>
+</li><li class="span-row d1 code">
+  <span class="span-name">node:verify</span>
+  <span class="span-track"><i style="left:89.32%;width:2.67%"></i></span>
+  <span class="span-dur">1.1 s</span>
+  <span class="span-detail">agreement 0.97, 0 conflicts</span>
+</li><li class="span-row d1 code">
+  <span class="span-name">node:duplicates</span>
+  <span class="span-track"><i style="left:91.99%;width:0.73%"></i></span>
+  <span class="span-dur">0.3 s</span>
+  <span class="span-detail">no copy</span>
+</li><li class="span-row d1 code">
+  <span class="span-name">node:forensics</span>
+  <span class="span-track"><i style="left:92.72%;width:3.40%"></i></span>
+  <span class="span-dur">1.4 s</span>
+  <span class="span-detail">A01, M03, M04</span>
+</li><li class="span-row d1 llm">
+  <span class="span-name">node:categorize</span>
+  <span class="span-track"><i style="left:96.12%;width:3.40%"></i></span>
+  <span class="span-dur">1.4 s</span>
+  <span class="span-detail">Flash-Lite, 45 CATEGORY labels</span>
+</li></ol>
+          <p class="span-legend"><span class="llm"><i></i>Model call</span><span class="code"><i></i>Code</span><span class="node"><i></i>Workflow and nodes</span></p>
+        </div>
+        
+<aside class="ev-inspector panel" aria-labelledby="ev-h">
+  <div class="lp-main">
+  <div class="lp-head"><span class="task">LLM call</span><span class="lbl-status needs">Label needs a check</span></div>
+  <h2 id="ev-h" class="type-h3">read_page p3</h2>
+  <dl class="lp-prov">
+    <div><dt>Model</dt><dd>Gemini Flash</dd></div>
+    <div><dt>Prompt</dt><dd>read_page v3</dd></div>
+    <div><dt>Latency</dt><dd>6.6 s</dd></div>
+    <div><dt>Tokens</dt><dd>3,312 in, 286 out</dd></div>
+    <div><dt>Span</dt><dd>9f41 in trace 4be0…</dd></div>
+  </dl>
+  <div class="row"><a class="button button-secondary button-sm" href="labels.html"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7a1 1 0 0 1 .7.3l7.8 7.8a1 1 0 0 1 0 1.4l-7.7 7.7a1 1 0 0 1-1.4 0l-7.8-7.8a1 1 0 0 1-.3-.7z"/><circle cx="8" cy="8" r="1.5"/></svg>Open the label</a><a class="button button-quiet button-sm" href="#" data-external><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>Cloud Trace</a><a class="button button-quiet button-sm" href="#" data-external><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"/><path d="M3.5 9.5h17M3.5 14.5h17M9.5 9.5v10"/></svg>BigQuery rows</a></div>
+  </div>
+  <div class="lp-side">
+  <details open><summary>Request</summary><pre>system: read_page v3 (values as printed, no arithmetic)
+input: page image ACB_Mar_2026.pdf p3 (1,120 tokens)
+context: account ••4821, period 01–31 Mar 2026</pre></details>
+  <details open><summary>Response</summary><pre>{"page_type": "TERMS_OR_COVER",
+ "page_type_confidence": 0.62,
+ "rows": [{"row_on_page": 0, "date_text": "25/03",
+   "description": "DEBIT INTEREST LOAN", "debit_text": "2,000,000.00"}, …]}</pre></details>
+  <p class="muted small">Content is captured because this workspace holds synthetic data (AI_CONTENT_CAPTURE=synthetic). Account numbers are masked.</p>
+  </div>
+</aside>
+      </div>
+    </section>
+  </div>
+</div></main><div class="dock"><nav class="bottom-nav" aria-label="Main"><a class="nav-item" href="dashboard.html"><span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="8" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="5" rx="1.5"/><rect x="13.5" y="11.5" width="7" height="9" rx="1.5"/><rect x="3.5" y="14.5" width="7" height="6" rx="1.5"/></svg></span>Dashboard</a><a class="nav-item" href="documents.html"><span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 3H8.5A1.5 1.5 0 0 0 7 4.5v12A1.5 1.5 0 0 0 8.5 18h9a1.5 1.5 0 0 0 1.5-1.5V7z"/><path d="M15 3v4h4"/><path d="M4 7.5v12A1.5 1.5 0 0 0 5.5 21H14"/></svg></span>Documents</a><a class="nav-item" href="review.html"><span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 13.5 6 5.5A1.5 1.5 0 0 1 7.4 4.5h9.2A1.5 1.5 0 0 1 18 5.5l2.5 8"/><path d="M3.5 13.5V18A1.5 1.5 0 0 0 5 19.5h14a1.5 1.5 0 0 0 1.5-1.5v-4.5h-5a3.5 3.5 0 0 1-7 0z"/></svg><span class="nav-count" aria-label="9 open">9</span></span>Review</a><a class="nav-item" href="risk.html"><span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4.5 6v5.5c0 4.6 3.1 8 7.5 9.5 4.4-1.5 7.5-4.9 7.5-9.5V6z"/><path d="M12 8.5v4M12 15.5h.01"/></svg><span class="nav-count" aria-label="2 open">2</span></span>Risk</a><a class="nav-item" href="#more" aria-current="page"><span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></span>More</a></nav></div></div></div><div class="more-sheet" id="more" role="dialog" aria-label="More"><a class="scrim" href="#" aria-label="Close"></a><div class="sheet"><span class="handle" aria-hidden="true"></span><p class="sheet-title">More</p><nav class="sheet-links"><a href="month.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h11.5M12 3.5 15.5 7 12 10.5"/><path d="M20 17H8.5M12 13.5 8.5 17l3.5 3.5"/></svg><span>Reconciliation</span><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg></a><a href="clients.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 19.5c.8-3.2 3.4-5 6.5-5s5.7 1.8 6.5 5"/><path d="M15.5 4.8a3.5 3.5 0 0 1 0 6.4"/><path d="M18 14.8c1.8.7 3.1 2.3 3.5 4.7"/></svg><span>Clients and suppliers</span><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg></a><a href="assistant.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 13.7 8.3 18.5 10l-4.8 1.7L12 16.5l-1.7-4.8L5.5 10l4.8-1.7z"/><path d="M18.5 15.5 19.3 17.7 21.5 18.5l-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></svg><span>Assistant</span><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg></a><a href="labels.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7a1 1 0 0 1 .7.3l7.8 7.8a1 1 0 0 1 0 1.4l-7.7 7.7a1 1 0 0 1-1.4 0l-7.8-7.8a1 1 0 0 1-.3-.7z"/><circle cx="8" cy="8" r="1.5"/></svg><span>Labels</span><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg></a><a href="runs.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h4c4 0 6 12 10 12h4"/><path d="M3 18h4c4 0 6-12 10-12h4"/></svg><span>Runs</span><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg></a><a href="plan-usage.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg><span>Settings</span><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg></a><a href="brand.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5z"/><path d="M13 4h5.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H13z"/></svg><span>Logo and brand</span><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg></a><a href="index.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="8" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="5" rx="1.5"/><rect x="13.5" y="11.5" width="7" height="9" rx="1.5"/><rect x="3.5" y="14.5" width="7" height="6" rx="1.5"/></svg><span>All screens</span><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg></a></nav></div></div></div>
+</body>
+</html>

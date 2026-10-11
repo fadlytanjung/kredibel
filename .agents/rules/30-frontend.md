@@ -13,13 +13,19 @@ description: Frontend conventions for the Kredibel React app.
   (`npm run gen:api`). Never hand-write API types.
 - Server state only through TanStack Query hooks in `entities/*/api.ts`. Firestore listeners are a
   change signal that invalidates queries; data comes from the API.
-- Styling: Tailwind utilities with tokens from `docs/12-design-system.md`; inline styles only for
-  computed geometry (bbox overlays, chart sizes).
+- Styling: Tailwind utilities generated from `contracts/design/tokens.json` (`make tokens`); no raw
+  colours, arbitrary values or inline styles except computed geometry (bbox overlays, chart sizes);
+  `tools/checks/no_raw_styles.py` enforces it. New screens follow `docs/11-frontend.md` §4–§6 and the
+  matching mock in `design/mocks/` (use the `/ui-screen` skill).
+- Information architecture: the dashboard summarizes and links; tables live on their own pages
+  (Documents, Reconciliation, Review, Risk). Do not put tables on the dashboard or KPIs on table pages.
+- Every screen works from 360 to 1600 px: window classes from tokens, container queries inside
+  components, touch targets ≥ 44 px, no horizontal page scroll; charts have a table alternative.
 - Money/dates only via `MoneyText`, `DateText`, `formatMoney`, `formatDate`; numbers use the `num`
   utility (tabular) and are right-aligned in tables.
 - Severity and verdicts: colour + icon + text, never colour alone.
-- Markdown (memo, assistant) only through `SafeMarkdown` (no raw HTML). Citation markers become
-  `CitationChip`s.
+- Markdown (explanations, assistant) only through `SafeMarkdown` (no raw HTML). Citation markers
+  `[[…]]` become `CitationChip`s.
 - Every data panel has loading, empty and error states.
 - User-visible strings only in `src/shared/i18n/locales/en/*.json`, read with `useTranslation()`; the
   ESLint rule `i18next/no-literal-string` must pass. English is the only selectable language; others
@@ -28,5 +34,11 @@ description: Frontend conventions for the Kredibel React app.
   never clickable.
 - Plan limits: show them before the user hits them (`UsageMeter`, disabled reasons) and handle
   `403 PLAN_LIMIT_REACHED` / `TRIAL_EXPIRED` with the `PlanLimitDialog`.
-- Never render a full account or ID number; use `MaskedText`.
-- Tests: Vitest + Testing Library + MSW; axe checks for new components.
+- Never render a full account or tax ID number; use `MaskedText`.
+- Tests: Vitest + Testing Library + MSW; a Storybook story per component state with axe; Playwright
+  visual baselines at 390/834/1440 px change only in a reviewed commit.
+- The Labels page and the Runs page are data tables with their own routes; a label decision goes
+  through `features/decide-label/` only, and prompt or response text is shown only when the API says
+  content is captured.
+- Charts fill the full width of the content column (no chart shares a row with another panel); the
+  money flow offers Flow, By month and Statement views and follows the workspace's accounting framework.

@@ -25,9 +25,10 @@ Cloud Build runs checks, builds one image, deploys `kredibel-worker` (IAM-only) 
 ## Verify
 
 1. `curl -fsS https://<web-url>/api/health` shows the new `version`.
-2. `curl -s -o /dev/null -w "%{http_code}" https://<worker-url>/tasks/analyze-case -X POST` → `403`.
-3. Sign in on the web URL in a private window; open a seeded case.
-4. Start a run on S1; confirm live progress and `READY_FOR_REVIEW`.
+2. `curl -s -o /dev/null -w "%{http_code}" https://<worker-url>/tasks/process-document -X POST` → `403`.
+3. Sign in on the web URL in a private window; open the seeded workspace's dashboard.
+4. Upload one S1 statement; confirm live page progress, `DONE`, and its month re-reconciled
+   (`RECONCILED` or `NEEDS_REVIEW`).
 5. Firestore rules: verify the released ruleset (docs/16 §7) if rules changed.
 6. Cloud Logging: no `ERROR` entries for the run; trace present.
 

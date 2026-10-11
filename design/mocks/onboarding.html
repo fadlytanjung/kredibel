@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<title>Kredibel mock: Onboarding</title>
+<meta name="description" content="High-fidelity mock with synthetic data. Tokens: contracts/design/tokens.json. Components: docs/12-design-system.md."/>
+<link rel="icon" href="../brand/favicon.svg"/>
+<link rel="stylesheet" href="assets/tokens.css"/>
+<link rel="stylesheet" href="assets/kit.css"/>
+<script src="assets/proto.js" defer></script>
+</head>
+<body>
+<div class="viewport"><div class="onboard">
+<section class="onboard-brand" aria-label="Kredibel">
+  <img class="logo" src="../brand/kredibel-logo-on-dark.svg" alt="Kredibel"/>
+  <div class="stack gap-6">
+    <p class="tagline">Every number has a source.</p>
+    <ul class="promise">
+      <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8"/></svg><span>Send the same file twice and it is never counted twice.</span></li>
+      <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/><path d="M7.5 12s1.7-3 4.5-3 4.5 3 4.5 3-1.7 3-4.5 3-4.5-3-4.5-3z"/><circle cx="12" cy="12" r="1"/></svg><span>Every number is read twice before it counts, and you can see where it came from.</span></li>
+      <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h11.5M12 3.5 15.5 7 12 10.5"/><path d="M20 17H8.5M12 13.5 8.5 17l3.5 3.5"/></svg><span>Months reconcile themselves, in any upload order. You only fix what is left.</span></li>
+    </ul>
+  </div>
+  <div class="ledger" aria-hidden="true">
+    <div class="ledger-line"><span>05 Mar</span><span class="desc">TRANSFER OUT GREEN VALLEY FARMS</span><span class="amt"><span class="reading reading-agreed">32,100,000</span> <span class="tick"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/><path d="M7.5 12s1.7-3 4.5-3 4.5 3 4.5 3-1.7 3-4.5 3-4.5-3-4.5-3z"/><circle cx="12" cy="12" r="1"/></svg>read twice</span></span></div>
+    <div class="ledger-line"><span>11 Mar</span><span class="desc">TRANSFER IN DAYBREAK CAFE</span><span class="amt">6,420,000 <span class="tick"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>matched</span></span></div>
+    <div class="ledger-line"><span>12 Mar</span><span class="desc">ACB_Feb_2026 (1).pdf</span><span class="amt"><span class="tick dup"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8"/></svg>copy, not read</span></span></div>
+  </div>
+  <p class="small-print">Synthetic data only. Kredibel never moves money and never changes your accounting system.</p>
+</section>
+<section class="onboard-form" aria-labelledby="ob-h">
+  <div class="stack gap-2"><h1 class="type-title" id="ob-h">Whose books are these?</h1><p class="muted">One workspace is one business or one person. You can add details later; Kredibel will suggest them from your documents.</p></div>
+  <div class="who-choice" role="radiogroup" aria-label="Workspace type">
+    <div class="who" role="radio" aria-checked="false" tabindex="-1"><span class="ico"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5c1-3.8 4-6 7.5-6s6.5 2.2 7.5 6"/></svg></span><strong>Myself</strong><span class="d">A freelancer or sole trader with a business account</span></div>
+    <div class="who is-checked" role="radio" aria-checked="true" tabindex="0"><span class="tick"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span><span class="ico"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V5.5A1.5 1.5 0 0 1 5.5 4h8A1.5 1.5 0 0 1 15 5.5V21"/><path d="M15 10h3.5a1.5 1.5 0 0 1 1.5 1.5V21M3 21h18M8 8h3M8 12h3M8 16h3"/></svg></span><strong>A company</strong><span class="d">A partnership or a limited company</span></div>
+  </div>
+  <div class="form-wrap"><div class="form-grid">
+    <div class="field span-2"><label for="n">Legal name</label><input class="input" id="n" value="Sunrise Coffee Roasters"/></div>
+    <div class="field"><label for="t">Trading name <span class="muted">(optional)</span></label><input class="input" id="t" placeholder="As on your invoices"/></div>
+    <div class="field"><label for="i">Industry</label><select class="select" id="i"><option>Food and drink, wholesale</option></select></div>
+    <div class="field span-2"><label for="z">Time zone</label><select class="select" id="z"><option>Asia/Jakarta (UTC+7)</option></select><span class="hint">Months are counted in this time zone.</span></div>
+  </div></div>
+  <details class="disclosure"><summary><span>Main bank account<span class="opt">optional</span></span><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9.5 6 6 6-6"/></svg></summary></details>
+  <p class="trial-note"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span><strong>30-day free trial.</strong> 150 documents and 400 pages a month. No card, no payment. Paid plans are coming soon.</span></p>
+  <a class="button button-primary button-lg button-block" href="documents.html">Start the free trial</a>
+</section></div></div>
+</body>
+</html>

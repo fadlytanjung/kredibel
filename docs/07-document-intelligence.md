@@ -1,27 +1,30 @@
 # 07 — Document Intelligence
 
-> How a file becomes trusted, traceable data: page split, screening, inspection, classification,
-> **adaptive reading** (one AI reader plus a deterministic witness per page), normalization,
-> **verification** and **provenance**. Checks on that data are in [`08`](08-risk-engine.md).
-> Decision record: [ADR-010](adr/ADR-010-adaptive-extraction-ai-reader-and-witness.md).
+> How a file becomes trusted, traceable data: duplicate check, page split, screening, inspection,
+> classification, **adaptive reading** (one AI reader plus a deterministic witness per page),
+> **ledger import**, normalization, **verification** and **provenance**. Checks on that data are in
+> [`08`](08-risk-engine.md). Decision record:
+> [ADR-010](adr/ADR-010-adaptive-extraction-ai-reader-and-witness.md).
 
 ---
 
 ## 1. Supported inputs
 
-| Type | Formats | Limits (free trial) | Analyzed in |
-|---|---|---|---|
-| Bank statement (monthly, one account) | PDF (digital or scanned), PNG, JPEG | ≤ 20 MB, ≤ 20 pages | P0 |
-| Sales invoice (applicant is issuer) | PDF, PNG, JPEG | ≤ 20 MB, ≤ 20 pages | P0 |
-| Purchase invoice (applicant is buyer) | PDF, PNG, JPEG | ≤ 20 MB, ≤ 20 pages | P0 (extracted; used in reconciliation as outflows) |
-| Tax invoice (VAT e-invoice) | PDF | as above | P1 extraction via invoice path; QR validation P2 |
-| Receipt | PDF, PNG, JPEG | ≤ 10 pages | P2 |
-| Anything else | — | — | classified `OTHER`, kept, not analyzed |
+| Type | Formats | Limits (free trial) | How it is read | P |
+|---|---|---|---|---|
+| Bank statement (one account, any period up to the page limit) | PDF (digital or scanned), PNG, JPEG | ≤ 20 MB, ≤ 20 pages | AI reader + witness (§5, §6) | P0 |
+| Sales invoice (the workspace is the issuer) | PDF, PNG, JPEG | ≤ 20 MB, ≤ 20 pages | AI reader + witness | P0 |
+| Purchase invoice (the workspace is the buyer) | PDF, PNG, JPEG | ≤ 20 MB, ≤ 20 pages | AI reader + witness | P0 |
+| Receipt (shop, fuel, travel, utilities) | PDF, PNG, JPEG (photos too) | ≤ 20 MB, ≤ 3 pages | AI reader + witness (OCR for photos) | P0 |
+| General-ledger export | CSV, XLSX | ≤ 20 MB, ≤ 5,000 rows | Parsed by code with a confirmed column mapping (§5.5) | P0 |
+| Tax invoice (VAT e-invoice) | PDF | as invoices | Invoice path; QR validation later | P1 |
+| Anything else | — | — | classified `OTHER`, kept, not read | — |
 
-- File type is detected from **magic bytes**, never from the file name or the browser's content type.
+- File type is detected from **content** (magic bytes for PDF, PNG, JPEG and XLSX; a CSV sniffer for
+  text), never from the file name or the browser's content type.
 - Limits come from the workspace's plan ([`contracts/plans.v1.yaml`](../contracts/plans.v1.yaml)):
-  `pagesPerDocument`, `fileSizeMb`, `documentsPerCase`. Cloud Run's 32 MiB request limit stays above
-  the largest plan limit.
+  `documentsPerMonth`, `pagesPerDocument`, `fileSizeMb`, `ledgerRowsPerFile`,
+  `extractedPagesPerMonth`. Cloud Run's 32 MiB request limit stays above the largest plan limit.
 - **Longer PDFs** (e.g. a 6-month statement of 47 pages): P0 rejects them with `422 TOO_MANY_PAGES`
   and a hint to upload one file per month. P1 offers **"Split and upload"**: the server cuts the PDF
   into parts of ≤ 20 pages, each part becomes its own document, and structure checks (`M01`–`M05`) run
@@ -32,27 +35,34 @@
 ## 2. Pipeline per document
 
 ```mermaid
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "Arial, Helvetica, sans-serif", "fontSize": "14px", "primaryColor": "#E3F1EE", "primaryBorderColor": "#0F5E56", "primaryTextColor": "#14201C", "lineColor": "#55625D", "secondaryColor": "#F0F2EF", "tertiaryColor": "#FFFFFF", "clusterBkg": "#F7F8F6", "clusterBorder": "#B8BFB9", "noteBkgColor": "#FEF0C7", "noteTextColor": "#14201C"}, "htmlLabels": false, "flowchart": {"htmlLabels": false, "padding": 16, "nodeSpacing": 40, "rankSpacing": 50, "wrappingWidth": 220}, "sequence": {"wrap": true, "useMaxWidth": true, "noteFontFamily": "Arial, Helvetica, sans-serif", "messageFontFamily": "Arial, Helvetica, sans-serif", "actorFontFamily": "Arial, Helvetica, sans-serif"}}}%%
+%%{init: {"theme": "base", "themeVariables": {"fontFamily": "Arial, Helvetica, sans-serif", "fontSize": "14px", "primaryColor": "#E7F2EE", "primaryBorderColor": "#0E5A47", "primaryTextColor": "#16212B", "lineColor": "#56636F", "secondaryColor": "#E8ECEE", "tertiaryColor": "#FFFFFF", "clusterBkg": "#F2F4F5", "clusterBorder": "#B9C2CA", "noteBkgColor": "#FFF5D6", "noteTextColor": "#16212B"}, "htmlLabels": false, "flowchart": {"htmlLabels": false, "padding": 16, "nodeSpacing": 40, "rankSpacing": 50, "wrappingWidth": 220}, "sequence": {"wrap": true, "useMaxWidth": true, "noteFontFamily": "Arial, Helvetica, sans-serif", "messageFontFamily": "Arial, Helvetica, sans-serif", "actorFontFamily": "Arial, Helvetica, sans-serif"}}}%%
 flowchart TB
-    up["Upload<br/>validate, store original,<br/>split into pages"] --> tri["Page triage (code)<br/>text layer usable?<br/>blank page?"]
-    tri --> sc["Screen<br/>Model Armor (P1)"]
-    sc --> ins["Inspect<br/>metadata, revisions, fonts"]
-    ins --> cls["Classify<br/>Gemini Flash-Lite, page 1"]
-    cls --> p1["Read page 1<br/>Gemini on the page image"]
+    up["Upload<br/>type by content, limits,<br/>SHA-256"] --> dup{"Same file<br/>already here?"}
+    dup -->|yes| d01["Record as exact duplicate (D01)<br/>not read, not counted"]
+    dup -->|no| split["Store original;<br/>PDF and images: split into pages,<br/>triage text layer, blank pages"]
+    split --> sc["Screen<br/>Model Armor (P1)"]
+    sc --> ins["Inspect<br/>metadata, revisions, fonts,<br/>perceptual hash"]
+    ins --> cls["Classify<br/>Gemini Flash-Lite"]
+    cls -->|"ledger export"| map["Column mapping<br/>reuse a confirmed one,<br/>or Gemini proposes and<br/>the user confirms"]
+    map --> parse["Parse rows (code)"]
+    cls -->|"statement, invoice, receipt"| p1["Read page 1<br/>Gemini on the page image"]
     p1 --> pn["Read pages 2..n in parallel<br/>with page 1 header as context"]
-    tri --> wit["Witness per page<br/>text layer (free) or<br/>Document AI OCR (scans)"]
+    split --> wit["Witness per page<br/>text layer (free) or<br/>Document AI OCR (scans, photos)"]
     pn --> ver["Verify<br/>position match, coverage check"]
     wit --> ver
     ver --> esc{"Agreement below 0.90?<br/>(P1)"}
     esc -->|yes, budget left| docai["Escalate the page<br/>Form Parser or Invoice Parser"]
     docai --> ver
     esc -->|no| norm["Normalize + provenance<br/>value, status, box"]
-    norm --> fs[("Firestore<br/>documents,<br/>transactions,<br/>invoices")]
+    norm --> cd["Content duplicates<br/>(D02 to D06)"]
+    parse --> cd
+    cd --> fs[("Firestore<br/>bank lines, invoices,<br/>receipts, ledger entries")]
 ```
 
-Document statuses written along the way: `UPLOADED → SCREENING → INSPECTING → CLASSIFYING →
-EXTRACTING → CHECKING → DONE` (or `SKIPPED`, `FAILED`, `QUARANTINED`). Pages carry their own small
-status in `documents.pages[]` so the UI can show "page 4 of 18 read".
+Document statuses written along the way: `UPLOADED → SCREENING → READING → CHECKING → DONE`, or
+`DUPLICATE` (exact copy), `NEEDS_INPUT` (type or ledger mapping to confirm), `FAILED`,
+`QUARANTINED`. Pages carry their own small status in `documents.pages[]` so the UI can show "page 4
+of 18 read".
 
 ---
 
@@ -60,11 +70,18 @@ status in `documents.pages[]` so the UI can show "page 4 of 18 read".
 
 ### 3.1 Upload and page split (synchronous, `kredibel-web`)
 
-1. Validate: magic bytes, size, page count against the plan, not encrypted, not a duplicate (SHA-256).
-2. Store the original at `…/documents/{docId}/original.{ext}`.
-3. **Split into pages:** render each page to PNG at 150 dpi (long edge capped at 4,000 px) plus a
+1. Validate: content type, size, page or row count against the plan, not encrypted.
+2. **Exact duplicate check:** compute SHA-256 of the bytes; if a non-duplicate document of the
+   workspace has the same hash, create the document with `status = DUPLICATE`,
+   `duplicate = {kind: EXACT, code: D01, ofDocId, decision: CONFIRMED}`, no file copy and no task,
+   and return. It does not count against `documentsPerMonth` or the page limit (FR-011).
+3. **Reserve pages:** add the page count to `usageMonthly.pagesReserved` in the same transaction that
+   creates the document (`PLAN_LIMIT_REACHED` if it would exceed `extractedPagesPerMonth`). Pages
+   served from the reader cache are released after reading.
+4. Store the original at `…/documents/{docId}/original.{ext}`.
+5. **Split into pages** (PDF and images only): render each page to PNG at 150 dpi (long edge capped at 4,000 px) plus a
    300 px thumbnail; images (PNG/JPEG) become one page.
-4. **Triage each page (deterministic, free):**
+6. **Triage each page (deterministic, free):**
 
    | Test | Result |
    |---|---|
@@ -73,12 +90,12 @@ status in `documents.pages[]` so the UI can show "page 4 of 18 read".
    | No characters (scan or image) | `textLayer = NONE` → witness `OCR` |
    | Rendered page is ≥ 99.5% near-white and has no characters | `blank = true` → not read (saves a call) |
 
-5. Store `pages[] {pageNo, width, height, imagePath, thumbPath, sha256, textLayer, blank}` and show a
-   **Digital / Scanned** badge per document in the UI.
+7. Store `pages[] {pageNo, width, height, imagePath, thumbPath, sha256, textLayer, blank}`, show a
+   **Digital / Scanned** badge per document in the UI, and enqueue `doc-{docId}-1`.
 
 Rendering 20 pages takes a few seconds; the upload response returns once pages are stored. If cold
 starts push this near the request timeout, thumbnails are rendered first and full pages by the worker
-(plan 003, risks).
+(spec 003, risks).
 
 ### 3.2 Screening (P1)
 
@@ -88,7 +105,7 @@ starts push this near the request timeout, thumbnails are rendered first and ful
 - `MATCH_FOUND` on prompt injection → `documents.screening = {verdict: "INJECTION_SUSPECTED",
   quarantined: true, filters: […]}`, finding `S01_EMBEDDED_INSTRUCTIONS` (CRITICAL).
 - **Quarantined documents never reach Gemini.** They still get inspection and the witness (text layer
-  or OCR) so the analyst can see their content, but with only one reading their verdict is at best
+  or OCR) so the user can see their content, but with only one reading their verdict is at best
   `UNVERIFIABLE`.
 
 ### 3.3 Inspection (deterministic)
@@ -101,6 +118,7 @@ starts push this near the request timeout, thumbnails are rendered first and ful
 | Earliest-revision text (bytes truncated at the first `%%EOF`, re-opened) | pikepdf + pdfplumber | `M03` revision diff (P1) |
 | Fonts per page and per character (`fontname`, `size`), character boxes | pdfplumber | `M04`, witness words |
 | Filled rectangles overlapping text | pdfplumber `rects` | `M05` (P1) |
+| 64-bit perceptual hash of page 1 (`imagehash.phash` on the rendered PNG) | Pillow, imagehash | `D05` (receipts and images) |
 
 Inspection always runs on the **original upload**. For P1 split parts, it runs once on the original
 and findings are mapped to the part and page that contain the region.
@@ -110,13 +128,15 @@ and findings are mapped to the part and page that contain the region.
 ## 4. Classification
 
 - Model: `MODEL_LITE` (Flash-Lite). Input: page 1 image plus up to 2,000 characters of text layer (if
-  usable and not quarantined). Cached by document SHA-256 + model + prompt version.
+  usable and not quarantined); for CSV and XLSX, the header and the first 20 rows with values masked to
+  their shape. Cached by document SHA-256 + model + prompt version.
+- A `docTypeHint` from the upload form is passed as a hint, not trusted.
 - Output `DocClassification`:
 
 ```python
 class DocClassification(BaseModel):
     doc_type: Literal["BANK_STATEMENT", "SALES_INVOICE", "PURCHASE_INVOICE",
-                      "TAX_INVOICE", "RECEIPT", "OTHER"]
+                      "RECEIPT", "LEDGER_EXPORT", "OTHER"]
     confidence: float            # 0..1, model's self-report; calibrated in evals
     language: str                # BCP-47 of the document, e.g. "en", "id"; any language is accepted
     issuer_name: str | None      # bank or invoice issuer as printed
@@ -126,13 +146,25 @@ class DocClassification(BaseModel):
 ```
 
 - **Sales vs purchase:** decided in code, not by the model: if the issuer fuzzy-matches the
-  applicant's name, trading name or an accepted alias (`rapidfuzz.token_set_ratio ≥ 85`) it is
+  workspace's legal name, trading name or an accepted alias (`rapidfuzz.token_set_ratio ≥ 85`) it is
   `SALES_INVOICE`; if the buyer matches, `PURCHASE_INVOICE`; otherwise the model's guess is kept and a
   `LOW` finding `E05_PARTY_UNCLEAR` is raised.
-- `confidence < 0.6` → `doc_type = OTHER` with finding `E03_UNCERTAIN_TYPE` (LOW). The analyst can
-  override the type (P1) and re-run.
+- `confidence < 0.6` → the document waits in `NEEDS_INPUT` with finding `E03_UNCERTAIN_TYPE` (LOW)
+  and a `CONFIRM_TYPE` review item; choosing the type continues the workflow.
 - The UI language is English, but **documents can be in any language**; the reader returns values as
   printed and normalization handles the formats in §5.4.
+
+### 4.1 Page types (per-page classifier)
+
+Every page also gets a type, so a statement with a terms page or an invoice bundled with a receipt is
+read correctly and a person can see what each page was taken to be. No extra model call: the page
+reader (§5.2) returns `page_type` (`STATEMENT_TRANSACTIONS`, `STATEMENT_SUMMARY`, `INVOICE`,
+`RECEIPT`, `LEDGER_TABLE`, `TERMS_OR_COVER`, `OTHER`) and `page_type_confidence` with the values;
+triage sets `BLANK` (confidence 1.0, by code). Only transaction, invoice and receipt pages produce
+records. The document type and every page type are written as `DOC_TYPE` and `PAGE_TYPE` **labels**
+with their confidence, model and prompt version ([ADR-016](adr/ADR-016-human-verified-labels-and-learning-loop.md));
+when a person has verified labels in this workspace, the classifier prompt gets up to five of them as
+examples. A person's correction of a `DOC_TYPE` re-runs the document with the new type.
 
 ---
 
@@ -142,8 +174,9 @@ class DocClassification(BaseModel):
 
 | Page kind | AI reading | Witness | Extra (only when needed) | Typical cost per page |
 |---|---|---|---|---|
-| Digital PDF page | Gemini Flash on the page image | **PDF text layer** (free) | — | ≈ USD 0.007 (statement), 0.003 (invoice) |
+| Digital PDF page | Gemini Flash on the page image | **PDF text layer** (free) | — | ≈ USD 0.007 (statement), 0.003 (invoice or receipt) |
 | Scanned page, photo, or unusable text layer | Gemini Flash on the page image | **Document AI Enterprise OCR** (USD 1.50 / 1,000 pages) | — | + USD 0.0015 |
+| Ledger export (CSV, XLSX) | Gemini Flash-Lite proposes the column mapping once per file layout | none (code parses every row) | — | ≈ USD 0.0005 per new layout; USD 0 after |
 | Any page with agreement < 0.90 (P1) | as above | as above | **Form Parser** (statements, USD 0.03/page) or **Invoice Parser** (USD 0.10 per 10 pages) | + USD 0.03–0.10 |
 | Quarantined document (P1) | none | text layer or OCR | — | ≤ USD 0.0015 |
 | `EXTRACTION_MODE=thorough` (evals; future paid tier) | Gemini Flash | witness | specialized parser on **every** page | ≈ USD 0.04–0.11 |
@@ -214,6 +247,22 @@ class InvoicePage(BaseModel):
     subtotal_text: str | None
     tax_text: str | None
     total_text: str | None
+
+class ReceiptItem(BaseModel):
+    description: str
+    amount_text: str | None
+
+class ReceiptPage(BaseModel):
+    page: int
+    merchant_name: str | None
+    merchant_tax_id: str | None
+    receipt_number: str | None
+    date_text: str | None
+    time_text: str | None
+    items: list[ReceiptItem]
+    tax_text: str | None
+    total_text: str | None
+    payment_method_text: str | None     # e.g. "DEBIT CARD ••1234", "CASH", "QRIS"
 ```
 
 Pages of the same document are merged in code: global `row_index` = order of (page, row_on_page);
@@ -248,7 +297,40 @@ The witness never interprets the page: it does not decide what is a row or a tot
 - **Counterparty:** a rules-based extractor pulls names after common prefixes (`TRANSFER IN`,
   `TRANSFER OUT`, `INSTANT TRANSFER IN`, `INTERBANK TRANSFER`, `RTGS`, `PAYMENT FROM`, `PAYMENT TO`),
   uppercased and normalized for matching. The categorizer refines names it could not parse
-  ([`08`](08-risk-engine.md) §4.3).
+  ([`08`](08-risk-engine.md) §4.2).
+- **Receipt payment method:** `CASH`, `CARD` (debit or credit, last digits kept masked), `TRANSFER`
+  (including QR payments), else `UNKNOWN`. Cash receipts are matched to ledger entries only
+  (PRD assumption A4).
+
+### 5.5 Ledger import (CSV and XLSX)
+
+A general-ledger export is structured data, so it is **parsed by code**, not read by a model. Gemini
+only helps once per file layout:
+
+1. **Read the table.** CSV: delimiter and encoding sniffed (`csv.Sniffer`, UTF-8 then cp1252). XLSX:
+   `openpyxl` in read-only mode, first sheet with a header row (the first row with ≥ 3 non-empty text
+   cells in the first 20 rows). Formulas are read as cached values; merged cells and blank rows are
+   skipped.
+2. **Layout signature** = SHA-1 of the normalized header row (lowercased, trimmed, joined).
+3. **Mapping.** If `orgs/{orgId}.ledgerMappings[signature]` is confirmed, it is reused and the file
+   is parsed straight away. Otherwise `ledger_mapper` (`MODEL_LITE`) receives the header and 20 sample
+   rows with values masked to their shape (`dd/mm/yyyy`, `-#,###.##`, `ABC-####`, text length) and
+   proposes a mapping: which column is the date, description, reference, account code, account name,
+   debit and credit (or one signed amount and its sign convention), plus the date format and decimal
+   separator. The document goes to `NEEDS_INPUT` with a `CONFIRM_LEDGER_MAPPING` review item; the
+   review screen shows five rows parsed with the proposal so the user can see it is right.
+4. **Bank account codes.** On first confirmation the user also maps each workspace bank account to
+   its ledger account code (pre-filled from `cashAccountHints` such as `1110` or "Cash at bank").
+   Entries on those codes are `isBankCash = true` and are reconciled against bank lines.
+5. **Parse.** Every row becomes a `ledgerEntries/{led_…}` record with deterministic ID, amounts in
+   minor units, date and month. A row that does not parse (bad date, both debit and credit) is kept
+   out and listed in `ledgerMeta.rowErrors` with its row number; more than 2% bad rows sets the
+   document `NEEDS_INPUT` again with the mapping item reopened.
+6. **No integrity verdict.** A spreadsheet has no page to tamper with; its checks are duplicates
+   (`D06`) and the ledger-bank comparison (`X09`). It still gets a risk level from those findings.
+
+The mapper never sees descriptions, names or amounts, only the header and value shapes, so no
+business data leaves the workspace for this step beyond column names.
 
 ---
 
@@ -280,11 +362,14 @@ The witness never interprets the page: it does not decide what is a row or a tot
 **Bounding boxes** come from the witness tokens (union of the matched tokens), so every agreed value
 has an exact box, also on scanned pages.
 
-### 6.2 Invoices
+### 6.2 Invoices and receipts
 
 Header fields are found as exact strings anywhere on their page; line items are verified like rows
 (band anchored on the description's first token, then quantity, unit price and amount in the same
-band). The coverage check runs on amount-like tokens in the lines region.
+band). The coverage check runs on amount-like tokens in the lines region. Receipts follow the same
+rule: merchant, date and total must be found on the page; items are verified when printed. A photo
+of a receipt with an OCR witness that cannot find the total leaves the total `SINGLE_SOURCE`, which
+creates a `LOW_CONFIDENCE_VALUE` review item when the receipt is used for matching.
 
 ### 6.3 Agreement
 
@@ -307,9 +392,8 @@ A specialized Document AI processor reads the page: **Form Parser** for statemen
 mapped to canonical columns by deterministic header matching, every cell with its box) or **Invoice
 Parser** for invoices. With three sources (AI, witness, parser), rows are aligned with the
 longest-common-subsequence method of ADR-004 and a value is `AGREED` when **any two** sources agree.
-`EXTRACTION_ESCALATION=on|off`; budget `ESCALATION_MAX_PAGES_PER_CASE` (plan feature
-`escalationPagesPerCase`, default 10). In `EXTRACTION_MODE=thorough` every page is read by the parser
-too.
+`EXTRACTION_ESCALATION=on|off`; monthly budget from the plan feature `escalationPagesPerMonth`
+(30 on the free trial). In `EXTRACTION_MODE=thorough` every page is read by the parser too.
 
 ### 6.5 What forensics may rely on
 
@@ -328,7 +412,7 @@ Every canonical value carries:
 class BBox(BaseModel):          # normalized to the page, origin top-left, 0..1
     x0: float; y0: float; x1: float; y1: float
 
-Source = Literal["GEMINI", "TEXT_LAYER", "OCR", "DOCAI"]   # DOCAI = Form/Invoice Parser (P1)
+Source = Literal["GEMINI", "TEXT_LAYER", "OCR", "DOCAI", "PARSER"]   # DOCAI = Form/Invoice Parser (P1); PARSER = ledger file
 
 class Provenance(BaseModel):
     doc_id: str
@@ -339,6 +423,11 @@ class Provenance(BaseModel):
     raw: dict[Source, str | None]   # {"GEMINI": "1,250,000.00", "TEXT_LAYER": "1,250,000.00"}
 ```
 
+Stored per value in the record's `consensus` map ([`09`](09-data-model.md) §3.6) and returned by
+the API as `readings`. **A user correction** (review action `CORRECT_VALUE`) replaces the value,
+keeps the original readings in `raw`, and records `correctedBy`; a corrected value counts as agreed
+for matching but never for a CRITICAL arithmetic finding.
+
 **Value choice:** for `AGREED`, the shared value. For `CONFLICT`, the witness's printed string when it
 is consistent with the row's running balance, else `None` (and the row is never used for a CRITICAL
 finding). **Bounding box:** from the witness tokens; for an AI-only value, the row band if known,
@@ -347,9 +436,9 @@ else none (the viewer says "Exact location not available").
 Coordinates are converted once, at write time, to the normalized top-left system above. The frontend
 never sees PDF points.
 
-How provenance carries one value from the page to the decision (scenario S2):
+How provenance carries one value from the page to the month's risk level (scenario S2):
 
-![Evidence lineage: from one printed value to a decision](diagrams/evidence-lineage.drawio.svg)
+![Evidence lineage: from one printed value to the month's risk level](diagrams/evidence-lineage.drawio.svg)
 
 *Source: [`evidence-lineage.drawio.svg`](diagrams/evidence-lineage.drawio.svg). Open it in VS Code with the draw.io extension to edit; the file stays a valid SVG.*
 
@@ -366,21 +455,47 @@ The whole reading path, page by page:
 | Firestore path | Content |
 |---|---|
 | `documents/{docId}.pages[]` | per page: `textLayer`, `blank`, `witness`, `agreement`, `aiRows`, `witnessOnlyRows`, `escalated` |
-| `documents/{docId}.classification` | `DocClassification` + `runId` |
-| `documents/{docId}.extraction` | `method` (`AI_TEXT_LAYER`, `AI_OCR`, `AI_MIXED`, `AI_ONLY`, `WITNESS_ONLY`, `THOROUGH`), agreement, counts, pages by witness, escalated pages, model, prompt version, processor versions |
-| `documents/{docId}.statementMeta` | holder, masked account number, bank, holder address, period, opening/closing (+ provenance) |
-| `documents/{docId}.invoiceMeta` | number, parties, tax IDs, payment account (masked), dates, totals (+ provenance) |
-| `transactions/{txId}` | one per verified row, including witness-only rows ([`09`](09-data-model.md) §3.5) |
-| `invoices/{invoiceId}` | one per invoice document ([`09`](09-data-model.md) §3.6) |
+| `documents/{docId}.docType`, `typeConfidence` | from `DocClassification` |
+| `documents/{docId}.reading` | `method` (`AI_TEXT_LAYER`, `AI_OCR`, `AI_MIXED`, `LEDGER_PARSER`), agreement, counts, model, prompt version, processor versions |
+| `documents/{docId}.statementMeta` | holder, masked account number, bank, period, opening/closing (+ provenance) |
+| `documents/{docId}.ledgerMeta` | layout signature, mapping status, rows, rows imported, row errors, date range |
+| `bankLines/{txId}` | one per verified statement row, including witness-only rows ([`09`](09-data-model.md) §3.6) |
+| `invoices/{invoiceId}`, `receipts/{receiptId}` | one per invoice or receipt document ([`09`](09-data-model.md) §3.7) |
+| `ledgerEntries/{entryId}` | one per parsed ledger row ([`09`](09-data-model.md) §3.8) |
+| `retrievalChunks/{chunkId}` (P1) | page text (or 50-row ledger blocks) with an embedding, for the assistant ([ADR-014](adr/ADR-014-finance-assistant-tools-rag-memory.md)) |
+| `labels/{labelId}` (P1) | `DOC_TYPE` per document, `PAGE_TYPE` per page, `FIELD_VALUE` per value the readings did not agree on ([`09`](09-data-model.md) §3.19) |
+| GCS `extractions/{docId}/p{n}.md` (P1) | the page as read, in Markdown (below) |
 
-Account numbers are stored **masked** (last 4 digits); matching against declared accounts uses a hash
-kept in server-only storage ([`09`](09-data-model.md) §3.17); full numbers exist only in the raw
-reader JSON in GCS.
+Account numbers are stored **masked** (last 4 digits); matching against the workspace's accounts and
+suppliers' earlier accounts uses keyed hashes kept in server-only storage ([`09`](09-data-model.md)
+§3.18); full numbers exist only in the raw reader JSON in GCS.
+
+**The page extraction file.** One Markdown file per read page, written by `read_pages` from the
+verified page (pure function `domain/extraction_markdown.py`) and linked from the Labels page. It is
+the text form of a page for people, retrieval chunks and, with consent, datasets:
+
+```markdown
+# ACB_Mar_2026.pdf, page 2 of 3
+Page type: STATEMENT_TRANSACTIONS (0.98, gemini page reader, read_page@3)
+Reading: AI_TEXT_LAYER, agreement 0.97
+
+| Row | Date | Description | Debit | Credit | Balance | Readings |
+|---|---|---|---|---|---|---|
+| 17 | 14/03 | TRANSFER IN HARBORVIEW HOTEL GROUP | | 7,250,000.00 | 42,500,000.00 | agreed |
+| 18 | 15/03 | TRANSFER OUT PRIMEPACK PACKAGING | 3,180,000.00 | | 39,320,000.00 | agreed |
+
+## Values
+| Field | Gemini | Witness | Result |
+|---|---|---|---|
+| closing balance | 44,430,000.00 | 44,430,000.00 | AGREED |
+```
+
+Account numbers appear masked, as everywhere else.
 
 **Extraction cache (cost control).** Raw outputs are stored content-addressed per page:
 `orgs/{orgId}/cache/extraction/{sha256}/p{n}/{source}-{model or processor}-{version}.json`. An
-identical file uploaded again (any case of the same workspace) is never read or billed twice, and
-cache hits do not count against the plan's `extractedPagesPerMonth`. `EXTRACTION_CACHE=on|ocr_only|off`
+identical page (for example the same invoice inside a different PDF) is never read or billed twice,
+and cache hits do not count against the plan's `extractedPagesPerMonth`. `EXTRACTION_CACHE=on|ocr_only|off`
 (evals bypass the Gemini cache to measure variance).
 
 ---
@@ -391,10 +506,13 @@ cache hits do not count against the plan's `extractedPagesPerMonth`. `EXTRACTION
 |---|---|---|
 | Gemini output fails schema twice on a page | validation error | page is `WITNESS_ONLY`: rows built from the witness by the coverage method; all values `SINGLE_SOURCE`; `E01` (MEDIUM) |
 | OCR fails after retries on a scanned page | exception | page is `AI_ONLY`: values `SINGLE_SOURCE`, no boxes; `E01` |
-| Both fail on a page | — | page `FAILED`; if any page of a statement fails, the document is `FAILED` with `E02_EXTRACTION_FAILED` (HIGH); case continues |
+| Both fail on a page | — | page `FAILED`; if any page of a statement fails, the document is `FAILED` with `E02_EXTRACTION_FAILED` (HIGH); its months still reconcile with the other data |
 | Text layer present but garbled | triage test fails | witness switches to OCR for that page (costs ≈ USD 0.0015) |
 | Text layer differs from what is visible | extra or different tokens in a band | value `CONFLICT`; note for `M05` (P1); never silently resolved |
 | Encrypted PDF | pikepdf | rejected at upload with `422 ENCRYPTED_DOCUMENT` |
 | Scanned PDF (no text layer) | triage | `M06_IMAGE_ONLY` (INFO); font checks not applicable; OCR witness used |
 | Statement spans two accounts | distinct account numbers in header/rows | finding `E04_MULTIPLE_ACCOUNTS` (MEDIUM); first account used |
-| Plan page budget exhausted mid-case | reservation at run start | cannot happen mid-run: pages are reserved before the run starts ([`specs/013`](specs/013-workspace-and-plans/spec.md)) |
+| Plan page budget exhausted | reservation at upload | cannot happen mid-reading: pages are reserved when the file is accepted ([`specs/013`](specs/013-workspace-and-plans/spec.md)) |
+| Ledger file with an unknown layout | no confirmed mapping | document `NEEDS_INPUT` + `CONFIRM_LEDGER_MAPPING` item; nothing is imported until confirmed |
+| Ledger rows that do not parse | parser | kept out, listed with row numbers; > 2% reopens the mapping item |
+| Same content in a different file | content keys after reading | `D02`–`D06`: held as a possible duplicate until the user decides ([`08`](08-risk-engine.md) §2.2) |

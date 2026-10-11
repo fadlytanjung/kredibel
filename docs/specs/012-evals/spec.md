@@ -1,32 +1,38 @@
-# Spec 012 — Evals & Results (P1)
+# Spec 012 — Evals and Results
 
 | | |
 |---|---|
 | **Status** | Ready |
-| **Priority** | P1 (run the P0 suites on D6 regardless) |
+| **Priority** | P0 suites run on D6 regardless · P1 suites when their features exist |
 | **Owner role** | A: Agents |
-| **Depends on** | 002, 008 (P0 suites); 010, 011 (P1 suites) |
-| **Requirements** | P1-08, NFR-01, NFR-04, NFR-05, NFR-07 |
-| **Design** | [`docs/15`](../../15-testing-and-evaluation.md) §4–§6 |
+| **Depends on** | 002, 005–009 (P0 suites); 011, 015 (P1 suites) |
+| **Requirements** | NFR-01, NFR-04, NFR-05, NFR-07, P1-08 |
+| **Design** | [`docs/15`](../../15-testing-and-evaluation.md) §5–§7 |
 
 ## Summary
 
-Run the full pipeline with real Gemini and Document AI OCR on scenario variants, compare with ground
-truth, and publish a dated report whose numbers (and only those) appear in the README and proposal.
+Run both workflows with real Gemini and Document AI OCR on the synthetic scenarios, compare with
+`truth.json`, and publish a dated report whose numbers (and only those) appear in the README and the
+proposal. The headline numbers are the ones the product promises: **auto-match rate**, **wrong
+automatic matches**, duplicates caught, edited documents caught, and cost per page.
 
 ## User stories
 
-- **AC-012-1** `make evals` runs S1–S3 (and S4–S6 when available) × seeds 1–5 against the dev project
-  using a dedicated org `org_eval`, then writes `backend/evals/reports/<date>.md` and `.json`.
-- **AC-012-2** The report contains the suites E-CLS, E-EXT, E-FOR, E-CAT, E-REC, E-DEC, E-MEMO, E-PERF
-  (P0) and E-SEC, E-VIS, E-AST (P1 when built), each with the target and the measured value.
-- **AC-012-3** Each case's run ID is listed so any number can be traced to its run.
-- **AC-012-4** `tools/checks/readme_results.py` fails `make check` if the README "Results" table
+- **AC-012-1** `make evals` uploads each scenario's files in its `upload-order.txt` into a dedicated
+  workspace `org_eval` (reset per case), waits for the months to settle, and writes
+  `backend/evals/reports/<date>.md` and `.json`.
+- **AC-012-2** P0 suites: E-CLS, E-EXT, E-MAP, E-DUP, E-FOR, E-REC, E-RSK, E-CAT, E-CPTY, E-EXP,
+  E-PERF, each with its target and measured value ([`docs/15`](../../15-testing-and-evaluation.md) §5).
+- **AC-012-3** E-REC reports for S1–S5 × seeds 1–5: auto-match rate, wrong automatic matches (an
+  `AUTO` match not in `truth.json`), `PROPOSED` pairs never auto-matched, and S5 = S1 by
+  deterministic ID.
+- **AC-012-4** E-DUP reports recall and precision per technique (T7–T11 and the `double-payment`
+  fixture) and confirms that no held value was counted in month figures.
+- **AC-012-5** E-EXT reports field accuracy of the AI reader, agreement, box coverage and **cost per
+  page and per scenario** from `runs.usage`, for digital, scanned and photo inputs, and `adaptive` vs
+  `thorough` on S1 seed 1.
+- **AC-012-6** P1 suites when built: E-AST (DeepEval + ADK trajectories, spec 011), E-SEC (S6), E-VIS.
+- **AC-012-7** Each case lists its run IDs so any number can be traced to a run and its trace.
+- **AC-012-8** `tools/checks/readme_results.py` fails `make check` if the README "Results" table
   contains numbers not present in the latest report.
-- **AC-012-5** Evals are never part of `make check` or Cloud Build.
-- **AC-012-6** E-EXT reports, for S1–S3 digital and the scanned S1 variant: field accuracy of the AI
-  reader, verifier agreement, box coverage, witness-only rows, and **cost per page and per case**
-  measured from `runs.usage`; with `EXTRACTION_MODE=thorough` on S1–S3 seed-1 it reports the same
-  numbers so adaptive and thorough can be compared (ADR-010).
-- **AC-012-7** E-CPTY reports counterparty role accuracy and merge precision against
-  `expectedCounterparties`, and suggestion precision/recall against `expectedSuggestions` (spec 014).
+- **AC-012-9** Evals are never part of `make check` or Cloud Build.

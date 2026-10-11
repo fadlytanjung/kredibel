@@ -14,35 +14,36 @@ plans:
     status: AVAILABLE
     priceLabel: "Free for 30 days"
     trialDays: 30
-    afterTrial: READ_ONLY            # cases stay readable and decidable; no new cases, uploads or runs
+    afterTrial: READ_ONLY            # everything stays readable; no new uploads, reading or assistant
     limits:
-      seats: 3                       # members including the admin
-      casesPerMonth: 15              # cases created per calendar month (UTC)
-      documentsPerCase: 20
+      seats: 3                       # members including the owner (roles are P1; P0 has one owner)
+      documentsPerMonth: 150         # uploads per calendar month (UTC); exact duplicates do not count
       pagesPerDocument: 20
       fileSizeMb: 20
-      extractedPagesPerMonth: 300    # pages sent to the AI reader; cache hits are not counted
-      runsPerDay: 5                  # also capped by RUN_QUOTA_PER_ORG_PER_DAY
-      aiSpendUsdPerMonth: "5.00"     # estimated from metered usage (docs/21 §3); blocks new runs when reached
+      extractedPagesPerMonth: 400    # pages sent to the AI reader; cache hits and duplicates are not counted
+      ledgerRowsPerFile: 5000        # CSV/XLSX rows per ledger export
+      monthRunsPerDay: 60            # month reconciliations per day (each upload or fix may trigger one)
+      aiSpendUsdPerMonth: "5.00"     # estimated from metered usage (docs/21 §3); blocks new reading when reached
+      assistantQuestionsPerDay: 50   # P1
     features:
       extractionMode: adaptive       # adaptive | thorough (docs/07 §5)
       escalation: true               # P1; re-read low-agreement pages with a Document AI parser
-      escalationPagesPerCase: 10
-      caseAssistant: true            # P1, when built
-      policyOverrides: true          # P1
+      escalationPagesPerMonth: 30
+      financeAssistant: true         # P1, when built
       memberInvites: true            # P1
+      monthSignOff: true             # P1
       languages: [en]
     highlights:
-      - "Every analysis feature in the prototype"
+      - "Every feature of the prototype"
       - "Up to 3 team members"
-      - "300 extracted pages per month"
+      - "400 extracted pages per month"
 
   - id: starter
     label: Starter
     status: COMING_SOON
     priceLabel: "Pricing announced later"
     highlights:
-      - "More cases and pages per month"
+      - "More documents and pages per month"
       - "Up to 10 team members"
       - "Email support"
 
@@ -52,7 +53,7 @@ plans:
     priceLabel: "Pricing announced later"
     highlights:
       - "Thorough mode: a Document AI parser reads every page too"
-      - "Policy packs per product line"
+      - "Several workspaces for an accounting firm"
       - "Audit export"
 
   - id: enterprise
@@ -64,17 +65,17 @@ plans:
       - "Single sign-on"
       - "Custom limits and support"
 
-# Languages offered in the UI. Only `available` ones can be selected.
+comingSoonFeatures:
+  - id: loan_readiness_report
+    label: "Loan readiness report"
+    description: "A lender-ready summary of verified months, built on the same checked data."
+  - id: bank_feeds
+    label: "Bank feeds"
+    description: "Statements arrive automatically instead of by upload."
+
 languages:
   - { code: en, label: "English", status: available }
   - { code: id, label: "Bahasa Indonesia", status: coming_soon }
   - { code: ms, label: "Bahasa Melayu", status: coming_soon }
   - { code: th, label: "ไทย (Thai)", status: coming_soon }
   - { code: vi, label: "Tiếng Việt", status: coming_soon }
-
-# Bounds for workspace credit-policy overrides (P1). Keys refer to contracts/policy/scorecard.v1.yaml.
-policyOverrideBounds:
-  pricing.assumedAnnualRate: { min: "0.06", max: "0.36" }
-  pricing.targetDscr: { min: "1.00", max: "2.00" }
-  coverage.requiredMonths: { min: 3, max: 12 }
-  coverage.minMonths: { min: 1, max: 12 }   # must also be ≤ coverage.requiredMonths

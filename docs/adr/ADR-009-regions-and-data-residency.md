@@ -4,7 +4,7 @@
 
 ## Context
 
-Lenders in Indonesia and the region expect personal and financial data to stay in-region. In the
+Businesses and accounting firms in Indonesia and the region expect financial data to stay in-region. In the
 prototype, all Document AI processors sit in `us` (the optional Bank Statement Parser is only offered
 in `us`/`eu`), and the newest Gemini models are
 broadly available on the `global` endpoint. The prototype processes **synthetic data only**.
@@ -18,8 +18,8 @@ broadly available on the `global` endpoint. The prototype processes **synthetic 
      Extractor is offered in `asia-southeast1`); the text-layer witness already runs inside our
      container, so digital PDFs need no extra service; keep the reader/witness independence of ADR-010.
   2. Pin Gemini calls to an in-region endpoint where the chosen models are available, or to a
-     jurisdictional endpoint that satisfies the lender's policy.
-  3. Consider `asia-southeast2` (Jakarta) for state if the lender requires in-country storage.
+     jurisdictional endpoint that satisfies the customer's policy.
+  3. Consider `asia-southeast2` (Jakarta) for state if a customer requires in-country storage.
   4. Wrap Document AI, Agent Platform, Storage and Firestore in a VPC Service Controls perimeter.
 
 ## Consequences

@@ -1,314 +1,278 @@
 # 03 — Product Requirements (PRD)
 
-> **Product:** Kredibel · **Version:** 1.0 (competition prototype) · **Status:** Draft for review
+> **Product:** Kredibel · **Version:** 2.0 (competition prototype, scope of
+> [ADR-015](adr/ADR-015-scope-finance-workspace-not-loan-review.md)) · **Status:** Draft for review
 
 ---
 
 ## 1. Problem
 
-SME lenders across Southeast Asia (bank SME units, rural banks, multifinance companies and P2P
-lending platforms) underwrite small businesses mostly from **documents the borrower supplies**: bank
-statements, sales invoices and sometimes tax invoices. The work today is:
+Small businesses and the accountants who serve them close every month by hand: invoices, receipts and
+ledger entries arrive during the month, the bank statement arrives at the end, and someone ticks
+hundreds of bank lines against everything else in a spreadsheet. The work is:
 
-1. **Slow.** Analysts re-type or "spread" months of transactions into spreadsheets before any analysis
-   starts.
-2. **Easy to fool.** Edited PDFs, template-generated statements and invented invoices are cheap to make
-   and hard to spot by eye. Bank statements are the document type fraud leaders consider the most
-   vulnerable ([`02`](02-research.md) §3).
-3. **Hard to audit.** Credit memos summarize numbers whose origin nobody can trace a month later.
-
-**Cost of the status quo:** days per application, inconsistent decisions between analysts, and
-losses from applications that should never have been approved.
+1. **Slow.** One to three days a month for a business with a few hundred bank lines.
+2. **Error-prone.** The same statement, invoice or receipt is entered twice; totals are inflated and
+   suppliers get paid twice.
+3. **Easy to fool.** An edited PDF statement or a fake supplier invoice looks like the real thing, and
+   a supplier's "new bank account" is a classic way to divert payments.
+4. **Hard to trust when automated.** AI extraction is never 100% right; if users cannot see where a
+   number came from, they re-check everything and the automation saves nothing.
 
 ## 2. Vision
 
-> Every SME credit decision is made on **verified** numbers, and every number can be **traced** to the
-> page it came from.
+> Every number in a small business's books is **checked** before it is counted, and every number can
+> be **traced** to the page it came from.
 
 ## 3. Users
 
 | Persona | Goal | Pain today | What Kredibel gives them |
 |---|---|---|---|
-| **Rina, Credit Analyst** (primary) | Assess 5–10 SME applications a week accurately | Manual spreading; can't tell a good fake from a real statement | Minutes from upload to an evidence-backed recommendation; a viewer that shows *why* |
-| **Budi, Risk Lead** (secondary) | Consistent decisions; catch fraud early; defend decisions to auditors | Inconsistent memos; overrides without rationale | Transparent policy; overrides gated by role and reason; complete audit trail |
-| **Workspace admin** (often Budi) | Set up the lender's workspace and team; know what the plan allows | Tools that hide limits until they bite | One-screen onboarding, a free trial, visible usage and limits, a short settings page |
-| **Sari, SME owner** (indirect) | Get a fair, fast answer | Long waits, repeated requests for documents | Faster decisions; a precise "information request" instead of vague follow-ups (P1) |
+| **Maya, owner of a small business** (primary, the hackathon user) | Close the month quickly and know nothing is wrong | Spreadsheet matching; duplicates; no idea if a document was edited | Upload everything; most of the month matched automatically; a short review list; a risk level with reasons |
+| **Rafi, accountant or bookkeeper** (P1 role) | Keep several clients' books current | Clients send documents twice, late or edited | Duplicates caught on upload; exceptions in one queue; evidence for every fix |
+| **Dewi, reviewer or controller** (P1 role) | Approve the month; catch fraud early | Problems found after payments went out | Risk per month and document, payment-diversion warnings, an audit trail |
 
-Sari does not use Kredibel in the prototype. The analyst onboards her business as an **applicant**
-(individual or company) and uploads her documents; Kredibel suggests the profile details it finds in
-them (accounts, tax ID, address, clients and partners) for the analyst to accept.
+A workspace is one business or one person (individual or company). In the hackathon build each
+workspace has one owner who does everything; team roles are P1 (§6.2).
 
 ## 4. Jobs to be done
 
-- **J1.** *When* an application arrives with statements and invoices, *I want* every transaction and
-  invoice extracted and checked automatically, *so I can* start from analysis, not data entry.
-- **J2.** *When* a document has been manipulated, *I want* to be told where and how, with evidence I
-  can show my risk lead, *so I* don't approve a fraud or wrongly accuse an honest borrower.
-- **J3.** *When* a borrower claims revenue, *I want* to see how much of it actually reached the bank,
-  *so I can* size the loan on real cash flow.
-- **J4.** *When* I write the memo, *I want* a draft where every figure is linked to its source, *so I
-  can* review and sign it quickly.
-- **J5.** *When* I decide, *I want* the system to stop me from approving over unresolved critical
-  issues and to record my reasoning, *so* our decisions are defensible.
-- **J6.** *When* I onboard an applicant, *I want* to enter only what I have and have the rest found in
-  the documents with proof, *so* onboarding takes minutes and the profile is checked, not typed.
-- **J7.** *When* my team evaluates Kredibel, *I want* to sign up and try it for free with clear limits,
-  *so* we can judge it on our own cases without a sales call.
+- **J1.** *When* I receive a document, *I want* to drop it in without caring about order, *so* the
+  books stay current without a process to follow.
+- **J2.** *When* a document is a copy of one I already have, *I want* to be told before it is counted,
+  *so* nothing is counted or paid twice.
+- **J3.** *When* the bank statement arrives, *I want* most lines matched to invoices, receipts and
+  ledger entries automatically, with the reason for each match, *so* I only look at the exceptions.
+- **J4.** *When* something cannot be matched or read with confidence, *I want* to fix it in one place
+  with the page in front of me, *so* the month closes cleanly.
+- **J5.** *When* a document has been edited or a payment looks diverted, *I want* to know where and
+  what to do next, *so* I can stop a loss early.
+- **J6.** *When* I open Kredibel, *I want* a dashboard that shows where the money came from and went
+  and which months need attention, *so* I understand my business in a minute.
+- **J7.** *When* I set up, *I want* to enter only what I know and have the rest suggested from my
+  documents with proof, *so* my profile is checked, not typed.
+- **J8.** *When* I evaluate Kredibel, *I want* a free trial with visible limits, *so* I can try it
+  without a sales call.
 
 ## 5. Core user journey (the demo path)
 
 ```mermaid
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "Arial, Helvetica, sans-serif", "fontSize": "14px", "primaryColor": "#E3F1EE", "primaryBorderColor": "#0F5E56", "primaryTextColor": "#14201C", "lineColor": "#55625D", "secondaryColor": "#F0F2EF", "tertiaryColor": "#FFFFFF", "clusterBkg": "#F7F8F6", "clusterBorder": "#B8BFB9", "noteBkgColor": "#FEF0C7", "noteTextColor": "#14201C"}, "htmlLabels": false, "flowchart": {"htmlLabels": false, "padding": 16, "nodeSpacing": 40, "rankSpacing": 50, "wrappingWidth": 220}, "sequence": {"wrap": true, "useMaxWidth": true, "noteFontFamily": "Arial, Helvetica, sans-serif", "messageFontFamily": "Arial, Helvetica, sans-serif", "actorFontFamily": "Arial, Helvetica, sans-serif"}}}%%
+%%{init: {"theme": "base", "themeVariables": {"fontFamily": "Arial, Helvetica, sans-serif", "fontSize": "14px", "primaryColor": "#E7F2EE", "primaryBorderColor": "#0E5A47", "primaryTextColor": "#16212B", "lineColor": "#56636F", "secondaryColor": "#E8ECEE", "tertiaryColor": "#FFFFFF", "clusterBkg": "#F2F4F5", "clusterBorder": "#B9C2CA", "noteBkgColor": "#FFF5D6", "noteTextColor": "#16212B"}, "htmlLabels": false, "flowchart": {"htmlLabels": false, "padding": 16, "nodeSpacing": 40, "rankSpacing": 50, "wrappingWidth": 220}, "sequence": {"wrap": true, "useMaxWidth": true, "noteFontFamily": "Arial, Helvetica, sans-serif", "messageFontFamily": "Arial, Helvetica, sans-serif", "actorFontFamily": "Arial, Helvetica, sans-serif"}}}%%
 flowchart TB
-    W["First time: create workspace<br/>free trial starts"] --> A0["Onboard applicant<br/>individual or company"]
-    A0 --> A["Create case<br/>loan request"]
-    A --> B["Upload documents<br/>split into pages"]
-    B --> C["Run analysis"]
-    C --> D["Live pipeline<br/>screen, classify, read each page,<br/>verify with a witness,<br/>forensics, analyze"]
-    D --> E["Review<br/>overview, applicant suggestions,<br/>findings, cash flow, reconciliation"]
-    E --> F["Evidence viewer<br/>page + highlight + why"]
-    E --> G["Memo with<br/>citation chips"]
-    F --> H{"Decide"}
-    G --> H
-    H -->|approve / decline / request info / escalate| I["Audit trail"]
+    W["Sign up: workspace for an<br/>individual or a company<br/>(free trial starts)"] --> U["Upload documents in any order<br/>statements, invoices, receipts,<br/>ledger export"]
+    U --> D["Duplicates flagged on upload<br/>exact copies skipped"]
+    U --> P["Live progress per document<br/>read twice, checked"]
+    P --> M["Month reconciled automatically<br/>(again whenever data changes)"]
+    M --> H["Dashboard<br/>money flow, months, risk"]
+    M --> Q["Review queue<br/>fix what AI could not match"]
+    M --> K["Risk: findings with evidence,<br/>level per month and document,<br/>next steps"]
+    K --> V["Evidence viewer<br/>page + highlight + why"]
+    Q --> V
+    Q -->|"each fix re-reconciles the month"| M
 ```
 
 ## 6. Scope and priorities
 
-**P0** must work end-to-end on Cloud Run before any **P1** starts (constitution P9). **P2** is
-documented for the "what's next" story only.
+**P0** must work end-to-end on Cloud Run before any **P1** starts (constitution P9). **Coming soon**
+items are visible in the UI and not built.
 
 ### 6.1 P0 — Must (the demo)
 
 | ID | Capability |
 |---|---|
-| P0-01 | Sign in (Firebase Auth, email/password + Google) with org and role from custom claims |
-| P0-02 | Onboard an applicant (individual or company, optional bank accounts and related parties) and create a case with a loan request (amount, tenor, purpose) |
-| P0-03 | Upload PDF/PNG/JPEG documents within the plan's limits (free trial: ≤ 20 MB, ≤ 20 pages each, ≤ 20 per case), stored in Cloud Storage and **split into pages** with text-layer triage |
-| P0-04 | Start an analysis run; asynchronous processing via Cloud Tasks; live progress in the UI |
-| P0-05 | Document classification (bank statement, sales invoice, purchase invoice, other) with Gemini |
-| P0-06 | **Adaptive reading**: Gemini reads each page image; the PDF text layer (free) or Document AI OCR (scans) is the independent witness; a verifier gives every value a status and a box ([ADR-010](adr/ADR-010-adaptive-extraction-ai-reader-and-witness.md)) |
-| P0-07 | Deterministic forensics: running balance, opening/closing, invoice arithmetic, PDF metadata and revisions, font anomalies, statement continuity, account-holder match |
-| P0-08 | Transaction categorization: rules first, Gemini for the rest, IAS 7 classes plus risk tags |
-| P0-09 | Cash-flow metrics: monthly flows, average daily balance, negative days, existing debt service, DSCR proxy, maximum supportable installment |
-| P0-10 | Invoice ↔ bank reconciliation and revenue verification ratio |
-| P0-11 | Policy-as-config scorecard: score, grade, hard stops, recommendation |
-| P0-12 | Credit memo drafted by Gemini, checked by the grounding guard, rendered with citation chips |
-| P0-13 | Case workspace: overview, documents, findings, cash flow, reconciliation, memo |
-| P0-14 | Evidence viewer: PDF page with highlighted regions and the facts behind a finding |
-| P0-15 | Decision with rules: no approval over open critical findings; overrides need reason and role; audit trail |
-| P0-16 | Synthetic data generator with scenarios S1–S3 and ground truth |
+| P0-01 | Sign in (Firebase Auth, email/password + Google); self-serve workspace for an **individual or a company**; **free trial** with server-side limits; other plans **coming soon** |
+| P0-02 | Upload PDF, PNG, JPEG (statements, invoices, receipts) and CSV/XLSX (ledger exports) within plan limits; stored in Cloud Storage; PDFs **split into pages** with text-layer triage |
+| P0-03 | **Duplicate detection:** exact file copies on upload (not read, not counted); content duplicates after reading (same account and statement period, same issuer and invoice number, same merchant, date and total, same ledger reference and amount, near-identical images) held for confirmation |
+| P0-04 | Classification (statement, sales invoice, purchase invoice, receipt, ledger export, other) with Gemini |
+| P0-05 | **Adaptive reading** of statements, invoices and receipts: Gemini reads each page image; the PDF text layer or Document AI OCR is the witness; a verifier agrees every value ([ADR-010](adr/ADR-010-adaptive-extraction-ai-reader-and-witness.md)) |
+| P0-06 | **Ledger import:** CSV/XLSX parsed by code; Gemini proposes the column mapping from the header and sample rows; the user confirms it once per file layout |
+| P0-07 | **Document integrity forensics:** running balance, opening/closing, invoice arithmetic, PDF metadata and revisions, font anomalies, statement continuity across months, account holder |
+| P0-08 | Transaction categorization: rules first, Gemini for the rest; cash-flow classes (IAS 7) and risk tags |
+| P0-09 | **Month reconciliation, any upload order:** bank lines ↔ invoices, receipts and ledger cash entries; exact, split and net-of-tax matches; incremental re-run when a month's data changes; every match has reasons |
+| P0-10 | **Review queue:** unmatched bank lines, unpaid or unmatched documents, low-confidence values, possible duplicates, ledger-bank differences; fix by manual match, value correction on the page, duplicate confirmation, or ignore with a reason; audited |
+| P0-11 | **Fraud risk:** findings with severity and evidence → risk level per document and per month from `risk.v1.yaml`; Gemini explains and recommends next steps, citing findings only |
+| P0-12 | **Dashboard:** money in, money out, net, auto-match rate, review count; money-flow **Sankey**; month strip with status and risk; top alerts |
+| P0-13 | Evidence viewer: page with the value highlighted, both readings, the calculation behind a finding |
+| P0-14 | Profile and counterparties: entity profile and bank accounts; suggestions from documents (accounts, tax ID, address) accepted or rejected by the user; clients and suppliers derived from the books |
+| P0-15 | Settings: profile, bank accounts, language (English; others coming soon), plan and usage |
+| P0-16 | Synthetic data generator with scenarios S1–S5 and ground truth |
 | P0-17 | Deployed on Cloud Run (web + worker), Firestore, Cloud Storage, Cloud Tasks |
-| P0-18 | Self-serve workspace onboarding; **Free trial** plan with server-side limits; other tiers listed as **coming soon** |
-| P0-19 | Settings: workspace profile, language (English only, others coming soon), plan & usage |
-| P0-20 | Counterparty directory per case: clients, suppliers, lenders, own accounts, related parties |
-| P0-21 | AI profile suggestions with evidence (bank accounts, tax ID, address, name aliases), accepted or rejected by the analyst; undeclared-account check |
 
 ### 6.2 P1 — Should (if P0 is green by day 5)
 
 | ID | Capability |
 |---|---|
-| P1-01 | Model Armor screening of every uploaded document; quarantine from models on a match (scenario S6) |
-| P1-02 | Visual forensics: Gemini examines rendered pages for signs of editing, under the corroboration rule |
-| P1-03 | Revision recovery: show the value from the PDF's earlier revision next to the current value |
-| P1-04 | Case assistant: ask questions about the case; answers cite evidence (ADK agent with read-only tools, Agent Platform Sessions) |
-| P1-05 | Remaining forensic and behavioural checks (window dressing, round-tripping, concentration, etc.) |
-| P1-06 | Pipeline timeline ("agent trace") view per run |
-| P1-07 | Analyst edits memo; the grounding guard re-runs on save |
-| P1-08 | Scenario evals with a results table in the README (S1–S6) |
-| P1-09 | Information-request letter drafted for the borrower listing missing or doubtful documents |
-| P1-10 | Analyst re-categorizes a transaction; metrics marked stale; re-run analysis |
-| P1-11 | Workspace members: invite by email with a role, remove, seat limit |
-| P1-12 | Credit-policy overrides: four bounded values per workspace |
-| P1-13 | Related parties: suggestions, related-party flows (`B07`), invoice tax-ID check (`X07`), key client/supplier suggestions |
-| P1-14 | Pre-fill applicant suggestions at upload time from the cached page-1 reading |
-| P1-15 | Applicant directory page |
-| P1-16 | "Split and upload" for PDFs longer than the plan's page limit |
-| P1-17 | Escalation of low-agreement pages to Document AI parsers; `thorough` extraction mode for evals |
+| P1-01 | **Finance Assistant:** ask about your books; read-only tools for numbers, retrieval over document text and Kredibel's policy and help, Agent Platform Sessions and Memory Bank ([ADR-014](adr/ADR-014-finance-assistant-tools-rag-memory.md)) |
+| P1-02 | **Team roles (ACL):** owner, accountant (uploads, matches), reviewer (resolves, dismisses, signs off), viewer; invite by email; seat limit |
+| P1-03 | Model Armor screening of uploads; quarantine from models on a match (scenario S6) |
+| P1-04 | Visual forensics under the corroboration rule |
+| P1-05 | Month sign-off: a reviewer locks a reconciled month; later uploads for it need a reopen with a reason |
+| P1-06 | Run graph: each workflow run as a graph of its nodes with status, duration, model and tokens (from ADK traces) |
+| P1-07 | Exports: reconciliation and review log as CSV |
+| P1-08 | Escalation of low-agreement pages to Document AI parsers; `thorough` mode for evals |
+| P1-09 | "Split and upload" for PDFs longer than the plan's page limit |
+| P1-10 | More anomaly checks: round-tripping, weekend or out-of-hours invoices, sequence gaps in invoice numbers |
+| P1-11 | **Labels:** every document type, page type and category as a label with its confidence; a Labels page to confirm or correct them with the page's extraction; verified labels used as examples and measured in evals; IFRS or US GAAP per workspace ([ADR-016](adr/ADR-016-human-verified-labels-and-learning-loop.md)) |
+| P1-12 | **Run history:** every model and tool call in BigQuery (ADK plugin), a Runs page with the waterfall, tokens, cost and the labels each call produced ([ADR-017](adr/ADR-017-agent-observability-on-google-cloud.md)) |
 
-### 6.3 P2 — Could (roadmap slide only)
+### 6.3 Coming soon and later (not built)
 
-Borrower upload portal · receipts via Expense Parser · VAT e-invoice QR validation ·
-cross-lender duplicate-invoice registry · BigQuery portfolio analytics · in-region processing for
-data residency · memo export to PDF · more UI languages (Indonesian first; the language picker already
-lists them as coming soon) · paid plans and billing (e.g. Google Cloud Marketplace) · signed-URL
-uploads for large files · Agent Platform Evals for memo quality.
+**Loan readiness report** (shown as coming soon) · tuning Gemini on consented, verified labels
+([ADR-016](adr/ADR-016-human-verified-labels-and-learning-loop.md)) · bank feeds · e-invoice (QR) validation ·
+multi-currency · accounting-tool connectors · more UI languages · paid plans and billing.
 
 ### 6.4 Explicitly out of scope
 
-General ledger and double-entry accounting · full IFRS balance sheet and P&L · credit bureau,
-e-KYC/KYB registry or bank API integrations · identity-document verification · payments, billing or
-disbursement · ML model training · real customer data.
+Editing the general ledger or posting journal entries · payments · tax filing · consolidation of
+several entities · real customer data (P8).
 
 ## 7. Functional requirements
 
-Requirement IDs are stable and referenced by specs, tests and the traceability matrix
-([`04`](04-requirements-traceability.md)).
+### 7.1 Access, workspace and plans
 
-### 7.1 Access & cases
+- **FR-001** Users sign in with Firebase Auth; the API verifies the ID token on every request.
+- **FR-002** Every record belongs to one workspace; a user sees only their workspace's data (API and
+  Firestore rules).
+- **FR-003** A signed-in user without a workspace creates one: name, entity type (`INDIVIDUAL` or
+  `COMPANY`), country (Indonesia; others coming soon), time zone; the free trial starts.
+- **FR-004** Plan limits from `contracts/plans.v1.yaml` are enforced by the server (documents and pages
+  per month, file size, pages per file, seats, AI spend); the UI shows usage before a limit is hit.
+- **FR-005** Paid plans and the loan readiness report are listed as coming soon and cannot be selected.
 
-- **FR-001** Users authenticate with Firebase Auth; the API rejects requests without a valid ID token.
-- **FR-002** Every user belongs to exactly one organization, shown as the **workspace** (`orgId` custom
-  claim), and has one role: `analyst`, `risk_lead` or `admin` (admin also manages settings, members
-  and the plan).
-- **FR-003** A user can only read or change cases of their own organization.
-- **FR-004** An analyst can create a case for an existing or newly onboarded applicant, with requested
-  amount (IDR), tenor (months) and purpose.
-- **FR-005** Cases list shows reference, applicant, amount, status, grade and open finding counts,
-  newest first, filterable by status and applicant.
+### 7.2 Documents and duplicates
 
-### 7.2 Documents
+- **FR-010** Upload accepts PDF, PNG, JPEG, CSV and XLSX within the plan's limits; the original is
+  stored unchanged; PDFs are split into page images.
+- **FR-011** A file whose SHA-256 equals one already in the workspace is recorded as an **exact
+  duplicate** of it, is not read and does not count against page limits.
+- **FR-012** After reading, a document whose content key matches an existing document (statement:
+  account + overlapping period; invoice: issuer + number, or issuer + date + total; receipt: merchant +
+  date + total, or a perceptual image hash within threshold; ledger entry: date + amount + reference)
+  is a **possible duplicate**: its values are excluded from totals and matching until the user confirms
+  or rejects it in the review queue.
+- **FR-013** The library lists documents with type, period, status, reading method, integrity verdict,
+  risk level and duplicate state, with filters by type, month and status.
 
-- **FR-010** In status `DRAFT` or `INFO_REQUESTED`, a user can upload documents: PDF, PNG or JPEG
-  (detected by content, not file name), within the plan's size, page and count limits (free trial:
-  20 MB, 20 pages, 20 per case).
-- **FR-011** An identical file (same SHA-256) uploaded twice to the same case is rejected with
-  `DUPLICATE_DOCUMENT`.
-- **FR-012** A user can remove a document while the case is `DRAFT`.
-- **FR-013** A user can view any document page of their case in the browser.
-- **FR-014** Each upload is split into pages; each page is rendered and triaged (usable text layer,
-  none or unusable, blank), and the document shows whether it is digital or scanned.
+### 7.3 Reading and checking
 
-### 7.3 Analysis pipeline
+- **FR-020** Each document is classified; low confidence asks the user to confirm the type.
+- **FR-021** Statements, invoices and receipts are read by the AI reader and a witness per page; the
+  verifier gives every value a status (`AGREED`, `CONFLICT`, `SINGLE_SOURCE`, `MISSING`) and a box.
+- **FR-022** A ledger export is parsed by code with a confirmed column mapping; Gemini only proposes
+  the mapping.
+- **FR-023** Document integrity checks of [`08`](08-risk-engine.md) §2 run per document and produce
+  findings with evidence and a verdict (`CLEAN`, `SUSPICIOUS`, `TAMPERED`, `UNVERIFIABLE`).
+- **FR-024** Bank lines are categorized (rules, then Gemini) into cash-flow classes and risk tags.
 
-- **FR-020** Starting analysis requires ≥1 document and no run in progress; it returns immediately and
-  processes asynchronously.
-- **FR-021** Progress (stage, percent, message) is visible live, per case and per document.
-- **FR-022** Each document is classified as `BANK_STATEMENT`, `SALES_INVOICE`, `PURCHASE_INVOICE`,
-  `TAX_INVOICE`, `RECEIPT`, `OTHER` with a confidence; `OTHER` documents are kept but not analyzed.
-- **FR-023** Every page of a bank statement or invoice is read by Gemini from the page image **and**
-  checked against an independent witness (the PDF text layer, or Document AI OCR for scanned pages);
-  each value stores its status (`AGREED`, `CONFLICT`, `SINGLE_SOURCE`), the raw strings of both
-  readings, the agreement score and provenance (page, bounding box). Printed values the AI missed
-  become witness-only rows.
-- **FR-024** Documents whose extraction agreement is below the policy threshold get verdict
-  `UNVERIFIABLE` and an `E01` finding.
-- **FR-025** Forensic checks run per document and across documents, producing findings with code,
-  severity, explanation and evidence ([`08`](08-risk-engine.md) §2).
-- **FR-026** Each document gets an integrity verdict: `CLEAN`, `SUSPICIOUS`, `TAMPERED` or
-  `UNVERIFIABLE`, following the corroboration rule.
-- **FR-027** Transactions are categorized into IAS 7 classes, categories and risk tags; rules run before
-  the model; the method and confidence are stored.
-- **FR-028** Cash-flow metrics are computed per month and in aggregate ([`08`](08-risk-engine.md) §4).
-- **FR-029** Sales invoices are matched to bank credits; unmatched and partially matched invoices are
-  listed; the revenue verification ratio is computed.
-- **FR-030** The scorecard produces score (0–100), grade (A–E), hard stops and a recommendation
-  (`APPROVE`, `APPROVE_WITH_CONDITIONS`, `REFER`, `DECLINE`) from a versioned policy file.
-- **FR-031** A memo is drafted with sections: summary, business & request, cash-flow analysis,
-  document integrity, revenue verification, risks & mitigants, recommendation. Every figure carries a
-  citation.
-- **FR-032** The grounding guard verifies every number and citation in the memo; on failure it asks for
-  one redraft (max 2 attempts) and otherwise marks the memo `UNVERIFIED` with the offending figures.
-- **FR-033** A failed node does not fail the run silently: the run records the error, the case goes to
-  `FAILED` with a message, and the analyst can retry.
+### 7.4 Reconciliation and review
 
-### 7.4 Review & decision
+- **FR-030** Each calendar month is reconciled whenever its data changes; the result does not depend
+  on the order of uploads.
+- **FR-031** Matching is deterministic and explainable: each match records its method and reasons;
+  only unique, high-scoring candidates are confirmed automatically.
+- **FR-032** Supported matches: one bank line to one document; one to many (split payments, several
+  invoices paid at once); net of withholding tax; bank line to ledger cash entry; document to ledger
+  entry.
+- **FR-033** Unmatched bank lines, unmatched or unpaid documents, ledger-bank differences, low
+  confidence values and possible duplicates become **review items**.
+- **FR-034** A review item is resolved by a manual match, a value correction, a duplicate decision or
+  "ignore" with a reason; the resolution is audited and the month re-reconciles.
+- **FR-035** A month's summary shows money in and out, opening and closing balance, auto-match rate,
+  open review items and risk level.
 
-- **FR-040** The case workspace shows overview, documents, findings, cash flow, reconciliation, memo and
-  activity.
-- **FR-041** Selecting a finding opens the evidence viewer at the right page with highlighted regions and
-  the expected vs found values.
-- **FR-042** An analyst can acknowledge a finding, or dismiss it with a mandatory reason.
-- **FR-043** Decision outcomes: `APPROVE`, `DECLINE`, `REQUEST_INFO`, `ESCALATE`.
-- **FR-044** `APPROVE` is blocked while any `CRITICAL` finding is `OPEN`.
-- **FR-045** Deciding against a `DECLINE` recommendation or a hard stop requires role `risk_lead` (or `admin`) and a
-  reason; an analyst can only `ESCALATE`.
-- **FR-046** Every state change, decision, dismissal and run is appended to the case's audit events.
+### 7.5 Fraud risk
 
-### 7.5 P1 requirements
+- **FR-040** Cross-document checks of [`08`](08-risk-engine.md) §2.4 run per month (statement
+  continuity, unpaid invoices, payment to a changed supplier account, ledger-bank mismatch).
+- **FR-041** A risk level (`LOW`, `MEDIUM`, `HIGH`, `CRITICAL`) per document and per month is computed
+  from findings by `risk.v1.yaml`; any `TAMPERED` document makes its month `CRITICAL`.
+- **FR-042** Gemini writes a short explanation and recommended next steps per month and per critical
+  or high finding; every number it uses must exist as a fact or finding (grounding guard), else the
+  template text is shown.
+- **FR-043** A finding can be acknowledged or dismissed; dismissing a critical finding requires a
+  reason; both are audited.
 
-- **FR-050** Uploaded documents are screened by Model Armor; on a prompt-injection match the document is
-  flagged `S01` (critical) and excluded from every model call.
-- **FR-051** Visual forensics findings from the model are capped at `MEDIUM` unless corroborated by a
-  deterministic finding on the same region or row.
-- **FR-052** When a PDF has more than one revision, the text of the earliest revision is diffed against
-  the final one and changed values are shown.
-- **FR-053** The case assistant answers questions using only read-only case tools and cites evidence.
-- **FR-054** The analyst can edit memo sections; saving re-runs the grounding guard.
-- **FR-055** The run timeline lists every pipeline stage with duration, model used and outcome.
+### 7.6 Dashboard and insight
 
-### 7.6 Workspace & plans ([spec 013](specs/013-workspace-and-plans/spec.md))
+- **FR-050** The dashboard shows, for a selected period (month, quarter, all): money in, money out,
+  net, auto-match rate, open review items, and the risk level of each month.
+- **FR-051** A money-flow Sankey groups the money the way a cash-flow statement does under the
+  workspace's accounting framework (IFRS by default, or US GAAP): revenue by client and other money in
+  → bank accounts → activity (operating, investing, financing, kept) → statement line (cost of sales,
+  payroll, rent, taxes, finance costs, loan repayments, owner drawings). Other views show the same
+  numbers as bars, as a table, and grouped by client and supplier; each band opens the matching
+  transactions.
+- **FR-052** The month strip shows each month's statement presence, reconciliation state and risk.
+- **FR-053** The dashboard shows money in and out by month (with net and month-end balance) and the
+  cash-flow statement from opening to closing balance by activity; every chart takes the full content
+  width, one per row.
 
-- **FR-060** A signed-in user without a workspace can create one; they become its `admin` and the
-  workspace starts on the free trial.
-- **FR-061** Self-serve sign-up can be `open`, `invite_only` or `closed`, and is capped by
-  `MAX_WORKSPACES`.
-- **FR-062** Plans are defined in a versioned config file; only `AVAILABLE` plans can be assigned;
-  `COMING_SOON` plans are listed and cannot be selected or bought.
-- **FR-063** Plan limits (cases per month, documents per case, pages per document, file size, extracted
-  pages per month, runs per day, AI spend per month, seats) are enforced by the server
-  (`PLAN_LIMIT_REACHED`).
-- **FR-064** After the trial ends, new cases, uploads and runs are blocked (`TRIAL_EXPIRED`); reading,
-  reviewing and deciding still work.
-- **FR-065** Every user can see the plan, the trial days left and the workspace's usage.
-- **FR-066** Admins edit the workspace name, time zone and default language; only available languages
-  (English today) can be selected; others are shown as coming soon.
-- **FR-067** (P1) Admins invite members by email with a role and remove members, within the seat limit.
-- **FR-068** (P1) Admins or risk leads set bounded credit-policy overrides; each run records the hash of
-  the effective policy.
+### 7.7 Profile and counterparties
 
-### 7.7 Applicants & profile intelligence ([spec 003](specs/003-case-intake/spec.md), [spec 014](specs/014-applicant-profile-intelligence/spec.md))
+- **FR-060** The profile holds entity type, names, tax ID, address and bank accounts (masked).
+- **FR-061** Kredibel suggests bank accounts, tax ID and address from the documents with evidence;
+  nothing changes until the user accepts.
+- **FR-062** Clients and suppliers are derived from the books with totals per month; a payment to an
+  account not seen before for that supplier is flagged ([`08`](08-risk-engine.md) `X08`).
 
-- **FR-070** An applicant is onboarded as `INDIVIDUAL` or `COMPANY` with type-specific required fields;
-  address, contact, bank accounts and related parties are optional.
-- **FR-071** Bank account numbers are stored masked plus a server-only hash; full numbers are never
-  returned or logged. Only the last 4 digits of any ID number are collected.
-- **FR-072** Company applicants can record related parties (beneficial owners, directors,
-  shareholders, guarantors, signatories) with ownership percentages.
-- **FR-073** A case belongs to one applicant and keeps an applicant snapshot that freezes once the case
-  leaves `DRAFT`/`INFO_REQUESTED`.
-- **FR-074** Every applicant change is written to the applicant's audit events.
-- **FR-075** After a run, counterparties are derived with roles (client, supplier, lender, own account,
-  related party, government, other) and totals, with transactions as evidence.
-- **FR-076** After a run, profile suggestions (bank account, tax ID, address, name alias; P1: related
-  party, key client/supplier) are generated with evidence and confidence.
-- **FR-077** A suggestion changes the profile only when an analyst accepts it; rejected values are not
-  suggested again.
-- **FR-078** The holder check uses the applicant's names, aliases and declared holders; statement
-  accounts that are not declared are flagged (`X06`).
-- **FR-079** (P1) Sales-invoice tax IDs are checked against the profile (`X07`).
-- **FR-080** (P1) Inflows from related parties are not counted as sales and are flagged above a
-  threshold (`B07`).
-- **FR-081** (P1) Header-based suggestions can be produced at upload time from the cached page-1
-  reading, at no extra reading cost for the later run.
+### 7.8 P1 requirements
+
+- **FR-070** The Finance Assistant answers with read-only tools and retrieval, cites its sources, never
+  changes data, and remembers user preferences in Memory Bank scoped to the workspace and user.
+- **FR-071** Roles restrict actions: accountants upload and match; reviewers resolve, dismiss and sign
+  off; viewers read.
+- **FR-072** Uploaded documents are screened by Model Armor; on a prompt-injection match the document
+  is quarantined from every model call (`S01`).
+- **FR-073** The run graph shows every node of a workflow run with status, duration, model and tokens.
+- **FR-074** Every classification and categorization is stored as a label with its confidence; a person
+  can confirm or correct it, and a model never overwrites a person's label.
+- **FR-075** Each category's cash-flow class follows the workspace's accounting framework (IFRS or US
+  GAAP), from `contracts/policy/categories.v1.yaml`.
+- **FR-076** Every model and tool call of a run is recorded in BigQuery with its span, tokens and
+  latency and joined to people's feedback; prompts and responses are recorded only with synthetic data.
 
 ## 8. Non-functional requirements
 
 | ID | Requirement | Target |
 |---|---|---|
-| NFR-01 | End-to-end analysis time, scenario S1 (6 statements + 10 invoices) | ≤ 3 minutes p50 |
+| NFR-01 | Time from upload to read and checked | ≤ 60 s p50 for a 3-page statement; month reconciliation ≤ 20 s p50 for S1 |
 | NFR-02 | UI progress latency (pipeline event → visible) | ≤ 2 seconds |
 | NFR-03 | API latency for reads | ≤ 500 ms p95 |
-| NFR-04 | Forensic detection on scenario set | All seeded tamper cases detected; 0 `TAMPERED` verdicts on clean documents |
-| NFR-05 | Memo grounding | 100% of published memo figures trace to facts, or the memo is marked `UNVERIFIED` |
-| NFR-06 | Security | Org isolation enforced in API **and** Firestore rules; no secrets in images or repo |
-| NFR-07 | Cost per case (S1) | ≤ USD 0.50 per new case (adaptive reading) and ≤ USD 0.01 per page read; ≤ USD 0.25 per re-run of identical documents; measured and reported ([`21`](21-cost-analysis.md)) |
+| NFR-04 | Detection on the scenario set | All seeded tamper techniques and duplicates detected; 0 `TAMPERED` verdicts on clean documents |
+| NFR-05 | Automation | ≥ 85% of bank lines matched automatically on S1; **0 wrong automatic matches**; the rest in the review queue |
+| NFR-06 | Security | Workspace isolation enforced in API **and** Firestore rules; no secrets in images or repo |
+| NFR-07 | Cost | ≤ USD 0.01 per page read; ≤ USD 0.40 for S1's statements and invoices; exact duplicates cost nothing; measured and reported ([`21`](21-cost-analysis.md)) |
 | NFR-08 | Accessibility | WCAG 2.1 AA for colour contrast; severity never conveyed by colour alone |
-| NFR-09 | Reliability | Pipeline is idempotent per run; a Cloud Tasks retry never duplicates findings |
-| NFR-10 | Observability | Every log line carries `caseId`, `runId`, `node`; traces exported to Cloud Trace |
-| NFR-11 | Language | English UI; every user-visible string externalized (i18next resources); no hard-coded strings; adding a language needs no code change |
-| NFR-12 | Personal data minimization | No full national ID numbers; account numbers masked in all readable data and never logged; applicant data workspace-scoped ([`14`](14-security-and-compliance.md) §6) |
+| NFR-09 | Reliability | Workflows idempotent; retries and re-uploads never duplicate records; month results independent of upload order |
+| NFR-10 | Observability | Every log line carries `orgId`, `runId`, `node`; ADK traces exported to Cloud Trace |
+| NFR-11 | Language | English UI; every string externalized; adding a language needs no code change |
+| NFR-12 | Personal data minimization | Account and ID numbers masked in readable data and never logged; data workspace-scoped ([`14`](14-security-and-compliance.md) §6) |
+| NFR-13 | Responsive and touch-friendly | Every screen usable from 360 to 1600 px wide with no horizontal page scroll; touch targets ≥ 44 px; review and evidence work on a phone ([`12`](12-design-system.md) §5) |
+| NFR-14 | UI quality gates | Visual regression at 390/834/1440 px, axe with no serious or critical violations, Lighthouse (mobile) performance ≥ 85 and accessibility ≥ 95 on the dashboard and the review queue; design values only from tokens ([`15`](15-testing-and-evaluation.md) §2.6) |
+| NFR-15 | Safe data evolution | Every document versioned; expand/migrate/contract without downtime; migrations idempotent, resumable and recorded; PITR and daily backups on ([`22`](22-data-migrations.md)) |
 
 ## 9. Success metrics
 
-**For the competition:** a judge can understand the problem in 20 seconds and watch tampering being
-caught within the first 90 seconds of the video.
+**For the competition:** a judge understands the problem in 20 seconds, sees a duplicate and an
+edited statement caught in the first 90 seconds, and sees a month close with most lines matched.
 
 **For the product (pilot hypothesis):**
 
-| Metric | Baseline (manual, to be validated with lenders) | Target |
+| Metric | Baseline (manual, to be validated) | Target |
 |---|---|---|
-| Time from documents to memo draft | 1–3 days | < 10 minutes |
-| Share of manipulated statements caught before decision | Unknown | > 90% on known techniques |
-| Decisions with a complete evidence trail | Low | 100% |
+| Time to reconcile a month (300 bank lines) | 1–3 days | < 1 hour including review |
+| Bank lines matched automatically | 0% | 80–85% |
+| Duplicates counted in the books | Unknown | 0 |
+| Edited documents caught before month close | Rare | > 90% on known techniques |
 
 ## 10. Assumptions & open questions
 
 | # | Assumption / question | Owner | Status |
 |---|---|---|---|
-| A1 | Analysts are willing to upload on behalf of borrowers in a pilot | Product | Assumed |
-| A2 | Six months of statements is the standard requirement | Product | Assumed (configurable) |
-| A3 | Loan installment uses an annuity at the policy's assumed rate unless the analyst overrides it | Risk | Assumed |
-| Q1 | Do we show the original-revision value (P1-03) in the main demo? | Team | Open |
-| Q2 | Indonesian-language UI option for the finale? | Team | Decided: English only; Indonesian shown as "coming soon" (P2) |
-| Q3 | Which paid tiers and prices? | Team | Open: tiers listed as "coming soon" without prices |
+| A1 | One currency (IDR) per workspace in the prototype | Product | Assumed |
+| A2 | Months are calendar months in the workspace's time zone | Product | Assumed |
+| A3 | Ledger exports have one row per entry with date, amount (or debit/credit), description and a reference | Product | Assumed; mapping confirmed by the user |
+| A4 | Receipts paid in cash have no bank line; they are matched to ledger entries only | Product | Assumed |
+| Q1 | Should a month auto-close after its statement is reconciled with no open review items? | Team | Open (P1 sign-off is manual) |
+| Q2 | Indonesian UI for the finale? | Team | Decided: English only; others coming soon |
+| Q3 | Paid tiers and prices | Team | Open: listed as coming soon without prices |

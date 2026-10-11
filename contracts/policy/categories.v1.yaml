@@ -1,0 +1,58 @@
+# Kredibel categories — version 1
+# The category vocabulary for bank lines and ledger entries, the statement line each category rolls up
+# to, and where it goes in the statement of cash flows under the workspace's accounting framework
+# (profile.accountingFramework). Semantics: docs/08-risk-engine.md §4.1 and ADR-016. Cash-flow class and
+# statement line are derived by code from this file; a model never sets them.
+#
+# Cash-flow class
+#   IFRS: IAS 7 as amended by IFRS 18 (periods beginning on or after 1 Jan 2027), for an entity without
+#     a specified main business activity: interest and dividends paid are financing, interest and
+#     dividends received are investing. Earlier periods allow a policy choice; Kredibel applies the
+#     IFRS 18 classification for comparability and says so in the UI.
+#   US_GAAP: ASC 230: interest paid, interest received and dividends received are operating; dividends
+#     paid are financing.
+# Statement lines are cash-basis groupings for the dashboard (not an accrual income statement); their
+# names follow each framework's usual wording.
+# ⚠️ An accountant should confirm these mappings before any real-data pilot.
+
+version: 1
+id: categories.v1
+frameworks: [IFRS, US_GAAP]
+defaultFramework: IFRS
+
+lines:
+  REVENUE:            { order: 1, ifrs: "Revenue",                    usGaap: "Net sales" }
+  OTHER_INCOME:       { order: 2, ifrs: "Other income",               usGaap: "Other income" }
+  COST_OF_SALES:      { order: 3, ifrs: "Cost of sales",              usGaap: "Cost of goods sold" }
+  OPERATING_EXPENSES: { order: 4, ifrs: "Operating expenses",         usGaap: "Selling, general and administrative" }
+  INCOME_TAX:         { order: 5, ifrs: "Taxes paid",                 usGaap: "Taxes paid" }
+  FINANCE_COSTS:      { order: 6, ifrs: "Finance costs",              usGaap: "Interest expense" }
+  INVESTING:          { order: 7, ifrs: "Equipment and investments",  usGaap: "Capital expenditures" }
+  FINANCING:          { order: 8, ifrs: "Loans and owner",            usGaap: "Loans and owner" }
+  NONE:               { order: 9, ifrs: "Not a cash flow",            usGaap: "Not a cash flow" }
+
+categories:
+  # ---------------------------------------------------------------- money in
+  - { id: SALES_RECEIPT,          direction: in,  line: REVENUE,            label: "Sales receipts",            ifrs: OPERATING, usGaap: OPERATING }
+  - { id: OTHER_OPERATING_INCOME, direction: in,  line: OTHER_INCOME,       label: "Other operating income",    ifrs: OPERATING, usGaap: OPERATING }
+  - { id: INTEREST_RECEIVED,      direction: in,  line: OTHER_INCOME,       label: "Interest received",         ifrs: INVESTING, usGaap: OPERATING }
+  - { id: ASSET_SALE,             direction: in,  line: INVESTING,          label: "Sale of equipment",         ifrs: INVESTING, usGaap: INVESTING }
+  - { id: LOAN_DISBURSEMENT,      direction: in,  line: FINANCING,          label: "Loan received",             ifrs: FINANCING, usGaap: FINANCING }
+  - { id: OWNER_CAPITAL,          direction: in,  line: FINANCING,          label: "Owner's capital",           ifrs: FINANCING, usGaap: FINANCING }
+  # ---------------------------------------------------------------- money out
+  - { id: INVENTORY_PURCHASE,      direction: out, line: COST_OF_SALES,      label: "Purchases for sale or production", ifrs: OPERATING, usGaap: OPERATING }
+  - { id: SUPPLIER_PAYMENT,        direction: out, line: OPERATING_EXPENSES, label: "Other suppliers and services",    ifrs: OPERATING, usGaap: OPERATING }
+  - { id: PAYROLL,                 direction: out, line: OPERATING_EXPENSES, label: "Payroll",                 ifrs: OPERATING, usGaap: OPERATING }
+  - { id: RENT,                    direction: out, line: OPERATING_EXPENSES, label: "Rent",                    ifrs: OPERATING, usGaap: OPERATING }
+  - { id: UTILITIES,               direction: out, line: OPERATING_EXPENSES, label: "Utilities",               ifrs: OPERATING, usGaap: OPERATING }
+  - { id: BANK_FEES,               direction: out, line: OPERATING_EXPENSES, label: "Bank fees",               ifrs: OPERATING, usGaap: OPERATING }
+  - { id: OTHER_OPERATING_EXPENSE, direction: out, line: OPERATING_EXPENSES, label: "Other spending",          ifrs: OPERATING, usGaap: OPERATING }
+  - { id: TAX_PAYMENT,             direction: out, line: INCOME_TAX,         label: "Tax",                     ifrs: OPERATING, usGaap: OPERATING }
+  - { id: INTEREST_PAID,           direction: out, line: FINANCE_COSTS,      label: "Interest paid",           ifrs: FINANCING, usGaap: OPERATING }
+  - { id: ASSET_PURCHASE,          direction: out, line: INVESTING,          label: "Equipment bought",        ifrs: INVESTING, usGaap: INVESTING }
+  - { id: LOAN_REPAYMENT,          direction: out, line: FINANCING,          label: "Loan principal repaid",   ifrs: FINANCING, usGaap: FINANCING }
+  - { id: OWNER_DRAWING,           direction: out, line: FINANCING,          label: "Owner drawings",          ifrs: FINANCING, usGaap: FINANCING }
+  # ---------------------------------------------------------------- not cash flows of the business
+  - { id: INTERNAL_TRANSFER,       direction: either, line: NONE, label: "Between own accounts", ifrs: NON_CASH, usGaap: NON_CASH }
+  - { id: REVERSAL,                direction: either, line: NONE, label: "Reversal",             ifrs: NON_CASH, usGaap: NON_CASH }
+  - { id: UNKNOWN,                 direction: either, line: NONE, label: "Not categorized yet",  ifrs: UNCLASSIFIED, usGaap: UNCLASSIFIED }

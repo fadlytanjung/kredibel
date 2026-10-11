@@ -1,7 +1,21 @@
 {
   "indexes": [
     {
-      "collectionGroup": "cases",
+      "collectionGroup": "documents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "docType",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "uploadedAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "documents",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -9,49 +23,27 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "createdAt",
+          "fieldPath": "uploadedAt",
           "order": "DESCENDING"
         }
       ]
     },
     {
-      "collectionGroup": "findings",
+      "collectionGroup": "documents",
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "runId",
-          "order": "ASCENDING"
+          "fieldPath": "months",
+          "arrayConfig": "CONTAINS"
         },
         {
-          "fieldPath": "severityRank",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "code",
+          "fieldPath": "docType",
           "order": "ASCENDING"
         }
       ]
     },
     {
-      "collectionGroup": "findings",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "runId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "docId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "severityRank",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "transactions",
+      "collectionGroup": "bankLines",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -65,43 +57,47 @@
       ]
     },
     {
-      "collectionGroup": "transactions",
+      "collectionGroup": "bankLines",
       "queryScope": "COLLECTION",
       "fields": [
+        {
+          "fieldPath": "month",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "match.state",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "date",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "bankLines",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "counterpartyId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "date",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "bankLines",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "month",
+          "order": "ASCENDING"
+        },
         {
           "fieldPath": "category",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "date",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "transactions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "riskTags",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "date",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "transactions",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "docId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "rowIndex",
           "order": "ASCENDING"
         }
       ]
@@ -121,44 +117,144 @@
       ]
     },
     {
-      "collectionGroup": "cases",
+      "collectionGroup": "invoices",
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "applicantId",
+          "fieldPath": "month",
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "createdAt",
+          "fieldPath": "payment.state",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "receipts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "month",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "date",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "ledgerEntries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "month",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "isBankCash",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "date",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "matches",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "month",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "kind",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "reviewItems",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "priority",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "month",
           "order": "DESCENDING"
         }
       ]
     },
     {
-      "collectionGroup": "applicants",
+      "collectionGroup": "reviewItems",
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "type",
+          "fieldPath": "month",
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "updatedAt",
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "findings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "severityRank",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "month",
           "order": "DESCENDING"
         }
       ]
     },
     {
-      "collectionGroup": "applicants",
+      "collectionGroup": "findings",
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "type",
+          "fieldPath": "docId",
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "displayNameLower",
+          "fieldPath": "severityRank",
           "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "counterparties",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "roles",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "lastDate",
+          "order": "DESCENDING"
         }
       ]
     },
@@ -177,48 +273,105 @@
       ]
     },
     {
-      "collectionGroup": "counterparties",
+      "collectionGroup": "retrievalChunks",
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "runId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "totalFlowMinor",
-          "order": "DESCENDING"
+          "fieldPath": "embedding_v1",
+          "vectorConfig": {
+            "dimension": 768,
+            "flat": {}
+          }
         }
       ]
     },
     {
-      "collectionGroup": "counterparties",
+      "collectionGroup": "retrievalChunks",
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "runId",
+          "fieldPath": "docType",
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "roles",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "totalFlowMinor",
-          "order": "DESCENDING"
+          "fieldPath": "embedding_v1",
+          "vectorConfig": {
+            "dimension": 768,
+            "flat": {}
+          }
         }
       ]
     },
     {
-      "collectionGroup": "invites",
-      "queryScope": "COLLECTION_GROUP",
+      "collectionGroup": "knowledgeChunks",
+      "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "email",
+          "fieldPath": "embedding_v1",
+          "vectorConfig": {
+            "dimension": 768,
+            "flat": {}
+          }
+        }
+      ]
+    },
+    {
+      "collectionGroup": "labels",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "needsCheck",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "ai.confidence",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "labels",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "task",
           "order": "ASCENDING"
         },
         {
           "fieldPath": "status",
           "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "ai.confidence",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "labels",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "subject.docId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "subject.pageNo",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "labels",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "dataset.use",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "decidedAt",
+          "order": "DESCENDING"
         }
       ]
     }

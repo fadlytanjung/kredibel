@@ -15,7 +15,7 @@ description: Security and data-handling rules. Applies to every change, includin
   returns 404. Custom claims are set only by server code (workspace creation, invite acceptance) and
   the bootstrap script.
 - Personal data minimization: accept full account numbers only on input, store them masked plus a hash
-  in `orgPrivate/`, never return or log them; accept only the last 4 digits of ID numbers.
+  in `orgPrivate/`, never return or log them; tax IDs stored masked.
 - Plan `limitOverrides` and `system/` documents are server-only; no API writes them.
 - Firestore rules deny all client writes. Do not relax `contracts/firestore.rules` without a test and
   an ADR.
@@ -23,4 +23,7 @@ description: Security and data-handling rules. Applies to every change, includin
   content, never pass a quarantined document to a model.
 - Model output is untrusted: validate with Pydantic; render markdown safely; resolve citations only
   against known IDs.
-- A change to an auth, isolation or decision guard needs a test in the same commit.
+- A change to an auth, isolation, role (`domain/access.py`) or review-action rule needs a test in the
+  same commit.
+- Assistant memories hold preferences only, scoped to `{orgId}:{uid}`; never store figures or document
+  content as memories.

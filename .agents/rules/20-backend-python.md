@@ -15,9 +15,13 @@ description: Python conventions for the Kredibel backend.
 - IDs: prefixed ULIDs; content-derived IDs per `docs/09-data-model.md` §4. Re-runs upsert, never duplicate.
 - Pydantic v2 at every boundary; camelCase aliases for Firestore/JSON (`alias_generator=to_camel`).
 - Errors: raise `DomainError` subclasses with a stable `code`; the API renders RFC 9457 problem+json.
-- Logging: structlog JSON; bind `case_id`, `run_id`, `doc_id`, `node`. Never log document text,
+- Logging: structlog JSON; bind `org_id`, `run_id`, `doc_id` or `month`, `node`. Never log document text,
   descriptions, names, account numbers, prompts with content, or model outputs.
 - Firestore writes in chunks of ≤ 400; state changes and their audit event in the same transaction.
+- Persistence: every Firestore document has `schemaVersion` and stores its parent IDs as fields.
+  Repositories upcast on read and write only the latest version. Any change to a persistence model
+  follows `docs/22-data-migrations.md` (version bump, upcaster, migration, schema snapshot) — use the
+  `/data-migration` skill. Never rewrite audit events, resolved review decisions or past runs.
 - Comments explain why. Files ≤ 400 lines, functions ≤ 50 lines as a guideline.
 - Tests: `backend/tests/{unit,integration,scenarios}`; fakes for every port; names state the
-  behaviour and the requirement (`test_fr044_…`).
+  behaviour and the requirement (`test_fr031_…`).

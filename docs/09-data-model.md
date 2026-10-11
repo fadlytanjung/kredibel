@@ -2,6 +2,7 @@
 
 > Firestore is the system of record ([ADR-003](adr/ADR-003-firestore-system-of-record.md)); Cloud
 > Storage holds files. This page is normative: repository code and `contracts/openapi.yaml` follow it.
+> Changes follow [`22-data-migrations.md`](22-data-migrations.md).
 
 ---
 
@@ -10,330 +11,305 @@
 | Topic | Rule |
 |---|---|
 | Field names | `camelCase` in Firestore and JSON; `snake_case` in Python. Pydantic models use `alias_generator=to_camel, populate_by_name=True`. |
-| IDs | ULIDs with a type prefix: `case_`, `doc_`, `run_`, `evt_`, `msg_`, `apl_` (applicant), `ivt_` (invite). Content-derived IDs are deterministic (see §4). |
-| Case reference | `KRD-` + 6 Crockford base32 characters derived from the case ULID (e.g. `KRD-8F3K2Q`). Display only. |
-| Timestamps | Firestore `Timestamp` (UTC), set by the server. Document dates (transaction date, invoice date) are `YYYY-MM-DD` strings. They are calendar dates, not instants. |
-| Months | `YYYY-MM` strings. |
+| IDs | ULIDs with a type prefix: `doc_`, `run_`, `evt_`, `itm_` (review item), `mat_` (match), `ivt_` (invite), `thr_` (assistant thread). Content-derived IDs are deterministic (§4). |
+| Timestamps | Firestore `Timestamp` (UTC), set by the server. Document dates are `YYYY-MM-DD` strings (calendar dates, not instants). |
+| Months | `YYYY-MM` strings in the workspace's time zone. |
 | Enums | UPPER_SNAKE strings. |
-| Org scoping | Every workspace document lives under `orgs/{orgId}/…`. There are no top-level case or applicant collections. Server-only data lives under `orgPrivate/{orgId}/…`, which clients can never read. |
-| Workspace | "Workspace" in the UI = organization (`org`) in data and code. |
-
----
+| Workspace scoping | Every record lives under `orgs/{orgId}/…`. "Workspace" in the UI = `org` in data and code. Server-only data lives under `orgPrivate/{orgId}/…` and `system/…`, which clients can never read. |
+| Schema version | Every document has `schemaVersion` (integer per collection, starting at 1; missing = 1). Reads upcast; writes write the latest ([ADR-013](adr/ADR-013-versioned-documents-and-forward-migrations.md)). |
+| Parent IDs | Every document stores its parent IDs as fields (`orgId`, and `docId`, `month`, `runId` where they apply). |
+| Held values | Records of a **possible duplicate** carry `heldAsDuplicate: true` and are excluded from figures and matching until decided (FR-012). |
 
 ## 2. Money
 
-- **Python:** `Decimal`, wrapped in `Money(amount: Decimal, currency: str)`. **Never `float`.**
+- **Python:** `Decimal`, wrapped in `Money(amount, currency)`. **Never `float`.**
 - **Firestore:** integer **minor units** in fields suffixed `Minor` (`amountMinor: 125000000` =
-  IDR 1,250,000.00; IDR has exponent 2 in ISO 4217) plus a `currency` field on the parent object.
-- **API JSON:** `{"amount": "1250000.00", "currency": "IDR"}`. Decimal string, 2 decimal places.
-- **Ratios and metrics:** decimal strings (`"1.42"`) in facts; never floats in storage.
-- **Display:** the frontend formats with one helper (`formatMoney`) as `IDR 1,250,000`.
+  IDR 1,250,000.00) plus `currency` on the workspace.
+- **API JSON:** `{"amount": "1250000.00", "currency": "IDR"}`, decimal string, two places.
+- **Display:** `formatMoney` → `IDR 1,250,000`; compact `IDR 1.25 M`.
 
 ---
 
 ## 3. Collections
 
 ```mermaid
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "Arial, Helvetica, sans-serif", "fontSize": "14px", "primaryColor": "#E3F1EE", "primaryBorderColor": "#0F5E56", "primaryTextColor": "#14201C", "lineColor": "#55625D", "secondaryColor": "#F0F2EF", "tertiaryColor": "#FFFFFF", "clusterBkg": "#F7F8F6", "clusterBorder": "#B8BFB9", "noteBkgColor": "#FEF0C7", "noteTextColor": "#14201C"}, "htmlLabels": false, "flowchart": {"htmlLabels": false, "padding": 16, "nodeSpacing": 40, "rankSpacing": 50, "wrappingWidth": 220}, "sequence": {"wrap": true, "useMaxWidth": true, "noteFontFamily": "Arial, Helvetica, sans-serif", "messageFontFamily": "Arial, Helvetica, sans-serif", "actorFontFamily": "Arial, Helvetica, sans-serif"}}}%%
+%%{init: {"theme": "base", "themeVariables": {"fontFamily": "Arial, Helvetica, sans-serif", "fontSize": "14px", "primaryColor": "#E7F2EE", "primaryBorderColor": "#0E5A47", "primaryTextColor": "#16212B", "lineColor": "#56636F", "secondaryColor": "#E8ECEE", "tertiaryColor": "#FFFFFF", "clusterBkg": "#F2F4F5", "clusterBorder": "#B9C2CA", "noteBkgColor": "#FFF5D6", "noteTextColor": "#16212B"}, "htmlLabels": false, "flowchart": {"htmlLabels": false, "padding": 16, "nodeSpacing": 40, "rankSpacing": 50, "wrappingWidth": 220}, "sequence": {"wrap": true, "useMaxWidth": true, "noteFontFamily": "Arial, Helvetica, sans-serif", "messageFontFamily": "Arial, Helvetica, sans-serif", "actorFontFamily": "Arial, Helvetica, sans-serif"}}}%%
 erDiagram
-    ORG ||--o{ MEMBER : has
-    ORG ||--o{ INVITE : has
-    ORG ||--o{ USAGE : meters
-    ORG ||--o{ APPLICANT : onboards
-    APPLICANT ||--o{ CASE : applies-in
-    APPLICANT ||--o{ SUGGESTION : receives
-    APPLICANT ||--o{ APPLICANT_EVENT : logs
-    ORG ||--o{ CASE : owns
-    CASE ||--o{ COUNTERPARTY : derives
-    CASE ||--o{ DOCUMENT : contains
-    CASE ||--o{ TRANSACTION : contains
-    CASE ||--o{ INVOICE : contains
-    CASE ||--o{ FINDING : has
-    CASE ||--o{ RUN : has
-    CASE ||--o{ ANALYSIS : has
-    CASE ||--o| MEMO : has
-    CASE ||--o{ EVENT : logs
-    CASE ||--o{ ASSISTANT_MESSAGE : has
-    DOCUMENT ||--o{ TRANSACTION : yields
+    WORKSPACE ||--o{ MEMBER : has
+    WORKSPACE ||--o{ BANK_ACCOUNT : owns
+    WORKSPACE ||--o{ DOCUMENT : uploads
+    DOCUMENT ||--o{ BANK_LINE : yields
     DOCUMENT ||--o| INVOICE : yields
-    RUN ||--|| ANALYSIS : produces
-    RUN ||--o{ FINDING : produces
+    DOCUMENT ||--o| RECEIPT : yields
+    DOCUMENT ||--o{ LEDGER_ENTRY : yields
+    BANK_ACCOUNT ||--o{ BANK_LINE : holds
+    WORKSPACE ||--o{ MONTH : reconciles
+    MONTH ||--o{ MATCH : contains
+    MONTH ||--o{ REVIEW_ITEM : raises
+    MONTH ||--o{ FINDING : raises
+    DOCUMENT ||--o{ FINDING : raises
+    MATCH }o--o{ BANK_LINE : links
+    MATCH }o--o{ INVOICE : links
+    MATCH }o--o{ RECEIPT : links
+    MATCH }o--o{ LEDGER_ENTRY : links
+    WORKSPACE ||--o{ COUNTERPARTY : derives
+    WORKSPACE ||--o{ SUGGESTION : receives
+    WORKSPACE ||--o{ RUN : executes
+    WORKSPACE ||--o{ EVENT : logs
 ```
 
-### 3.1 `orgs/{orgId}` (workspace)
+### 3.1 `orgs/{orgId}` (workspace = the business or person whose books are checked)
 
 | Field | Type | Notes |
 |---|---|---|
-| `name` | string | Shown as the workspace name |
-| `country` | string | ISO 3166-1 alpha-2; `ID` only in the prototype |
-| `timezone` | string | IANA, e.g. `Asia/Jakarta` |
-| `defaultLanguage` | string | `en` (the only available language; see `contracts/plans.v1.yaml`) |
-| `currency` | string | `IDR` (fixed in the prototype) |
-| `policyVersion` | string | e.g. `scorecard.v1` |
-| `policyOverrides` | map? | P1. `assumedAnnualRate`, `targetDscr`, `requiredMonths`, `minMonths`, `updatedBy`, `updatedAt`; bounded by `policyOverrideBounds` |
-| `subscription` | map | `planId` (`free_trial`), `status` (`TRIALING`, `TRIAL_EXPIRED`, `ACTIVE`), `trialStartedAt`, `trialEndsAt`, `limitOverrides?` (server-set, e.g. for the demo workspace) |
+| `name` | string | Display name |
+| `entityType` | `INDIVIDUAL` \| `COMPANY` | Set at creation; cannot change |
+| `profile` | map | `legalName`, `tradingName?`, `legalForm?` (company), `industry?`, `taxIdMasked?`, `address?` {`line1`, `city`}, `aliases[]` (accepted spellings) |
+| `country`, `timezone`, `currency`, `defaultLanguage` | string | `ID`, `Asia/Jakarta`, `IDR`, `en` in the prototype |
+| `profile.accountingFramework` | `IFRS` \| `US_GAAP` | Decides each category's cash-flow class (`contracts/policy/categories.v1.yaml`); default `IFRS` ([ADR-016](adr/ADR-016-human-verified-labels-and-learning-loop.md)) |
+| `learning` | map | `shareVerifiedLabels` (bool, default `false`): consent to use masked verified labels in tuning datasets (later) |
+| `ledgerMappings` | map | per file layout signature → confirmed column mapping (§3.8); bank account → ledger account code |
+| `subscription` | map | `planId`, `status` (`TRIALING`, `TRIAL_EXPIRED`, `ACTIVE`), `trialStartedAt`, `trialEndsAt`, `limitOverrides?` |
+| `counts` | map | `documents`, `openReviewItems`, `openFindingsBySeverity` — for the dashboard header |
 | `createdBy`, `createdAt` | | |
 
-`subscription.status` is derived on read from `trialEndsAt` and stored when it changes (a scheduled
-job is not needed).
+### 3.2 `orgs/{orgId}/usageMonthly/{yyyy-mm}` and `usage/{yyyy-mm-dd}`
 
-### 3.1a `orgs/{orgId}/usage/{yyyy-mm-dd}`
+| Field | Notes |
+|---|---|
+| `documentsUploaded` | enforces `documentsPerMonth` (exact duplicates not counted) |
+| `pagesReserved`, `pagesRead`, `pagesCached`, `ocrPages`, `parserPages` | enforces `extractedPagesPerMonth` |
+| `aiSpendUsd` (decimal string) | enforces `aiSpendUsdPerMonth` |
+| `monthRuns` (daily doc) | enforces `monthRunsPerDay` |
+| `assistantQuestions` (daily doc, P1) | enforces `assistantQuestionsPerDay` |
 
-| Field | Type | Notes |
-|---|---|---|
-| `runsStarted` | int | Incremented in the same transaction that starts a run; enforces the plan's `runsPerDay` and `RUN_QUOTA_PER_ORG_PER_DAY` (UTC day) |
-| `pagesRead`, `ocrPages`, `parserPages`, `geminiTokensIn`, `geminiTokensOut` | int | Daily usage totals for cost tracking ([`21`](21-cost-analysis.md)) |
+### 3.3 `orgs/{orgId}/members/{uid}` and `invites/{inviteId}` (P1)
 
-### 3.1b `orgs/{orgId}/usageMonthly/{yyyy-mm}`
+`members`: `email`, `displayName`, `role` (`owner` in P0; P1 adds `accountant`, `reviewer`, `viewer`;
+authorization uses the custom claim), `language`, `createdAt`. `invites`: `email`, `role`, `status`
+(`PENDING`, `ACCEPTED`, `REVOKED`, `EXPIRED`), `createdBy`, `expiresAt`.
 
-| Field | Type | Notes |
-|---|---|---|
-| `casesCreated` | int | Incremented in the case-creation transaction; enforces `casesPerMonth` |
-| `pagesReserved` | int | Uncached pages reserved at run start; enforces `extractedPagesPerMonth` |
-| `pagesRead`, `pagesCached`, `ocrPages`, `parserPages` | int | Actuals written when a run finishes |
-| `aiSpendUsd` | string decimal | Sum of `runs.usage.estimatedUsd`; enforces `aiSpendUsdPerMonth` |
-
-### 3.2 `orgs/{orgId}/members/{uid}`
+### 3.4 `orgs/{orgId}/bankAccounts/{accountId}`
 
 | Field | Type | Notes |
 |---|---|---|
-| `email`, `displayName` | string | |
-| `role` | `analyst` \| `risk_lead` \| `admin` | Mirror of the custom claim, for display. **Authorization uses the claim.** `admin` can do everything `risk_lead` can, plus workspace settings, members and plan. |
-| `language` | string | `en` |
-| `createdAt` | timestamp | |
+| `bankName`, `holderName` | string | |
+| `accountMasked` | string | `••••4821`; the full number is never stored readable |
+| `source` | `DECLARED` \| `DETECTED` | `DETECTED` = accepted from a suggestion |
+| `ledgerAccountCode?` | string | Mapping for ledger reconciliation |
+| `firstMonth`, `lastMonth` | string | Months covered by statements |
 
-### 3.2a `orgs/{orgId}/invites/{inviteId}` (P1)
+The salted hash of the full number lives in `orgPrivate/{orgId}/accountHashes/{accountId}`.
 
-| Field | Type | Notes |
-|---|---|---|
-| `inviteId` | string | `ivt_…` |
-| `email` | string | Lower-cased; must equal the invitee's verified Firebase email |
-| `role` | enum | Role granted on acceptance |
-| `status` | `PENDING` \| `ACCEPTED` \| `REVOKED` \| `EXPIRED` | |
-| `createdBy`, `createdAt`, `expiresAt` (+7 days), `acceptedBy?`, `acceptedAt?` | | |
-
-### 3.3 `orgs/{orgId}/cases/{caseId}`
+### 3.5 `orgs/{orgId}/documents/{docId}`
 
 | Field | Type | Notes |
 |---|---|---|
-| `caseId`, `reference` | string | |
-| `status` | `DRAFT` \| `PROCESSING` \| `READY_FOR_REVIEW` \| `ESCALATED` \| `APPROVED` \| `DECLINED` \| `INFO_REQUESTED` \| `FAILED` | [`05`](05-architecture.md) §6 |
-| `applicantId` | string | Link to §3.13 |
-| `applicant` | map | Snapshot for lists and the memo: `type` (`INDIVIDUAL`, `COMPANY`), `displayName`, `legalForm?`, `industry`, `yearsOperating?`, `snapshotAt`. Refreshed from the applicant while `DRAFT`/`INFO_REQUESTED`; frozen afterwards |
-| `request` | map | `amountMinor` (int), `currency` (`IDR`), `tenorMonths` (int), `purpose`, `installmentOverrideMinor?` |
-| `counts` | map | `documents`, `documentsDone`, `documentsFailed` |
-| `currentRunId` | string? | |
-| `progress` | map | `stage`, `pct` (0–100), `message`, `updatedAt`. **Realtime channel.** |
-| `summary` | map? | `score`, `grade`, `recommendation`, `hardStops[]`, `worstVerdict`, `openFindings` {`critical`,`high`,`medium`,`low`} |
-| `decision` | map? | `outcome`, `reason`, `conditions[]`, `decidedBy`, `decidedByRole`, `decidedAt`, `overrodeRecommendation` (bool) |
-| `policyVersion` | string | Policy used by the current run |
-| `policyHash` | string | Hash of the effective policy (version + workspace overrides) used by the current run |
-| `createdBy`, `assigneeUid` | string | |
-| `createdAt`, `updatedAt` | timestamp | |
+| `fileName`, `contentType`, `sizeBytes`, `pageCount` | | `contentType` from magic bytes |
+| `sha256` | string | Exact-duplicate key (unique per workspace among non-duplicates) |
+| `pHash` | string? | 64-bit perceptual hash of page 1 (images, receipts) |
+| `gcsPath` | string | Never a public URL |
+| `docType`, `typeConfidence` | `BANK_STATEMENT` \| `SALES_INVOICE` \| `PURCHASE_INVOICE` \| `RECEIPT` \| `LEDGER_EXPORT` \| `OTHER` \| `UNKNOWN`; decimal | |
+| `status`, `statusDetail?` | `UPLOADED` \| `SCREENING` \| `READING` \| `CHECKING` \| `DONE` \| `DUPLICATE` \| `NEEDS_INPUT` \| `FAILED` \| `QUARANTINED`; plain-language reason | **Realtime channel.** `NEEDS_INPUT` = type or ledger mapping to confirm |
+| `duplicate` | map? | `kind` (`EXACT`, `CONTENT`), `ofDocId`, `code` (`D01`…`D06`), `decision` (`PENDING`, `CONFIRMED`, `REJECTED`), `decidedBy?`, `decidedAt?` |
+| `heldAsDuplicate` | bool | true while a content duplicate is `PENDING` or `CONFIRMED` |
+| `months` | string[] | Months the document's values fall in (statement period, invoice/receipt date, ledger dates) |
+| `pages` | array | `{pageNo, imagePath, thumbPath, sha256, textLayer, blank, witness, status, agreement?}` — **realtime** "page n of m" |
+| `reading` | map? | `method` (`AI_TEXT_LAYER`, `AI_OCR`, `AI_MIXED`, `LEDGER_PARSER`), `agreement`, `fieldsCompared`, `fieldsAgreed`, `model`, `promptVersion` |
+| `statementMeta` | map? | `bankName`, `accountHolder`, `accountMasked`, `accountId?`, `periodStart`, `periodEnd`, `openingMinor`, `closingMinor`, `provenance` |
+| `ledgerMeta` | map? | `layoutSignature`, `mappingStatus` (`PROPOSED`, `CONFIRMED`), `rows`, `rowsImported`, `rowErrors[]` {`row`, `reason`} (≤ 100), `dateRange` |
+| `pdf` | map? | `producer`, `creator`, `creationDate`, `modDate`, `revisions`, `hasTextLayer`, `fonts[]` |
+| `integrity` | map? | `verdict` (`CLEAN`, `SUSPICIOUS`, `TAMPERED`, `UNVERIFIABLE`), `findingIds[]` |
+| `risk` | map? | `level`, `score` |
+| `screening` | map? | P1 Model Armor result; `quarantined` |
+| `uploadedBy`, `uploadedAt`, `lastRunId` | | |
 
-### 3.4 `…/cases/{caseId}/documents/{docId}`
-
-| Field | Type | Notes |
-|---|---|---|
-| `docId`, `fileName`, `contentType` | string | `contentType` from magic bytes |
-| `sizeBytes`, `pageCount` | int | |
-| `sha256` | string | Unique per case |
-| `gcsPath` | string | Object path, never a public URL |
-| `status` | `UPLOADED` \| `SCREENING` \| `INSPECTING` \| `CLASSIFYING` \| `EXTRACTING` \| `CHECKING` \| `DONE` \| `SKIPPED` \| `FAILED` \| `QUARANTINED` | **Realtime channel.** |
-| `docType` | `BANK_STATEMENT` \| `SALES_INVOICE` \| `PURCHASE_INVOICE` \| `TAX_INVOICE` \| `RECEIPT` \| `OTHER` \| `UNKNOWN` | `UNKNOWN` until classified |
-| `classification` | map? | `DocClassification` + `runId` + `model` |
-| `screening` | map? | `verdict` (`CLEAN`, `INJECTION_SUSPECTED`, `ERROR`, `SKIPPED`), `quarantined` (bool), `filters[]`, `runId` |
-| `pdf` | map? | `producer`, `creator`, `creationDate`, `modDate`, `revisions` (int), `hasTextLayer`, `fonts[]`, `encrypted`, `inspectedAt`; P1: `revisionDiff[] {page, bbox, before, after}` |
-| `pages` | array (≤ plan `pagesPerDocument`) | `{pageNo, width, height, imagePath, thumbPath, sha256, textLayer (USABLE, UNUSABLE, NONE), blank, witness (TEXT_LAYER, OCR), status (PENDING, READ, CACHED, SKIPPED, FAILED), agreement?, aiRows?, witnessOnlyRows?, escalated}`. **Realtime channel** for "page n of m read". |
-| `sourceUploadId`, `partOf` | string? | P1: parts created by "Split and upload" share the original upload's ID; `partOf` = `part 2 of 3` |
-| `extraction` | map? | `method` (`AI_TEXT_LAYER`, `AI_OCR`, `AI_MIXED`, `AI_ONLY`, `WITNESS_ONLY`, `THOROUGH`), `agreement` (string decimal), `fieldsCompared`, `fieldsAgreed`, `aiRows`, `witnessOnlyRows`, `pagesTextLayer`, `pagesOcr`, `pagesEscalated`, `model`, `promptVersion`, `processorVersions`, `runId` |
-| `statementMeta` | map? | `bankName`, `accountHolder`, `accountMasked` (`••••1234`), `matchedAccountId?` (declared account it matches, via §3.17), `holderAddress?`, `currency`, `periodStart`, `periodEnd`, `openingMinor`, `closingMinor`, `provenance` (map field → Provenance) |
-| `invoiceMeta` | map? | `invoiceId` (link to §3.6) |
-| `integrity` | map? | `verdict` (`CLEAN`, `SUSPICIOUS`, `TAMPERED`, `UNVERIFIABLE`), `score` (0–100), `findingIds[]`, `runId` |
-| `error` | map? | `code`, `message` |
-| `uploadedBy`, `uploadedAt` | | |
-
-### 3.5 `…/cases/{caseId}/transactions/{txId}`
+### 3.6 `orgs/{orgId}/bankLines/{txId}`
 
 | Field | Type | Notes |
 |---|---|---|
-| `txId` | string | `tx_{sha1(docId|rowIndex)[:16]}` |
-| `docId`, `accountMasked` | string | |
-| `rowIndex`, `page` | int | |
-| `date` | `YYYY-MM-DD` | |
-| `month` | `YYYY-MM` | Denormalized for queries |
-| `description`, `descriptionRaw`, `counterparty` | string | `counterparty` normalized (rules, refined by the categorizer) |
-| `counterpartyId` | string? | Link to §3.16 for the current run |
-| `direction` | `CREDIT` \| `DEBIT` | |
-| `amountMinor`, `balanceAfterMinor?` | int | |
-| `currency` | string | |
-| `consensus` | map | `status` (`AGREED`, `CONFLICT`, `SINGLE_SOURCE`), `sources[]` (`GEMINI`, `TEXT_LAYER`, `OCR`, `DOCAI`), `raw` {source: printed string}, `witnessOnly` (bool) |
-| `bbox` | map? | `{x0,y0,x1,y1}` normalized |
-| `cashflowClass`, `category` | enums | [`08`](08-risk-engine.md) §4.1 |
-| `riskTags` | array | |
-| `categorizedBy` | `RULE` \| `MODEL` \| `ANALYST` | |
-| `categoryConfidence` | string decimal | |
-| `matchedInvoiceIds` | array | |
-| `runId` | string | Run that last categorized it |
+| `docId`, `accountId?`, `rowIndex`, `page` | | |
+| `date`, `month` | string | |
+| `description` | string | As printed (never logged) |
+| `counterpartyId?`, `counterpartyName?` | string | |
+| `amountMinor` | int | Signed: + credit, − debit |
+| `balanceMinor?` | int | Printed running balance |
+| `category`, `cashflowClass`, `riskTags[]`, `categorizedBy` (`RULE`, `MODEL`, `MATCH`, `USER`), `categoryConfidence` | | [`08`](08-risk-engine.md) §4 |
+| `consensus` | map | per field: `status` (`AGREED`, `CONFLICT`, `SINGLE_SOURCE`, `MISSING`), `bbox`, `raw` |
+| `match` | map | `state` (`UNMATCHED`, `AUTO`, `MANUAL`, `PROPOSED`, `EXCLUDED`), `matchIds[]`, `matchedMinor` |
+| `heldAsDuplicate` | bool | From a held statement |
+| `correctedBy?`, `correctedAt?` | | Set when a user corrected a value (the original stays in `consensus.raw`) |
 
-### 3.6 `…/cases/{caseId}/invoices/{invoiceId}`
+### 3.7 `orgs/{orgId}/invoices/{invoiceId}` and `receipts/{receiptId}`
 
-| Field | Type | Notes |
-|---|---|---|
-| `invoiceId` | string | `inv_{sha1(docId)[:16]}` |
-| `docId` | string | |
-| `kind` | `SALES` \| `PURCHASE` \| `TAX` | |
-| `invoiceNumber`, `issuerName`, `issuerTaxId?`, `issuerAddress?`, `buyerName`, `buyerTaxId?` | string | |
-| `paymentAccount` | map? | `bankName`, `accountMasked`, `matchedAccountId?` (from the payment instructions) |
-| `issueDate`, `dueDate?` | `YYYY-MM-DD` | |
-| `currency` | string | |
-| `subtotalMinor`, `taxMinor`, `totalMinor` | int | |
-| `lines` | array | `{description, quantity (decimal string), unitPriceMinor, amountMinor}` (bounded by page limit) |
-| `provenance` | map | field → Provenance |
-| `match` | map | `status` (`MATCHED`, `PARTIAL`, `UNMATCHED`, `NOT_DUE`), `method` (`EXACT`, `NET_OF_TAX`, `SPLIT`, `PARTIAL`, `NONE`), `txIds[]`, `matchedAmountMinor`, `score` |
-| `runId` | string | |
+| Field (invoices) | Notes |
+|---|---|
+| `docId`, `kind` (`SALES`, `PURCHASE`) | |
+| `number`, `issuerName`, `issuerTaxId?`, `buyerName`, `buyerTaxId?` | |
+| `issueDate`, `dueDate?`, `month` | `month` of the issue date |
+| `subtotalMinor`, `taxMinor`, `totalMinor` | |
+| `payTo` | `bankName`, `accountMasked`, `accountHashRef` (to `orgPrivate`); feeds `X08` |
+| `lines[]` | `{description, qty, unitPriceMinor, amountMinor}` |
+| `supplyKind` | `GOODS` \| `SERVICES` \| `MIXED` (purchase invoices; from the reader, a `FIELD_VALUE` label); decides `INVENTORY_PURCHASE` or `SUPPLIER_PAYMENT` ([`08`](08-risk-engine.md) §4.1) |
+| `payment` | `state` (`UNPAID`, `PAID`, `PARTIAL`, `NOT_DUE`, `WAITING_FOR_STATEMENT`), `paidMinor`, `matchIds[]` |
+| `consensus`, `heldAsDuplicate`, `counterpartyId?` | |
+| `dupKey`, `dupKeyAlt` | Content keys for `D03`/`D04` (issuer + number; issuer + date + total), single-field indexed |
 
-### 3.7 `…/cases/{caseId}/findings/{findingId}`
+Receipts: `docId`, `merchantName`, `date`, `month`, `totalMinor`, `taxMinor?`, `paymentMethod`
+(`CASH`, `CARD`, `TRANSFER`, `UNKNOWN`), `items[]?`, `payment` (as above), `consensus`,
+`heldAsDuplicate`, `dupKey` (merchant + date + total, for `D05`; the perceptual hash is on the
+document).
 
-The `Finding` model of [`08`](08-risk-engine.md) §1 in camelCase, plus:
+### 3.8 `orgs/{orgId}/ledgerEntries/{entryId}`
 
 | Field | Type | Notes |
 |---|---|---|
-| `severityRank` | int | 0 = CRITICAL … 4 = INFO, for ordering |
-| `docId?` | string | Denormalized from the first evidence ref, for filtering |
-| `statusReason`, `statusChangedBy`, `statusChangedAt` | | Set when acknowledged or dismissed |
-| `createdAt` | timestamp | |
+| `docId`, `rowNumber` | | Source file and row |
+| `date`, `month` | string | |
+| `accountCode`, `accountName` | string | From the mapped columns |
+| `description`, `reference?` | string | |
+| `debitMinor`, `creditMinor` | int | One of them non-zero |
+| `isBankCash` | bool | Account code mapped to one of the workspace's bank accounts |
+| `match` | map | as for bank lines |
+| `heldAsDuplicate` | bool | `D06` |
+| `dupKey` | string | date + amount + account + reference, for `D06` |
 
-A re-run creates findings under the **new** `runId`. Old findings stay for audit; the UI shows the
-current run's findings. An analyst's dismissal is carried forward to the new run when the same
-`code` + anchor appears again, with a note.
+**Ledger column mapping** (`orgs/{orgId}.ledgerMappings[layoutSignature]`): `{date, description,
+reference?, accountCode, accountName?, debit?, credit?, amount?, signConvention?, dateFormat,
+decimalSeparator, confirmedBy, confirmedAt}`. The layout signature is a hash of the normalized header
+row. Gemini proposes; the user confirms once per layout.
 
-### 3.8 `…/cases/{caseId}/runs/{runId}`
-
-| Field | Type | Notes |
-|---|---|---|
-| `runId`, `status` | `QUEUED` \| `RUNNING` \| `SUCCEEDED` \| `FAILED` | **Realtime channel.** |
-| `trigger` | `ANALYST` \| `RETRY` | |
-| `requestedBy` | string | |
-| `queuedAt`, `startedAt?`, `finishedAt?` | timestamp | |
-| `stages` | array | `{name, status (PENDING, RUNNING, DONE, SKIPPED, FAILED), startedAt, finishedAt, durationMs, model?, tokensIn?, tokensOut?, note?}` |
-| `promptVersions`, `modelVersions`, `processorVersions` | map | |
-| `policyVersion` | string | |
-| `usage` | map | `pagesRead`, `pagesCached`, `ocrPages`, `parserPages`, `geminiTokensIn`, `geminiTokensOut`, `estimatedUsd` (string) |
-| `pagesReserved` | int | Uncached pages reserved against the plan at run start; released by the actuals at the end |
-| `error` | map? | `code`, `message` |
-
-### 3.9 `…/cases/{caseId}/analysis/{runId}`
+### 3.9 `orgs/{orgId}/months/{yyyy-mm}`
 
 | Field | Type | Notes |
 |---|---|---|
-| `runId`, `computedAt` | | |
-| `coverage` | map | `months[]`, `start`, `end`, `accountsMasked[]` |
-| `monthly` | array | `{month, operatingInflowMinor, operatingOutflowMinor, ownerDrawingsMinor, debtServiceMinor, nocfMinor, cadsMinor, adbMinor, minBalanceMinor, negativeDays, byCategoryMinor {category: int}}` |
-| `facts` | array | `{id, label, value (decimal string), unit, inputs[]}` |
-| `scorecard` | map | `score`, `grade`, `components[] {id, weight, metric, value, points, contribution}`, `hardStops[] {id, recommendation, reason}` |
-| `recommendation` | map | `outcome`, `conditions[]`, `maxSupportableAmountMinor`, `maxSupportableInstallmentMinor`, `proposedInstallmentMinor` |
-| `reconciliation` | map | `salesInvoicedMinor`, `salesMatchedMinor`, `ratio`, `counts` {`matched`,`partial`,`unmatched`,`notDue`} |
+| `month` | string | |
+| `state` | `COLLECTING` \| `RECONCILING` \| `NEEDS_REVIEW` \| `RECONCILED` \| `SIGNED_OFF` (P1) | `COLLECTING` = no statement yet. **Realtime channel.** |
+| `dirty` | bool | Set by any change to the month's data; cleared by the month run |
+| `generation` | int | Incremented with every change; only the month run started for the latest generation writes ([`06`](06-agent-design.md) §3) |
+| `signedOff?` | map | `by`, `at` (P1); reopening records `reopened {by, at, reason}` |
+| `statements` | array | `{accountId, docId}` present for the month |
+| `figures` | map | Facts of [`08`](08-risk-engine.md) §5 as minor units or decimal strings |
+| `risk` | map | `level`, `score`, `reasons[]` (finding IDs), `summary` (explainer text), `nextSteps[]`, `grounding` (`VERIFIED`, `TEMPLATE`) |
+| `flows` | map | Money-flow totals for the month by account, counterparty and category; both views and both frameworks are assembled from them when read ([`08`](08-risk-engine.md) §5.1, §5.2) |
+| `lastRunId`, `updatedAt` | | |
 
-### 3.10 `…/cases/{caseId}/memo/current`
-
-| Field | Type | Notes |
-|---|---|---|
-| `runId` | string | |
-| `status` | `DRAFT` \| `EDITED` \| `FINAL` | `FINAL` once a decision is recorded |
-| `sections` | array | `{key, title, bodyMarkdown}`; keys: `summary`, `business`, `cashflow`, `integrity`, `revenue`, `risks`, `recommendation` |
-| `grounding` | map | `status` (`VERIFIED`, `UNVERIFIED`), `problems[] {sectionKey, sentence, number, reason}`, `checkedAt` |
-| `model`, `promptVersion` | string | |
-| `attempts` | int | |
-| `editedBy?`, `editedAt?`, `finalizedAt?` | | |
-
-### 3.11 `…/cases/{caseId}/events/{eventId}` (append-only audit)
+### 3.10 `orgs/{orgId}/matches/{matchId}`
 
 | Field | Type | Notes |
 |---|---|---|
-| `eventId` | string | |
-| `type` | enum | `CASE_CREATED`, `CASE_UPDATED`, `DOCUMENT_UPLOADED`, `DOCUMENT_REMOVED`, `RUN_QUEUED`, `RUN_STARTED`, `RUN_SUCCEEDED`, `RUN_FAILED`, `FINDING_ACKNOWLEDGED`, `FINDING_DISMISSED`, `TRANSACTION_RECATEGORIZED`, `MEMO_EDITED`, `DECISION_RECORDED` |
-| `actor` | map | `type` (`USER`, `SYSTEM`), `uid?`, `role?` |
-| `at` | timestamp | |
-| `data` | map | Small, event-specific (e.g. `{from, to, reason}`) |
+| `month` | string | Month of the bank line (or of the document for document ↔ ledger matches) |
+| `kind` | `BANK_SALES_INVOICE` \| `BANK_PURCHASE_INVOICE` \| `BANK_RECEIPT` \| `BANK_LEDGER` \| `DOCUMENT_LEDGER` | |
+| `bankLineIds[]`, `invoiceIds[]`, `receiptIds[]`, `ledgerEntryIds[]` | | |
+| `amountMinor` | int | |
+| `method` | `AUTO` \| `MANUAL` | |
+| `status` | `CONFIRMED` \| `PROPOSED` \| `REJECTED` | Rejected proposals are kept so they are not proposed again |
+| `score`, `reasons[]` | | `AMOUNT_EXACT`, `NET_OF_TAX`, `PARTY_MATCH`, `REFERENCE_IN_TEXT`, `DATE_NEAR`, `SPLIT` |
+| `createdBy` (`system` or uid), `createdAt`, `runId` | | |
 
-The repository exposes **no update or delete** for events.
-
-### 3.12 `…/cases/{caseId}/assistantMessages/{messageId}` (P1)
-
-`{messageId, uid, role (USER, ASSISTANT), text, citations[], createdAt}`. Display copy only; the agent's
-working memory is the Agent Platform session.
-
-### 3.13 `orgs/{orgId}/applicants/{applicantId}`
+### 3.11 `orgs/{orgId}/reviewItems/{itemId}`
 
 | Field | Type | Notes |
 |---|---|---|
-| `applicantId` | string | `apl_…` |
-| `type` | `INDIVIDUAL` \| `COMPANY` | Fixed after creation |
-| `displayName`, `displayNameLower` | string | Company `legalName` or individual `fullName`; lower-case copy for prefix search |
-| `individual` | map? | `fullName`, `tradingName?`, `occupation?`, `industry`, `yearsOperating?`, `idLast4?` (**last 4 digits only**; the full national ID is never collected) |
-| `company` | map? | `legalName`, `tradingName?`, `legalForm` (`LIMITED_COMPANY`, `PARTNERSHIP`, `COOPERATIVE`, `OTHER`), `registrationNumber?`, `taxId?`, `industry`, `yearsOperating`, `website?` |
-| `address` | map? | `line1`, `line2?`, `city`, `province?`, `postalCode?`, `country` |
-| `contact` | map? | `email?`, `phone?` |
-| `bankAccounts` | array (≤ 10) | `{accountId, bankName, accountMasked, holderName, currency, purpose (OPERATING, PAYROLL, SAVINGS, OTHER), source (DECLARED, DETECTED), addedBy, addedAt}`; the hash lives in §3.17 |
-| `relatedParties` | array (≤ 20) | `{partyId, name, nameNormalized, kind (INDIVIDUAL, COMPANY), roles[] (BENEFICIAL_OWNER, DIRECTOR, SHAREHOLDER, GUARANTOR, AUTHORIZED_SIGNATORY), ownershipPct? (decimal string), idLast4?, source (DECLARED, DETECTED)}` |
-| `aliases` | array | Accepted alternative names (e.g. the trading name printed on statements), used for holder and issuer matching |
-| `keyCounterparties` | array (P1) | Accepted key clients/suppliers `{name, role (CLIENT, SUPPLIER), lastSharePct, acceptedAt}` |
-| `pendingSuggestions`, `caseCount` | int | Counters for lists |
-| `createdBy`, `createdAt`, `updatedAt` | | |
+| `kind` | see [`08`](08-risk-engine.md) §7 | |
+| `month?`, `docId?` | string | |
+| `subject` | map | IDs of the bank line, document, entry or match concerned |
+| `status` | `OPEN` \| `RESOLVED` \| `DISMISSED` | |
+| `priority` | int | Sorting: duplicates and high-risk first |
+| `suggestion?` | map | Proposed fix (candidates for a match, the other reading for a value) |
+| `resolution?` | map | `action` (`MATCHED`, `CORRECTED`, `DUPLICATE_CONFIRMED`, `NOT_DUPLICATE`, `NO_DOCUMENT_NEEDED`, `IGNORED`, `TYPE_CONFIRMED`, `MAPPING_CONFIRMED`), `note?`, `resolvedBy`, `resolvedAt` |
+| `key` | string | Deterministic ID input, so a re-run never duplicates an item (§4) |
 
-Sole traders are `INDIVIDUAL` with a `tradingName`; partnerships, limited companies and cooperatives
-are `COMPANY`.
+### 3.12 `orgs/{orgId}/findings/{findingId}`
 
-### 3.14 `orgs/{orgId}/applicants/{applicantId}/suggestions/{suggestionId}`
+As [`08`](08-risk-engine.md) §1 (`code`, `category`, `scope`, `docId?`, `month?`, `severity`,
+`title`, `facts`, `explanation`, `nextSteps[]`, `evidence[]`, `detectedBy`, `status`, `dismissal?`
+{`reason`, `by`, `at`}, `lastSeenRunId`).
+
+### 3.13 `orgs/{orgId}/counterparties/{counterpartyId}`
+
+`name`, `aliases[]`, `kind` (`PERSON`, `BUSINESS`, `GOVERNMENT`, `BANK`, `UNKNOWN`), `roles[]`,
+`totalsByMonth` {month → `inMinor`, `outMinor`, `count`}, `accountsSeen[]` {`accountMasked`,
+`firstSeen`, `lastSeen`} (hashes in `orgPrivate/{orgId}/counterpartyAccounts/…`), `firstDate`,
+`lastDate`, `sampleEvidence[]`.
+
+### 3.14 `orgs/{orgId}/suggestions/{suggestionId}`
+
+`field` (`BANK_ACCOUNT`, `TAX_ID`, `ADDRESS`, `ALIAS`, `RELATED_PARTY`), `value`, `display`,
+`confidence`, `basis`, `evidence[]`, `status` (`PENDING`, `CONFLICT`, `ACCEPTED`, `REJECTED`),
+`conflictWith?`, `decidedBy?`, `decidedAt?`.
+
+### 3.15 `orgs/{orgId}/runs/{runId}`
+
+| Field | Notes |
+|---|---|
+| `kind` | `DOCUMENT` \| `MONTH` |
+| `target` | `docId` or `month` |
+| `status` | `QUEUED`, `RUNNING`, `DONE`, `FAILED`, `SUPERSEDED` (a newer month run started) |
+| `stages[]` | `{node, parent?, status, startedAt, endedAt, model?, tokensIn?, tokensOut?, summary?, traceSpanId?}`; feeds the run graph (P1, [`17`](17-observability.md) §5) |
+| `traceId` | Cloud Trace ID ([`17`](17-observability.md)) |
+| `models[]`, `promptVersions` | Models used and prompt file → version, for the Runs page and BigQuery joins |
+| `labels` | `{proposed, verified, corrected}` counts, updated when a person decides one of this run's labels (P1) |
+| `usage` | pages read, cached, OCR, parser, tokens, `estimatedUsd` |
+| `policyHashes` | `forensics`, `reconciliation`, `risk` versions and hashes used |
+
+### 3.16 `orgs/{orgId}/events/{eventId}` (append-only audit)
+
+`type` (`DOCUMENT_UPLOADED`, `DUPLICATE_RECORDED`, `DOCUMENT_REMOVED`, `DUPLICATE_CONFIRMED`,
+`DUPLICATE_REJECTED`, `VALUE_CORRECTED`, `CATEGORY_CHANGED`, `MATCH_CREATED`, `MATCH_REJECTED`,
+`REVIEW_ITEM_RESOLVED`, `FINDING_ACKNOWLEDGED`,
+`FINDING_DISMISSED`, `SUGGESTION_ACCEPTED`, `SUGGESTION_REJECTED`, `LEDGER_MAPPING_CONFIRMED`,
+`BANK_ACCOUNT_ADDED`, `PROFILE_UPDATED`, `LABEL_CONFIRMED`, `LABEL_CORRECTED`, `WORKSPACE_RULE_CREATED`,
+`DATASET_EXPORTED`, `MONTH_SIGNED_OFF` (P1), `MONTH_REOPENED` (P1), `MEMBER_*` (P1)), `actorUid`, `actorRole`, `at`, `subject` (IDs), `details`
+(no document content, no full account numbers). Written in the same transaction as the change.
+
+### 3.17 `orgs/{orgId}/assistantThreads/{threadId}`, `retrievalChunks/{chunkId}` and `knowledgeChunks` (P1)
+
+`assistantThreads`: `title`, `scope` (`WORKSPACE` or a month), `createdBy`, `createdAt`,
+`lastMessageAt`, `agentSessionId` (Agent Platform Sessions). Messages live in the managed session;
+the API reads them from there ([ADR-014](adr/ADR-014-finance-assistant-tools-rag-memory.md)).
+`retrievalChunks`: `docId`, `docType`, `page` (or ledger row range), `months`, `text` (≤ 2,000
+characters), `embedding_v1` (vector, 768 dimensions, `gemini-embedding-001`), `schemaVersion`.
+Written by the `document_workflow` after reading; deleted with the document.
+`knowledgeChunks/{chunkId}` (top level, server only): passages from the policy files, the check
+catalog and help pages, `source` (file path), `text`, `embedding_v1`. Rebuilt at deploy by
+`tools/knowledge/build.py`. Both are searched with `find_nearest` (cosine, top 8).
+
+### 3.18 Server only
+
+| Path | Content |
+|---|---|
+| `orgPrivate/{orgId}/accountHashes/{accountId}` | Salted hash of a full bank account number (HMAC with a Secret Manager key in production) |
+| `orgPrivate/{orgId}/counterpartyAccounts/{id}` | Hashes of supplier and client accounts seen (for `X08`) |
+| `system/signup` | `{workspacesCreated}`; enforces `MAX_WORKSPACES` |
+| `knowledgeChunks/{chunkId}` (P1) | Shared help and policy passages for the assistant (§3.17) |
+| `system/migrations/{migrationId}`, `system/migrationLock` | Migration registry and lease ([`22`](22-data-migrations.md) §5) |
+
+### 3.19 `orgs/{orgId}/labels/{labelId}` (P1, [ADR-016](adr/ADR-016-human-verified-labels-and-learning-loop.md))
+
+One per AI decision a person can check.
 
 | Field | Type | Notes |
 |---|---|---|
-| `suggestionId` | string | Deterministic (§4) so a re-run never duplicates a suggestion |
-| `field` | enum | `BANK_ACCOUNT`, `TAX_ID`, `ADDRESS`, `LEGAL_NAME`, `RELATED_PARTY`, `KEY_CLIENT`, `KEY_SUPPLIER` |
-| `value` | map | Field-specific, e.g. `{bankName, accountMasked, holderName}`, `{taxId}`, `{name, kind, sharePct}` |
-| `display` | string | One line for the UI |
-| `confidence` | `HIGH` \| `MEDIUM` \| `LOW` | `HIGH` when every value used is `AGREED` by two readings; `MEDIUM` for single-source or derived-from-transactions; `LOW` for heuristics |
-| `basis` | string | Short reason, e.g. "Statement header, agreed by both readings" |
-| `evidence` | array | `EvidenceRef` (doc, page, bbox, or transaction/invoice IDs) |
-| `sourceCaseId`, `sourceRunId` | string | |
-| `status` | `PENDING` \| `ACCEPTED` \| `REJECTED` \| `CONFLICT` | `CONFLICT` when the profile already holds a different value for a single-valued field (tax ID, legal name) |
-| `conflictWith` | string? | The current profile value |
-| `decidedBy`, `decidedAt`, `reason?` | | |
-| `createdAt` | timestamp | |
+| `task` | `DOC_TYPE` \| `PAGE_TYPE` \| `CATEGORY` \| `COUNTERPARTY_ROLE` \| `FIELD_VALUE` | |
+| `subject` | map | `docId?`, `pageNo?`, `field?`, `txId?`, `counterpartyId?`, `display` |
+| `month?` | string | For filters |
+| `ai` | map | Latest automatic decision: `value`, `confidence?`, `source` (`MODEL`, `RULE`, `MATCH`), `model?`, `promptVersion?`, `runId`, `traceId?`, `spanId?`, `at` |
+| `final` | map | `value`, `source` (`MODEL`, `RULE`, `MATCH`, `PERSON`) |
+| `status` | `AI_PROPOSED` \| `VERIFIED` \| `CORRECTED` | A run never changes `final` once a person decided |
+| `needsCheck` | bool | `ai.confidence` below the task's threshold in `learning.v1.yaml` and not decided |
+| `aiDisagreesWithPerson` | bool | Set when a later run proposes a different value than the person's |
+| `framework?`, `cashflowClass?` | string | `CATEGORY` only; class derived from `categories.v1.yaml` |
+| `decidedBy?`, `decidedAt?`, `note?` | | |
+| `dataset` | map | `use` (`TRAIN`, `EVAL`, `EXCLUDED`), `reason?`; split fixed by hash of `labelId` (20% eval) |
+| `embedding_v1?` | vector | `CATEGORY` and `DOC_TYPE` labels a person decided: embedding of the description or first-page text, for verified examples (768 dimensions) |
+| `schemaVersion` | int | |
 
-### 3.15 `orgs/{orgId}/applicants/{applicantId}/events/{eventId}` (append-only)
+### 3.20 `orgs/{orgId}/workspaceRules/{ruleId}` (P1)
 
-Same shape as §3.11, types `APPLICANT_CREATED`, `APPLICANT_UPDATED`, `BANK_ACCOUNT_ADDED`,
-`BANK_ACCOUNT_REMOVED`, `RELATED_PARTY_ADDED`, `RELATED_PARTY_REMOVED`, `SUGGESTION_ACCEPTED`,
-`SUGGESTION_REJECTED`. `data` never contains full account or ID numbers.
-
-### 3.16 `…/cases/{caseId}/counterparties/{counterpartyId}`
-
-| Field | Type | Notes |
-|---|---|---|
-| `counterpartyId` | string | Deterministic (§4) |
-| `runId` | string | Run that derived it; the UI shows the current run's |
-| `name`, `aliases[]` | string | Normalized name and the raw spellings seen |
-| `kind` | `PERSON` \| `BUSINESS` \| `GOVERNMENT` \| `BANK` \| `UNKNOWN` | From the categorizer (model) or rules |
-| `roles` | array | `CLIENT`, `SUPPLIER`, `LENDER`, `OWN_ACCOUNT`, `RELATED_PARTY`, `GOVERNMENT`, `OTHER_PAYEE`, `OTHER_PAYER` ([`08`](08-risk-engine.md) §4.3) |
-| `inflowMinor`, `outflowMinor`, `totalFlowMinor` | int | |
-| `txCount`, `firstDate`, `lastDate` | | |
-| `invoiceCount`, `invoicedMinor`, `matchedMinor` | int | From sales/purchase invoices naming this party |
-| `shareOfOperatingInflow` | string decimal? | |
-| `source` | `RULE` \| `MODEL` \| `INVOICE` \| `PROFILE` | Where the name came from |
-| `sampleTxIds` | array (≤ 10) | Evidence links |
-
-### 3.17 `orgPrivate/{orgId}/accountHashes/{accountId}` (server only)
-
-`{hash, applicantId?, firstSeenDocId?}` where `hash = sha256(orgId + ":" + digits)`. Used to match
-statement and invoice accounts against declared ones without storing full numbers in readable
-documents. Clients cannot read `orgPrivate` (rules deny everything outside `orgs/`). **Production
-note:** use an HMAC with a key from Secret Manager instead of a plain salted hash.
-
-### 3.18 `system/signup` (server only)
-
-`{workspacesCreated}` incremented in the workspace-creation transaction; enforces `MAX_WORKSPACES`.
+Rules a person created with "Apply to similar lines": `match` {`counterpartyId`, `direction`},
+`category`, `sourceLabelId`, `createdBy`, `createdAt`, `active`. Applied by code after matches and
+before the keyword rules ([`08`](08-risk-engine.md) §4.1).
 
 ---
 
@@ -341,42 +317,55 @@ note:** use an HMAC with a key from Secret Manager instead of a plain salted has
 
 | Entity | ID |
 |---|---|
-| Transaction | `tx_` + first 16 hex of `sha1(docId + "|" + rowIndex)` |
-| Invoice | `inv_` + first 16 hex of `sha1(docId)` |
-| Finding | `fnd_` + first 16 hex of `sha1(runId + "|" + code + "|" + anchor)`; `anchor` = `docId:rowIndex`, `docId`, `invoiceId`, or `case` |
-| Bank account | `acc_` + first 16 hex of `sha1(applicantId + "|" + bankNameNormalized + "|" + digits)` |
-| Related party | `rp_` + first 16 hex of `sha1(applicantId + "|" + nameNormalized)` |
-| Suggestion | `sug_` + first 16 hex of `sha1(applicantId + "|" + field + "|" + normalizedValue)` (stable across runs and cases) |
-| Counterparty | `cp_` + first 16 hex of `sha1(runId + "|" + nameNormalized)` |
+| Bank line | `tx_` + 16 hex of `sha1(docId + "|" + rowIndex)` |
+| Invoice / receipt | `inv_` / `rcp_` + 16 hex of `sha1(docId)` |
+| Ledger entry | `led_` + 16 hex of `sha1(docId + "|" + rowNumber)` |
+| Match | `mat_` + 16 hex of `sha1(kind + "|" + sorted member IDs)` |
+| Review item | `itm_` + 16 hex of `sha1(kind + "|" + subject key)` |
+| Finding | `fnd_` + 16 hex of `sha1(code + "|" + anchor)`; anchor = `docId:rowIndex`, `docId`, `month`, or `month:subjectId` |
+| Counterparty | `cp_` + 16 hex of `sha1(orgId + "|" + nameNormalized)` |
+| Suggestion | `sug_` + 16 hex of `sha1(orgId + "|" + field + "|" + normalizedValue)` |
+| Bank account | `acc_` + 16 hex of `sha1(orgId + "|" + bankNameNormalized + "|" + digits)` |
+| Label | `lbl_` + 16 hex of `sha1(task + "|" + subject key)`; subject key = `docId`, `docId:pageNo`, `txId`, `counterpartyId` or `docId:field` |
+| Workspace rule | `rul_` + 16 hex of `sha1(counterpartyId + "|" + direction)` |
+
+Re-runs upsert by these IDs, so retries and re-uploads never duplicate records (NFR-09).
 
 ---
 
 ## 5. Indexes (`contracts/firestore.indexes.json`)
 
-| Collection group | Fields | Serves |
+| Collection | Fields | Serves |
 |---|---|---|
-| `cases` | `status` ASC, `createdAt` DESC | Case list filtered by status |
-| `findings` | `runId` ASC, `severityRank` ASC, `code` ASC | Findings of the current run, most severe first |
-| `findings` | `runId` ASC, `docId` ASC, `severityRank` ASC | Findings for one document |
-| `transactions` | `month` ASC, `date` ASC | Transactions by month |
-| `transactions` | `category` ASC, `date` ASC | Filter by category |
-| `transactions` | `riskTags` CONTAINS, `date` ASC | Filter by risk tag |
-| `transactions` | `docId` ASC, `rowIndex` ASC | Rows of one statement |
-| `invoices` | `kind` ASC, `issueDate` ASC | Reconciliation table |
-| `cases` | `applicantId` ASC, `createdAt` DESC | Cases of one applicant |
-| `applicants` | `type` ASC, `updatedAt` DESC | Applicant list filtered by type |
-| `applicants` | `type` ASC, `displayNameLower` ASC | Name prefix search with a type filter |
-| `suggestions` | `status` ASC, `createdAt` DESC | Pending suggestions first |
-| `counterparties` | `runId` ASC, `totalFlowMinor` DESC | Counterparties of the current run, largest first |
-| `counterparties` | `runId` ASC, `roles` CONTAINS, `totalFlowMinor` DESC | Filter by role |
-| `invites` (collection group) | `email` ASC, `status` ASC | Pending invites for a signed-in email (P1) |
+| `documents` | `docType` ASC, `uploadedAt` DESC | Library filtered by type |
+| `documents` | `status` ASC, `uploadedAt` DESC | Library filtered by status |
+| `documents` | `months` CONTAINS, `docType` ASC | Documents of a month |
+| `bankLines` | `month` ASC, `date` ASC | Month view |
+| `bankLines` | `month` ASC, `match.state` ASC, `date` ASC | Unmatched lines of a month |
+| `bankLines` | `counterpartyId` ASC, `date` ASC | Lines of a counterparty (money-flow drill-down) |
+| `bankLines` | `month` ASC, `category` ASC | Lines of a flow |
+| `invoices` | `kind` ASC, `issueDate` ASC | Invoice list |
+| `invoices` | `month` ASC, `payment.state` ASC | Unpaid invoices of a month |
+| `receipts` | `month` ASC, `date` ASC | Receipts of a month |
+| `ledgerEntries` | `month` ASC, `isBankCash` ASC, `date` ASC | Ledger cash entries of a month |
+| `matches` | `month` ASC, `status` ASC, `kind` ASC | Reconciliation view |
+| `reviewItems` | `status` ASC, `priority` DESC, `month` DESC | Review queue |
+| `reviewItems` | `month` ASC, `status` ASC | Items of a month |
+| `findings` | `status` ASC, `severityRank` ASC, `month` DESC | Risk page |
+| `findings` | `docId` ASC, `severityRank` ASC | Findings of a document |
+| `counterparties` | `roles` CONTAINS, `lastDate` DESC | Clients, suppliers |
+| `suggestions` | `status` ASC, `createdAt` DESC | Pending suggestions |
+| `retrievalChunks` (P1) | vector `embedding_v1` (768, flat); and `docType` ASC + vector | `search_documents` (optionally by type; month filter applied to the top 30) |
+| `knowledgeChunks` (P1) | vector `embedding_v1` (768, flat) | `search_knowledge` |
+
+Single-field lookups (`documents.sha256`, `months.dirty`) use Firestore's automatic indexes.
 
 ---
 
 ## 6. Security rules (`contracts/firestore.rules`)
 
-**Clients read, the server writes.** The browser may read its own org's data (used for realtime
-progress); every write goes through the API, whose Admin SDK bypasses rules.
+**Clients read, the server writes.** The browser may read its own workspace's data (used for
+realtime progress); every write goes through the API, whose Admin SDK bypasses rules.
 
 ```
 rules_version = '2';
@@ -396,40 +385,58 @@ service cloud.firestore {
 }
 ```
 
-The frontend uses listeners only as a **change signal** (status, progress, stages) and fetches full
-data through the API. The API remains the single data contract ([`11`](11-frontend.md) §5).
-Server-only data (account hashes, sign-up counter) lives under `orgPrivate/` and `system/`, which the
-catch-all rule denies.
+The frontend uses listeners only as a **change signal** (document status, month state) and fetches
+data through the API ([`11`](11-frontend.md) §5).
 
 ---
 
 ## 7. Cloud Storage layout
 
 Bucket `{PROJECT_ID}-kredibel-docs` in `asia-southeast1`; uniform bucket-level access; public access
-prevention enforced; lifecycle: delete objects after 90 days (synthetic data).
+prevention; object versioning (noncurrent kept 7 days); lifecycle: delete after 90 days (synthetic data).
 
 ```
-orgs/{orgId}/cases/{caseId}/documents/{docId}/
-  original.{pdf|png|jpg}
+orgs/{orgId}/documents/{docId}/
+  original.{pdf|png|jpg|csv|xlsx}
   pages/{n}.png                         150 dpi render (the AI reader's input and the viewer's image)
   thumbs/{n}.png                        300 px wide
   extraction/pointers.json              which cache objects this document used (audit)
-  revisions/r{k}.pdf                    earlier revisions (P1)
-orgs/{orgId}/uploads/{uploadId}/original.pdf   P1: untouched original of a split upload (forensics source)
+orgs/{orgId}/extractions/{docId}/p{n}.md       the page as read, in Markdown (ADR-016); served by the API
 orgs/{orgId}/cache/extraction/{sha256}/        content-addressed reader output (cost control, docs/21 §5)
   classification-{model}-{promptId}@{version}.json
   p{n}/gemini-{model}-{promptId}@{version}.json
   p{n}/ocr-{processorVersion}.json
-  p{n}/docai-{form|invoice}-{processorVersion}.json      P1 escalation / thorough mode
 ```
 
-Files are only served through the API after an org check (no signed URLs, no public URLs).
+Exact duplicates store no second copy: the duplicate document points at the original's objects.
+Bucket `{PROJECT_ID}-kredibel-agent-content` (P1, [ADR-017](adr/ADR-017-agent-observability-on-google-cloud.md)):
+large prompt and response text offloaded by the BigQuery Agent Analytics plugin, only where
+`AI_CONTENT_CAPTURE=synthetic`; deleted after 30 days.
+
+**BigQuery** (P1): dataset `kredibel_agent_analytics` in `asia-southeast1`, table `agent_events`
+(written by the plugin, partitioned by day) and its per-event views; dataset `kredibel_learning`
+with table `labels`, refreshed by `make evals` (P1) and by dataset exports (later). Neither is a
+system of record.
+
+Backups bucket `{PROJECT_ID}-kredibel-backups`: Firestore exports before migrations, deleted after 30
+days. Files are served only through the API after a workspace check.
 
 ---
 
 ## 8. Retention & deletion
 
-- Prototype: synthetic data, 90-day object lifecycle; Firestore data kept for the competition period.
-- `scripts/reset_demo.py` deletes one org's cases and objects for a clean demo.
-- Production note: retention periods follow the lender's policy and applicable law; deletion must
-  cascade Firestore subcollections and GCS prefixes together.
+- Prototype: synthetic data, 90-day object lifecycle.
+- Deleting a document (owner action) removes its records, re-marks its months dirty and keeps an
+  audit event; exact duplicates of it are re-pointed or removed with it.
+- `scripts/reset_demo.py` deletes one workspace's data for a clean demo.
+- Point-in-time recovery (7 days) and a daily backup (7-day retention) protect against a bad
+  migration or bug ([`22`](22-data-migrations.md) §8).
+
+---
+
+## 9. Changing this model
+
+Every change follows [`22-data-migrations.md`](22-data-migrations.md): classify it, bump
+`schemaVersion` if it is breaking, add an upcaster and a migration, and update this page,
+`contracts/data/schema-snapshot.json` and (if the API changes) `contracts/openapi.yaml` in the same
+commit. Audit events and past runs are never rewritten.

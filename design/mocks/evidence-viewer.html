@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<title>Kredibel mock: Evidence viewer</title>
+<meta name="description" content="High-fidelity mock with synthetic data. Tokens: contracts/design/tokens.json. Components: docs/12-design-system.md."/>
+<link rel="icon" href="../brand/favicon.svg"/>
+<link rel="stylesheet" href="assets/tokens.css"/>
+<link rel="stylesheet" href="assets/kit.css"/>
+<script src="assets/proto.js" defer></script>
+</head>
+<body>
+<div class="viewport"><div class="drawer-frame"><div class="drawer-behind" aria-hidden="true"></div>
+<div class="drawer" role="dialog" aria-modal="true" aria-labelledby="ev-title">
+  <div class="drawer-head">
+    <div class="stack gap-2" style="flex:1;min-width:0">
+      <div class="row">
+        <span class="muted small">March 2026, finding 1 of 6</span><span class="badge badge-critical"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.3 3h7.4L21 8.3v7.4L15.7 21H8.3L3 15.7V8.3z"/><path d="M12 7.5V13M12 16.5h.01"/></svg>Critical</span><span class="code-tag">A01</span>
+      </div>
+      <h1 id="ev-title">The running balance does not add up on 14 Mar</h1>
+    </div>
+    <a class="icon-button" href="risk.html" aria-label="Close evidence"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></a>
+  </div>
+  <div class="drawer-body">
+    <div class="viewer">
+      <div class="viewer-bar">
+        <span class="file"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6.5A1.5 1.5 0 0 0 5 4.5v15A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V8z"/><path d="M14 3v5h5M8.5 13h7M8.5 16.5h7"/></svg>ACB_Mar_2026.pdf</span>
+        <span>Page 2 of 3</span>
+        <span class="zoom" role="group" aria-label="Zoom"><button type="button" aria-label="Zoom out"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2M8.5 11h5"/></svg></button><span>100%</span><button type="button" aria-label="Zoom in"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2M11 8.5v5M8.5 11h5"/></svg></button></span>
+      </div>
+      <div class="doc-window">
+<figure class="doc-page" aria-label="March statement, page 2, with two highlighted values">
+  <div class="watermark" aria-hidden="true">SYNTHETIC — FOR TESTING</div>
+  <div class="doc-head">
+    <div><p class="doc-bank"><i aria-hidden="true"></i>ARCHIPELAGO COMMERCE BANK</p><p style="margin-top:6px">SUNRISE COFFEE ROASTERS<br/>12 Roastery Lane, Bandung</p></div>
+    <div class="meta"><strong>ACCOUNT STATEMENT</strong><br/>01 Mar 2026 to 31 Mar 2026<br/>Currency IDR<br/>Page 2 / 3</div>
+  </div>
+  <table class="doc-table">
+    <thead><tr><th>Date</th><th>Description</th><th class="r">Debit</th><th class="r">Credit</th><th class="r">Balance</th></tr></thead>
+    <tbody><tr><td>10 Mar</td><td>VAT PAYMENT FEB</td><td class="r">4,860,000.00</td><td class="r"></td><td class="r">38,940,000.00</td></tr><tr><td>11 Mar</td><td>TRANSFER IN DAYBREAK CAFE</td><td class="r"></td><td class="r">6,420,000.00</td><td class="r">45,360,000.00</td></tr><tr><td>12 Mar</td><td>TRANSFER OUT GREEN VALLEY FARMS 0912</td><td class="r">9,850,000.00</td><td class="r"></td><td class="r">35,510,000.00</td></tr><tr><td>12 Mar</td><td>CASH DEPOSIT</td><td class="r"></td><td class="r">2,240,000.00</td><td class="r">37,750,000.00</td></tr><tr><td>13 Mar</td><td>TRANSFER IN SPICE ROUTE RESTAURANT</td><td class="r"></td><td class="r">3,500,000.00</td><td class="r">41,250,000.00</td></tr><tr><td>14 Mar</td><td>TRANSFER IN HARBORVIEW HOTEL GROUP</td><td class="r"></td><td class="r"><span class="lamp helvetica">7,250,000.00<span class="lamp-marker" aria-hidden="true">1</span></span></td><td class="r"><span class="lamp">42,500,000.00<span class="lamp-marker" aria-hidden="true">2</span></span></td></tr><tr><td>15 Mar</td><td>TRANSFER OUT PRIMEPACK PACKAGING</td><td class="r">3,180,000.00</td><td class="r"></td><td class="r">39,320,000.00</td></tr><tr><td>17 Mar</td><td>INSTANT TRANSFER IN HIGHLAND RESORT &amp; SPA</td><td class="r"></td><td class="r">8,900,000.00</td><td class="r">48,220,000.00</td></tr><tr><td>18 Mar</td><td>DEBIT CARD CENDANA FUEL STATION</td><td class="r">650,000.00</td><td class="r"></td><td class="r">47,570,000.00</td></tr><tr><td>19 Mar</td><td>CASH DEPOSIT</td><td class="r"></td><td class="r">1,860,000.00</td><td class="r">49,430,000.00</td></tr><tr><td>20 Mar</td><td>TRANSFER OUT ANDI PRATAMA</td><td class="r">5,000,000.00</td><td class="r"></td><td class="r">44,430,000.00</td></tr></tbody>
+  </table>
+  <div class="doc-foot"><span>ACB e-Statement</span><span>SYNTHETIC — FOR TESTING</span></div>
+</figure></div>
+      <div class="spread"><p class="muted small">Boxes come from the word positions in the file itself.</p><button class="button button-secondary button-sm whole-page" type="button"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6.5A1.5 1.5 0 0 0 5 4.5v15A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V8z"/><path d="M14 3v5h5M8.5 13h7M8.5 16.5h7"/></svg>Whole page</button></div>
+    </div>
+    <div class="finding-pane">
+      <p class="lead">The balance printed on 14 Mar is <strong>IDR 6,000,000 lower</strong> than the previous balance plus that day's credit. The credit is set in a different font from the rest of its column and was added in a later revision of the file.</p>
+      <section aria-labelledby="calc-h">
+        <h2 id="calc-h">How the balance should add up</h2>
+        <div class="calc"><table>
+          <tr><td class="op"></td><td>Balance on 13 Mar</td><td class="amt"><span class="reading reading-agreed">41,250,000.00</span></td></tr>
+          <tr><td class="op">+</td><td>Credit on 14 Mar <span class="lamp-marker inline" role="img" aria-label="box 1">1</span></td><td class="amt"><span class="reading reading-agreed">7,250,000.00</span></td></tr>
+          <tr><td class="op">−</td><td>Debit on 14 Mar</td><td class="amt">0.00</td></tr>
+          <tr class="total"><td class="op">=</td><td>Expected balance</td><td class="amt">48,500,000.00</td></tr>
+          <tr><td class="op"></td><td>Printed balance <span class="lamp-marker inline" role="img" aria-label="box 2">2</span></td><td class="amt"><span class="reading reading-agreed">42,500,000.00</span></td></tr>
+          <tr class="diff"><td class="op"></td><td>Difference</td><td class="amt">6,000,000.00</td></tr>
+        </table></div>
+      </section>
+      <section aria-labelledby="two-h">
+        <h2 id="two-h">Two readings</h2>
+        <table class="readings">
+          <thead><tr><th>Value</th><th><span class="src"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/><path d="M7.5 12s1.7-3 4.5-3 4.5 3 4.5 3-1.7 3-4.5 3-4.5-3-4.5-3z"/><circle cx="12" cy="12" r="1"/></svg>Gemini</span></th><th><span class="src"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7V5h14v2M12 5v14M9.5 19h5"/></svg>Text layer</span></th><th>Result</th></tr></thead>
+          <tbody>
+            <tr><td>Credit, 14 Mar</td><td class="amt">7,250,000.00</td><td class="amt">7,250,000.00</td><td><span class="badge badge-brand"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>Agreed</span></td></tr>
+            <tr><td>Balance, 14 Mar</td><td class="amt">42,500,000.00</td><td class="amt">42,500,000.00</td><td><span class="badge badge-brand"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>Agreed</span></td></tr>
+          </tbody>
+        </table>
+        <p class="muted" style="font-size:13.5px;margin-top:10px">Both readings see the same printed values, so the break is in the document, not in the reading.</p>
+      </section>
+      <section aria-labelledby="next-h">
+        <h2 id="next-h">What to do next</h2>
+        <ol class="steps"><li>Download the March statement again from internet banking and upload it.</li><li>If the bank's copy differs, ask who sent you this file.</li></ol>
+      </section>
+      <section aria-labelledby="rel-h">
+        <h2 id="rel-h">Also found on this row</h2>
+        <ul class="related"><li><span class="badge badge-high"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 4.2 2.8 17.5a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0z"/><path d="M12 9.5v4M12 17h.01"/></svg>High</span><span class="code-tag">M04</span><span style="flex:1;min-width:0">Drawn in Helvetica; every other amount in the column uses DejaVu Sans.</span></li><li><span class="badge badge-high"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 4.2 2.8 17.5a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0z"/><path d="M12 9.5v4M12 17h.01"/></svg>High</span><span class="code-tag">M03</span><span style="flex:1;min-width:0">A later revision of the file replaced this page's content.</span></li><li><span class="badge badge-medium"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V13M12 16.5h.01"/></svg>Medium</span><span class="code-tag">M02</span><span style="flex:1;min-width:0">Saved 3 days after the bank created the file.</span></li></ul>
+      </section>
+    </div>
+  </div>
+  <div class="drawer-foot">
+    <a class="button button-secondary" href="risk.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>Acknowledge</a>
+    <a class="button button-ghost" href="risk.html">Dismiss, with a reason</a>
+    <span class="keys"><span><span class="kbd">J</span> <span class="kbd">K</span> next, previous</span><span><span class="kbd">Esc</span> close</span></span>
+  </div>
+</div></div></div>
+</body>
+</html>

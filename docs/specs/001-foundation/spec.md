@@ -6,13 +6,17 @@
 | **Priority** | P0 |
 | **Owner role** | D: Platform (with C for the frontend shell) |
 | **Depends on** | — |
-| **Requirements** | FR-001, FR-002, NFR-06, NFR-10, NFR-11, P0-01, P0-17 |
+| **Requirements** | FR-001, FR-002, NFR-06, NFR-10, NFR-11, NFR-13, NFR-14, NFR-15, P0-01, P0-17 |
+| **Design** | [`docs/12`](../../12-design-system.md) §0, §5; [`docs/22`](../../22-data-migrations.md); [ADR-013](../../adr/ADR-013-versioned-documents-and-forward-migrations.md) |
 
 ## Summary
 
 A walking skeleton: repository layout, backend and frontend shells, Firebase sign-in, org/role
 claims, quality gates, container image, and deployment of `kredibel-web` and `kredibel-worker` to
-Cloud Run. Nothing domain-specific yet. Everything later builds on these seams.
+Cloud Run. It also lays the two seams that keep later work cheap to change: the **design foundation**
+(generated tokens, the responsive app shell, Storybook and visual tests) and the **data-migration
+foundation** (versioned documents, upcasters, the migration runner and job, backups). Nothing
+domain-specific yet. Everything later builds on these seams.
 
 ## User stories
 
@@ -24,10 +28,11 @@ Cloud Run. Nothing domain-specific yet. Everything later builds on these seams.
 - **AC-001-2** Given `make dev` is running, when the SPA calls `/api/*`, then Vite proxies to the
   backend (no CORS configuration exists).
 
-### US-001-2: Sign in and see my workspace (analyst)
+### US-001-2: Sign in and see my workspace (owner)
 
-- **AC-001-3** Given a Firebase user with claims `{orgId: "org_demo", role: "analyst"}`, when they
-  sign in with email/password or Google, then they land on `/cases` and see an empty state.
+- **AC-001-3** Given a Firebase user with claims `{orgId: "org_demo", role: "owner"}`, when they
+  sign in with email/password or Google, then they land on the dashboard (`/`) and see its empty
+  state ("Upload your first documents").
 - **AC-001-4** Given a signed-in user **without** an `orgId` claim, when the SPA calls `GET /api/me`,
   then the API returns `200` with `orgId: null` and `needsWorkspace: true`, other routes return
   `403 WORKSPACE_REQUIRED`, and the SPA shows the `/onboarding` placeholder (the form arrives with
@@ -62,6 +67,38 @@ Cloud Run. Nothing domain-specific yet. Everything later builds on these seams.
   rule `i18next/no-literal-string` fails `make check` on a hard-coded UI string; `formatMoney` and
   `formatDate` use `Intl` with the active locale.
 
+### US-001-6: Design foundation (team)
+
+- **AC-001-15** `make tokens` generates `frontend/src/app/styles/tokens.css` and
+  `tailwind-theme.css` from `contracts/design/tokens.json`; `make tokens-check` fails when a generated
+  file is stale or a listed contrast pair is below its minimum.
+- **AC-001-16** The app shell shows the navigation of [`docs/11`](../../11-frontend.md) §4 (Dashboard,
+  Documents, Reconciliation, Review, Risk, Clients & suppliers, Assistant (P1), Settings) as a
+  labelled sidebar from 1200 px, a rail with short labels from 600 to 1199 px, and below 600 px a
+  bottom navigation (Dashboard, Documents, Review, Risk, More) with the rest in the More sheet; the
+  logo, the workspace name, the trial badge and a global **Upload** action are always reachable; no
+  horizontal page scroll at 360 px.
+- **AC-001-17** Storybook builds with the first `shared/ui` components (Button, Badge, Panel,
+  EmptyState, Skeleton, Toast, AppShell); every story passes axe; Playwright visual tests of the
+  shell and the login page at 390, 834 and 1440 px pass against committed baselines.
+- **AC-001-18** `tools/checks/no_raw_styles.py` fails `make check` on a raw colour (`#…`, `rgb(`,
+  `hsl(`), an arbitrary Tailwind value (`[#…]`, `[13px]`) or a `style=` prop outside the allow-list.
+
+### US-001-7: Data-migration foundation (team)
+
+- **AC-001-19** Every persistence model declares `SCHEMA_VERSION`; repositories upcast on read and
+  write the latest version; a stored v1 fixture of the `documents` sample model reads as the latest
+  version.
+- **AC-001-20** Against the emulator, `python -m migrations run` applies the sample migration
+  `0000_example`, records `system/migrations/0000_example` as `DONE` with counts, skips it on a
+  second run, resumes from its checkpoint after being killed half-way, and refuses to start while
+  another runner holds `system/migrationLock`.
+- **AC-001-21** Changing a persistence model without updating `contracts/data/schema-snapshot.json`
+  fails `make check` (`tools/checks/schema_drift.py`).
+- **AC-001-22** The `kredibel-migrate` Cloud Run job is deployed by Cloud Build after the index and
+  rules deploy and before the services; point-in-time recovery and the daily backup schedule are on
+  for `(default)` (`gcloud firestore databases describe` shows PITR enabled).
+
 ## Non-functional
 
 - Responses include the security headers of [`docs/14`](../../14-security-and-compliance.md) §8.
@@ -69,7 +106,7 @@ Cloud Run. Nothing domain-specific yet. Everything later builds on these seams.
 
 ## Out of scope
 
-Cases, documents, any Google AI service, member management UI.
+Documents, months, any Google AI service, member management UI.
 
 ## Edge cases
 

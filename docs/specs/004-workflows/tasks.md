@@ -4,7 +4,7 @@
 
 - [x] **T004-01** Spike S2: ADK 2.11 `Workflow`, `@node`, `ctx.run_node`, `Runner` signatures; record findings in `docs/02` §2.2 and adjust the skeletons.
 - [x] **T004-02** **TDD** `services/runs.py`: generation bump and task name in one transaction; debounce delay; quota counting. (AC-004-4, AC-004-11)
-- [ ] **T004-03** `adapters/cloud_tasks_queue.py` (cloud + inline). (AC-004-4)
+- [x] **T004-03** `adapters/cloud_tasks_queue.py` (cloud + inline). (AC-004-4)
 - [ ] **T004-04** `api/tasks.py` with OIDC-only mounting on the worker; idempotent re-delivery. (AC-004-3)
 
 ## Phase 2 — Workflows with stubs

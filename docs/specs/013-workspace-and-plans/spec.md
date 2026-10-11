@@ -50,7 +50,9 @@ member (`owner`); P1 adds an accounting team with roles.
   `ledgerRowsPerFile`, `documentsPerMonth`, page reservation against `extractedPagesPerMonth`, AI
   spend), month run (`monthRunsPerDay`), assistant question (`assistantQuestionsPerDay`), invite
   (`seats`). A violation returns `403 PLAN_LIMIT_REACHED` with `limit`, `used`, `max` (upload size and
-  shape keep `413`/`422`). Exact duplicates never count.
+  shape keep `413`/`422`; a user's month run over `monthRunsPerDay` or `RUN_QUOTA_PER_ORG_PER_DAY`
+  is `429 RUN_QUOTA_EXCEEDED` with `retryAfterSeconds`, as in [`docs/10`](../../10-api-contract.md) §3
+  and AC-004-11). Exact duplicates never count.
 - **AC-013-8** After `trialEndsAt`, upload, re-run, assistant and invite return `403 TRIAL_EXPIRED`;
   reading the books, resolving review items and dismissing findings keep working.
 - **AC-013-9** Counters change in the same transaction as the action they meter; two concurrent

@@ -12,7 +12,7 @@ from typing import Any, Literal, Self
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 from pydantic.alias_generators import to_camel
 
-from app.domain.models.workspace import Subscription, SubscriptionStatus
+from app.domain.models.workspace import Subscription, SubscriptionStatus, UsageDay, UsageMonth
 
 PlanStatus = Literal["AVAILABLE", "COMING_SOON"]
 
@@ -41,7 +41,7 @@ class Limits(_Contract):
     def _money_is_a_decimal_string(cls, value: Any) -> Any:
         # Money is never a float (non-negotiable 9); YAML 5.0 would silently become one.
         if not isinstance(value, str | Decimal):
-            raise ValueError("aiSpendUsdPerMonth must be a decimal string such as \"5.00\"")
+            raise ValueError('aiSpendUsdPerMonth must be a decimal string such as "5.00"')
         return value
 
 
@@ -161,3 +161,149 @@ def trial_days_left(sub: Subscription, now: datetime) -> int:
         return 0
     remaining = sub.trial_ends_at - now
     return -(-remaining // timedelta(days=1))
+
+
+# ---------------------------------------------------------------------------------------------
+# Entitlement checks (AC-013-7, AC-013-8). Each returns Allowed or Denied; the service calls them
+# inside the Firestore transaction that also moves the counter, so two requests cannot both pass.
+# ---------------------------------------------------------------------------------------------
+
+DenialCode = Literal[
+    "TRIAL_EXPIRED",
+    "PLAN_LIMIT_REACHED",
+    "DOCUMENT_TOO_LARGE",
+    "TOO_MANY_PAGES",
+    "TOO_MANY_ROWS",
+    "RUN_QUOTA_EXCEEDED",
+]
+
+_MIB = 1024 * 1024
+
+
+class Allowed(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+
+class Denied(BaseModel):
+    """Why an action is refused; `limit` is the plans.v1.yaml key, `used`/`max` its numbers."""
+
+    model_config = ConfigDict(frozen=True)
+
+    code: DenialCode
+    limit: str | None = None
+    used: int | Decimal | None = None
+    max: int | Decimal | None = None
+    retry_after_seconds: int | None = None
+
+
+Decision = Allowed | Denied
+ALLOWED = Allowed()
+_TRIAL_EXPIRED = Denied(code="TRIAL_EXPIRED")
+
+
+class UploadRequest(BaseModel):
+    """What an upload would cost, measured by the service before any page is read."""
+
+    model_config = ConfigDict(frozen=True)
+
+    size_bytes: int
+    pages: int
+    # Pages that need the AI reader: cache hits and an exact copy's pages are free.
+    pages_to_read: int
+    ledger_rows: int | None = None
+    exact_duplicate: bool = False
+
+
+def _over(code: DenialCode, limit: str, used: int | Decimal, maximum: int | Decimal) -> Denied:
+    return Denied(code=code, limit=limit, used=used, max=maximum)
+
+
+def check_upload(
+    limits: Limits, status: SubscriptionStatus, usage: UsageMonth, upload: UploadRequest
+) -> Decision:
+    if status == "TRIAL_EXPIRED":
+        return _TRIAL_EXPIRED
+    if upload.exact_duplicate:
+        # An exact copy is recorded, never read, and never counted (FR-012, AC-013-7).
+        return ALLOWED
+
+    size_mb = -(-upload.size_bytes // _MIB)
+    if upload.size_bytes > limits.file_size_mb * _MIB:
+        return _over("DOCUMENT_TOO_LARGE", "fileSizeMb", size_mb, limits.file_size_mb)
+    if upload.pages > limits.pages_per_document:
+        return _over("TOO_MANY_PAGES", "pagesPerDocument", upload.pages, limits.pages_per_document)
+    if upload.ledger_rows is not None and upload.ledger_rows > limits.ledger_rows_per_file:
+        return _over(
+            "TOO_MANY_ROWS", "ledgerRowsPerFile", upload.ledger_rows, limits.ledger_rows_per_file
+        )
+
+    if usage.documents_uploaded + 1 > limits.documents_per_month:
+        return _over(
+            "PLAN_LIMIT_REACHED",
+            "documentsPerMonth",
+            usage.documents_uploaded,
+            limits.documents_per_month,
+        )
+    if usage.pages_reserved + upload.pages_to_read > limits.extracted_pages_per_month:
+        return _over(
+            "PLAN_LIMIT_REACHED",
+            "extractedPagesPerMonth",
+            usage.pages_reserved,
+            limits.extracted_pages_per_month,
+        )
+    needs_ai = upload.pages_to_read > 0 or upload.ledger_rows is not None
+    if needs_ai and usage.ai_spend_usd >= limits.ai_spend_usd_per_month:
+        return _over(
+            "PLAN_LIMIT_REACHED",
+            "aiSpendUsdPerMonth",
+            usage.ai_spend_usd,
+            limits.ai_spend_usd_per_month,
+        )
+    return ALLOWED
+
+
+def check_month_run(
+    limits: Limits,
+    status: SubscriptionStatus,
+    usage: UsageDay,
+    *,
+    global_quota: int,
+    seconds_until_reset: int,
+) -> Decision:
+    """A month run the user asks for; RUN_QUOTA_PER_ORG_PER_DAY caps every plan (AC-004-11)."""
+    if status == "TRIAL_EXPIRED":
+        return _TRIAL_EXPIRED
+    maximum = min(limits.month_runs_per_day, global_quota)
+    if usage.month_runs >= maximum:
+        return Denied(
+            code="RUN_QUOTA_EXCEEDED",
+            limit="monthRunsPerDay",
+            used=usage.month_runs,
+            max=maximum,
+            retry_after_seconds=seconds_until_reset,
+        )
+    return ALLOWED
+
+
+def check_assistant_question(
+    limits: Limits, status: SubscriptionStatus, usage: UsageDay
+) -> Decision:
+    if status == "TRIAL_EXPIRED":
+        return _TRIAL_EXPIRED
+    if usage.assistant_questions >= limits.assistant_questions_per_day:
+        return _over(
+            "PLAN_LIMIT_REACHED",
+            "assistantQuestionsPerDay",
+            usage.assistant_questions,
+            limits.assistant_questions_per_day,
+        )
+    return ALLOWED
+
+
+def check_invite(limits: Limits, status: SubscriptionStatus, *, seats_used: int) -> Decision:
+    """Seats count members and pending invites, the owner included."""
+    if status == "TRIAL_EXPIRED":
+        return _TRIAL_EXPIRED
+    if seats_used >= limits.seats:
+        return _over("PLAN_LIMIT_REACHED", "seats", seats_used, limits.seats)
+    return ALLOWED

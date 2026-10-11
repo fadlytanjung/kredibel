@@ -34,7 +34,7 @@ _Last updated: 11 Oct 2026 — Spec 001 and Spec 013 P0 frontend & backend built
 
 | Component | Spec | Status | Notes |
 |---|---|---|---|
-| Upload API + sheet (camera on phones), page split + triage | 003 | Specified | |
+| Upload API + sheet (camera on phones), page split + triage | 003 | In progress | Pure file type sniffing built and tested (T003-01); page triage and upload service in progress |
 | Exact duplicates (`D01`) | 003 | Specified | |
 | Documents library + document page | 003 | Specified | |
 | Queues, runs, worker endpoints, inline mode | 004 | Specified | |

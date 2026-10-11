@@ -2,7 +2,7 @@
 
 ## Phase 1 — Domain
 
-- [ ] **T003-01** **TDD** `file_types.py` with fixtures (real PDF, ZIP renamed to `.pdf`, PNG, JPEG, XLSX, CSV with BOM, empty file). (AC-003-2)
+- [x] **T003-01** **TDD** `file_types.py` with fixtures (real PDF, ZIP renamed to `.pdf`, PNG, JPEG, XLSX, CSV with BOM, empty file). (AC-003-2)
 - [ ] **T003-02** **TDD** `page_triage.py`: usable, `(cid:…)` unusable, image-only, blank page. (AC-003-4)
 
 ## Phase 2 — API

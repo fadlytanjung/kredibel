@@ -49,7 +49,7 @@ Each task lists the acceptance criteria it serves.
 ## Phase 4b — Data-migration foundation
 
 - [x] **T001-30** **TDD** `adapters/firestore/upcast.py` registry and chain; `SchemaTooNewError`; sample `documents` model v1/v2 with fixtures. (AC-001-19)
-- [ ] **T001-31** **TDD** `backend/migrations/runner.py` with the emulator: paging, preconditions, checkpoint, dry run, lock lease, registry document; sample `0000_example`. (AC-001-20)
+- [x] **T001-31** **TDD** `backend/migrations/runner.py` with the emulator: paging, preconditions, checkpoint, dry run, lock lease, registry document; sample `0000_example`. (AC-001-20)
 - [ ] **T001-32** `make schema-snapshot` and `tools/checks/schema_drift.py`; commit `contracts/data/schema-snapshot.json`. (AC-001-21)
 - [ ] **T001-33** Bootstrap additions (backups bucket and lifecycle, PITR, backup schedule, `kredibel-migrate` SA and job); Cloud Build steps 5a/5b; `make migrate`, `migrate-dry`, `migrate-status`. (AC-001-22)
 

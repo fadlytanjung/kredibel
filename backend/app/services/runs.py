@@ -7,6 +7,7 @@ Normative references:
 - ADR-006 (Async jobs with Cloud Tasks)
 """
 
+from collections.abc import Callable, Coroutine
 from datetime import UTC, datetime
 from typing import Any
 
@@ -17,6 +18,9 @@ from app.ports.month_repository import MonthRepository
 from app.ports.run_repository import RunRepository
 from app.ports.task_queue import TaskQueue
 from app.services.entitlement_service import EntitlementService, _seconds_until_utc_midnight
+
+DocumentWorkflowRunner = Callable[[str, str, str, int], Coroutine[Any, Any, Any]]
+MonthWorkflowRunner = Callable[[str, str, int, str], Coroutine[Any, Any, dict[str, Any]]]
 
 
 class RunService:
@@ -29,6 +33,8 @@ class RunService:
         entitlement_service: EntitlementService,
         settings: Settings,
         clock: Any | None = None,
+        document_workflow_runner: DocumentWorkflowRunner | None = None,
+        month_workflow_runner: MonthWorkflowRunner | None = None,
     ) -> None:
         self._run_repo = run_repo
         self._month_repo = month_repo
@@ -36,6 +42,8 @@ class RunService:
         self._entitlement_service = entitlement_service
         self._settings = settings
         self._clock = clock
+        self._document_workflow_runner = document_workflow_runner
+        self._month_workflow_runner = month_workflow_runner
 
     def _now(self) -> datetime:
         if self._clock is not None:
@@ -104,3 +112,95 @@ class RunService:
             org_id, month, generation, delay_seconds=delay_seconds
         )
         return run
+
+    async def process_document_task(
+        self, org_id: str, doc_id: str, run_id: str, attempt: int = 1
+    ) -> dict[str, Any]:
+        """Process a document task (AC-004-1, AC-004-3).
+
+        Idempotent: if run is already DONE, returns {"ok": True, "skipped": "finished"}.
+        """
+        run = await self._run_repo.get(org_id, run_id)
+        if run is not None and run.status == RunStatus.DONE:
+            return {"ok": True, "skipped": "finished"}
+
+        if run is None:
+            run = Run(
+                run_id=run_id,
+                kind=RunKind.DOCUMENT,
+                target=doc_id,
+                status=RunStatus.RUNNING,
+                created_at=self._now(),
+            )
+            await self._run_repo.create(org_id, run)
+        else:
+            await self._run_repo.update_status(org_id, run_id, RunStatus.RUNNING)
+
+        if self._document_workflow_runner is not None:
+            await self._document_workflow_runner(org_id, doc_id, run_id, attempt)
+        else:
+            await self._run_repo.update_status(org_id, run_id, RunStatus.DONE, ended=True)
+
+        return {"ok": True}
+
+    async def reconcile_month_task(
+        self, org_id: str, month: str, generation: int, run_id: str
+    ) -> dict[str, Any]:
+        """Process a reconcile month task (AC-004-5).
+
+        Idempotent: if run is already DONE, returns {"ok": True, "skipped": "finished"}.
+        If generation is older than month's current generation, marks run SUPERSEDED
+        and returns {"ok": True, "skipped": "superseded"}.
+        """
+        run = await self._run_repo.get(org_id, run_id)
+        if run is not None and run.status == RunStatus.DONE:
+            return {"ok": True, "skipped": "finished"}
+
+        month_doc = await self._month_repo.get(org_id, month)
+        if month_doc is not None and month_doc.generation > generation:
+            if run is None:
+                run = Run(
+                    run_id=run_id,
+                    kind=RunKind.MONTH,
+                    target=month,
+                    generation=generation,
+                    status=RunStatus.SUPERSEDED,
+                    created_at=self._now(),
+                    ended_at=self._now(),
+                )
+                await self._run_repo.create(org_id, run)
+            else:
+                await self._run_repo.update_status(org_id, run_id, RunStatus.SUPERSEDED, ended=True)
+            return {"ok": True, "skipped": "superseded"}
+
+        if run is None:
+            run = Run(
+                run_id=run_id,
+                kind=RunKind.MONTH,
+                target=month,
+                generation=generation,
+                status=RunStatus.RUNNING,
+                created_at=self._now(),
+            )
+            await self._run_repo.create(org_id, run)
+        else:
+            await self._run_repo.update_status(org_id, run_id, RunStatus.RUNNING)
+
+        if self._month_workflow_runner is not None:
+            result = await self._month_workflow_runner(org_id, month, generation, run_id)
+            if isinstance(result, dict) and result.get("skipped") == "superseded":
+                return {"ok": True, "skipped": "superseded"}
+        else:
+            # Check generation before finalizing
+            current_month = await self._month_repo.get(org_id, month)
+            if current_month is not None and current_month.generation > generation:
+                await self._run_repo.update_status(org_id, run_id, RunStatus.SUPERSEDED, ended=True)
+                return {"ok": True, "skipped": "superseded"}
+
+            if current_month is not None:
+                current_month.dirty = False
+                current_month.last_run_id = run_id
+                await self._month_repo.save(org_id, current_month)
+            await self._run_repo.update_status(org_id, run_id, RunStatus.DONE, ended=True)
+
+        return {"ok": True}

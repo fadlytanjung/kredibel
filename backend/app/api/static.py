@@ -5,8 +5,9 @@ Normative reference: docs/specs/001-foundation/tasks.md T001-12 and docs/16 §5.
 
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.core.errors import NotFoundError
 
@@ -29,10 +30,16 @@ def mount_static_spa(app: FastAPI, static_dir: str = "/app/static") -> None:
     root = static_path.resolve()
     index_html = root / "index.html"
 
-    @app.get("/{full_path:path}", include_in_schema=False)
-    async def spa_fallback(full_path: str) -> FileResponse:
+    @app.api_route(
+        "/{full_path:path}",
+        methods=["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"],
+        include_in_schema=False,
+    )
+    async def spa_fallback(request: Request, full_path: str) -> FileResponse:
         if full_path in ("api", "tasks") or full_path.startswith(("api/", "tasks/")):
             raise NotFoundError()
+        if request.method not in ("GET", "HEAD"):
+            raise StarletteHTTPException(status_code=405, detail="Method Not Allowed")
 
         # The path arrives percent-decoded, so "..%2F" is a real "../" here: resolve and
         # require the result to stay inside the static root, or any container file is readable.
@@ -43,3 +50,4 @@ def mount_static_spa(app: FastAPI, static_dir: str = "/app/static") -> None:
         if index_html.is_file():
             return FileResponse(index_html, headers={"Cache-Control": _NO_CACHE})
         raise NotFoundError()
+

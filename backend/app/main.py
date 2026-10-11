@@ -12,6 +12,8 @@ from google.cloud.firestore import AsyncClient
 from app.adapters.cloud_tasks import CloudTasksQueue, InlineTaskQueue
 from app.adapters.firebase_identity import FirebaseIdentityAdmin
 from app.adapters.firestore.document_repo import FirestoreDocumentRepository
+from app.adapters.firestore.month_repo import FirestoreMonthRepository
+from app.adapters.firestore.run_repo import FirestoreRunRepository
 from app.adapters.firestore.usage_repo import FirestoreUsageRepository
 from app.adapters.firestore.workspace_repo import FirestoreWorkspaceRepository
 from app.adapters.gcs_storage import GcsDocumentStorage
@@ -28,8 +30,12 @@ from app.api.tasks import create_tasks_router
 from app.api.workspace import create_workspace_router
 from app.core.auth import (
     FirebaseTokenVerifier,
+    GoogleOidcTokenVerifier,
+    NoopTaskTokenVerifier,
+    TaskTokenVerifier,
     TokenVerifier,
     get_principal_dependency,
+    get_task_auth_dependency,
     require_workspace,
 )
 from app.core.clock import Clock, SystemClock
@@ -41,12 +47,16 @@ from app.domain.plans import PlanCatalog
 from app.ports.document_repository import DocumentRepository
 from app.ports.document_storage import DocumentStorage
 from app.ports.identity_admin import IdentityAdmin
+from app.ports.month_repository import MonthRepository
 from app.ports.page_renderer import PageRenderer
+from app.ports.run_repository import RunRepository
 from app.ports.spreadsheet_reader import SpreadsheetReader
 from app.ports.task_queue import TaskQueue
 from app.ports.workspace_repository import UsageRepository, WorkspaceRepository
 from app.services.document_service import DocumentService
 from app.services.entitlement_service import EntitlementService
+from app.services.month_service import MonthService
+from app.services.runs import RunService
 from app.services.workspace_service import WorkspaceService
 
 T = TypeVar("T")
@@ -73,6 +83,9 @@ class AppDeps:
         task_queue: TaskQueue | None = None,
         renderer: PageRenderer | None = None,
         spreadsheet_reader: SpreadsheetReader | None = None,
+        run_repo: RunRepository | None = None,
+        month_repo: MonthRepository | None = None,
+        task_token_verifier: TaskTokenVerifier | None = None,
     ) -> None:
         self.settings = settings
         self._plans = plans
@@ -86,6 +99,9 @@ class AppDeps:
         self._task_queue = task_queue
         self._renderer = renderer
         self._spreadsheet_reader = spreadsheet_reader
+        self._run_repo = run_repo
+        self._month_repo = month_repo
+        self._task_token_verifier = task_token_verifier
         self._built: dict[str, Any] = {}
 
     def _once(self, name: str, build: Callable[[], T]) -> T:
@@ -218,11 +234,62 @@ class AppDeps:
             ),
         )
 
+    @property
+    def task_token_verifier(self) -> TaskTokenVerifier:
+        return self._once(
+            "task_token_verifier",
+            lambda: (
+                self._task_token_verifier
+                or (
+                    GoogleOidcTokenVerifier(expected_email=self.settings.tasks_invoker_sa)
+                    if self.settings.task_queue_mode == "cloud"
+                    else NoopTaskTokenVerifier()
+                )
+            ),
+        )
+
+    @property
+    def run_repo(self) -> RunRepository:
+        return self._once(
+            "run_repo", lambda: self._run_repo or FirestoreRunRepository(self.firestore)
+        )
+
+    @property
+    def month_repo(self) -> MonthRepository:
+        return self._once(
+            "month_repo", lambda: self._month_repo or FirestoreMonthRepository(self.firestore)
+        )
+
+    @property
+    def run_service(self) -> RunService:
+        return self._once(
+            "run_service",
+            lambda: RunService(
+                run_repo=self.run_repo,
+                month_repo=self.month_repo,
+                task_queue=self.task_queue,
+                entitlement_service=self.entitlement_service,
+                settings=self.settings,
+                clock=self.clock,
+            ),
+        )
+
+    @property
+    def month_service(self) -> MonthService:
+        return self._once(
+            "month_service",
+            lambda: MonthService(
+                month_repo=self.month_repo,
+                run_service=self.run_service,
+            ),
+        )
+
 
 def create_app(
     settings: Settings | None = None,
     deps: AppDeps | None = None,
     token_verifier: TokenVerifier | None = None,
+    task_token_verifier: TaskTokenVerifier | None = None,
 ) -> FastAPI:
     """Create and configure FastAPI application instance with role-based routing."""
     active_settings = settings or Settings()
@@ -236,7 +303,12 @@ def create_app(
     if deps is None:
         # AC-013-5: an invalid plan catalog stops the process before it serves anything.
         plans = load_plans(active_settings.contract_path(active_settings.plans_file))
-        deps = AppDeps(active_settings, plans, token_verifier=token_verifier)
+        deps = AppDeps(
+            active_settings,
+            plans,
+            token_verifier=token_verifier,
+            task_token_verifier=task_token_verifier,
+        )
 
     app = FastAPI(
         title="Kredibel API",
@@ -252,6 +324,10 @@ def create_app(
 
     principal_dep = get_principal_dependency(verifier=token_verifier or deps.token_verifier)
     workspace_dep = require_workspace(principal_dep)
+    task_auth_dep = get_task_auth_dependency(
+        verifier=task_token_verifier or deps.task_token_verifier,
+        enabled=active_settings.task_queue_mode == "cloud" or task_token_verifier is not None,
+    )
 
     # 1. Health check (every role)
     app.include_router(create_health_router(active_settings))
@@ -266,7 +342,7 @@ def create_app(
 
     # 3. Worker role endpoints
     if active_settings.app_role in ("worker", "all"):
-        app.include_router(create_tasks_router())
+        app.include_router(create_tasks_router(deps, task_auth_dep=task_auth_dep))
 
     # 4. The SPA catch-all matches every path, so it must be registered after every router.
     if active_settings.app_role in ("web", "all"):

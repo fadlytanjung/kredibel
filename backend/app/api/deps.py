@@ -7,6 +7,8 @@ from app.core.clock import Clock
 from app.domain.plans import PlanCatalog
 from app.services.document_service import DocumentService
 from app.services.entitlement_service import EntitlementService
+from app.services.month_service import MonthService
+from app.services.runs import RunService
 from app.services.workspace_service import WorkspaceService
 
 
@@ -25,6 +27,12 @@ class ServiceProvider(Protocol):
 
     @property
     def document_service(self) -> DocumentService: ...
+
+    @property
+    def run_service(self) -> RunService: ...
+
+    @property
+    def month_service(self) -> MonthService: ...
 
 
 def org_of(principal: Principal) -> str:

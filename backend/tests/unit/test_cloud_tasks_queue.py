@@ -17,9 +17,7 @@ async def test_inline_task_queue_document_and_month():
     assert len(queue.enqueued_document_tasks) == 1
     assert queue.enqueued_document_tasks[0]["taskName"] == "doc-doc_1-2"
 
-    month_task = await queue.enqueue_month_task(
-        "org_1", "2026-03", generation=5, delay_seconds=20
-    )
+    month_task = await queue.enqueue_month_task("org_1", "2026-03", generation=5, delay_seconds=20)
     assert month_task == "month-org_1-2026-03-5"
     assert len(queue.enqueued_month_tasks) == 1
     assert queue.enqueued_month_tasks[0]["taskName"] == "month-org_1-2026-03-5"

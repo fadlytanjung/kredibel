@@ -1,18 +1,130 @@
-"""Worker router, mounted only on the worker and all roles (AC-001-10).
+"""Worker router mounted on worker and all roles (docs/10 §2.9, AC-004-1, AC-004-3, AC-004-5).
 
-The task endpoints of docs/10 §2.9 (POST /tasks/process-document, POST /tasks/reconcile-month)
-arrive with spec 004; until then only the health probe proves the router is mounted.
+Handles Cloud Tasks delivery for:
+- POST /tasks/process-document (runs document_workflow, idempotent by runId)
+- POST /tasks/reconcile-month (runs month_workflow, superseded if generation < month.generation)
 """
 
-from fastapi import APIRouter
+from collections.abc import Callable, Coroutine
+from typing import Any, Literal
+
+import structlog
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, Field
+
+from app.api.deps import ServiceProvider
+
+_log = structlog.get_logger()
+
+TaskAuthDep = Callable[..., Coroutine[Any, Any, None]]
 
 
-def create_tasks_router() -> APIRouter:
+class ProcessDocumentTask(BaseModel):
+    orgId: str
+    docId: str
+    runId: str
+    attempt: int = Field(default=1)
+
+
+class ReconcileMonthTask(BaseModel):
+    orgId: str
+    month: str
+    generation: int
+    runId: str
+
+
+class TaskResult(BaseModel):
+    ok: bool
+    skipped: Literal["finished", "superseded"] | None = None
+
+
+def create_tasks_router(
+    deps: ServiceProvider,
+    task_auth_dep: TaskAuthDep | None = None,
+) -> APIRouter:
     """Create tasks router mounted only on worker/all roles."""
     router = APIRouter(prefix="/tasks", tags=["tasks"])
+    auth_dependencies = [Depends(task_auth_dep)] if task_auth_dep is not None else []
 
     @router.get("/health")
     async def get_tasks_health() -> dict[str, str]:
         return {"status": "ok", "component": "tasks"}
+
+    @router.post(
+        "/process-document",
+        response_model=TaskResult,
+        status_code=status.HTTP_200_OK,
+        dependencies=auth_dependencies,
+    )
+    async def process_document(task: ProcessDocumentTask) -> TaskResult:
+        _log.info(
+            "task_process_document_received",
+            org_id=task.orgId,
+            doc_id=task.docId,
+            run_id=task.runId,
+            attempt=task.attempt,
+        )
+        try:
+            result = await deps.run_service.process_document_task(
+                org_id=task.orgId,
+                doc_id=task.docId,
+                run_id=task.runId,
+                attempt=task.attempt,
+            )
+            return TaskResult(
+                ok=result.get("ok", True),
+                skipped=result.get("skipped"),
+            )
+        except Exception as exc:
+            _log.exception(
+                "task_process_document_failed",
+                org_id=task.orgId,
+                doc_id=task.docId,
+                run_id=task.runId,
+                error=str(exc),
+            )
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Document processing failed: {exc}",
+            ) from exc
+
+    @router.post(
+        "/reconcile-month",
+        response_model=TaskResult,
+        status_code=status.HTTP_200_OK,
+        dependencies=auth_dependencies,
+    )
+    async def reconcile_month(task: ReconcileMonthTask) -> TaskResult:
+        _log.info(
+            "task_reconcile_month_received",
+            org_id=task.orgId,
+            month=task.month,
+            generation=task.generation,
+            run_id=task.runId,
+        )
+        try:
+            result = await deps.run_service.reconcile_month_task(
+                org_id=task.orgId,
+                month=task.month,
+                generation=task.generation,
+                run_id=task.runId,
+            )
+            return TaskResult(
+                ok=result.get("ok", True),
+                skipped=result.get("skipped"),
+            )
+        except Exception as exc:
+            _log.exception(
+                "task_reconcile_month_failed",
+                org_id=task.orgId,
+                month=task.month,
+                generation=task.generation,
+                run_id=task.runId,
+                error=str(exc),
+            )
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Month reconciliation failed: {exc}",
+            ) from exc
 
     return router

@@ -8,6 +8,7 @@ import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import { useAuth } from '../entities/session'
+import { shellPropsFromWorkspace, useWorkspace } from '../entities/workspace'
 import { DashboardPage } from '../pages/DashboardPage'
 import { LoginPage } from '../pages/LoginPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
@@ -23,6 +24,7 @@ import {
 } from '../pages/Placeholders'
 import { AppShell } from '../shared/ui'
 import { OnboardingPreview } from './OnboardingPreview'
+import { TrialBanner } from '../widgets/TrialBanner'
 import { ShellPreview } from './ShellPreview'
 
 function FullPageLoading() {
@@ -37,17 +39,24 @@ function FullPageLoading() {
 }
 
 export function ProtectedRoute({ children }: { children: ReactNode }) {
+  const { t } = useTranslation()
   const { user, me, needsWorkspace, loading, signOut } = useAuth()
   const navigate = useNavigate()
+  const workspaceQuery = useWorkspace(Boolean(user && me?.orgId))
 
   if (loading) return <FullPageLoading />
   if (!user) return <Navigate to="/login" replace />
   if (needsWorkspace) return <Navigate to="/onboarding" replace />
 
   const name = me?.displayName || user.displayName || user.email || ''
+  const shell = workspaceQuery.data ? shellPropsFromWorkspace(workspaceQuery.data) : undefined
   return (
     <AppShell
       user={{ name, role: me?.role }}
+      workspace={shell?.workspace}
+      trial={shell?.trial}
+      banner={shell?.trial && <TrialBanner trial={shell.trial} />}
+      uploadBlockedReason={shell?.uploadBlocked ? t('shell.uploadBlocked') : undefined}
       onSignOut={() => void signOut()}
       onUpload={() => navigate('/documents?upload=1')}
     >

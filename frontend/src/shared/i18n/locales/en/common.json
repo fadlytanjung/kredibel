@@ -89,7 +89,12 @@
     "trialDaysLeft_one": "Free trial: {{count}} day left",
     "trialDaysLeft_other": "Free trial: {{count}} days left",
     "pagesUsed": "{{used}} of {{max}} pages read this month",
-    "planAndUsage": "Plan and usage"
+    "planAndUsage": "Plan and usage",
+    "trialBadge_one": "Free trial · {{count}} day left",
+    "trialBadge_other": "Free trial · {{count}} days left",
+    "trialEnded": "Trial ended",
+    "trialEndedCard": "Your free trial has ended",
+    "uploadBlocked": "Uploads are paused because the free trial has ended."
   },
   "roles": {
     "owner": "Owner",
@@ -128,5 +133,10 @@
     "save": "Save",
     "cancel": "Cancel",
     "back": "Back"
+  },
+  "trialBanner": {
+    "endingSoon_one": "Your free trial ends in {{count}} day. Your books stay readable after that; new uploads pause.",
+    "endingSoon_other": "Your free trial ends in {{count}} days. Your books stay readable after that; new uploads pause.",
+    "expired": "Your trial has ended. Your books stay readable; new uploads are paused."
   }
 }

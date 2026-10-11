@@ -4,7 +4,7 @@
 > a component. Statuses: **Specified** → **In progress** → **Built** (tests green) → **Deployed**
 > (running on Cloud Run) · **Cut** (deliberately dropped, with reason).
 
-_Last updated: 11 Oct 2026 — Spec 001 Foundation complete (tests green) and deployed to Cloud Run (cloud-hack2skill, asia-southeast1)._
+_Last updated: 11 Oct 2026 — Spec 001 audited and repaired (security, gates, CI); spec 013 P0 backend, onboarding and trial UI built, not yet deployed._
 
 ## Foundation & platform
 
@@ -24,10 +24,10 @@ _Last updated: 11 Oct 2026 — Spec 001 Foundation complete (tests green) and de
 
 | Component | Spec | Status | Notes |
 |---|---|---|---|
-| Plans config + entitlement checks | 013 | In progress | Catalog validated at start-up; pure checks for upload, month run, assistant, invite (T013-01…03). EntitlementService and wiring next |
-| Onboarding as individual or company (free trial, claims, first bank account) | 013 | In progress | `WorkspaceService.create` with one Firestore transaction, double-submit and claims-repair guard (T013-04…06); routes and UI next |
-| Usage counters + page reservation at upload | 013, 003 | Specified | |
-| Settings: profile, bank accounts, language, plan & usage (coming soon items) | 013 | Specified | |
+| Plans config + entitlement checks | 013 | Built | Catalog validated at start-up; pure checks; `EntitlementService` meters in the same Firestore transaction (T013-01…03, T013-07). Wiring into upload and month runs waits for specs 003/004 (T013-10) |
+| Onboarding as individual or company (free trial, claims, first bank account) | 013 | Built | One-transaction create with double-submit and claims-repair guard; routes; onboarding page with token refresh and retry; demo seed (T013-04…06, -08, -09, -11). Verify on Cloud Run: T013-18 |
+| Usage counters + page reservation at upload | 013, 003 | In progress | Counters, reservation and settlement built and tested on the emulator (T013-07); the upload that calls them is spec 003 |
+| Settings: profile, bank accounts, language, plan & usage (coming soon items) | 013 | In progress | API built (T013-08); trial badge, banner and blocked Upload in the shell (T013-12); settings screens T013-13…15 |
 | Members and roles (owner, accountant, reviewer, viewer) | 013 | Specified (P1) | |
 
 ## Intake & workflows

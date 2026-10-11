@@ -1,13 +1,37 @@
 import { Bell, Upload } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
+import { Badge } from './Badge'
 import { Button } from './Button'
+import type { AppShellTrial } from './appShellNav'
 
 interface TopBarProps {
   compact: boolean
   title: string
   riskCount?: number
+  trial?: AppShellTrial
   onUpload?: () => void
+  uploadBlockedReason?: string
+}
+
+function TrialBadge({ trial }: { trial: AppShellTrial }) {
+  const { t } = useTranslation()
+  if (trial.status === 'TRIAL_EXPIRED') {
+    return <Badge variant="critical">{t('shell.trialEnded')}</Badge>
+  }
+  return (
+    <Badge variant={trial.daysLeft <= 7 ? 'medium' : 'brand'}>
+      {t('shell.trialBadge', { count: trial.daysLeft })}
+    </Badge>
+  )
+}
+
+export function UploadBlockedNote({ id, reason }: { id: string; reason?: string }) {
+  return reason ? (
+    <span id={id} className="sr-only">
+      {reason}
+    </span>
+  ) : null
 }
 
 function RiskBell({ riskCount, compact }: { riskCount?: number; compact: boolean }) {
@@ -27,7 +51,14 @@ function RiskBell({ riskCount, compact }: { riskCount?: number; compact: boolean
   )
 }
 
-export function AppShellTopBar({ compact, title, riskCount, onUpload }: TopBarProps) {
+export function AppShellTopBar({
+  compact,
+  title,
+  riskCount,
+  trial,
+  onUpload,
+  uploadBlockedReason,
+}: TopBarProps) {
   const { t } = useTranslation()
 
   return (
@@ -38,6 +69,7 @@ export function AppShellTopBar({ compact, title, riskCount, onUpload }: TopBarPr
             <img src="/brand/kredibel-mark.svg" alt={t('app.name')} className="w-8 h-8 shrink-0" />
           </Link>
           <span className="font-semibold text-base truncate flex-1">{title}</span>
+          {trial && <TrialBadge trial={trial} />}
           <RiskBell riskCount={riskCount} compact />
         </>
       ) : (
@@ -46,11 +78,20 @@ export function AppShellTopBar({ compact, title, riskCount, onUpload }: TopBarPr
             <span className="font-semibold text-ink truncate">{title}</span>
           </nav>
           <div className="ml-auto flex items-center gap-3">
+            {trial && <TrialBadge trial={trial} />}
             <RiskBell riskCount={riskCount} compact={false} />
-            <Button variant="primary" size="md" onClick={onUpload}>
+            <Button
+              variant="primary"
+              size="md"
+              onClick={onUpload}
+              disabled={Boolean(uploadBlockedReason)}
+              title={uploadBlockedReason}
+              aria-describedby={uploadBlockedReason ? 'upload-blocked' : undefined}
+            >
               <Upload className="w-4 h-4" />
               <span>{t('shell.upload')}</span>
             </Button>
+            <UploadBlockedNote id="upload-blocked" reason={uploadBlockedReason} />
           </div>
         </>
       )}

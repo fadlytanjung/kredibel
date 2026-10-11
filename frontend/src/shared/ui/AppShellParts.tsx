@@ -25,7 +25,9 @@ export function TrialCard({ trial }: { trial: AppShellTrial }) {
   return (
     <div className="p-3 rounded-md bg-inverse text-on-inverse text-xs flex flex-col gap-1.5">
       <strong className="text-sm font-semibold">
-        {t('shell.trialDaysLeft', { count: trial.daysLeft })}
+        {trial.status === 'TRIAL_EXPIRED'
+          ? t('shell.trialEndedCard')
+          : t('shell.trialDaysLeft', { count: trial.daysLeft })}
       </strong>
       <span className="text-on-inverse/80">
         {t('shell.pagesUsed', { used: trial.pagesUsed, max: trial.pagesMax })}

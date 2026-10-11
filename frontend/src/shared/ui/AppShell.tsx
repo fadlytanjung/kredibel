@@ -29,6 +29,10 @@ export interface AppShellProps {
   counts?: AppShellCounts
   onSignOut?: () => void
   onUpload?: () => void
+  /** Why Upload is disabled (the trial ended); the server refuses it anyway (AC-013-12). */
+  uploadBlockedReason?: string
+  /** Shown above every page, e.g. the trial banner. */
+  banner?: ReactNode
 }
 
 export function AppShell({
@@ -39,6 +43,8 @@ export function AppShell({
   counts,
   onSignOut,
   onUpload,
+  uploadBlockedReason,
+  banner,
 }: AppShellProps) {
   const { t } = useTranslation()
   const { pathname } = useLocation()
@@ -65,12 +71,15 @@ export function AppShell({
           compact={isCompact}
           title={current ? t(`nav.${current.key}.long`) : ''}
           riskCount={counts?.risk}
+          trial={trial}
           onUpload={onUpload}
+          uploadBlockedReason={uploadBlockedReason}
         />
         <main
           id="content"
           className="flex-1 px-4 medium:px-6 large:px-8 py-5 medium:py-6 large:py-8 max-w-7xl w-full"
         >
+          {banner}
           {children}
         </main>
       </div>
@@ -82,6 +91,7 @@ export function AppShell({
           counts={counts}
           onSignOut={onSignOut}
           onUpload={onUpload}
+          uploadBlockedReason={uploadBlockedReason}
         />
       )}
     </div>

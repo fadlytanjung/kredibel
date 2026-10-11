@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useLocation } from 'react-router-dom'
 import { Avatar, NavCount, SoonBadge } from './AppShellParts'
+import { UploadBlockedNote } from './AppShellTopBar'
 import { Button } from './Button'
 import {
   NAV_ITEMS,
@@ -19,6 +20,7 @@ interface CompactNavProps {
   counts?: AppShellCounts
   onSignOut?: () => void
   onUpload?: () => void
+  uploadBlockedReason?: string
 }
 
 function MoreSheet({
@@ -27,7 +29,7 @@ function MoreSheet({
   counts,
   onSignOut,
   onClose,
-}: Omit<CompactNavProps, 'onUpload'> & { onClose: () => void }) {
+}: Omit<CompactNavProps, 'onUpload' | 'uploadBlockedReason'> & { onClose: () => void }) {
   const { t } = useTranslation()
 
   // docs/11 §4.1: Esc closes the More sheet.
@@ -105,7 +107,14 @@ function MoreSheet({
   )
 }
 
-export function AppShellCompactNav({ user, workspace, counts, onSignOut, onUpload }: CompactNavProps) {
+export function AppShellCompactNav({
+  user,
+  workspace,
+  counts,
+  onSignOut,
+  onUpload,
+  uploadBlockedReason,
+}: CompactNavProps) {
   const { t } = useTranslation()
   const { pathname } = useLocation()
   const [moreOpen, setMoreOpen] = useState(false)
@@ -119,10 +128,14 @@ export function AppShellCompactNav({ user, workspace, counts, onSignOut, onUploa
             size="lg"
             className="rounded-full shadow-raised px-5 h-13"
             onClick={onUpload}
+            disabled={Boolean(uploadBlockedReason)}
+            title={uploadBlockedReason}
+            aria-describedby={uploadBlockedReason ? 'upload-blocked-compact' : undefined}
           >
             <Upload className="w-5 h-5" />
             <span>{t('shell.upload')}</span>
           </Button>
+          <UploadBlockedNote id="upload-blocked-compact" reason={uploadBlockedReason} />
         </div>
 
         <nav aria-label={t('nav.mobile')} className="grid grid-cols-5 p-1.5 bg-surface border-t border-line">

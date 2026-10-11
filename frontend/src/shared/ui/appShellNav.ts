@@ -86,6 +86,7 @@ export interface AppShellWorkspace {
 }
 
 export interface AppShellTrial {
+  status: 'TRIALING' | 'TRIAL_EXPIRED'
   daysLeft: number
   pagesUsed: number
   pagesMax: number

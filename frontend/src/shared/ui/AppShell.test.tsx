@@ -21,7 +21,7 @@ function renderShell(props: Partial<AppShellProps> = {}, path = '/') {
 const FULL_PROPS: Partial<AppShellProps> = {
   user: { name: 'Demo Owner', role: 'owner' },
   workspace: { name: 'Synthetic Books Ltd', subtitle: 'COMPANY · IDR · IFRS' },
-  trial: { daysLeft: 23, pagesUsed: 286, pagesMax: 400 },
+  trial: { status: 'TRIALING' as const, daysLeft: 23, pagesUsed: 286, pagesMax: 400 },
   counts: { documents: 12, review: 3, risk: 1 },
 }
 
@@ -91,5 +91,28 @@ describe('AppShell (AC-001-16)', () => {
 
     fireEvent.keyDown(window, { key: 'Escape' })
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+})
+
+describe('AppShell trial (AC-013-12)', () => {
+  beforeEach(() => setWidth(1440))
+
+  it('shows the trial badge in the top bar', () => {
+    renderShell(FULL_PROPS)
+
+    expect(screen.getByText('Free trial · 23 days left')).toBeInTheDocument()
+  })
+
+  it('disables Upload with the reason after the trial', () => {
+    renderShell({
+      ...FULL_PROPS,
+      trial: { status: 'TRIAL_EXPIRED', daysLeft: 0, pagesUsed: 0, pagesMax: 400 },
+      uploadBlockedReason: 'Uploads are paused because the free trial has ended.',
+    })
+
+    const upload = screen.getByRole('button', { name: 'Upload' })
+    expect(upload).toBeDisabled()
+    expect(upload).toHaveAccessibleDescription('Uploads are paused because the free trial has ended.')
+    expect(screen.getByText('Trial ended')).toBeInTheDocument()
   })
 })

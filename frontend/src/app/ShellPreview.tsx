@@ -9,7 +9,7 @@ import { AppShell } from '../shared/ui'
 const PREVIEW_PROPS = {
   user: { name: 'Demo Owner', role: 'owner' },
   workspace: { name: 'Sunrise Coffee Roasters', subtitle: 'COMPANY · IDR · IFRS' },
-  trial: { daysLeft: 23, pagesUsed: 286, pagesMax: 400 },
+  trial: { status: 'TRIALING' as const, daysLeft: 23, pagesUsed: 286, pagesMax: 400 },
   counts: { documents: 92, review: 9, risk: 2 },
 }
 

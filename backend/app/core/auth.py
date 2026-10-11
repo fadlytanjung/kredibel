@@ -39,7 +39,13 @@ class FirebaseTokenVerifier:
     """Production verifier validating Firebase ID tokens via the Firebase Admin SDK."""
 
     def verify_token(self, token: str) -> dict[str, Any]:
+        import firebase_admin
         import firebase_admin.auth
+
+        try:
+            firebase_admin.get_app()
+        except ValueError:
+            firebase_admin.initialize_app()
 
         try:
             return firebase_admin.auth.verify_id_token(token)

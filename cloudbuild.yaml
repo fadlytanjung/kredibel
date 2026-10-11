@@ -27,9 +27,9 @@ steps:
       - '--build-arg'
       - 'VITE_FIREBASE_APP_ID=$_VITE_FIREBASE_APP_ID'
       - '--build-arg'
-      - 'VITE_APP_VERSION=$SHORT_SHA'
+      - 'VITE_APP_VERSION=$_COMMIT_SHA'
       - '-t'
-      - 'asia-southeast1-docker.pkg.dev/$PROJECT_ID/kredibel/app:$SHORT_SHA'
+      - 'asia-southeast1-docker.pkg.dev/$PROJECT_ID/kredibel/app:$_COMMIT_SHA'
       - '-t'
       - 'asia-southeast1-docker.pkg.dev/$PROJECT_ID/kredibel/app:latest'
       - '.'
@@ -39,7 +39,7 @@ steps:
     id: 'push'
     args:
       - 'push'
-      - 'asia-southeast1-docker.pkg.dev/$PROJECT_ID/kredibel/app:$SHORT_SHA'
+      - 'asia-southeast1-docker.pkg.dev/$PROJECT_ID/kredibel/app:$_COMMIT_SHA'
   - name: 'gcr.io/cloud-builders/docker'
     id: 'push-latest'
     args:
@@ -64,13 +64,15 @@ steps:
       - |
         echo "Updating kredibel-migrate job..."
         gcloud run jobs deploy kredibel-migrate \
-          --image="asia-southeast1-docker.pkg.dev/$PROJECT_ID/kredibel/app:$SHORT_SHA" \
+          --image="asia-southeast1-docker.pkg.dev/$PROJECT_ID/kredibel/app:$_COMMIT_SHA" \
           --region=asia-southeast1 \
           --service-account="kredibel-migrate@$PROJECT_ID.iam.gserviceaccount.com" \
           --set-env-vars=APP_ROLE=migrate,PROJECT_ID=$PROJECT_ID,BACKUPS_BUCKET=$PROJECT_ID-kredibel-backups \
-          --max-retries=1 --task-timeout=3600s || true
+          --command=python --args=-m,migrations,run \
+          --tasks=1 --max-retries=1 --task-timeout=3600s --cpu=1 --memory=1Gi \
+          --labels=app=kredibel,component=migrate || true
         echo "Executing migration job..."
-        gcloud run jobs execute kredibel-migrate --args=run --region=asia-southeast1 --wait || true
+        gcloud run jobs execute kredibel-migrate --args=-m,migrations,run --region=asia-southeast1 --wait || true
 
   # 6. Deploy worker service (IAM authenticated only)
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -80,7 +82,7 @@ steps:
       - '-c'
       - |
         gcloud run deploy kredibel-worker \
-          --image="asia-southeast1-docker.pkg.dev/$PROJECT_ID/kredibel/app:$SHORT_SHA" \
+          --image="asia-southeast1-docker.pkg.dev/$PROJECT_ID/kredibel/app:$_COMMIT_SHA" \
           --region=asia-southeast1 \
           --no-allow-unauthenticated \
           --service-account="kredibel-worker@$PROJECT_ID.iam.gserviceaccount.com" \
@@ -88,7 +90,7 @@ steps:
           --max-instances=3 --labels=app=kredibel,component=worker \
           --env-vars-file=infra/env.worker.yaml
 
-  # 5. Deploy web service (public HTTPS)
+  # 7. Deploy web service (public HTTPS)
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     id: 'deploy-web'
     entrypoint: 'bash'
@@ -96,15 +98,17 @@ steps:
       - '-c'
       - |
         WORKER_URL=$$(gcloud run services describe kredibel-worker --region=asia-southeast1 --format='value(status.url)')
+        cp infra/env.web.yaml infra/env.web.resolved.yaml
+        echo "WORKER_URL: \"$$WORKER_URL\"" >> infra/env.web.resolved.yaml
         gcloud run deploy kredibel-web \
-          --image="asia-southeast1-docker.pkg.dev/$PROJECT_ID/kredibel/app:$SHORT_SHA" \
+          --image="asia-southeast1-docker.pkg.dev/$PROJECT_ID/kredibel/app:$_COMMIT_SHA" \
           --region=asia-southeast1 \
           --allow-unauthenticated \
           --service-account="kredibel-web@$PROJECT_ID.iam.gserviceaccount.com" \
           --cpu=1 --memory=1Gi --concurrency=40 --timeout=60 \
           --max-instances=5 --labels=app=kredibel,component=web \
-          --env-vars-file=infra/env.web.yaml \
-          --update-env-vars=WORKER_URL="$$WORKER_URL"
+          --env-vars-file=infra/env.web.resolved.yaml
+        gcloud run services add-iam-policy-binding kredibel-web --region=asia-southeast1 --member=allUsers --role=roles/run.invoker || true
 
   # 6. Smoke verification
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -118,13 +122,14 @@ steps:
         curl -fsS "$$WEB_URL/api/health"
 
 images:
-  - 'asia-southeast1-docker.pkg.dev/$PROJECT_ID/kredibel/app:$SHORT_SHA'
+  - 'asia-southeast1-docker.pkg.dev/$PROJECT_ID/kredibel/app:$_COMMIT_SHA'
   - 'asia-southeast1-docker.pkg.dev/$PROJECT_ID/kredibel/app:latest'
 
 options:
   logging: CLOUD_LOGGING_ONLY
 
 substitutions:
+  _COMMIT_SHA: 'latest'
   _VITE_FIREBASE_API_KEY: ''
   _VITE_FIREBASE_AUTH_DOMAIN: 'cloud-hack2skill.firebaseapp.com'
   _VITE_FIREBASE_PROJECT_ID: 'cloud-hack2skill'

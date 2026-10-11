@@ -91,8 +91,9 @@ evals: ## Run model evaluations (DeepEval)
 deploy: ## Deploy to Cloud Run via Cloud Build
 	@echo "==> Submitting Cloud Build for project $(PROJECT_ID)..."
 	@if [ -f .env ]; then export $$(cat .env | grep -v '^#' | xargs); fi; \
+	COMMIT_SHA=$$(git rev-parse --short HEAD 2>/dev/null || echo "latest"); \
 	gcloud builds submit --config=cloudbuild.yaml \
-		--substitutions=_VITE_FIREBASE_API_KEY="$${VITE_FIREBASE_API_KEY}",_VITE_FIREBASE_AUTH_DOMAIN="$${VITE_FIREBASE_AUTH_DOMAIN}",_VITE_FIREBASE_PROJECT_ID="$${VITE_FIREBASE_PROJECT_ID}",_VITE_FIREBASE_APP_ID="$${VITE_FIREBASE_APP_ID}"
+		--substitutions=_COMMIT_SHA=$${COMMIT_SHA},_VITE_FIREBASE_API_KEY="$${VITE_FIREBASE_API_KEY}",_VITE_FIREBASE_AUTH_DOMAIN="$${VITE_FIREBASE_AUTH_DOMAIN}",_VITE_FIREBASE_PROJECT_ID="$${VITE_FIREBASE_PROJECT_ID}",_VITE_FIREBASE_APP_ID="$${VITE_FIREBASE_APP_ID}"
 
 tokens: ## Regenerate CSS from design tokens
 	python3 tools/design/build_tokens.py
@@ -113,21 +114,21 @@ migrate-dry: ## Dry-run pending data migrations
 	@if [ "$(ENV)" = "local" ]; then \
 		cd backend && uv run python -m migrations run --dry-run; \
 	else \
-		gcloud run jobs execute kredibel-migrate --args=run,--dry-run --region=$(REGION) --wait; \
+		gcloud run jobs execute kredibel-migrate --args=-m,migrations,run,--dry-run --region=$(REGION) --wait; \
 	fi
 
 migrate: ## Execute pending data migrations
 	@if [ "$(ENV)" = "local" ]; then \
 		cd backend && uv run python -m migrations run; \
 	else \
-		gcloud run jobs execute kredibel-migrate --args=run --region=$(REGION) --wait; \
+		gcloud run jobs execute kredibel-migrate --args=-m,migrations,run --region=$(REGION) --wait; \
 	fi
 
 migrate-status: ## Check migration status
 	@if [ "$(ENV)" = "local" ]; then \
 		cd backend && uv run python -m migrations status; \
 	else \
-		cd backend && uv run python -m migrations status --env=$(ENV); \
+		gcloud run jobs execute kredibel-migrate --args=-m,migrations,status --region=$(REGION) --wait; \
 	fi
 
 schema-snapshot: ## Regenerate Firestore data schema snapshot

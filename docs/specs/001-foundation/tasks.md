@@ -36,8 +36,8 @@ Each task lists the acceptance criteria it serves.
 - [x] **T001-19** `Dockerfile` multi-stage; build locally and run with `APP_ROLE=all`.
 - [x] **T001-20** `cloudbuild.yaml` (check → build → push → deploy worker → deploy web → smoke); `infra/env.*.yaml`. (AC-001-8)
 - [x] **T001-24** Cost guardrails from docs/21 §7: budget with 50/90/100% alerts, `infra/ar-cleanup.json` (keep 3 most recent images) applied, `RUNS_ENABLED`/`RUN_QUOTA_PER_ORG_PER_DAY` in `infra/env.web.yaml`.
-- [ ] **T001-21** First deploy; grant `run.invoker` to `kredibel-tasks-invoker`; add the web URL to Firebase authorized domains; create demo users with `set_claims.py`.
-- [ ] **T001-22** Verify AC-001-9 (`curl` worker without token → 403) and AC-001-3 on the deployed URL.
+- [x] **T001-21** First deploy; grant `run.invoker` to `kredibel-tasks-invoker`; add the web URL to Firebase authorized domains; create demo users with `set_claims.py`.
+- [x] **T001-22** Verify AC-001-9 (`curl` worker without token → 403) and AC-001-3 on the deployed URL.
 
 ## Phase 4a — Design foundation
 

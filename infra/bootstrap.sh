@@ -133,8 +133,9 @@ gcloud run jobs create kredibel-migrate \
   --image="asia-southeast1-docker.pkg.dev/${PROJECT_ID}/kredibel/app:latest" \
   --region="$REGION" \
   --service-account="$(SA kredibel-migrate)" \
+  --tasks=1 --max-retries=1 --task-timeout=3600s --cpu=1 --memory=1Gi \
+  --labels=app=kredibel,component=migrate \
   --set-env-vars=APP_ROLE=migrate,PROJECT_ID=${PROJECT_ID},BACKUPS_BUCKET=${PROJECT_ID}-kredibel-backups \
-  --max-retries=1 \
-  --task-timeout=3600s || true
+  --command=python --args=-m,migrations,run || true
 
 echo "==> Bootstrap completed successfully for project $PROJECT_ID."

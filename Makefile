@@ -119,8 +119,8 @@ mocks: ## Regenerate HTML mocks from tools/design/mocks/
 mock-shots: ## Take screenshots of HTML mocks for docs
 	uv run --with playwright --with pillow python tools/design/shoot_mocks.py
 
-dev-agents: ## Launch ADK developer UI for agent inspection
-	cd backend && uv run adk web --port 8501
+dev-agents: ## Launch ADK developer UI for agent and workflow inspection
+	cd backend && uv run adk web --port 8501 app/agents/dev_apps
 
 migrate-dry: ## Dry-run pending data migrations
 	@if [ "$(ENV)" = "local" ]; then \

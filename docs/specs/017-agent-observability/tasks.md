@@ -1,6 +1,6 @@
 # Tasks 017 — Agent observability
 
-- [ ] **T017-01** `make dev-agents` with one dev app per LLM node and the assistant; fixtures by default. (AC-017-1)
+- [x] **T017-01** `make dev-agents` with one dev app per LLM node and the assistant; fixtures by default. (AC-017-1)
 - [ ] **T017-02** **TDD** settings validator for `AI_CONTENT_CAPTURE` and `DATA_CLASS`; content formatter masks account and ID numbers. (AC-017-3)
 - [ ] **T017-03** Attach the BigQuery Agent Analytics plugin to both workflows and the assistant; bootstrap dataset, bucket and IAM; plugin failures never fail a run. (AC-017-2, AC-017-4)
 - [ ] **T017-04** `GET /api/runs/{runId}/events` with workspace filter and label join; run fields `traceUrl`, `models`, `promptVersions`, `labels`. (AC-017-6, AC-017-7)

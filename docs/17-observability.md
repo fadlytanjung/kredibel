@@ -223,11 +223,11 @@ counted in `kredibel/agent_events_dropped`.
 
 ## 9. Debugging locally (P0)
 
-`make dev-agents` starts the ADK dev UI (`adk web`) on `backend/app/agents/dev_apps/`: one app per LLM
-node (classifier, page reader, ledger mapper, categorizer, explainer) and the assistant. Each runs the
-real node agent with fixture tools by default (recorded inputs from the synthetic scenarios) or live
-Gemini with `LIVE=1`. The dev UI shows events, state and a Trace view of every call; prompts are edited
-in `backend/app/agents/prompts/*.md` and re-run in place. Content capture is on here (synthetic data).
+`make dev-agents` starts the Google ADK dev UI (`adk web app/agents/dev_apps --port 8501`) pointing to
+`backend/app/agents/dev_apps/`. It provides interactive visual debugging equivalent to LangSmith:
+- **Workflows (`document_workflow`, `month_workflow`)**: Visual DAG graph inspection, interactive execution, step-by-step state delta inspection, and real-time event streaming across node transitions.
+- **LLM Agent Nodes and Assistant**: Each node (classifier, page reader, ledger mapper, categorizer, explainer) and the Finance Assistant runs with fixture tools by default (recorded inputs from synthetic scenarios) or live Gemini with `LIVE=1`. The dev UI shows exact prompt templates, input tokens, completion tokens, tool invocations, and output schemas.
+- **Traces and spans**: Full call trees with latency and state payloads. Prompts in `backend/app/agents/prompts/*.md` can be adjusted and re-tested in place with instant hot-reload. Synthetic content capture is enabled (`AI_CONTENT_CAPTURE=1`).
 
 ## 10. Feedback, datasets and evals (P1)
 

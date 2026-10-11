@@ -63,7 +63,7 @@ nodes arrive in specs 005–008.
   dropped: past the limit they are delayed to the next day and the month shows "Reconciliation paused
   until tomorrow (daily limit)".
 - **AC-004-12** Every log line and span carries `orgId`, `runId`, `node`; the run stores `traceId`
-  ([`docs/17`](../../17-observability.md)).
+  ([`docs/17`](../../17-observability.md)). Both `document_workflow` and `month_workflow` graphs and state deltas are inspectable in the ADK dev UI (`make dev-agents`).
 
 ## Out of scope
 

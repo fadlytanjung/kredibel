@@ -1,9 +1,8 @@
-"""Cloud Tasks execution router for background worker jobs.
+"""Worker router, mounted only on the worker and all roles (AC-001-10).
 
-Normative reference: docs/specs/001-foundation/spec.md AC-001-10.
+The task endpoints of docs/10 §2.9 (POST /tasks/process-document, POST /tasks/reconcile-month)
+arrive with spec 004; until then only the health probe proves the router is mounted.
 """
-
-from typing import Any
 
 from fastapi import APIRouter
 
@@ -15,13 +14,5 @@ def create_tasks_router() -> APIRouter:
     @router.get("/health")
     async def get_tasks_health() -> dict[str, str]:
         return {"status": "ok", "component": "tasks"}
-
-    @router.post("/document/{doc_id}")
-    async def process_document_task(doc_id: str) -> dict[str, Any]:
-        return {"status": "queued", "docId": doc_id}
-
-    @router.post("/month/{org_id}/{month}")
-    async def process_month_task(org_id: str, month: str) -> dict[str, Any]:
-        return {"status": "queued", "orgId": org_id, "month": month}
 
     return router

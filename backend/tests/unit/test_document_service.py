@@ -13,6 +13,7 @@ from app.core.clock import Clock
 from app.domain.errors import (
     DocumentTooLargeError,
     EncryptedDocumentError,
+    NotFoundError,
     TooManyPagesError,
     TooManyRowsError,
     TrialExpiredError,
@@ -316,3 +317,213 @@ async def test_upload_exact_duplicate(fake_repos, principal: Principal):
     assert doc_repo.events[1][1].type == "DUPLICATE_RECORDED"
     assert doc_repo.events[1][1].subject["docId"] == duplicate.doc_id
     assert doc_repo.events[1][1].subject["ofDocId"] == original.doc_id
+
+
+@pytest.mark.asyncio
+async def test_get_document_success(
+    principal: Principal,
+    fake_repos: tuple[
+        DocumentService,
+        FakeDocumentRepository,
+        FakeDocumentStorage,
+        FakeTaskQueue,
+        FakeUsageRepository,
+    ],
+) -> None:
+    service, _, _, _, _ = fake_repos
+    pdf_bytes = _create_minimal_pdf_bytes(page_count=1)
+    uploaded = await service.upload(principal, pdf_bytes, "test.pdf")
+
+    fetched = await service.get_document(principal, uploaded.doc_id)
+    assert fetched.doc_id == uploaded.doc_id
+    assert fetched.file_name == "test.pdf"
+
+
+@pytest.mark.asyncio
+async def test_get_document_foreign_or_missing_raises_404(
+    principal: Principal,
+    fake_repos: tuple[
+        DocumentService,
+        FakeDocumentRepository,
+        FakeDocumentStorage,
+        FakeTaskQueue,
+        FakeUsageRepository,
+    ],
+) -> None:
+    service, _, _, _, _ = fake_repos
+    with pytest.raises(NotFoundError):
+        await service.get_document(principal, "nonexistent_doc")
+
+    foreign_principal = Principal(uid="user2", org_id="org_other", email="other@example.com")
+    pdf_bytes = _create_minimal_pdf_bytes(page_count=1)
+    uploaded = await service.upload(principal, pdf_bytes, "test.pdf")
+
+    # Foreign workspace request raises NotFoundError (AC-003-11)
+    with pytest.raises(NotFoundError):
+        await service.get_document(foreign_principal, uploaded.doc_id)
+
+
+@pytest.mark.asyncio
+async def test_list_documents_filtering(
+    principal: Principal,
+    fake_repos: tuple[
+        DocumentService,
+        FakeDocumentRepository,
+        FakeDocumentStorage,
+        FakeTaskQueue,
+        FakeUsageRepository,
+    ],
+) -> None:
+    service, _, _, _, _ = fake_repos
+    pdf_bytes = _create_minimal_pdf_bytes(page_count=1)
+    doc1 = await service.upload(principal, pdf_bytes, "doc1.pdf")
+    doc2 = await service.upload(principal, pdf_bytes, "doc2.pdf")  # exact duplicate
+
+    docs, _ = await service.list_documents(principal)
+    assert len(docs) == 2
+
+    # Filter duplicate=True
+    dup_docs, _ = await service.list_documents(principal, duplicate=True)
+    assert len(dup_docs) == 1
+    assert dup_docs[0].doc_id == doc2.doc_id
+
+    # Filter duplicate=False
+    non_dup, _ = await service.list_documents(principal, duplicate=False)
+    assert len(non_dup) == 1
+    assert non_dup[0].doc_id == doc1.doc_id
+
+
+@pytest.mark.asyncio
+async def test_get_file_and_exact_duplicate(
+    principal: Principal,
+    fake_repos: tuple[
+        DocumentService,
+        FakeDocumentRepository,
+        FakeDocumentStorage,
+        FakeTaskQueue,
+        FakeUsageRepository,
+    ],
+) -> None:
+    service, _, _, _, _ = fake_repos
+    pdf_bytes = _create_minimal_pdf_bytes(page_count=1)
+    doc1 = await service.upload(principal, pdf_bytes, "doc1.pdf")
+    doc2 = await service.upload(principal, pdf_bytes, "doc2.pdf")
+
+    # Both original and duplicate serve the file bytes
+    data1, content_type1 = await service.get_file(principal, doc1.doc_id)
+    assert data1 == pdf_bytes
+    assert content_type1 == "application/pdf"
+
+    data2, content_type2 = await service.get_file(principal, doc2.doc_id)
+    assert data2 == pdf_bytes
+    assert content_type2 == "application/pdf"
+
+    # Foreign principal gets 404 (AC-003-11)
+    foreign = Principal(uid="user2", org_id="org_other", email="other@example.com")
+    with pytest.raises(NotFoundError):
+        await service.get_file(foreign, doc1.doc_id)
+
+
+@pytest.mark.asyncio
+async def test_get_page_image_and_exact_duplicate(
+    principal: Principal,
+    fake_repos: tuple[
+        DocumentService,
+        FakeDocumentRepository,
+        FakeDocumentStorage,
+        FakeTaskQueue,
+        FakeUsageRepository,
+    ],
+) -> None:
+    service, _, _, _, _ = fake_repos
+    pdf_bytes = _create_minimal_pdf_bytes(page_count=1)
+    doc1 = await service.upload(principal, pdf_bytes, "doc1.pdf")
+    doc2 = await service.upload(principal, pdf_bytes, "doc2.pdf")
+
+    img1 = await service.get_page_image(principal, doc1.doc_id, page_no=1)
+    assert len(img1) > 0
+    thumb1 = await service.get_page_image(principal, doc1.doc_id, page_no=1, thumb=True)
+    assert len(thumb1) > 0
+
+    # Duplicate gets page image from original
+    img2 = await service.get_page_image(principal, doc2.doc_id, page_no=1)
+    assert img2 == img1
+
+    # Out of bounds page raises NotFoundError
+    with pytest.raises(NotFoundError):
+        await service.get_page_image(principal, doc1.doc_id, page_no=99)
+
+    # Foreign principal gets NotFoundError (AC-003-11)
+    foreign = Principal(uid="user2", org_id="org_other", email="other@example.com")
+    with pytest.raises(NotFoundError):
+        await service.get_page_image(foreign, doc1.doc_id, page_no=1)
+
+
+@pytest.mark.asyncio
+async def test_delete_document_original_cascades_and_marks_months_dirty(
+    principal: Principal,
+    fake_repos: tuple[
+        DocumentService,
+        FakeDocumentRepository,
+        FakeDocumentStorage,
+        FakeTaskQueue,
+        FakeUsageRepository,
+    ],
+) -> None:
+    service, doc_repo, storage, _, _ = fake_repos
+    pdf_bytes = _create_minimal_pdf_bytes(page_count=1)
+    doc1 = await service.upload(principal, pdf_bytes, "doc1.pdf")
+    doc2 = await service.upload(principal, pdf_bytes, "doc2.pdf")  # duplicate of doc1
+
+    # Set months on doc1
+    object.__setattr__(doc1, "months", ["2026-03"])
+
+    # Delete original doc1 (AC-003-10)
+    await service.delete_document(principal, doc1.doc_id)
+
+    # doc1 is removed from repo and storage
+    with pytest.raises(NotFoundError):
+        await service.get_document(principal, doc1.doc_id)
+    assert len(storage.originals) == 0
+
+    # Exact duplicate doc2 is also removed by cascade (original-of-duplicate rule, AC-003-10)
+    with pytest.raises(NotFoundError):
+        await service.get_document(principal, doc2.doc_id)
+
+    # Month is marked dirty
+    assert doc_repo.dirty_months.get(("org_test", "2026-03")) == 1
+
+    # DOCUMENT_REMOVED event logged
+    events = [e for _, e in doc_repo.events if e.type == "DOCUMENT_REMOVED"]
+    assert len(events) == 1
+    assert events[0].subject["docId"] == doc1.doc_id
+
+
+@pytest.mark.asyncio
+async def test_delete_document_duplicate_preserves_original(
+    principal: Principal,
+    fake_repos: tuple[
+        DocumentService,
+        FakeDocumentRepository,
+        FakeDocumentStorage,
+        FakeTaskQueue,
+        FakeUsageRepository,
+    ],
+) -> None:
+    service, _, storage, _, _ = fake_repos
+    pdf_bytes = _create_minimal_pdf_bytes(page_count=1)
+    doc1 = await service.upload(principal, pdf_bytes, "doc1.pdf")
+    doc2 = await service.upload(principal, pdf_bytes, "doc2.pdf")  # duplicate of doc1
+
+    # Delete duplicate doc2
+    await service.delete_document(principal, doc2.doc_id)
+
+    # doc2 is removed
+    with pytest.raises(NotFoundError):
+        await service.get_document(principal, doc2.doc_id)
+
+    # Original doc1 still exists and storage is preserved
+    original = await service.get_document(principal, doc1.doc_id)
+    assert original.doc_id == doc1.doc_id
+    assert len(storage.originals) == 1
+

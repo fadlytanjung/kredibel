@@ -9,7 +9,7 @@ import hashlib
 from app.core.auth import Principal
 from app.core.clock import Clock
 from app.core.ids import new_id
-from app.domain.errors import ValidationProblem, WorkspaceRequiredError
+from app.domain.errors import NotFoundError, ValidationProblem, WorkspaceRequiredError
 from app.domain.file_types import detect_file_type
 from app.domain.models.document import (
     DocStatus,
@@ -200,3 +200,121 @@ class DocumentService:
         await self._task_queue.enqueue_document_task(org_id, doc_id, run_id)
 
         return document
+
+    async def get_document(self, principal: Principal, doc_id: str) -> Document:
+        """Fetch a document. Raises NotFoundError (404) if foreign or not found."""
+        if principal.org_id is None:
+            raise WorkspaceRequiredError()
+        doc = await self._doc_repo.get_document(principal.org_id, doc_id)
+        if doc is None:
+            raise NotFoundError(detail=f"Document {doc_id} not found")
+        return doc
+
+    async def list_documents(
+        self,
+        principal: Principal,
+        *,
+        doc_type: str | None = None,
+        month: str | None = None,
+        status: str | None = None,
+        duplicate: bool | None = None,
+        risk: str | None = None,
+        limit: int = 50,
+        cursor: str | None = None,
+    ) -> tuple[list[Document], str | None]:
+        """List documents in the workspace, newest first."""
+        if principal.org_id is None:
+            raise WorkspaceRequiredError()
+        return await self._doc_repo.list_documents(
+            principal.org_id,
+            doc_type=doc_type,
+            month=month,
+            status=status,
+            duplicate=duplicate,
+            risk=risk,
+            limit=limit,
+            cursor=cursor,
+        )
+
+    async def get_file(self, principal: Principal, doc_id: str) -> tuple[bytes, str]:
+        """Fetch original document bytes. An exact duplicate serves the original's file."""
+        if principal.org_id is None:
+            raise WorkspaceRequiredError()
+        doc = await self.get_document(principal, doc_id)
+        target_id = (
+            doc.duplicate.of_doc_id
+            if doc.duplicate and doc.duplicate.kind == DuplicateKind.EXACT
+            else doc.doc_id
+        )
+        ext = _extension_for(doc.file_name, doc.content_type)
+        data = await self._storage.get_original(principal.org_id, target_id, ext)
+        if data is None:
+            raise NotFoundError(detail=f"File for document {doc_id} not found")
+        return data, doc.content_type
+
+    async def get_page_image(
+        self,
+        principal: Principal,
+        doc_id: str,
+        page_no: int,
+        *,
+        thumb: bool = False,
+    ) -> bytes:
+        """Fetch rendered page PNG or thumbnail."""
+        if principal.org_id is None:
+            raise WorkspaceRequiredError()
+        doc = await self.get_document(principal, doc_id)
+        if page_no < 1 or (doc.page_count > 0 and page_no > doc.page_count):
+            raise NotFoundError(detail=f"Page {page_no} not found")
+        target_id = (
+            doc.duplicate.of_doc_id
+            if doc.duplicate and doc.duplicate.kind == DuplicateKind.EXACT
+            else doc.doc_id
+        )
+        data = await self._storage.get_page_image(
+            principal.org_id, target_id, page_no, thumb=thumb
+        )
+        if data is None:
+            raise NotFoundError(detail=f"Page {page_no} image not found")
+        return data
+
+    async def delete_document(self, principal: Principal, doc_id: str) -> None:
+        """Remove a document, its GCS prefix and records. Records DOCUMENT_REMOVED event."""
+        if principal.org_id is None:
+            raise WorkspaceRequiredError()
+        doc = await self.get_document(principal, doc_id)
+        org_id = principal.org_id
+        actor_role = principal.role or "owner"
+        now = self._clock.now()
+
+        # Delete original storage if not an exact duplicate
+        if not (doc.duplicate and doc.duplicate.kind == DuplicateKind.EXACT):
+            await self._storage.delete_prefix(org_id, doc_id)
+
+        event = AuditEvent(
+            event_id=new_id("evt"),
+            type="DOCUMENT_REMOVED",
+            actor_uid=principal.uid,
+            actor_role=actor_role,
+            at=now,
+            subject={"docId": doc_id},
+            details={"fileName": doc.file_name, "months": ",".join(doc.months)},
+        )
+        await self._doc_repo.delete_document(
+            org_id, doc_id, months=doc.months, event=event
+        )
+
+
+def _extension_for(filename: str, content_type: str) -> str:
+    lower = filename.lower()
+    if lower.endswith(".pdf") or content_type == "application/pdf":
+        return ".pdf"
+    if lower.endswith(".png") or content_type == "image/png":
+        return ".png"
+    if lower.endswith((".jpg", ".jpeg")) or content_type == "image/jpeg":
+        return ".jpg"
+    if lower.endswith(".xlsx"):
+        return ".xlsx"
+    if lower.endswith(".csv"):
+        return ".csv"
+    return ""

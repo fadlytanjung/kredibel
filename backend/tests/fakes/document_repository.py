@@ -9,6 +9,7 @@ class FakeDocumentRepository(DocumentRepository):
     def __init__(self) -> None:
         self.documents: dict[tuple[str, str], Document] = {}
         self.events: list[tuple[str, AuditEvent]] = []
+        self.dirty_months: dict[tuple[str, str], int] = {}
 
     async def find_original_by_sha256(self, org_id: str, sha256: str) -> Document | None:
         for (doc_org, _), doc in self.documents.items():
@@ -61,11 +62,36 @@ class FakeDocumentRepository(DocumentRepository):
         self,
         org_id: str,
         doc_id: str,
+        *,
+        months: list[str] | None = None,
         event: AuditEvent | None = None,
     ) -> bool:
-        if (org_id, doc_id) in self.documents:
-            del self.documents[(org_id, doc_id)]
-            if event:
-                self.events.append((org_id, event))
-            return True
-        return False
+        target = self.documents.get((org_id, doc_id))
+        if target is None:
+            return False
+
+        # Cascade: delete any duplicate records that point to this doc as original (AC-003-10)
+        duplicates_to_delete = [
+            d_id
+            for (o, d_id), doc in self.documents.items()
+            if o == org_id and doc.duplicate and doc.duplicate.of_doc_id == doc_id
+        ]
+        for d_id in duplicates_to_delete:
+            self.documents.pop((org_id, d_id), None)
+
+        del self.documents[(org_id, doc_id)]
+
+        # Mark months dirty
+        affected_months = list(months or [])
+        if target.months:
+            for m in target.months:
+                if m not in affected_months:
+                    affected_months.append(m)
+
+        for m in affected_months:
+            gen = self.dirty_months.get((org_id, m), 0) + 1
+            self.dirty_months[(org_id, m)] = gen
+
+        if event:
+            self.events.append((org_id, event))
+        return True

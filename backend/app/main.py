@@ -9,11 +9,17 @@ from typing import Any, TypeVar, cast
 from fastapi import FastAPI
 from google.cloud.firestore import AsyncClient
 
+from app.adapters.cloud_tasks import CloudTasksQueue, InlineTaskQueue
 from app.adapters.firebase_identity import FirebaseIdentityAdmin
+from app.adapters.firestore.document_repo import FirestoreDocumentRepository
 from app.adapters.firestore.usage_repo import FirestoreUsageRepository
 from app.adapters.firestore.workspace_repo import FirestoreWorkspaceRepository
+from app.adapters.gcs_storage import GcsDocumentStorage
+from app.adapters.page_renderer import DefaultPageRenderer
 from app.adapters.policy_files import load_plans
+from app.adapters.spreadsheet_reader import DefaultSpreadsheetReader
 from app.api.bank_accounts import create_bank_accounts_router
+from app.api.documents import create_documents_router
 from app.api.health import create_health_router
 from app.api.me import create_me_router
 from app.api.plans import create_plans_router
@@ -32,8 +38,14 @@ from app.core.logging import LoggingMiddleware, setup_logging
 from app.core.security_headers import SecurityHeadersMiddleware
 from app.core.settings import Settings
 from app.domain.plans import PlanCatalog
+from app.ports.document_repository import DocumentRepository
+from app.ports.document_storage import DocumentStorage
 from app.ports.identity_admin import IdentityAdmin
+from app.ports.page_renderer import PageRenderer
+from app.ports.spreadsheet_reader import SpreadsheetReader
+from app.ports.task_queue import TaskQueue
 from app.ports.workspace_repository import UsageRepository, WorkspaceRepository
+from app.services.document_service import DocumentService
 from app.services.entitlement_service import EntitlementService
 from app.services.workspace_service import WorkspaceService
 
@@ -56,6 +68,11 @@ class AppDeps:
         identity: IdentityAdmin | None = None,
         clock: Clock | None = None,
         token_verifier: TokenVerifier | None = None,
+        doc_repo: DocumentRepository | None = None,
+        storage: DocumentStorage | None = None,
+        task_queue: TaskQueue | None = None,
+        renderer: PageRenderer | None = None,
+        spreadsheet_reader: SpreadsheetReader | None = None,
     ) -> None:
         self.settings = settings
         self._plans = plans
@@ -64,6 +81,11 @@ class AppDeps:
         self._identity = identity
         self._clock = clock
         self._token_verifier = token_verifier
+        self._doc_repo = doc_repo
+        self._storage = storage
+        self._task_queue = task_queue
+        self._renderer = renderer
+        self._spreadsheet_reader = spreadsheet_reader
         self._built: dict[str, Any] = {}
 
     def _once(self, name: str, build: Callable[[], T]) -> T:
@@ -108,6 +130,52 @@ class AppDeps:
         return self._once("identity", lambda: self._identity or FirebaseIdentityAdmin())
 
     @property
+    def doc_repo(self) -> DocumentRepository:
+        return self._once(
+            "doc_repo",
+            lambda: self._doc_repo or FirestoreDocumentRepository(self.firestore),
+        )
+
+    @property
+    def storage(self) -> DocumentStorage:
+        return self._once(
+            "storage",
+            lambda: self._storage
+            or GcsDocumentStorage(
+                self.settings.google_cloud_project, self.settings.docs_bucket
+            ),
+        )
+
+    @property
+    def task_queue(self) -> TaskQueue:
+        return self._once(
+            "task_queue",
+            lambda: self._task_queue
+            or (
+                CloudTasksQueue(
+                    project_id=self.settings.google_cloud_project,
+                    location=self.settings.tasks_location,
+                    document_queue=self.settings.tasks_queue_documents,
+                    month_queue=self.settings.tasks_queue_months,
+                    invoker_service_account=self.settings.tasks_invoker_sa,
+                )
+                if self.settings.task_queue_mode == "cloud"
+                else InlineTaskQueue()
+            ),
+        )
+
+    @property
+    def renderer(self) -> PageRenderer:
+        return self._once("renderer", lambda: self._renderer or DefaultPageRenderer())
+
+    @property
+    def spreadsheet_reader(self) -> SpreadsheetReader:
+        return self._once(
+            "spreadsheet_reader",
+            lambda: self._spreadsheet_reader or DefaultSpreadsheetReader(),
+        )
+
+    @property
     def workspace_service(self) -> WorkspaceService:
         return self._once(
             "workspace_service",
@@ -130,6 +198,21 @@ class AppDeps:
                 plans=self.plans,
                 clock=self.clock,
                 run_quota_per_org_per_day=self.settings.run_quota_per_org_per_day,
+            ),
+        )
+
+    @property
+    def document_service(self) -> DocumentService:
+        return self._once(
+            "document_service",
+            lambda: DocumentService(
+                doc_repo=self.doc_repo,
+                storage=self.storage,
+                task_queue=self.task_queue,
+                entitlements=self.entitlement_service,
+                renderer=self.renderer,
+                spreadsheet_reader=self.spreadsheet_reader,
+                clock=self.clock,
             ),
         )
 
@@ -177,6 +260,7 @@ def create_app(
         app.include_router(create_plans_router(deps, principal_dep))
         app.include_router(create_workspace_router(deps, principal_dep, workspace_dep))
         app.include_router(create_bank_accounts_router(deps, workspace_dep))
+        app.include_router(create_documents_router(deps, workspace_dep))
 
     # 3. Worker role endpoints
     if active_settings.app_role in ("worker", "all"):

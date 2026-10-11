@@ -46,7 +46,9 @@ class DocumentRepository(Protocol):
         self,
         org_id: str,
         doc_id: str,
+        *,
+        months: list[str] | None = None,
         event: AuditEvent | None = None,
     ) -> bool:
-        """Delete a document and related records. Returns False if not found."""
+        """Delete a document, cascade to duplicate records, and mark affected months dirty."""
         ...

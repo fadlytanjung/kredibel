@@ -11,7 +11,7 @@
 
 - [x] **T004-05** `stages.py` wrapper: stage record, log binding, span. (AC-004-1, AC-004-12)
 - [x] **T004-06** **TDD** `document_workflow` with stubs: node order, `NEEDS_INPUT` stop and resume, failure → `FAILED` + `E02`. (AC-004-1…3)
-- [ ] **T004-07** **TDD** `month_workflow` with stubs: generation check → `SUPERSEDED`; `COLLECTING` vs `RECONCILED`. (AC-004-5, AC-004-7)
+- [x] **T004-07** **TDD** `month_workflow` with stubs: generation check → `SUPERSEDED`; `COLLECTING` vs `RECONCILED`. (AC-004-5, AC-004-7)
 - [ ] **T004-08** **TDD** burst test: 10 changes → one effective run. (AC-004-6)
 
 ## Phase 3 — Live progress and ops

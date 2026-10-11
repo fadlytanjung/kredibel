@@ -54,7 +54,14 @@ def stage(
                 if hasattr(ctx, "state") and hasattr(ctx.state, "to_dict")
                 else {}
             )
-            actual_input: dict[str, Any] = node_input or state_data
+            raw_input: Any = (
+                node_input
+                or state_data.get("node_input")
+                or state_data
+            )
+            actual_input: dict[str, Any] = (
+                cast(dict[str, Any], raw_input) if isinstance(raw_input, dict) else {}
+            )
             org_id = str(actual_input.get("orgId") or actual_input.get("org_id") or "")
             run_id = str(actual_input.get("runId") or actual_input.get("run_id") or "")
             doc_id = actual_input.get("docId") or actual_input.get("doc_id")

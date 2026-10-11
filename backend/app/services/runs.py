@@ -189,21 +189,27 @@ class RunService:
         else:
             await self._run_repo.update_status(org_id, run_id, RunStatus.RUNNING)
 
-        if self._month_workflow_runner is not None:
-            result = await self._month_workflow_runner(org_id, month, generation, run_id)
-            if isinstance(result, dict) and result.get("skipped") == "superseded":
-                return {"ok": True, "skipped": "superseded"}
-        else:
-            # Check generation before finalizing
-            current_month = await self._month_repo.get(org_id, month)
-            if current_month is not None and current_month.generation > generation:
-                await self._run_repo.update_status(org_id, run_id, RunStatus.SUPERSEDED, ended=True)
-                return {"ok": True, "skipped": "superseded"}
+        try:
+            if self._month_workflow_runner is not None:
+                result = await self._month_workflow_runner(org_id, month, generation, run_id)
+                if isinstance(result, dict) and result.get("skipped") == "superseded":
+                    return {"ok": True, "skipped": "superseded"}
+            else:
+                # Check generation before finalizing
+                current_month = await self._month_repo.get(org_id, month)
+                if current_month is not None and current_month.generation > generation:
+                    await self._run_repo.update_status(
+                        org_id, run_id, RunStatus.SUPERSEDED, ended=True
+                    )
+                    return {"ok": True, "skipped": "superseded"}
 
-            if current_month is not None:
-                current_month.dirty = False
-                current_month.last_run_id = run_id
-                await self._month_repo.save(org_id, current_month)
-            await self._run_repo.update_status(org_id, run_id, RunStatus.DONE, ended=True)
+                if current_month is not None:
+                    current_month.dirty = False
+                    current_month.last_run_id = run_id
+                    await self._month_repo.save(org_id, current_month)
+                await self._run_repo.update_status(org_id, run_id, RunStatus.DONE, ended=True)
+        except Exception:
+            await self._run_repo.update_status(org_id, run_id, RunStatus.FAILED, ended=True)
+            raise
 
         return {"ok": True}

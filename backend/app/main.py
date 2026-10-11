@@ -24,6 +24,7 @@ from app.adapters.policy_files import load_plans
 from app.adapters.spreadsheet_reader import DefaultSpreadsheetReader
 from app.agents.deps import PipelineDeps
 from app.agents.workflows.document_workflow import build_document_workflow
+from app.agents.workflows.month_workflow import build_month_workflow
 from app.api.bank_accounts import create_bank_accounts_router
 from app.api.documents import create_documents_router
 from app.api.health import create_health_router
@@ -60,7 +61,7 @@ from app.ports.workspace_repository import UsageRepository, WorkspaceRepository
 from app.services.document_service import DocumentService
 from app.services.entitlement_service import EntitlementService
 from app.services.month_service import MonthService
-from app.services.runs import DocumentWorkflowRunner, RunService
+from app.services.runs import DocumentWorkflowRunner, MonthWorkflowRunner, RunService
 from app.services.workspace_service import WorkspaceService
 
 T = TypeVar("T")
@@ -302,6 +303,44 @@ class AppDeps:
         return _default_runner
 
     @property
+    def month_workflow_runner(self) -> MonthWorkflowRunner:
+        async def _default_runner(
+            org_id: str, month: str, generation: int, run_id: str
+        ) -> dict[str, Any]:
+            pipeline_deps = PipelineDeps(
+                settings=self.settings,
+                run_repo=self.run_repo,
+                doc_repo=self.doc_repo,
+                month_repo=self.month_repo,
+                task_queue=self.task_queue,
+                clock=self.clock,
+            )
+            wf = build_month_workflow(pipeline_deps)
+            sessions = InMemorySessionService()
+            runner = Runner(agent=cast(Any, wf), app_name="kredibel", session_service=sessions)
+            await sessions.create_session(
+                app_name="kredibel",
+                user_id="system",
+                session_id=run_id,
+                state={
+                    "node_input": {
+                        "orgId": org_id,
+                        "month": month,
+                        "generation": generation,
+                        "runId": run_id,
+                    }
+                },
+            )
+            last: dict[str, Any] = {}
+            async for event in runner.run_async(user_id="system", session_id=run_id):
+                output = getattr(event, "output", None)
+                if isinstance(output, dict):
+                    last = cast(dict[str, Any], output)
+            return last
+
+        return _default_runner
+
+    @property
     def run_service(self) -> RunService:
         return self._once(
             "run_service",
@@ -313,6 +352,7 @@ class AppDeps:
                 settings=self.settings,
                 clock=self.clock,
                 document_workflow_runner=self.document_workflow_runner,
+                month_workflow_runner=self.month_workflow_runner,
             ),
         )
 

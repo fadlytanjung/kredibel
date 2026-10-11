@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { setupServer } from 'msw/node'
@@ -81,7 +81,7 @@ function renderForm(refreshes: MeResponse[] = [me(false)]) {
       </AuthContext.Provider>
     </QueryClientProvider>,
   )
-  return { refreshSession, user: userEvent.setup() }
+  return { refreshSession, user: userEvent.setup(), auth }
 }
 
 describe('CreateWorkspaceForm (AC-013-2)', () => {
@@ -96,16 +96,15 @@ describe('CreateWorkspaceForm (AC-013-2)', () => {
   it('states the trial terms from the plan catalog before the button', async () => {
     renderForm()
 
-    expect(
-      await screen.findByText(/30-day free trial\. 150 documents and 400 pages a month\./),
-    ).toBeInTheDocument()
+    expect(await screen.findByText(/30-day free trial/)).toBeInTheDocument()
+    expect(screen.getByText(/150 documents and 400 pages a month/)).toBeInTheDocument()
   })
 
   it('creates the workspace, refreshes the session and lands on the dashboard', async () => {
     const { user, refreshSession } = renderForm()
 
     await user.type(screen.getByLabelText('Legal name'), 'Synthetic Roasters Ltd')
-    await user.type(screen.getByLabelText(/Industry/), 'Coffee')
+    await user.selectOptions(screen.getByLabelText('Industry'), 'Professional services')
     await user.click(screen.getByRole('button', { name: 'Start the free trial' }))
 
     expect(await screen.findByText('Dashboard home')).toBeInTheDocument()
@@ -114,7 +113,7 @@ describe('CreateWorkspaceForm (AC-013-2)', () => {
         name: 'Synthetic Roasters Ltd',
         entityType: 'COMPANY',
         country: 'ID',
-        profile: { industry: 'Coffee' },
+        profile: { industry: 'Professional services' },
       }),
     ])
     expect(refreshSession).toHaveBeenCalledOnce()
@@ -124,7 +123,9 @@ describe('CreateWorkspaceForm (AC-013-2)', () => {
     const { user } = renderForm()
 
     await user.type(screen.getByLabelText('Legal name'), 'Synthetic Roasters Ltd')
-    await user.click(screen.getByRole('button', { name: 'Add your main bank account' }))
+    const details = screen.getByText('Main bank account').closest('details')!
+    details.open = true
+    fireEvent(details, new Event('toggle'))
     await user.type(screen.getByLabelText('Bank'), 'Bank Sintetis')
     await user.type(screen.getByLabelText('Account number'), '12ab')
     await user.type(screen.getByLabelText('Account holder'), 'SR Ltd')
@@ -200,9 +201,13 @@ describe('CreateWorkspaceForm (AC-013-2)', () => {
 })
 
 describe('CreateWorkspaceForm footer', () => {
-  it('offers sign-out as the signed-in user', () => {
-    renderForm()
+  it('offers sign-out as the signed-in user', async () => {
+    const { user, auth } = renderForm()
 
-    expect(screen.getByRole('button', { name: 'Sign out (owner@example.test)' })).toBeInTheDocument()
+    expect(screen.getByText(/Signed in as owner@example\.test\./)).toBeInTheDocument()
+    const signOutBtn = screen.getByRole('button', { name: 'Sign out' })
+    expect(signOutBtn).toBeInTheDocument()
+    await user.click(signOutBtn)
+    expect(auth.signOut).toHaveBeenCalled()
   })
 })

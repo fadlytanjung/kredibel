@@ -1,0 +1,81 @@
+# Kredibel CI/CD Pipeline
+# See docs/16-infrastructure-and-deployment.md §8
+
+steps:
+  # 1. Secret scan over the repo
+  - name: 'python:3.12-slim'
+    id: 'secret-scan'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - 'python tools/checks/scan_secrets.py'
+
+  # 2. Build multi-stage container image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build'
+    args:
+      - 'build'
+      - '-t'
+      - 'asia-southeast1-docker.pkg.dev/$PROJECT_ID/kredibel/app:$SHORT_SHA'
+      - '-t'
+      - 'asia-southeast1-docker.pkg.dev/$PROJECT_ID/kredibel/app:latest'
+      - '.'
+
+  # 3. Push container image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push'
+    args:
+      - 'push'
+      - 'asia-southeast1-docker.pkg.dev/$PROJECT_ID/kredibel/app:$SHORT_SHA'
+
+  # 4. Deploy worker service (IAM authenticated only)
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy-worker'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        gcloud run deploy kredibel-worker \
+          --image="asia-southeast1-docker.pkg.dev/$PROJECT_ID/kredibel/app:$SHORT_SHA" \
+          --region=asia-southeast1 \
+          --no-allow-unauthenticated \
+          --service-account="kredibel-worker@$PROJECT_ID.iam.gserviceaccount.com" \
+          --cpu=2 --memory=2Gi --concurrency=4 --timeout=900 \
+          --max-instances=3 --labels=app=kredibel,component=worker \
+          --env-vars-file=infra/env.worker.yaml
+
+  # 5. Deploy web service (public HTTPS)
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy-web'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        WORKER_URL=$$(gcloud run services describe kredibel-worker --region=asia-southeast1 --format='value(status.url)')
+        gcloud run deploy kredibel-web \
+          --image="asia-southeast1-docker.pkg.dev/$PROJECT_ID/kredibel/app:$SHORT_SHA" \
+          --region=asia-southeast1 \
+          --allow-unauthenticated \
+          --service-account="kredibel-web@$PROJECT_ID.iam.gserviceaccount.com" \
+          --cpu=1 --memory=1Gi --concurrency=40 --timeout=60 \
+          --max-instances=5 --labels=app=kredibel,component=web \
+          --env-vars-file=infra/env.web.yaml \
+          --update-env-vars=WORKER_URL="$$WORKER_URL"
+
+  # 6. Smoke verification
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'smoke'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        WEB_URL=$$(gcloud run services describe kredibel-web --region=asia-southeast1 --format='value(status.url)')
+        echo "Verifying deployment at $$WEB_URL..."
+        curl -fsS "$$WEB_URL/api/health"
+
+images:
+  - 'asia-southeast1-docker.pkg.dev/$PROJECT_ID/kredibel/app:$SHORT_SHA'
+  - 'asia-southeast1-docker.pkg.dev/$PROJECT_ID/kredibel/app:latest'
+
+options:
+  logging: CLOUD_LOGGING_ONLY

@@ -5,11 +5,11 @@ Each task lists the acceptance criteria it serves.
 
 ## Phase 1 — Repository & tooling
 
-- [ ] **T001-01** Create the repository layout of [`docs/13`](../../13-design-patterns-and-conventions.md) §1 (empty packages with `__init__.py`), `.gitignore` (incl. `tools/synthetic/out/` except `demo/`), `Makefile` with all targets as stubs.
-- [ ] **T001-02** `backend/pyproject.toml` + `uv lock`; ruff + pyright config; `.importlinter` contracts. (AC-001-11, AC-001-13)
-- [ ] **T001-03** [P] Frontend: `npm create vite` (React + TS), Tailwind v4, ESLint (incl. `eslint-plugin-boundaries`), Vitest + Testing Library + MSW. (AC-001-1)
-- [ ] **T001-04** `tools/checks/no_long_prompts.py` (**TDD**: fixture file with a 201-char literal fails) and `tools/checks/scan_secrets.py`; wire into `make check`. (AC-001-12)
-- [ ] **T001-05** `make check` runs every gate in order and fails fast. (AC-001-11)
+- [x] **T001-01** Create the repository layout of [`docs/13`](../../13-design-patterns-and-conventions.md) §1 (empty packages with `__init__.py`), `.gitignore` (incl. `tools/synthetic/out/` except `demo/`), `Makefile` with all targets as stubs.
+- [x] **T001-02** `backend/pyproject.toml` + `uv lock`; ruff + pyright config; `.importlinter` contracts. (AC-001-11, AC-001-13)
+- [x] **T001-03** [P] Frontend: `npm create vite` (React + TS), Tailwind v4, ESLint (incl. `eslint-plugin-boundaries`), Vitest + Testing Library + MSW. (AC-001-1)
+- [x] **T001-04** `tools/checks/no_long_prompts.py` (**TDD**: fixture file with a 201-char literal fails) and `tools/checks/scan_secrets.py`; wire into `make check`. (AC-001-12)
+- [x] **T001-05** `make check` runs every gate in order and fails fast. (AC-001-11)
 
 ## Phase 2 — Backend core
 

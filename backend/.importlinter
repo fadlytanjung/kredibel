@@ -1,0 +1,68 @@
+[importlinter]
+root_packages =
+    app
+include_external_packages = True
+
+[importlinter:contract:domain-isolation]
+name = Domain layer must not import outer layers or SDKs
+type = forbidden
+source_modules =
+    app.domain
+forbidden_modules =
+    app.ports
+    app.adapters
+    app.services
+    app.agents
+    app.api
+    app.main
+    fastapi
+    google
+    firebase_admin
+
+[importlinter:contract:ports-isolation]
+name = Ports layer must not import adapters or higher layers
+type = forbidden
+source_modules =
+    app.ports
+forbidden_modules =
+    app.adapters
+    app.services
+    app.agents
+    app.api
+    app.main
+
+[importlinter:contract:adapters-isolation]
+name = Adapters must not import services, agents, or api
+type = forbidden
+source_modules =
+    app.adapters
+forbidden_modules =
+    app.services
+    app.api
+    app.agents
+
+[importlinter:contract:services-isolation]
+name = Services must not import adapters or api
+type = forbidden
+source_modules =
+    app.services
+forbidden_modules =
+    app.adapters
+    app.api
+
+[importlinter:contract:agents-isolation]
+name = Agents must not import adapters or api
+type = forbidden
+source_modules =
+    app.agents
+forbidden_modules =
+    app.adapters
+    app.api
+
+[importlinter:contract:api-isolation]
+name = API must not import adapters directly
+type = forbidden
+source_modules =
+    app.api
+forbidden_modules =
+    app.adapters

@@ -1,0 +1,117 @@
+#!/usr/bin/env bash
+# Kredibel — Infrastructure Bootstrap Script
+# Provisions all Google Cloud and Firebase resources idempotently.
+# See docs/16-infrastructure-and-deployment.md §3
+
+set -euo pipefail
+
+PROJECT_ID="${PROJECT_ID:-cloud-hack2skill}"
+REGION="${REGION:-asia-southeast1}"
+
+echo "==> Configuring gcloud project: $PROJECT_ID, region: $REGION"
+gcloud config set project "$PROJECT_ID"
+
+echo "==> 1. Enabling required Google Cloud APIs..."
+gcloud services enable \
+  run.googleapis.com \
+  cloudbuild.googleapis.com \
+  artifactregistry.googleapis.com \
+  firestore.googleapis.com \
+  storage.googleapis.com \
+  cloudtasks.googleapis.com \
+  documentai.googleapis.com \
+  aiplatform.googleapis.com \
+  modelarmor.googleapis.com \
+  iam.googleapis.com \
+  iamcredentials.googleapis.com \
+  logging.googleapis.com \
+  monitoring.googleapis.com \
+  cloudtrace.googleapis.com \
+  firebase.googleapis.com \
+  identitytoolkit.googleapis.com
+
+echo "==> 2. Creating Artifact Registry, Cloud Storage buckets, Firestore database, and Task Queues..."
+gcloud artifacts repositories create kredibel \
+  --repository-format=docker \
+  --location="$REGION" || true
+
+gcloud storage buckets create "gs://${PROJECT_ID}-kredibel-docs" \
+  --location="$REGION" \
+  --uniform-bucket-level-access \
+  --public-access-prevention || true
+gcloud storage buckets update "gs://${PROJECT_ID}-kredibel-docs" --versioning || true
+
+gcloud firestore databases create \
+  --location="$REGION" \
+  --type=firestore-native || true
+gcloud firestore databases update --database='(default)' --enable-pitr || true
+gcloud firestore backups schedules create --database='(default)' --recurrence=daily --retention=7d || true
+
+gcloud storage buckets create "gs://${PROJECT_ID}-kredibel-backups" \
+  --location="$REGION" \
+  --uniform-bucket-level-access \
+  --public-access-prevention || true
+if [ -f infra/backups-lifecycle.json ]; then
+  gcloud storage buckets update "gs://${PROJECT_ID}-kredibel-backups" --lifecycle-file=infra/backups-lifecycle.json || true
+fi
+
+gcloud tasks queues create kredibel-documents --location="$REGION" \
+  --max-concurrent-dispatches=4 --max-attempts=3 --min-backoff=30s --max-backoff=300s || true
+
+gcloud tasks queues create kredibel-months --location="$REGION" \
+  --max-concurrent-dispatches=2 --max-attempts=3 --min-backoff=10s --max-backoff=120s || true
+
+echo "==> 3. Creating Service Accounts..."
+for sa in kredibel-web kredibel-worker kredibel-tasks-invoker kredibel-migrate; do
+  gcloud iam service-accounts create "$sa" --display-name="$sa" || true
+done
+
+SA() { echo "$1@${PROJECT_ID}.iam.gserviceaccount.com"; }
+
+echo "==> 4. Binding IAM roles..."
+for role in roles/datastore.user roles/logging.logWriter roles/cloudtrace.agent \
+            roles/monitoring.metricWriter roles/aiplatform.user; do
+  gcloud projects add-iam-policy-binding "$PROJECT_ID" --member="serviceAccount:$(SA kredibel-web)" --role="$role" --condition=None || true
+  gcloud projects add-iam-policy-binding "$PROJECT_ID" --member="serviceAccount:$(SA kredibel-worker)" --role="$role" --condition=None || true
+done
+
+for role in roles/documentai.apiUser roles/modelarmor.user; do
+  gcloud projects add-iam-policy-binding "$PROJECT_ID" --member="serviceAccount:$(SA kredibel-worker)" --role="$role" --condition=None || true
+done
+
+for sa in kredibel-web kredibel-worker; do
+  gcloud storage buckets add-iam-policy-binding "gs://${PROJECT_ID}-kredibel-docs" \
+    --member="serviceAccount:$(SA $sa)" --role=roles/storage.objectAdmin || true
+done
+
+# Web sets Firebase custom claims when a workspace is created or an invite accepted
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member="serviceAccount:$(SA kredibel-web)" \
+  --role=roles/firebaseauth.admin --condition=None || true
+
+# Cloud Tasks enqueuing
+for q in kredibel-documents kredibel-months; do
+  for sa in kredibel-web kredibel-worker; do
+    gcloud tasks queues add-iam-policy-binding "$q" --location="$REGION" \
+      --member="serviceAccount:$(SA $sa)" --role=roles/cloudtasks.enqueuer || true
+  done
+done
+
+for sa in kredibel-web kredibel-worker; do
+  gcloud iam service-accounts add-iam-policy-binding "$(SA kredibel-tasks-invoker)" \
+    --member="serviceAccount:$(SA $sa)" --role=roles/iam.serviceAccountUser || true
+done
+
+# Migrations: read/write documents, run exports, write only to backups bucket
+for role in roles/datastore.user roles/datastore.importExportAdmin roles/logging.logWriter; do
+  gcloud projects add-iam-policy-binding "$PROJECT_ID" --member="serviceAccount:$(SA kredibel-migrate)" --role="$role" --condition=None || true
+done
+
+gcloud storage buckets add-iam-policy-binding "gs://${PROJECT_ID}-kredibel-backups" \
+  --member="serviceAccount:$(SA kredibel-migrate)" --role=roles/storage.objectAdmin || true
+
+PROJECT_NUMBER="$(gcloud projects describe "$PROJECT_ID" --format='value(projectNumber)')"
+gcloud storage buckets add-iam-policy-binding "gs://${PROJECT_ID}-kredibel-backups" \
+  --member="serviceAccount:service-${PROJECT_NUMBER}@gcp-sa-firestore.iam.gserviceaccount.com" \
+  --role=roles/storage.admin || true
+
+echo "==> Bootstrap completed successfully for project $PROJECT_ID."

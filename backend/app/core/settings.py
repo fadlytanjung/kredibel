@@ -24,6 +24,8 @@ class Settings(BaseSettings):
 
     # Core
     app_role: AppRole = "all"
+    # Built SPA (Dockerfile copies /fe/dist here); frontend/dist is used when it does not exist.
+    static_dir: str = "/app/static"
     app_version: str = "dev"
     # Set by Cloud Run on every service (kredibel-web, kredibel-worker); used as the log `service`.
     k_service: str | None = None

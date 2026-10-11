@@ -10,7 +10,7 @@ Phases 1–3 are needed by specs 003 and 004 (D1). Phase 4 can follow on D5–D6
 
 ## Phase 2 — Workspace API
 
-- [ ] **T013-04** **TDD** `core/auth.py`: optional `org_id`, `require_workspace` → `403 WORKSPACE_REQUIRED`; `GET /api/me` with and without a workspace. (AC-013-1)
+- [x] **T013-04** **TDD** `core/auth.py`: optional `org_id`, `require_workspace` → `403 WORKSPACE_REQUIRED`; `GET /api/me` with and without a workspace. (AC-013-1)
 - [ ] **T013-05** `IdentityAdmin` port, Firebase adapter, fake.
 - [ ] **T013-06** **TDD** `WorkspaceService.create` for `INDIVIDUAL` and `COMPANY`: transaction (org, profile, subscription, owner member, bank account mask + hash, signup counter), claims after commit, `ALREADY_IN_WORKSPACE`, `SIGNUP_CLOSED` per mode and `MAX_WORKSPACES`. (AC-013-2, AC-013-3)
 - [ ] **T013-07** **TDD** `EntitlementService` with counters in the same transaction; concurrency at the limit; usage settlement at run end. (AC-013-7, AC-013-9, AC-013-10)

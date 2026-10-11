@@ -62,11 +62,14 @@ def create_app(
     # 2. Web role endpoints
     if active_settings.app_role in ("web", "all"):
         app.include_router(create_me_router(principal_dep))
-        mount_static_spa(app)
 
     # 3. Worker role endpoints
     if active_settings.app_role in ("worker", "all"):
         app.include_router(create_tasks_router())
+
+    # 4. The SPA catch-all matches every path, so it must be registered after every router.
+    if active_settings.app_role in ("web", "all"):
+        mount_static_spa(app, static_dir=active_settings.static_dir)
 
     return app
 

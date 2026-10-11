@@ -109,3 +109,20 @@ async def test_ac001_6_api_me_returns_principal_fields(fake_verifier):
     assert data["role"] == "owner"
     assert data["needsWorkspace"] is False
     assert data["language"] == "en"
+
+
+@pytest.mark.asyncio
+async def test_ac001_10_all_role_reaches_tasks_even_with_the_spa_fallback(tmp_path):
+    """The SPA catch-all is registered last, so it never shadows /tasks or /api routes."""
+    from app.core.settings import Settings
+    from app.main import create_app
+
+    (tmp_path / "index.html").write_text("<html>spa</html>")
+    app = create_app(Settings(app_role="all", static_dir=str(tmp_path)))
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        tasks_res = await client.get("/tasks/health")
+        spa_res = await client.get("/months/2026-03")
+
+    assert tasks_res.status_code == 200
+    assert spa_res.text == "<html>spa</html>"

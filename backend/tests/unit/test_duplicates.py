@@ -1,7 +1,10 @@
 """Content duplicates (spec 006, AC-006-1…3): when two files hold the same statement or invoice."""
 
+from dataclasses import replace
 from datetime import UTC, date, datetime
 from decimal import Decimal
+
+import pytest
 
 from app.domain.checks.policy import Duplicates
 from app.domain.duplicates import (
@@ -115,3 +118,23 @@ def test_a_receipt_photo_close_to_another_is_held_by_its_image_hash():
     assert receipt_duplicate(near, [old], POLICY) is not None
     nine = ReceiptKey("doc_b", LATER, None, None, None, "ff00ff00ff01ffff")  # 9 bits apart
     assert receipt_duplicate(nine, [old], POLICY) is None
+
+
+@pytest.mark.parametrize(
+    "changed",
+    [
+        {"merchant": "Swift Courier"},
+        {"day": date(2026, 9, 13)},
+        {"total": Decimal("6.51")},
+    ],
+)
+def test_matching_layout_does_not_override_different_receipt_values(changed):
+    old = _rc("doc_a", "5.50", when=EARLIER, p_hash="ff00ff00ff00ff00")
+    new = replace(old, doc_id="doc_b", uploaded_at=LATER, **changed)
+    assert receipt_duplicate(new, [old], POLICY) is None
+
+
+def test_image_fallback_with_missing_fields_and_total_at_tolerance_still_holds():
+    old = _rc("doc_a", "5.50", when=EARLIER, p_hash="ff00ff00ff00ff00")
+    new = replace(old, doc_id="doc_b", uploaded_at=LATER, merchant=None, total=Decimal("6.50"))
+    assert receipt_duplicate(new, [old], POLICY) is not None

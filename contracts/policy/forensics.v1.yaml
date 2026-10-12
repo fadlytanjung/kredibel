@@ -52,7 +52,7 @@ duplicates:
   statementOverlapMinDays: 1
   invoiceIssuerMinScore: 90         # rapidfuzz token_set_ratio
   receiptTotalToleranceMinor: 100
-  pHashMaxDistance: 8               # 64-bit perceptual hash of page 1 (receipts and images)
+  pHashMaxDistance: 8               # page-1 fallback only without contradictory receipt readings
   ledgerKey: [date, amountMinor, accountCode, reference]
 
 arithmetic:

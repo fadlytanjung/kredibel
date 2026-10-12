@@ -4,7 +4,7 @@
 
 | File | Content |
 |---|---|
-| `domain/duplicates.py` | content keys per type; overlap and fuzzy issuer rules; newer-is-held rule; pure |
+| `domain/duplicates.py` | content keys per type; overlap and fuzzy issuer rules; newer-is-held rule; pure. Receipt pHash fallback is blocked by contradictory available merchant, date or total readings, so similar till-roll layouts do not become duplicates |
 | `domain/checks/base.py`, `registry.py` | `Check` protocol and registration ([`docs/08`](../../08-risk-engine.md) §1) |
 | `domain/checks/arithmetic.py`, `structure.py`, `extraction.py`, `holder.py` | `A0x`, `M0x`, `E0x`, `X05`, `X06` |
 | `domain/verdict.py` | integrity verdict |

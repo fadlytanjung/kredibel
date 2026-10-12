@@ -3,6 +3,8 @@
 ## Phase 1 — Duplicates
 
 - [x] **T006-01** **TDD** `duplicates.py`: `D02` overlap vs adjacent periods and identical vs different rows; `D03` vs `D04`; `D05` total tolerance and pHash 8 vs 9; `D06` within and across files. (AC-006-1…4)
+- [x] **T006-01a** **TDD** D05 image fallback respects contradictory receipt readings; unrelated
+  S1 till rolls remain eligible, while missing-field duplicate photos still hold. (AC-006-3)
 - [ ] **T006-02** **TDD** holding: held records excluded from a figures function and from matching inputs; `DuplicateService` decisions flip and mark months dirty. (AC-006-5, AC-006-6) (holding done: document and records flagged, released when the earlier copy goes; exclusion from figures and matching comes with spec 007, decisions with spec 009)
 - [ ] **T006-03** `detect_content_duplicates` node and `POSSIBLE_DUPLICATE` items. (AC-006-5) (node done for `D02`, `D03`, `D04`, `D05` incl. the page-1 image hash; the review item comes with spec 009; `D06` with ledger import)
 

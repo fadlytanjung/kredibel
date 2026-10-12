@@ -136,7 +136,11 @@ def phash_distance(a: str, b: str) -> int:
 def receipt_duplicate(
     new: ReceiptKey, others: list[ReceiptKey], policy: Duplicates
 ) -> Match | None:
-    """D05: the same merchant, date and total (± 1 unit), or a page-1 image within the distance."""
+    """D05: same receipt values, or similar images without contradictory available readings.
+
+    Two till rolls often share a layout despite different purchases. pHash is a fallback for
+    incomplete readings; it cannot override different merchants, dates or totals (AC-006-3).
+    """
     tol = Decimal(policy.receipt_total_tolerance_minor) / 100
     for old in sorted(others, key=lambda o: o.uploaded_at):
         if old.doc_id == new.doc_id or old.uploaded_at > new.uploaded_at:
@@ -150,7 +154,20 @@ def receipt_duplicate(
             and abs(new.total - old.total) <= tol
         )
         distance = phash_distance(new.p_hash, old.p_hash) if new.p_hash and old.p_hash else None
-        if same_fields or (distance is not None and distance <= policy.p_hash_max_distance):
+        contradictory = (
+            (
+                bool(new.merchant and old.merchant)
+                and not same_party(new.merchant, old.merchant, policy.invoice_issuer_min_score)
+            )
+            or (new.day is not None and old.day is not None and new.day != old.day)
+            or (
+                new.total is not None and old.total is not None and abs(new.total - old.total) > tol
+            )
+        )
+        same_image = (
+            distance is not None and distance <= policy.p_hash_max_distance and not contradictory
+        )
+        if same_fields or same_image:
             facts = {
                 "merchant": new.merchant or "",
                 "date": str(new.day or ""),

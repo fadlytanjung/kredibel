@@ -1,0 +1,69 @@
+"""Bank line routes (docs/10 §2.4, contracts/openapi.yaml /api/bank-lines)."""
+
+from decimal import Decimal
+from typing import Any
+
+from fastapi import APIRouter, Depends, Query
+
+from app.api.deps import ServiceProvider, org_of
+from app.core.auth import Principal
+from app.domain.models.bank_line import BankLine
+
+
+def _money(value: Decimal | None, currency: str) -> dict[str, str] | None:
+    return None if value is None else {"amount": f"{value:.2f}", "currency": currency}
+
+
+def bank_line_body(line: BankLine, currency: str) -> dict[str, Any]:
+    return {
+        "txId": line.tx_id,
+        "docId": line.doc_id,
+        "accountId": None,
+        "page": line.page,
+        "rowIndex": line.row_index,
+        "date": line.date.isoformat(),
+        "month": line.month,
+        "description": line.description,
+        "counterpartyId": None,
+        "counterpartyName": line.counterparty_name,
+        "amount": _money(line.amount, currency),
+        "balance": _money(line.balance, currency),
+        "readings": {
+            name: {
+                "status": c["status"],
+                "page": c.get("page"),
+                "bbox": c.get("bbox"),
+                "raw": c.get("raw", {}),
+                "sources": [s for s, v in (c.get("raw") or {}).items() if v is not None],
+            }
+            for name, c in line.consensus.items()
+        },
+        "source": line.source,
+        "notes": line.notes,
+        "match": {"state": "UNMATCHED", "matchIds": []},
+        "heldAsDuplicate": False,
+        "corrected": False,
+    }
+
+
+def create_bank_lines_router(provider: ServiceProvider, workspace_dep: Any) -> APIRouter:
+    router = APIRouter(prefix="/api/bank-lines", tags=["books"])
+
+    @router.get("")
+    async def list_bank_lines(
+        doc_id: str | None = Query(default=None, alias="docId"),
+        month: str | None = Query(default=None, pattern=r"^\d{4}-(0[1-9]|1[0-2])$"),
+        limit: int = Query(default=500, ge=1, le=1000),
+        principal: Principal = Depends(workspace_dep),
+    ) -> dict[str, Any]:
+        lines, currency = await provider.bank_line_service.list_lines(
+            org_of(principal), doc_id=doc_id, month=month, limit=limit
+        )
+        total = sum((line.amount for line in lines), Decimal("0"))
+        return {
+            "items": [bank_line_body(line, currency) for line in lines],
+            "nextCursor": None,
+            "total": _money(total, currency),
+        }
+
+    return router

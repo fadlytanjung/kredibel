@@ -169,3 +169,60 @@ async def test_reading_twice_uses_the_page_cache():
     await run("org_1", res.json()["docId"], "run_again", 1)
 
     assert [c for c in reader.calls if c[0] == "statement_page"] == reads  # no new page reads
+
+
+async def test_the_document_page_lists_the_lines_with_their_readings():
+    lines, docs = FakeBankLineRepository(), FakeDocumentRepository()
+    deps = _deps(lines, docs)
+    app = create_app(deps.settings, deps=deps)
+    pdf = (FIXTURES / "acb-2026-03.pdf").read_bytes()
+    auth = {"Authorization": "Bearer owner"}
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        res = await c.post(
+            "/api/documents",
+            files={"file": ("acb.pdf", io.BytesIO(pdf), "application/pdf")},
+            headers=auth,
+        )
+        queue = deps.task_queue
+        assert isinstance(queue, InlineTaskQueue)
+        await queue.drain()
+        listed = await c.get("/api/bank-lines", params={"docId": res.json()["docId"]}, headers=auth)
+        other = await c.get("/api/bank-lines", params={"docId": "doc_someone_else"}, headers=auth)
+
+    assert listed.status_code == 200
+    body = listed.json()
+    assert len(body["items"]) == len(TRUTH["rows"])
+    first = body["items"][0]
+    assert (
+        first["amount"]["amount"]
+        == f"{Decimal(TRUTH['rows'][0]['credit'] or '-' + TRUTH['rows'][0]['debit']):.2f}"
+    )
+    assert first["readings"]["amount"]["status"] == "AGREED"
+    assert first["readings"]["amount"]["bbox"] is not None
+    assert first["readings"]["amount"]["sources"] == ["GEMINI", "TEXT_LAYER"]
+    assert other.json()["items"] == []
+
+
+async def test_the_document_carries_its_statement_in_contract_shape():
+    lines, docs = FakeBankLineRepository(), FakeDocumentRepository()
+    deps = _deps(lines, docs)
+    app = create_app(deps.settings, deps=deps)
+    pdf = (FIXTURES / "acb-2026-03.pdf").read_bytes()
+    auth = {"Authorization": "Bearer owner"}
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        res = await c.post(
+            "/api/documents",
+            files={"file": ("acb.pdf", io.BytesIO(pdf), "application/pdf")},
+            headers=auth,
+        )
+        queue = deps.task_queue
+        assert isinstance(queue, InlineTaskQueue)
+        await queue.drain()
+        body = (await c.get(f"/api/documents/{res.json()['docId']}", headers=auth)).json()
+
+    meta = body["statementMeta"]
+    assert meta["opening"] == {"amount": f"{Decimal(TRUTH['opening']):.2f}", "currency": "IDR"}
+    assert meta["closing"] == {"amount": f"{Decimal(TRUTH['closing']):.2f}", "currency": "IDR"}
+    assert "openingMinor" not in meta
+    assert body["reading"]["agreement"] == "1.000"
+    assert body["reading"]["lines"] == len(TRUTH["rows"])

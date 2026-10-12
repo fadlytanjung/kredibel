@@ -147,4 +147,71 @@ describe('DocumentPage', () => {
       expect(screen.getByText('Documents List View')).toBeInTheDocument()
     })
   })
+
+  it('lists the lines read and points at a value on its page (T005-11)', async () => {
+    const box = { x0: 0.62, y0: 0.3, x1: 0.7, y1: 0.31 }
+    const reading = (status: string) => ({ status, page: 2, bbox: box, sources: ['GEMINI', 'TEXT_LAYER'] })
+    const doc = {
+      docId: 'doc_lines',
+      fileName: 'RHB.pdf',
+      contentType: 'application/pdf',
+      docType: 'BANK_STATEMENT',
+      status: 'DONE',
+      pageCount: 2,
+      pages: [
+        { pageNo: 1, status: 'DONE', textLayer: true, witness: 'TEXT_LAYER' },
+        { pageNo: 2, status: 'DONE', textLayer: true, witness: 'TEXT_LAYER' },
+      ],
+      reading: { method: 'AI_TEXT_LAYER', agreement: '1.000', fieldsCompared: 8, fieldsAgreed: 8, lines: 2 },
+      statementMeta: {
+        bankName: 'RHB Bank Berhad',
+        accountMasked: '••••3876',
+        periodStart: '2026-08-16',
+        periodEnd: '2026-09-15',
+        opening: { amount: '1216.73', currency: 'MYR' },
+        closing: { amount: '1454.33', currency: 'MYR' },
+      },
+      uploadedAt: '2026-10-12T01:57:18Z',
+    }
+    const line = (txId: string, page: number, amount: string, description: string, status = 'AGREED') => ({
+      txId,
+      docId: 'doc_lines',
+      page,
+      rowIndex: 0,
+      date: '2026-09-02',
+      month: '2026-09',
+      description,
+      counterpartyName: null,
+      amount: { amount, currency: 'MYR' },
+      balance: { amount: '1454.33', currency: 'MYR' },
+      readings: { amount: { ...reading(status), page }, date: reading('AGREED') },
+      match: { state: 'UNMATCHED' },
+    })
+    vi.mocked(apiClient).mockImplementation(async (path: string) =>
+      path.startsWith('/api/bank-lines')
+        ? {
+            items: [
+              line('tx_1', 1, '-12.40', 'DEBIT CARD TXN-DR\nGRAB RIDES'),
+              line('tx_2', 2, '250.00', 'MBK INSTANT TRF CR\nNURUL AINA', 'CONFLICT'),
+            ],
+          }
+        : doc,
+    )
+
+    renderPage('doc_lines')
+
+    await waitFor(() => expect(screen.getByText('Transactions read')).toBeInTheDocument())
+    expect(apiClient).toHaveBeenCalledWith('/api/bank-lines?docId=doc_lines')
+    expect(screen.getByText('2 lines; 8 of 8 values found on the page')).toBeInTheDocument()
+    expect(screen.getByText('On the page')).toBeInTheDocument()
+    expect(screen.getByText('Readings differ')).toBeInTheDocument()
+    expect(screen.getByText(/1,216\.73/)).toBeInTheDocument()
+    expect(screen.queryByTestId('page-lamp')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByText('MBK INSTANT TRF CR'))
+
+    await waitFor(() => expect(screen.getByTestId('page-lamp')).toBeInTheDocument())
+    expect(apiBlob).toHaveBeenCalledWith('/api/documents/doc_lines/pages/2?variant=full')
+    expect(screen.getByTestId('page-lamp').style.left).toBe('61.6%')
+  })
 })

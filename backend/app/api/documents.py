@@ -6,6 +6,7 @@ Normative references:
 - AC-003-1, AC-003-2, AC-003-5, AC-003-7, AC-003-10, AC-003-11
 """
 
+from decimal import Decimal
 from typing import Any
 
 from fastapi import APIRouter, Depends, File, Form, Query, Response, UploadFile, status
@@ -59,8 +60,8 @@ def _document_body(doc: Document) -> dict[str, Any]:
         "heldAsDuplicate": doc.held_as_duplicate,
         "countsAgainstLimits": doc.counts_against_limits,
         "pages": pages,
-        "reading": doc.reading,
-        "statementMeta": doc.statement_meta,
+        "reading": _reading_body(doc.reading),
+        "statementMeta": _statement_meta_body(doc.statement_meta),
         "ledgerMeta": doc.ledger_meta,
         "pdf": doc.pdf,
         "integrity": doc.integrity,
@@ -70,6 +71,30 @@ def _document_body(doc: Document) -> dict[str, Any]:
         "lastRunId": doc.last_run_id,
     }
     return {k: v for k, v in body.items() if v is not None or k in ("duplicate",)}
+
+
+def _minor_to_money(minor: int | None, currency: str) -> dict[str, str] | None:
+    if minor is None:
+        return None
+    return {"amount": f"{Decimal(minor) / 100:.2f}", "currency": currency}
+
+
+def _statement_meta_body(meta: dict[str, Any] | None) -> dict[str, Any] | None:
+    """Stored in minor units (docs/09 §2); the contract carries Money."""
+    if meta is None:
+        return None
+    currency = meta.get("currency") or "IDR"
+    body = {k: v for k, v in meta.items() if k not in ("openingMinor", "closingMinor")}
+    body["opening"] = _minor_to_money(meta.get("openingMinor"), currency)
+    body["closing"] = _minor_to_money(meta.get("closingMinor"), currency)
+    return body
+
+
+def _reading_body(reading: dict[str, Any] | None) -> dict[str, Any] | None:
+    if reading is None:
+        return None
+    agreement = reading.get("agreement")
+    return {**reading, "agreement": None if agreement is None else f"{Decimal(str(agreement)):.3f}"}
 
 
 def create_documents_router(

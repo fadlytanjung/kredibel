@@ -62,7 +62,7 @@
 
 | Method & path | Purpose | P |
 |---|---|---|
-| `GET /api/bank-lines?month=&accountId=&matchState=&category=&counterpartyId=&q=&flow=` | Bank lines; `flow` is a money-flow link ID (Sankey drill-down) | P0 |
+| `GET /api/bank-lines?docId=&month=&accountId=&matchState=&category=&counterpartyId=&q=&flow=` | Bank lines with each value's readings (status, page, box); `docId` gives one statement's lines (the document page); `flow` is a money-flow link ID (Sankey drill-down) | P0 |
 | `PATCH /api/bank-lines/{txId}` | Change the category (`categorizedBy: USER`); same as correcting its `CATEGORY` label (§2.10); marks the month dirty | P0 |
 | `GET /api/invoices?kind=&month=&paymentState=&counterpartyId=` · `GET /api/invoices/{invoiceId}` | Sales and purchase invoices with payment state and matches | P0 |
 | `GET /api/receipts?month=&paymentState=` · `GET /api/receipts/{receiptId}` | Receipts | P0 |

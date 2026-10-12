@@ -736,6 +736,12 @@ a:hover { color: var(--k-color-brand-hover); }
 }
 @keyframes lamp-sweep { to { transform: translateX(120%); } }
 @media (prefers-reduced-motion: reduce) { .lamp::after { animation: none; display: none; } }
+/* The lamp on a page image: the box of a grounded value, positioned from its normalized bbox. */
+.page-figure { position: relative; display: inline-block; max-width: 100%; line-height: 0; }
+.lamp.on-page { position: absolute; display: block; margin: 0; padding: 0; }
+.data-table tr.is-selected td { background: color-mix(in srgb, var(--k-color-brand-soft) 70%, transparent); }
+.data-table tr.is-selected td:first-child { box-shadow: inset 3px 0 0 var(--k-color-brand-default); }
+.data-table tbody tr.is-clickable { cursor: pointer; }
 .lamp-marker { position: absolute; top: -15px; right: -6px; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--k-color-evidence-line); color: #FFFFFF; font-size: 11px; font-weight: 760; font-family: var(--k-font-family-sans); box-shadow: 0 0 0 2px #FFFFFF; z-index: 1; }
 .lamp-marker.inline { position: static; display: inline-grid; margin-left: 4px; box-shadow: none; vertical-align: 1px; }
 

@@ -9,8 +9,10 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { type BankLine, lineBox, StatementLines, useBankLines } from '../entities/bank-line'
 import { downloadOriginal, PageImage, useDeleteDocument, useDocument } from '../entities/document'
 import { formatDate } from '../shared/lib/formatDate'
+import { formatMoney } from '../shared/lib/formatMoney'
 import { Badge, Button, Icon } from '../shared/ui'
 
 export function DocumentPage() {
@@ -19,6 +21,9 @@ export function DocumentPage() {
   const { t } = useTranslation(['documents', 'common'])
   const { data: doc, isLoading } = useDocument(docId)
   const deleteMutation = useDeleteDocument()
+  const isStatement = doc?.docType === 'BANK_STATEMENT' && Boolean(doc?.reading)
+  const { data: linePage } = useBankLines(isStatement ? docId : undefined)
+  const [selectedLine, setSelectedLine] = useState<BankLine | null>(null)
 
   const [selectedPage, setSelectedPage] = useState<number>(1)
   const [showConfirmDelete, setShowConfirmDelete] = useState<boolean>(false)
@@ -49,6 +54,13 @@ export function DocumentPage() {
   }
 
   const pagesCount = doc.pageCount || doc.pages?.length || 0
+  const selectLine = (line: BankLine) => {
+    setSelectedLine(line)
+    if (line.page) setSelectedPage(line.page)
+  }
+  const highlight = selectedLine && selectedLine.page === selectedPage ? lineBox(selectedLine) : undefined
+  const meta = doc.statementMeta
+  const reading = doc.reading
 
   return (
     <div className="page stack gap-6">
@@ -164,6 +176,7 @@ export function DocumentPage() {
                   variant="full"
                   alt={t('documents:detail.page', { page: selectedPage })}
                   className="max-w-full h-auto m-auto"
+                  highlight={highlight}
                 />
               </div>
             </div>
@@ -191,6 +204,35 @@ export function DocumentPage() {
                 {String(doc.statementMeta['periodEnd'] || '—')}
               </strong>
             </div>
+            {meta?.opening && (
+              <div className="row spread">
+                <span className="muted">{t('documents:detail.opening')}</span>
+                <strong>{formatMoney(meta.opening.amount, { currency: meta.opening.currency })}</strong>
+              </div>
+            )}
+            {meta?.closing && (
+              <div className="row spread">
+                <span className="muted">{t('documents:detail.closing')}</span>
+                <strong>{formatMoney(meta.closing.amount, { currency: meta.closing.currency })}</strong>
+              </div>
+            )}
+          </div>
+        )}
+        {linePage && linePage.items.length > 0 && (
+          <div className="stack gap-2">
+            <div className="spread items-center">
+              <h3 className="type-h3">{t('documents:detail.transactions')}</h3>
+              {reading && (
+                <span className="small muted">
+                  {t('documents:detail.transactionsSummary', {
+                    count: linePage.items.length,
+                    agreed: reading.fieldsAgreed ?? 0,
+                    compared: reading.fieldsCompared ?? 0,
+                  })}
+                </span>
+              )}
+            </div>
+            <StatementLines lines={linePage.items} selectedTxId={selectedLine?.txId} onSelect={selectLine} />
           </div>
         )}
         {doc.ledgerMeta && (

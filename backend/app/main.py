@@ -28,6 +28,7 @@ from app.agents.runtime import run_workflow
 from app.agents.workflows.document_workflow import build_document_workflow
 from app.agents.workflows.month_workflow import build_month_workflow
 from app.api.bank_accounts import create_bank_accounts_router
+from app.api.bank_lines import create_bank_lines_router
 from app.api.documents import create_documents_router
 from app.api.health import create_health_router
 from app.api.me import create_me_router
@@ -66,6 +67,7 @@ from app.ports.run_repository import RunRepository
 from app.ports.spreadsheet_reader import SpreadsheetReader
 from app.ports.task_queue import TaskQueue
 from app.ports.workspace_repository import UsageRepository, WorkspaceRepository
+from app.services.bank_line_service import BankLineService
 from app.services.document_service import DocumentService
 from app.services.entitlement_service import EntitlementService
 from app.services.month_service import MonthService
@@ -393,6 +395,13 @@ class AppDeps:
         )
 
     @property
+    def bank_line_service(self) -> BankLineService:
+        return self._once(
+            "bank_line_service",
+            lambda: BankLineService(bank_lines=self.bank_lines, workspaces=self.workspace_repo),
+        )
+
+    @property
     def month_service(self) -> MonthService:
         return self._once(
             "month_service",
@@ -460,6 +469,7 @@ def create_app(
         app.include_router(create_documents_router(deps, workspace_dep))
         app.include_router(create_runs_router(deps, workspace_dep))
         app.include_router(create_months_router(deps, workspace_dep))
+        app.include_router(create_bank_lines_router(deps, workspace_dep))
 
     # 3. Worker role endpoints
     if active_settings.app_role in ("worker", "all"):

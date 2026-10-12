@@ -421,6 +421,7 @@ paths:
       tags: [books]
       operationId: listBankLines
       parameters:
+        - { name: docId, in: query, schema: { type: string }, description: "Lines of one statement (the document page)" }
         - $ref: "#/components/parameters/MonthQuery"
         - { name: accountId, in: query, schema: { type: string } }
         - { name: matchState, in: query, schema: { $ref: "#/components/schemas/MatchState" } }
@@ -1756,6 +1757,8 @@ components:
         agreement: { $ref: "#/components/schemas/Decimal" }
         fieldsCompared: { type: integer }
         fieldsAgreed: { type: integer }
+        lines: { type: integer, description: "Records written (bank lines, invoice or receipt items)" }
+        notes: { type: array, items: { type: string }, description: "Parse and grounding notes" }
         model: { type: string }
         promptVersion: { type: string }
     StatementMeta:
@@ -1765,6 +1768,7 @@ components:
         accountHolder: { type: string }
         accountMasked: { type: string }
         accountId: { type: [string, "null"] }
+        currency: { type: string, minLength: 3, maxLength: 3 }
         periodStart: { type: string, format: date }
         periodEnd: { type: string, format: date }
         opening: { $ref: "#/components/schemas/Money" }
@@ -1898,6 +1902,8 @@ components:
         match: { $ref: "#/components/schemas/MatchRef" }
         heldAsDuplicate: { type: boolean }
         corrected: { type: boolean }
+        source: { type: string, enum: [AI, WITNESS], description: "WITNESS: a row only the page's words have (ADR-023)" }
+        notes: { type: array, items: { type: string } }
     BankLineUpdate:
       type: object
       required: [category]

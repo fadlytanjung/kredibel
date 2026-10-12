@@ -84,6 +84,26 @@
     "account": "Account",
     "period": "Period",
     "to": "to",
-    "rowsImported": "Rows imported"
+    "rowsImported": "Rows imported",
+    "transactions": "Transactions read",
+    "transactionsSummary": "{{count}} lines; {{agreed}} of {{compared}} values found on the page",
+    "showOnPage": "Show on page {{page}}",
+    "columns": {
+      "date": "Date",
+      "description": "Description",
+      "amount": "Amount",
+      "balance": "Balance",
+      "reading": "Reading"
+    },
+    "readingStatus": {
+      "AGREED": "On the page",
+      "CONFLICT": "Readings differ",
+      "SINGLE_SOURCE": "One source",
+      "MISSING": "Missing"
+    },
+    "witnessRow": "Found on the page only",
+    "opening": "Opening balance",
+    "closing": "Closing balance",
+    "currency": "Currency"
   }
 }

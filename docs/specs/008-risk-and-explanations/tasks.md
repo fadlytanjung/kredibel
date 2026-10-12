@@ -13,8 +13,8 @@
 ## Phase 3 — UI and API
 
 - [x] **T008-05** Findings routes; acknowledge and dismiss with reasons. (AC-008-9)
-- [ ] **T008-06** `RiskPage` and `SeverityBadge`. (AC-008-7, AC-008-10)
-- [ ] **T008-07** `EvidenceViewer` (desktop and phone variants) and `Explanation`; visual tests. (AC-008-8)
+- [x] **T008-06** `RiskPage` and `SeverityBadge`. (AC-008-7, AC-008-10)
+- [x] **T008-07** `EvidenceViewer` (desktop and phone variants) and `Explanation`; visual tests. (AC-008-8)
 
 ## Phase 4 — Scenarios and close
 

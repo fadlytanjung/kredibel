@@ -22,9 +22,9 @@ import {
   CounterpartiesPage,
   LabelsPage,
   ReviewPage,
-  RiskPage,
   RunsPage,
 } from '../pages/Placeholders'
+import { RiskPage } from '../pages/RiskPage'
 import { SettingsPage } from '../pages/SettingsPage'
 import { AppShell, Button } from '../shared/ui'
 import { OnboardingPreview } from './OnboardingPreview'

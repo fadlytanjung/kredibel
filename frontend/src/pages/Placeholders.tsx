@@ -23,7 +23,6 @@ function PlaceholderPage({ titleKey, spec }: PlaceholderProps) {
 }
 
 export const ReviewPage = () => <PlaceholderPage titleKey="placeholder.review" spec="spec 009" />
-export const RiskPage = () => <PlaceholderPage titleKey="placeholder.risk" spec="spec 008" />
 export const CounterpartiesPage = () => (
   <PlaceholderPage titleKey="placeholder.counterparties" spec="spec 014" />
 )

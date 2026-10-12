@@ -47,12 +47,20 @@ def create_findings_router(provider: ServiceProvider, workspace_dep: Any) -> API
         status: str | None = Query(
             default=None, pattern="^(OPEN|ACKNOWLEDGED|DISMISSED|RESOLVED)$"
         ),
+        severity: str | None = Query(
+            default=None, pattern="^(CRITICAL|HIGH|MEDIUM|LOW|INFO)$"
+        ),
+        code: str | None = Query(default=None),
         limit: int = Query(default=200, ge=1, le=500),
         principal: Principal = Depends(workspace_dep),
     ) -> dict[str, Any]:
         found = await provider.findings.list_findings(
             org_of(principal), doc_id=doc_id, month=month, status=status, limit=limit
         )
+        if severity:
+            found = [f for f in found if f.severity == severity]
+        if code:
+            found = [f for f in found if f.code == code]
         return {"items": [finding_body(f) for f in found], "nextCursor": None}
 
     @router.get("/{finding_id}")

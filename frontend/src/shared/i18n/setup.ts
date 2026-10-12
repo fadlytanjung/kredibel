@@ -6,6 +6,7 @@ import documentsEn from './locales/en/documents.json'
 import errorsEn from './locales/en/errors.json'
 import monthsEn from './locales/en/months.json'
 import onboardingEn from './locales/en/onboarding.json'
+import riskEn from './locales/en/risk.json'
 import settingsEn from './locales/en/settings.json'
 
 void i18n.use(initReactI18next).init({
@@ -16,6 +17,7 @@ void i18n.use(initReactI18next).init({
       errors: errorsEn,
       months: monthsEn,
       onboarding: onboardingEn,
+      risk: riskEn,
       settings: settingsEn,
     },
   },

@@ -4,10 +4,16 @@ from decimal import Decimal
 from typing import Any
 
 from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel, ConfigDict
 
 from app.api.deps import ServiceProvider, org_of
 from app.core.auth import Principal
 from app.domain.models.bank_line import BankLine
+
+
+class BankLineUpdateBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    category: str
 
 
 def _money(value: Decimal | None, currency: str) -> dict[str, str] | None:
@@ -53,6 +59,17 @@ def bank_line_body(line: BankLine, currency: str) -> dict[str, Any]:
 
 def create_bank_lines_router(provider: ServiceProvider, workspace_dep: Any) -> APIRouter:
     router = APIRouter(prefix="/api/bank-lines", tags=["books"])
+
+    @router.patch("/{tx_id}")
+    async def update_bank_line(
+        tx_id: str,
+        body: BankLineUpdateBody,
+        principal: Principal = Depends(workspace_dep),
+    ) -> dict[str, Any]:
+        line, currency = await provider.bank_line_service.set_category(
+            principal, tx_id, body.category
+        )
+        return bank_line_body(line, currency)
 
     @router.get("")
     async def list_bank_lines(

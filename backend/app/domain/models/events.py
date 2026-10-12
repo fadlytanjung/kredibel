@@ -15,6 +15,9 @@ EventType = Literal[
     "CURRENCY_CHANGED",
     "DECISION_RECORDED",
     "DECISION_WITHDRAWN",
+    "CATEGORY_CHANGED",
+    "MATCH_CREATED",
+    "MATCH_REJECTED",
 ]
 
 

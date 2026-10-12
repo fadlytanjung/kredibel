@@ -102,12 +102,18 @@ This extends P0 with manual attestations and clarifies the existing bank-first d
 
 ## Delivery boundaries
 
-Pure scoring is independently implementable against in-memory inputs while remaining reading and
-duplicate-review work is unfinished; this does not complete specs 005/006 or enable live matching.
+The statement/invoice/receipt path can be delivered before ledger import and the review queue.
+Its month state comes from computed allocations, statement coverage and blocking findings, never
+statement presence alone. `COLLECTING` means coverage is missing; `NEEDS_REVIEW` means a proposal or
+blocking finding remains. `RECONCILED` describes the eligible inputs checked in that run, not a risk
+assessment, ledger reconciliation or sign-off. Unimplemented stages explicitly report that they
+were skipped.
+
 The category correction endpoint previously bundled into T007-02 moves to T007-09 with the books
-API. Ledger mappings, cross-month data loading, persistence and complete scenario gates are required
-before the month workflow may report actual reconciliation. Until then it stays `COLLECTING` with
-an explicit availability note, including when a statement is present.
+API. Completing this spec still requires ledger pairs, cross-month upload-order verification and
+the full S1/S4/S5 scenario gates. The five-document replay in T007-08a proves the document-first
+path and fixed-currency decisions; it does not satisfy those broader gates or complete specs
+005/006. Manual match controls and the reconciliation UI remain T007-09/T007-10.
 
 ## Out of scope
 

@@ -41,11 +41,17 @@
   findings and the state; statement + invoice end-to-end test. Open: the S1/S4/S5 scenario gates.
   Align generator expectations for tax shortfalls with explicit adjustment decisions (ADR-025);
   the legacy generator scorer alone is not proof of runtime assignment quality.
+- [x] **T007-08a** **TDD** invoice/receipt-first workflow, manual approval/payment evidence,
+  currency agreement/exclusion and generation guard before result writes. Generated-document replay
+  in both upload orders, with a runnable script and local OTLP URLs. (AC-007-7, AC-007-14…19)
 
 ## Phase 3 — API and UI
 
 - [ ] **T007-09** Books, months and matches routes; manual match and unmatch; category correction
   `PATCH /api/bank-lines/{txId}` preserving the user's choice. (AC-007-2, AC-007-13)
+- [x] **T007-09a** **TDD** complete category correction and read-only match inspection; preserve
+  user categories through rereading and rerun month figures. Manual match/unmatch remain T007-09.
+  (AC-007-2, AC-007-13)
 - [ ] **T007-10** `MonthsPage`, `MonthPage`, `MatchPicker`, approval and payment confirmation;
   all evidence/support states, currency agreement and grouped allocations; visual tests at three
   widths. (AC-007-12…19)

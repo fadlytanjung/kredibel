@@ -5,7 +5,9 @@ from decimal import Decimal
 from google.cloud.firestore import AsyncClient, FieldFilter
 
 from app.adapters.firestore.models.match import MatchDoc
+from app.adapters.firestore.models.workspace import EventDoc
 from app.adapters.firestore.txn import dump
+from app.domain.models.events import AuditEvent
 from app.domain.models.match import StoredMatch
 from app.ports.match_repository import MatchRepository
 
@@ -96,5 +98,15 @@ class FirestoreMatchRepository(MatchRepository):
         ]
         return sorted(found, key=lambda m: m.match_id)
 
-    async def save(self, org_id: str, match: StoredMatch) -> None:
-        await self._col(org_id).document(match.match_id).set(dump(_to_doc(match)))
+    async def get(self, org_id: str, match_id: str) -> StoredMatch | None:
+        snap = await self._col(org_id).document(match_id).get()
+        return _to_domain(MatchDoc.model_validate(snap.to_dict())) if snap.exists else None
+
+    async def save(self, org_id: str, match: StoredMatch, event: AuditEvent) -> None:
+        batch = self._db.batch()
+        batch.set(self._col(org_id).document(match.match_id), dump(_to_doc(match)))
+        batch.set(
+            self._db.collection("orgs").document(org_id).collection("events").document(event.event_id),
+            dump(EventDoc(org_id=org_id, **event.model_dump())),
+        )
+        await batch.commit()

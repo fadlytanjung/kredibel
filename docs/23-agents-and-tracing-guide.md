@@ -188,6 +188,29 @@ the UI uses `build_graph`, which works.
 
 ---
 
+### 4.3 Reproduce invoice/receipt reconciliation without real data
+
+```bash
+make demo-reconciliation          # offline: HTTP upload + real workflows, recorded readings
+make trace-up
+make demo-reconciliation-traced   # same run, traced; prints direct Jaeger URLs
+```
+
+Open **http://localhost:16686** and choose service **kredibel-reconciliation-demo**. The script
+uploads the five PDFs in `backend/tests/fixtures/reconciliation/` into in-memory repositories,
+first with the statement first, then with the supporting documents first. Both runs must produce
+three automatic bank matches (sales invoice, purchase invoice, card receipt), a paid-cash receipt
+with no bank match, and identical figures. Bank rows without documents remain `NO_SUPPORT`.
+Both receipts omit printed currency; the fixture replay simulates explicit user agreement to IDR.
+It never changes a real workspace, uses no Google credentials, and calls no model. Actual Gemini
+request spans are visible when uploading through `make dev-traced` (§4.1).
+
+The summary and trace URLs are written to `/tmp/kredibel-reconciliation-demo.json`.
+`make reconciliation-fixtures` regenerates this subset from the S1 builder and its truth; no figures
+are hand-edited. This is a focused workflow regression, not the full six-month S1/S4/S5 evaluation.
+The trace also names unfinished downstream nodes as skipped; risk explanations, money flows and
+review-item sync are still separate implementation tasks.
+
 ## 5. Trace a run in production (Cloud Trace)
 
 On Cloud Run `TRACE_EXPORT=cloud`, so `app/observability/tracing.setup_tracing()` installs ADK's Google

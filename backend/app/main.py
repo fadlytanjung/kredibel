@@ -43,6 +43,7 @@ from app.api.decisions import create_decisions_router
 from app.api.documents import create_documents_router
 from app.api.findings import create_findings_router
 from app.api.health import create_health_router
+from app.api.matches import create_matches_router
 from app.api.me import create_me_router
 from app.api.months import create_months_router
 from app.api.plans import create_plans_router
@@ -536,7 +537,13 @@ class AppDeps:
     def bank_line_service(self) -> BankLineService:
         return self._once(
             "bank_line_service",
-            lambda: BankLineService(bank_lines=self.bank_lines, workspaces=self.workspace_repo),
+            lambda: BankLineService(
+                bank_lines=self.bank_lines,
+                workspaces=self.workspace_repo,
+                categories=self.categories,
+                clock=self.clock,
+                months=self.month_service,
+            ),
         )
 
     @property
@@ -611,6 +618,7 @@ def create_app(
         app.include_router(create_records_router(deps, workspace_dep))
         app.include_router(create_findings_router(deps, workspace_dep))
         app.include_router(create_decisions_router(deps, workspace_dep))
+        app.include_router(create_matches_router(deps, workspace_dep))
 
     # 3. Worker role endpoints
     if active_settings.app_role in ("worker", "all"):

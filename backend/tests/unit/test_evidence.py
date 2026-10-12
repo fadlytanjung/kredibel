@@ -146,6 +146,7 @@ def test_a_foreign_or_unknown_currency_waits_for_the_persons_agreement():
 def test_receipts_paid_in_cash_need_no_bank_line():
     cash = inv(kind="RECEIPT", payment_method="CASH", due=None)
     assert evidence(cash).payment == "PAID_CASH"
+    assert evidence(cash).outstanding == D("0.00")
     card = inv(kind="RECEIPT", payment_method="CARD", due=None)
     assert evidence(card).payment == "NO_BANK_MATCH"
 

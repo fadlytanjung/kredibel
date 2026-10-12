@@ -49,8 +49,29 @@ def evidence_body(evidence: dict[str, Any] | None, currency: str) -> dict[str, A
     }
 
 
+def _payment(evidence: dict[str, Any] | None) -> dict[str, Any]:
+    evidence = evidence or {}
+    state = str(evidence.get("payment") or "")
+    payment = {
+        "PAID_BANK": "PAID",
+        "PAID_CASH": "PAID",
+        "PARTIAL_BANK": "PARTIAL",
+        "NOT_DUE": "NOT_DUE",
+        "WAITING_FOR_STATEMENT": "WAITING_FOR_STATEMENT",
+    }.get(state, "UNPAID")
+    if state == "CONFIRMED_BY_YOU":
+        payment = "PAID" if evidence.get("outstandingMinor") == 0 else "PARTIAL"
+    return {"state": payment, "matchIds": evidence.get("matchIds", [])}
+
+
+def _currency(printed: str | None, workspace: str, evidence: dict[str, Any] | None) -> str:
+    if evidence and evidence.get("payment") != "CURRENCY_TO_CONFIRM":
+        return workspace
+    return printed or workspace
+
+
 def invoice_body(inv: Invoice, workspace_currency: str) -> dict[str, Any]:
-    cur = inv.currency or workspace_currency
+    cur = _currency(inv.currency, workspace_currency, inv.evidence)
     return {
         "invoiceId": inv.invoice_id,
         "docId": inv.doc_id,
@@ -81,7 +102,7 @@ def invoice_body(inv: Invoice, workspace_currency: str) -> dict[str, Any]:
             for ln in inv.lines
         ],
         "counterpartyId": None,
-        "payment": {"state": "UNPAID", "matchIds": []},
+        "payment": _payment(inv.evidence),
         "evidence": evidence_body(inv.evidence, workspace_currency),
         "readings": readings_body(inv.consensus),
         "heldAsDuplicate": False,
@@ -89,7 +110,7 @@ def invoice_body(inv: Invoice, workspace_currency: str) -> dict[str, Any]:
 
 
 def receipt_body(r: Receipt, workspace_currency: str) -> dict[str, Any]:
-    cur = r.currency or workspace_currency
+    cur = _currency(r.currency, workspace_currency, r.evidence)
     return {
         "receiptId": r.receipt_id,
         "docId": r.doc_id,
@@ -105,7 +126,7 @@ def receipt_body(r: Receipt, workspace_currency: str) -> dict[str, Any]:
         "items": [{"description": i.description, "amount": _money(i.amount, cur)} for i in r.items],
         "pages": r.pages,
         "notes": r.notes,
-        "payment": {"state": "UNPAID", "matchIds": []},
+        "payment": _payment(r.evidence),
         "evidence": evidence_body(r.evidence, workspace_currency),
         "readings": readings_body(r.consensus),
         "heldAsDuplicate": False,

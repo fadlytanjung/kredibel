@@ -3,6 +3,7 @@ MANUAL and REJECTED ones are inputs and are never overwritten by a run."""
 
 from typing import Protocol
 
+from app.domain.models.events import AuditEvent
 from app.domain.models.match import StoredMatch
 
 
@@ -17,6 +18,8 @@ class MatchRepository(Protocol):
         self, org_id: str, *, month: str | None = None, status: str | None = None, limit: int = 1000
     ) -> list[StoredMatch]: ...
 
-    async def save(self, org_id: str, match: StoredMatch) -> None:
-        """A person's MANUAL match or REJECTED proposal."""
+    async def get(self, org_id: str, match_id: str) -> StoredMatch | None: ...
+
+    async def save(self, org_id: str, match: StoredMatch, event: AuditEvent) -> None:
+        """A person's MANUAL match or REJECTED proposal, with its audit event in one write."""
         ...

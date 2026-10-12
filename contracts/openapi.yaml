@@ -2210,9 +2210,12 @@ components:
         receiptIds: { type: array, items: { type: string } }
         ledgerEntryIds: { type: array, items: { type: string } }
         amount: { $ref: "#/components/schemas/Money" }
-        method: { type: string, enum: [AUTO, MANUAL] }
+        method: { type: [string, "null"], enum: [AUTO, MANUAL, null], description: "Null while a match is proposed" }
         status: { $ref: "#/components/schemas/MatchStatus" }
         score: { $ref: "#/components/schemas/Decimal" }
+        amountDifference: { $ref: "#/components/schemas/Money" }
+        requiresReview: { type: boolean }
+        alternatives: { type: array, items: { type: string } }
         reasons: { type: array, items: { $ref: "#/components/schemas/MatchReason" } }
         reasonText: { type: string, examples: ["Same amount, same client, invoice number in the transfer description"] }
         createdBy: { type: string }

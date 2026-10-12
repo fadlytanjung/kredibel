@@ -45,11 +45,16 @@ async def test_a_month_with_a_statement_and_an_invoice_reconciles_itself():
             await client.get("/api/bank-lines", params={"docId": statement}, headers=AUTH)
         ).json()["items"]
         month = (await client.get("/api/months/2026-03", headers=AUTH)).json()
+        matches_response = await client.get("/api/matches?month=2026-03", headers=AUTH)
+        assert matches_response.status_code == 200
+        [visible] = matches_response.json()["items"]
 
     [match] = await deps.matches.list_matches("org_1", month="2026-03")
     assert (match.status, match.method, match.kind) == ("CONFIRMED", "AUTO", "BANK_SALES_INVOICE")
     assert match.reasons == ["AMOUNT_EXACT", "PARTY_MATCH", "REFERENCE_IN_TEXT", "DATE_NEAR"]
     assert match.invoice_ids == [inv["invoiceId"]]
+    assert visible["matchId"] == match.match_id and visible["reasons"] == match.reasons
+    assert visible["amountDifference"] == {"amount": "0.00", "currency": "IDR"}
 
     assert inv["evidence"]["payment"] == "PAID_BANK"
     assert inv["evidence"]["bankPaid"] == {"amount": "19597050.00", "currency": "IDR"}

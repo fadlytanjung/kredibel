@@ -1,5 +1,6 @@
 """In-memory matches for tests."""
 
+from app.domain.models.events import AuditEvent
 from app.domain.models.match import StoredMatch
 from app.ports.match_repository import MatchRepository
 
@@ -7,6 +8,7 @@ from app.ports.match_repository import MatchRepository
 class FakeMatchRepository(MatchRepository):
     def __init__(self) -> None:
         self.matches: dict[tuple[str, str], StoredMatch] = {}
+        self.events: list[AuditEvent] = []
 
     async def replace_month_matches(
         self, org_id: str, month: str, matches: list[StoredMatch]
@@ -31,5 +33,9 @@ class FakeMatchRepository(MatchRepository):
         ]
         return sorted(found, key=lambda m: m.match_id)[:limit]
 
-    async def save(self, org_id: str, match: StoredMatch) -> None:
+    async def get(self, org_id: str, match_id: str) -> StoredMatch | None:
+        return self.matches.get((org_id, match_id))
+
+    async def save(self, org_id: str, match: StoredMatch, event: AuditEvent) -> None:
         self.matches[(org_id, match.match_id)] = match
+        self.events.append(event)

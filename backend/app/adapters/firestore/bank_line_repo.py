@@ -6,8 +6,10 @@ from decimal import Decimal
 from google.cloud.firestore import AsyncClient, FieldFilter
 
 from app.adapters.firestore.models.bank_line import BankLineDoc
+from app.adapters.firestore.models.workspace import EventDoc
 from app.adapters.firestore.txn import dump
 from app.domain.models.bank_line import BankLine
+from app.domain.models.events import AuditEvent
 from app.ports.bank_line_repository import BankLineRepository
 
 _BATCH = 400
@@ -120,6 +122,23 @@ class FirestoreBankLineRepository(BankLineRepository):
                     {"match": {"state": state, "matchIds": match_ids}, "support": support},
                 )
             await batch.commit()
+
+    async def set_category(self, org_id: str, line: BankLine, event: AuditEvent) -> None:
+        batch = self._db.batch()
+        batch.update(
+            self._col(org_id).document(line.tx_id),
+            {
+                "category": line.category,
+                "cashflowClass": line.cashflow_class,
+                "categorizedBy": line.categorized_by,
+                "categoryConfidence": None,
+            },
+        )
+        batch.set(
+            self._db.collection("orgs").document(org_id).collection("events").document(event.event_id),
+            dump(EventDoc(org_id=org_id, **event.model_dump())),
+        )
+        await batch.commit()
 
     async def get_line(self, org_id: str, tx_id: str) -> BankLine | None:
         snap = await self._col(org_id).document(tx_id).get()

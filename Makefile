@@ -148,6 +148,16 @@ trace-smoke: ## Send a synthetic trace and verify it appears in the local viewer
 dev-traced: ## Run the local API/inline worker with metadata traces in Jaeger
 	TRACE_EXPORT=otlp AI_CONTENT_CAPTURE=off $(MAKE) dev-backend
 
+.PHONY: demo-reconciliation demo-reconciliation-traced reconciliation-fixtures
+demo-reconciliation: ## Replay generated invoices/receipts/statements in both orders (offline)
+	cd backend && ENV_FILE=/dev/null PYTHONPATH=. uv run python scripts/demo_reconciliation.py
+
+demo-reconciliation-traced: ## Replay generated documents with traces at http://localhost:16686
+	cd backend && ENV_FILE=/dev/null PYTHONPATH=. uv run python scripts/demo_reconciliation.py --trace
+
+reconciliation-fixtures: ## Regenerate the five S1 PDFs used by the offline reconciliation replay
+	cd tools/synthetic && uv run python reconciliation_fixtures.py
+
 migrate-dry: ## Dry-run pending data migrations
 	@if [ "$(ENV)" = "local" ]; then \
 		cd backend && uv run python -m migrations run --dry-run; \

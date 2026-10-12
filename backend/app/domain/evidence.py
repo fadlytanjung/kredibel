@@ -157,7 +157,7 @@ def document_evidence(
     else:
         due = doc.due_date or doc.issue_date + timedelta(days=windows.default_terms_days)
         payment = "NOT_DUE" if as_of <= due else "UNPAID"
-    if payment in ("PAID_BANK",):
+    if payment in ("PAID_BANK", "PAID_CASH"):
         outstanding = ZERO
     return DocumentEvidence(
         record_id=doc.record_id,

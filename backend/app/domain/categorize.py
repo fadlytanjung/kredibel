@@ -6,6 +6,8 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Any, Literal
 
+from app.domain.models.bank_line import BankLine
+
 Framework = Literal["IFRS", "US_GAAP"]
 CategorizedBy = Literal["USER", "MATCH", "TRANSFER", "RULE", "MODEL", "NONE"]
 
@@ -112,3 +114,19 @@ def from_model(
     return Categorized(
         "UNKNOWN", "NONE", None if confidence is None else Decimal(str(confidence)), tags
     )
+
+
+def keep_person_categories(read: list[BankLine], stored: list[BankLine]) -> list[BankLine]:
+    """A statement read again keeps every category a person chose (AC-007-2, non-negotiable 17):
+    the line has the same ID, so its category, cash-flow class and who decided it carry over."""
+    chosen = {line.tx_id: line for line in stored if line.categorized_by == "USER"}
+    for line in read:
+        if (person := chosen.get(line.tx_id)) is not None:
+            line.category, line.categorized_by = person.category, "USER"
+            line.cashflow_class, line.category_confidence = person.cashflow_class, None
+    return read
+
+
+def category_fits(category: Category, amount: Decimal) -> bool:
+    """A category is for money in, money out or either; a line takes one of its own direction."""
+    return category.direction == "either" or category.direction == ("in" if amount > 0 else "out")

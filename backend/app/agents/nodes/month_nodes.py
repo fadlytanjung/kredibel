@@ -18,10 +18,12 @@ from app.agents.month_data import (
     read_month,
     stored_allocations,
 )
+from app.agents.month_result import MonthResult, PendingMonths, run_key
 from app.agents.stages import stage
 from app.domain.checks.month import MonthContext, run_month_checks
 from app.domain.evidence import document_evidence, line_support
 from app.domain.figures import month_figures
+from app.domain.findings import merge_findings
 from app.domain.models.document import DocStatus, DocType
 from app.domain.models.match import StoredMatch
 from app.domain.models.month import Month, MonthState
@@ -66,12 +68,12 @@ _KIND = {
 
 # Reconcile the month from all its data (docs/08 §6, ADR-025): assign matches, store the run's own
 # (a person's manual and rejected ones stay), and write payment evidence, bank support and figures.
-def reconcile(deps: PipelineDeps):
+def reconcile(deps: PipelineDeps, pending: PendingMonths):
     @stage(deps, "reconcile")
     async def _node(ctx: Context, node_input: dict[str, Any]) -> dict[str, Any]:
         org_id, month = _org_month(node_input)
         data = await read_month(deps, org_id, month)
-        if data is None or not data.computable:
+        if data is None:
             return {**node_input, "computed": False, "summary": "Waiting for a statement"}
         assert deps.reconciliation and deps.matches and deps.bank_lines
         assert deps.invoices and deps.receipts and deps.categories
@@ -107,7 +109,8 @@ def reconcile(deps: PipelineDeps):
             for a in allocations
             if a.method != "MANUAL"
         ]
-        await deps.matches.replace_month_matches(org_id, month, stored)
+        result = MonthResult(data=data, allocations=allocations, matches=stored)
+        pending[run_key(node_input)] = result
 
         # Bank support of the month's lines: separate from cash (ADR-025).
         support: dict[str, tuple[str, list[str], str]] = {}
@@ -130,7 +133,7 @@ def reconcile(deps: PipelineDeps):
                     not_required=line.tx_id in data.not_required,
                 ),
             )
-        await deps.bank_lines.set_support(org_id, support)
+        result.support = support
 
         # Payment evidence of the documents this month's payments may settle, with every month's
         # stored matches, so a payment found later is seen here too.
@@ -138,13 +141,14 @@ def reconcile(deps: PipelineDeps):
         everything = [*allocations, *others]
         approved = {d.doc_id for d in data.decisions if d.kind == "DOCUMENT_APPROVAL"}
         first, last = month_bounds(month)
-        as_of = min(last, now.date())
-        in_scope = {r.record_id for r in right}
-        for store, records in ((deps.invoices, data.invoices), (deps.receipts, data.receipts)):
-            updates: dict[str, dict[str, Any]] = {}
+        as_of = now.date()
+        for updates, records in (
+            (result.invoice_evidence, data.invoices),
+            (result.receipt_evidence, data.receipts),
+        ):
             for record in records:
                 facts = document_facts(record, data)
-                if facts is None or facts.record_id not in in_scope:
+                if facts is None:
                     continue
                 evidence = document_evidence(
                     facts,
@@ -157,10 +161,17 @@ def reconcile(deps: PipelineDeps):
                     bank_amounts=amounts,
                 )
                 updates[facts.record_id] = evidence_body(evidence, record.doc_id in approved)
-            await store.set_evidence(org_id, updates)  # type: ignore[attr-defined]
 
-        month_invoices = [i for i in data.invoices if i.month == month]
-        month_receipts = [r for r in data.receipts if r.month == month]
+        month_invoices = [
+            i
+            for i in data.invoices
+            if i.month == month and (i.currency == data.currency or i.doc_id in data.accepted_docs)
+        ]
+        month_receipts = [
+            r
+            for r in data.receipts
+            if r.month == month and (r.currency == data.currency or r.doc_id in data.accepted_docs)
+        ]
         facts_by_name = month_figures(
             month,
             data.month_lines_by_account(),
@@ -173,6 +184,7 @@ def reconcile(deps: PipelineDeps):
         return {
             **node_input,
             "computed": True,
+            "has_statement": data.computable,
             "covered": data.covered_whole_month(),
             "proposals": proposals,
             "negativeDays": int(facts_by_name["negative_days"].value),
@@ -202,14 +214,15 @@ def _org_month(node_input: dict[str, Any]) -> tuple[str, str]:
 
 
 # Month checks (docs/08 §2.2, §2.6, §2.7) over the month's data and its stored matches.
-def check_month(deps: PipelineDeps):
+def check_month(deps: PipelineDeps, pending: PendingMonths):
     @stage(deps, "check_month")
     async def _node(ctx: Context, node_input: dict[str, Any]) -> dict[str, Any]:
         if not node_input.get("computed") or deps.forensics is None or deps.findings is None:
             return {**node_input, "summary": "Month checks skipped"}
         org_id, month = _org_month(node_input)
-        data = await read_month(deps, org_id, month)
-        assert data is not None and deps.reconciliation is not None
+        result = pending[run_key(node_input)]
+        data = result.data
+        assert deps.reconciliation is not None
         context = MonthContext(
             month=month,
             policy=deps.forensics,
@@ -218,15 +231,23 @@ def check_month(deps: PipelineDeps):
             statements=data.spans,
             lines=data.lines,
             all_lines=data.all_lines,
-            invoices=data.invoices,
-            receipts=data.receipts,
-            allocations=stored_allocations([m for m in data.matches if m.month == month]),
+            invoices=[
+                i
+                for i in data.invoices
+                if i.currency == data.currency or i.doc_id in data.accepted_docs
+            ],
+            receipts=[
+                r
+                for r in data.receipts
+                if r.currency == data.currency or r.doc_id in data.accepted_docs
+            ],
+            allocations=result.allocations,
             negative_days=int(node_input.get("negativeDays") or 0),
         )
         fresh = run_month_checks(context)
-        stored = await deps.findings.replace_month_findings(
-            org_id, month, fresh, run_id=node_input.get("runId")
-        )
+        result.findings = fresh
+        existing = await deps.findings.list_findings(org_id, month=month, limit=1000)
+        stored = merge_findings([f for f in existing if f.scope == "MONTH"], fresh)
         # A statement's own integrity findings block an unqualified completion too (ADR-025).
         first, last = month_bounds(month)
         for span in data.spans:
@@ -246,7 +267,7 @@ def check_month(deps: PipelineDeps):
 def build_counterparties(deps: PipelineDeps):
     @stage(deps, "build_counterparties")
     async def _node(ctx: Context, node_input: dict[str, Any]) -> dict[str, Any]:
-        return {**node_input, "summary": "Counterparties built"}
+        return {**node_input, "summary": "Skipped: counterparty building is not implemented"}
 
     return _node
 
@@ -254,7 +275,7 @@ def build_counterparties(deps: PipelineDeps):
 def suggest_profile(deps: PipelineDeps):
     @stage(deps, "suggest_profile")
     async def _node(ctx: Context, node_input: dict[str, Any]) -> dict[str, Any]:
-        return {**node_input, "summary": "Profile suggestions completed"}
+        return {**node_input, "summary": "Skipped: profile suggestions are not implemented"}
 
     return _node
 
@@ -262,7 +283,7 @@ def suggest_profile(deps: PipelineDeps):
 def score_risk(deps: PipelineDeps):
     @stage(deps, "score_risk")
     async def _node(ctx: Context, node_input: dict[str, Any]) -> dict[str, Any]:
-        return {**node_input, "summary": "Risk scored"}
+        return {**node_input, "summary": "Skipped: month risk scoring is not implemented"}
 
     return _node
 
@@ -270,7 +291,7 @@ def score_risk(deps: PipelineDeps):
 def explain_month(deps: PipelineDeps):
     @stage(deps, "explain_month")
     async def _node(ctx: Context, node_input: dict[str, Any]) -> dict[str, Any]:
-        return {**node_input, "summary": "Explanation generated"}
+        return {**node_input, "summary": "Skipped: month explanations are not implemented"}
 
     return _node
 
@@ -278,7 +299,7 @@ def explain_month(deps: PipelineDeps):
 def build_flows(deps: PipelineDeps):
     @stage(deps, "build_flows")
     async def _node(ctx: Context, node_input: dict[str, Any]) -> dict[str, Any]:
-        return {**node_input, "summary": "Money flows built"}
+        return {**node_input, "summary": "Skipped: money flows are not implemented"}
 
     return _node
 
@@ -286,12 +307,12 @@ def build_flows(deps: PipelineDeps):
 def sync_review_items(deps: PipelineDeps):
     @stage(deps, "sync_review_items")
     async def _node(ctx: Context, node_input: dict[str, Any]) -> dict[str, Any]:
-        return {**node_input, "summary": "Review items synced"}
+        return {**node_input, "summary": "Skipped: review item sync is not implemented"}
 
     return _node
 
 
-def finalize_month(deps: PipelineDeps):
+def finalize_month(deps: PipelineDeps, pending: PendingMonths):
     @stage(deps, "finalize_month")
     async def _node(ctx: Context, node_input: dict[str, Any]) -> dict[str, Any]:
         org_id = str(node_input.get("orgId") or node_input.get("org_id") or "")
@@ -300,6 +321,7 @@ def finalize_month(deps: PipelineDeps):
         run_id = str(node_input.get("runId") or node_input.get("run_id") or "")
 
         current_month = await deps.month_repo.get(org_id, month_str)
+        result = pending.pop(run_key(node_input), None)
         if current_month is not None and current_month.generation > run_gen:
             await deps.run_repo.update_status(org_id, run_id, RunStatus.SUPERSEDED, ended=True)
             return {
@@ -308,6 +330,17 @@ def finalize_month(deps: PipelineDeps):
                 "skipped": "superseded",
                 "summary": "Superseded by newer generation",
             }
+
+        if result is not None:
+            assert deps.matches and deps.bank_lines and deps.invoices and deps.receipts
+            await deps.matches.replace_month_matches(org_id, month_str, result.matches)
+            await deps.bank_lines.set_support(org_id, result.support)
+            await deps.invoices.set_evidence(org_id, result.invoice_evidence)
+            await deps.receipts.set_evidence(org_id, result.receipt_evidence)
+            if result.findings is not None and deps.findings is not None:
+                await deps.findings.replace_month_findings(
+                    org_id, month_str, result.findings, run_id=run_id
+                )
 
         has_statement = bool(node_input.get("has_statement", False))
         target_state, note = _month_state(node_input, has_statement)
@@ -343,7 +376,11 @@ def _month_state(node_input: dict[str, Any], has_statement: bool) -> tuple[Month
             "Reconciliation is not available yet." if has_statement else None,
         )
     if not node_input.get("covered"):
-        return MonthState.COLLECTING, "Statements cover only part of this month."
+        return MonthState.COLLECTING, (
+            "Statements cover only part of this month."
+            if has_statement
+            else "Waiting for a bank statement."
+        )
     if int(node_input.get("proposals") or 0) or int(node_input.get("blockingFindings") or 0):
         return MonthState.NEEDS_REVIEW, None
     return MonthState.RECONCILED, None

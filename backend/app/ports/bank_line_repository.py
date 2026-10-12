@@ -3,6 +3,7 @@
 from typing import Protocol
 
 from app.domain.models.bank_line import BankLine
+from app.domain.models.events import AuditEvent
 
 
 class BankLineRepository(Protocol):
@@ -26,4 +27,8 @@ class BankLineRepository(Protocol):
         self, org_id: str, updates: dict[str, tuple[str, list[str], str]]
     ) -> None:
         """Write the month run's (match state, match IDs, support) per line (ADR-025)."""
+        ...
+
+    async def set_category(self, org_id: str, line: BankLine, event: AuditEvent) -> None:
+        """A person's category (categorizedBy USER) and its audit event, written together."""
         ...

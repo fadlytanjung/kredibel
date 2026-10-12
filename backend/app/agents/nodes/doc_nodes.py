@@ -14,7 +14,14 @@ from pydantic import BaseModel
 
 from app.agents.deps import PipelineDeps
 from app.agents.stages import stage
-from app.domain.categorize import Categorized, CategoryPolicy, Framework, by_rules, from_model
+from app.domain.categorize import (
+    Categorized,
+    CategoryPolicy,
+    Framework,
+    by_rules,
+    from_model,
+    keep_person_categories,
+)
 from app.domain.checks.base import CheckContext, DeclaredAccount, PdfInfo, run_document_checks
 from app.domain.duplicates import (
     InvoiceKey,
@@ -409,6 +416,8 @@ async def _statement(
     if deps.bank_lines is None:
         return None
     result = build_statement(doc_id, readings, chunks)
+    stored = await deps.bank_lines.list_lines(org_id, doc_id=doc_id, limit=5000)
+    keep_person_categories(result.lines, stored)  # a re-read never undoes a person's category
     await deps.bank_lines.replace_document_lines(org_id, doc_id, result.lines)
     meta = result.meta
     return _Verified(

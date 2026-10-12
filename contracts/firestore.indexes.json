@@ -29,20 +29,6 @@
       ]
     },
     {
-      "collectionGroup": "documents",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "months",
-          "arrayConfig": "CONTAINS"
-        },
-        {
-          "fieldPath": "docType",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
       "collectionGroup": "bankLines",
       "queryScope": "COLLECTION",
       "fields": [
@@ -371,6 +357,38 @@
         },
         {
           "fieldPath": "decidedAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "documents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "months",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "uploadedAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "documents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "months",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "docType",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "uploadedAt",
           "order": "DESCENDING"
         }
       ]

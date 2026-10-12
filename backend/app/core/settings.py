@@ -17,12 +17,17 @@ from pydantic_settings import (
 
 AppRole = Literal["web", "worker", "all", "migrate"]
 
+# The repository's own .env, wherever the process starts: `uvicorn` run from backend/ once missed it
+# and wrote to the (default) database instead of FIRESTORE_DATABASE=kredibel (ADR-021). A .env in
+# the working directory still wins; on Cloud Run ENV_FILE names the mounted secret (ADR-024).
+_REPO_ENV = Path(__file__).resolve().parents[3] / ".env"
+
 
 class Settings(BaseSettings):
     """Kredibel application settings validated from environment variables."""
 
     model_config = SettingsConfigDict(
-        env_file=".env",  # ENV_FILE overrides it: Cloud Run mounts kredibel-env there (ADR-024)
+        env_file=(_REPO_ENV, ".env"),
         env_file_encoding="utf-8",
         extra="ignore",
         case_sensitive=False,

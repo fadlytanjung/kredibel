@@ -11,8 +11,9 @@ _EMULATOR = os.environ.get("FIRESTORE_EMULATOR_HOST", "localhost:8080")
 @pytest.fixture(autouse=True)
 def _never_a_real_firestore(monkeypatch: pytest.MonkeyPatch) -> None:
     """Point every Firestore client at the emulator, so no test can reach a real project
-    through the developer's credentials (docs/13 §5)."""
+    through the developer's credentials (docs/13 §5), and read no developer .env."""
     monkeypatch.setenv("FIRESTORE_EMULATOR_HOST", _EMULATOR)
+    monkeypatch.setenv("ENV_FILE", os.devnull)
 
 
 @pytest.fixture(autouse=True)

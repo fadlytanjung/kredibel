@@ -39,13 +39,14 @@ def load_month(deps: PipelineDeps):
         has_statement = bool(month_doc and month_doc.statements)
 
         if not has_statement:
-            docs, _ = await deps.doc_repo.list_documents(
-                org_id, month=month_str, doc_type=DocType.BANK_STATEMENT.value
+            # Filtered in memory: the month run must not depend on a composite index.
+            docs, _ = await deps.doc_repo.list_documents(org_id, limit=500)
+            has_statement = any(
+                d.doc_type == DocType.BANK_STATEMENT
+                and month_str in d.months
+                and d.status != DocStatus.FAILED
+                for d in docs
             )
-            for d in docs:
-                if d.status != DocStatus.FAILED:
-                    has_statement = True
-                    break
 
         return {
             **node_input,

@@ -371,7 +371,8 @@ Re-runs upsert by these IDs, so retries and re-uploads never duplicate records (
 |---|---|---|
 | `documents` | `docType` ASC, `uploadedAt` DESC | Library filtered by type |
 | `documents` | `status` ASC, `uploadedAt` DESC | Library filtered by status |
-| `documents` | `months` CONTAINS, `docType` ASC | Documents of a month |
+| `documents` | `months` CONTAINS, `uploadedAt` DESC | Library filtered by month |
+| `documents` | `months` CONTAINS, `docType` ASC, `uploadedAt` DESC | Library filtered by month and type (the list always orders by `uploadedAt`) |
 | `bankLines` | `month` ASC, `date` ASC | Month view |
 | `bankLines` | `month` ASC, `match.state` ASC, `date` ASC | Unmatched lines of a month |
 | `bankLines` | `counterpartyId` ASC, `date` ASC | Lines of a counterparty (money-flow drill-down) |

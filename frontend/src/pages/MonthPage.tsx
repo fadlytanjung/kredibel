@@ -453,7 +453,6 @@ export function MonthPage() {
           isLoading={linesLoading}
           loadingMessage={<p>{t('months:monthDetail.loadingBankLines')}</p>}
           emptyMessage={<p className="muted">{t('months:monthDetail.noBankLinesFilter')}</p>}
-          pageSize={25}
           headerActions={
             <Button
               variant="secondary"

@@ -119,7 +119,6 @@ export function StatementLines({ lines, selectedTxId, onSelect }: StatementLines
       searchable={true}
       searchPlaceholder={t('common:table.searchPlaceholder', { defaultValue: 'Search transactions...' })}
       searchPredicate={searchPredicate}
-      pageSize={25}
       rangeLabel={(from, to, total) =>
         t('documents:detail.lines.range', { from, to, total })
       }

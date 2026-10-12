@@ -699,7 +699,7 @@ def document() -> str:
     <thead><tr><th>Transaction</th><th class="r">Amount, IDR</th></tr></thead>
     <tbody>{trs}</tbody>
   </table></div>
-  <div class="pager-line"><span>1 to 25 of 45</span><span class="row"><button class="button button-secondary button-sm" type="button" disabled>Previous</button><button class="button button-secondary button-sm" type="button">Next</button></span></div>
+  <div class="pager-line"><span>1 to 10 of 45</span><span class="row"><button class="button button-secondary button-sm" type="button" disabled>Previous</button><button class="button button-secondary button-sm" type="button">Next</button></span></div>
   <p class="reading-legend"><span><span class="reading reading-agreed">18,700,000</span> found on the page</span><span><span class="reading reading-single">720,000</span> read from the image only</span><span><span class="reading reading-conflict">7,250,000</span> page and reading differ</span></p>
 </section>"""
     content = f"""

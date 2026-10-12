@@ -428,7 +428,7 @@ stateDiagram-v2
   - **What was read** (right): for a statement, the opening and closing balances as printed and
     the money in and out of its lines, added exactly as decimals; then tabs. **Transactions** (or
     **Invoices**, **Receipts**): chips All, Money in, Money out, To check (a value only one source
-    read, or readings that differ); 25 a page; each amount with its reading mark and the legend.
+    read, or readings that differ); 10 a page; each amount with its reading mark and the legend.
     **Findings**: the document's open findings with facts, next step and **Show on page**.
     **Details**: type, bank, account, period, currency, pages (digital or scanned), values found,
     upload date.

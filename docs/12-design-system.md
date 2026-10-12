@@ -393,6 +393,7 @@ component has a Storybook story per state and size class. The mock class names i
 | Component | Variants / props | Rules |
 |---|---|---|
 | `ReadingMark` | `reading`, `sourceRef?` | §6.1 |
+| `DataTable` | `columns[]`, `filters[]`, `searchable`, `pageSize` (default 10) | Rows of bank lines, documents and findings: filter chips with counts, search, 10 rows a page with "1 to 10 of 45", sortable columns, keyboard rows; below 760 px the rows become cards |
 | `MonthStrip` / `MonthTab` | `months[]` | §6.2 |
 | `EvidenceBox` | `boxes[] {bbox, index, label}`, `mode` (`page`, `magnifier`) | §6.3 |
 | `SankeyChart`, `StatementBars`, `FlowList`, `FlowTable` | `nodes[]`, `links[]`, `view`, `framework`, `hot?` | §6.4 |

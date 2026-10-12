@@ -206,7 +206,7 @@ describe('DocumentPage', () => {
 
     renderPage('doc_lines')
 
-    await waitFor(() => expect(screen.getByText('1 to 25 of 30')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('1 to 10 of 30')).toBeInTheDocument())
     expect(screen.getByRole('tab', { name: /Transactions/ })).toHaveAttribute('aria-selected', 'true')
     expect(apiClient).toHaveBeenCalledWith('/api/bank-lines?docId=doc_lines')
     expect(screen.getByText('Read: 89 of 90 values found on the page')).toBeInTheDocument()
@@ -216,10 +216,12 @@ describe('DocumentPage', () => {
     expect(screen.getByText('1 credit')).toBeInTheDocument()
     expect(screen.getByText('29 debits')).toBeInTheDocument()
 
-    // A page of 25 lines, then the rest.
+    // Pages of 10 lines.
     expect(screen.queryByText('NURUL AINA')).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Next' }))
-    expect(screen.getByText('26 to 30 of 30')).toBeInTheDocument()
+    expect(screen.getByText('11 to 20 of 30')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+    expect(screen.getByText('21 to 30 of 30')).toBeInTheDocument()
     expect(screen.getByText('NURUL AINA')).toBeInTheDocument()
 
     // To check: only the line whose readings differ, and it says why.

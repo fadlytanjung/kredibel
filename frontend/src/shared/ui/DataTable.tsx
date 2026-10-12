@@ -74,7 +74,7 @@ export function DataTable<T>({
   onFilterChange,
   filterGroupAriaLabel,
   paginated = true,
-  pageSize = 25,
+  pageSize = 10,
   rangeLabel,
   isLoading = false,
   loadingMessage,

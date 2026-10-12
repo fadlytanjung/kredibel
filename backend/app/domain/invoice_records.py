@@ -11,7 +11,7 @@ import unicodedata
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import date
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from typing import Any, Literal, Protocol
 
 from rapidfuzz import fuzz
@@ -201,10 +201,21 @@ def _date(text: str | None, notes: list[str]) -> date | None:
     return parsed.value
 
 
-def _quantity(text: str | None) -> Decimal | None:
-    """Quantities are counts or decimals as printed ("2", "1.5"); a unit after them is dropped."""
-    match = re.match(r"^\s*(\d+(?:[.,]\d+)?)", text or "")
-    return Decimal(match[1].replace(",", ".")) if match else None
+def _quantity(text: str | None, style: AmountStyle = "EN") -> Decimal | None:
+    """A quantity as printed, in the document's number style ("1,692" is 1692 on an English-style
+    invoice, "1.692" on an Indonesian one); a separator is grouping only before groups of exactly
+    three digits, otherwise it is the decimal point. A unit after the number is dropped."""
+    match = re.match(r"^\s*(\d[\d.,]*)", text or "")
+    if not match:
+        return None
+    raw = match[1].rstrip(".,")
+    group, decimal = (",", ".") if style == "EN" else (".", ",")
+    if re.fullmatch(rf"\d{{1,3}}(?:\{group}\d{{3}})+(?:\{decimal}\d+)?", raw):
+        raw = raw.replace(group, "")
+    try:
+        return Decimal(raw.replace(",", "."))
+    except InvalidOperation:
+        return None
 
 
 def _style(texts: list[str | None]) -> AmountStyle:
@@ -252,7 +263,7 @@ def build_invoices(
             lines += [
                 InvoiceLine(
                     description=ln.description,
-                    quantity=_quantity(ln.quantity_text),
+                    quantity=_quantity(ln.quantity_text, style),
                     unit_price=_amount(ln.unit_price_text, style, notes),
                     amount=_amount(ln.amount_text, style, notes),
                 )

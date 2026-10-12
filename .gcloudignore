@@ -1,0 +1,15 @@
+# What `gcloud builds submit` uploads: the repository as committed, never local env or data.
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+**/node_modules/
+**/.venv/
+**/__pycache__/
+**/.pytest_cache/
+**/.ruff_cache/
+frontend/dist/
+frontend/storybook-static/
+tools/synthetic/out/
+#!include:.gitignore

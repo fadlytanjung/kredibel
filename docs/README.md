@@ -117,6 +117,7 @@ only; when a change alters what a diagram shows, update the diagram in the same 
 | [021](adr/ADR-021-kredibel-firestore-database.md) | Kredibel's own Firestore database `kredibel` in the shared project; firebase.json targets only it |
 | [022](adr/ADR-022-real-documents-in-production.md) | Real documents in production with real-data controls always on; synthetic data for tests (amends P8) |
 | [023](adr/ADR-023-parse-extract-ground.md) | Parse pages into layout chunks (text layer or Document AI OCR), extract with Gemini from image plus chunks with citations, ground every value in code |
+| [024](adr/ADR-024-runtime-configuration-in-secret-manager.md) | Production configuration is one Secret Manager secret (`kredibel-env`), mounted as `/secrets/.env` for both services and read by the build for the SPA's Firebase config |
 
 ## Machine-readable contracts
 

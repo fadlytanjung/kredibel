@@ -3,11 +3,17 @@
 Normative reference: docs/16-infrastructure-and-deployment.md §6.1.
 """
 
+import os
 from pathlib import Path
 from typing import Literal, Self
 
 from pydantic import model_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import (
+    BaseSettings,
+    DotEnvSettingsSource,
+    PydanticBaseSettingsSource,
+    SettingsConfigDict,
+)
 
 AppRole = Literal["web", "worker", "all", "migrate"]
 
@@ -16,7 +22,7 @@ class Settings(BaseSettings):
     """Kredibel application settings validated from environment variables."""
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=".env",  # ENV_FILE overrides it: Cloud Run mounts kredibel-env there (ADR-024)
         env_file_encoding="utf-8",
         extra="ignore",
         case_sensitive=False,
@@ -145,6 +151,21 @@ class Settings(BaseSettings):
     def capture_span_content(self) -> bool:
         """ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS as start-up sets it: on only when synthetic."""
         return self.ai_content_capture == "synthetic"
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        """Read ENV_FILE when each Settings is built, so env vars still win over the file."""
+        env_file = os.environ.get("ENV_FILE")
+        if env_file:
+            dotenv_settings = DotEnvSettingsSource(settings_cls, env_file=env_file)
+        return init_settings, env_settings, dotenv_settings, file_secret_settings
 
     def contract_path(self, configured: str) -> Path:
         """Resolve a contracts/ path: as given (the image's /app), else from the repository root.

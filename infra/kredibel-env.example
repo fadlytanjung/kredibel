@@ -1,0 +1,63 @@
+# Template of the kredibel-env secret: production configuration shared by kredibel-web,
+# kredibel-worker and the SPA build (ADR-024, docs/16 §6). Edit a copy as .env.production
+# (gitignored), then `make env-push` and `make deploy`.
+#
+# Not here: APP_ROLE and WORKER_URL (per service, infra/env.<role>.yaml), API keys (every Google
+# call uses the service accounts), FIRESTORE_EMULATOR_HOST (local only). No inline comments.
+
+# Data and identity
+GOOGLE_CLOUD_PROJECT=cloud-hack2skill
+FIRESTORE_DATABASE=kredibel
+# The owner's own documents: content capture stays off (ADR-022)
+DATA_CLASS=real
+AI_CONTENT_CAPTURE=off
+LOG_LEVEL=INFO
+TRACE_EXPORT=cloud
+SIGNUP_MODE=open
+MAX_WORKSPACES=15
+RUNS_ENABLED=true
+RUN_QUOTA_PER_ORG_PER_DAY=80
+
+# Gemini on Vertex AI
+GOOGLE_CLOUD_LOCATION=global
+GOOGLE_GENAI_USE_VERTEXAI=TRUE
+MODEL_FAST=gemini-3.8-flash
+MODEL_LITE=gemini-3.5-flash-lite
+MODEL_EMBEDDING=gemini-embedding-001
+
+# Storage and queues
+REGION=asia-southeast1
+DOCS_BUCKET=cloud-hack2skill-kredibel-docs
+BACKUPS_BUCKET=cloud-hack2skill-kredibel-backups
+AGENT_CONTENT_BUCKET=cloud-hack2skill-kredibel-agent-content
+TASK_QUEUE_MODE=cloud
+TASKS_LOCATION=asia-southeast1
+TASKS_QUEUE_DOCUMENTS=kredibel-documents
+TASKS_QUEUE_MONTHS=kredibel-months
+MONTH_RUN_DELAY_SECONDS=20
+TASKS_INVOKER_SA=kredibel-tasks-invoker@cloud-hack2skill.iam.gserviceaccount.com
+
+# Reading (docs/07)
+DOCAI_LOCATION=us
+EXTRACTION_MODE=adaptive
+EXTRACTION_ESCALATION=off
+ESCALATION_MAX_PAGES_PER_MONTH=30
+READ_MEDIA_RESOLUTION=high
+PAGE_CONCURRENCY=6
+EXTRACTION_CACHE=on
+EXPLAINER_MAX_ATTEMPTS=2
+DOCUMENT_RUN_BUDGET_SECONDS=600
+MONTH_RUN_BUDGET_SECONDS=120
+
+# Policy files baked into the image
+PLANS_FILE=/app/contracts/plans.v1.yaml
+POLICY_DIR=/app/contracts/policy
+CATEGORIES_FILE=/app/contracts/policy/categories.v1.yaml
+LEARNING_FILE=/app/contracts/policy/learning.v1.yaml
+
+# SPA build (public once built into the bundle; docs/16 §6.2). The build stops if the key is empty.
+VITE_FIREBASE_API_KEY=
+VITE_FIREBASE_AUTH_DOMAIN=cloud-hack2skill.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=cloud-hack2skill
+VITE_FIREBASE_APP_ID=1:110491117045:web:d72e6e2372744a119bacbc
+VITE_FIRESTORE_DATABASE=kredibel

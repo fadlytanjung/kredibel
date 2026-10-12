@@ -252,6 +252,7 @@ for hashed assets. Firebase Hosting (`kredibel-app.web.app`) serves the same fil
 | Variable | Example | Used by |
 |---|---|---|
 | `APP_ROLE` | `web` \| `worker` \| `all` | router mounting |
+| `ENV_FILE` | `/secrets/.env` on Cloud Run \| `.env` (default) | the dotenv file `Settings` reads ([ADR-024](adr/ADR-024-runtime-configuration-in-secret-manager.md)) |
 | `APP_VERSION` | git SHA | `/api/health`, logs |
 | `K_SERVICE` | set by Cloud Run (`kredibel-web`, `kredibel-worker`) | `service` in every log line; `kredibel-<role>` when unset |
 | `GOOGLE_CLOUD_PROJECT` | `<PROJECT_ID>` | all clients |
@@ -300,13 +301,25 @@ for hashed assets. Firebase Hosting (`kredibel-app.web.app`) serves the same fil
 | `MIGRATION_EXPORT_BEFORE_RUN` | `true` (shared environments) \| `false` (emulator) | migrate job |
 | `EVAL_JUDGE_MODEL` | a Gemini model on Agent Platform (DeepEval judge, [`15`](15-testing-and-evaluation.md) §5.1) | evals only |
 
-`infra/env.web.yaml` and `infra/env.worker.yaml` hold the non-secret values per service. There are no
-secrets: all Google access uses the service accounts.
+Production values live in one Secret Manager secret, **`kredibel-env`**
+([ADR-024](adr/ADR-024-runtime-configuration-in-secret-manager.md)): a dotenv file that both services
+mount at `/secrets/.env` and read through `ENV_FILE`. `infra/env.web.yaml` and `infra/env.worker.yaml`
+hold only what differs per service (`APP_ROLE`, `ENV_FILE`; the web deploy adds `WORKER_URL`). No
+server API key is part of it: all Google access uses the service accounts.
+
+```bash
+make env-pull      # latest kredibel-env → .env.production (gitignored, mode 600)
+make env-keys      # which keys are set, never their values
+make env-push      # add a version from .env.production; then make deploy
+```
+
+`infra/kredibel-env.example` is the committed template; keep it in step with `Settings`.
 
 ### 6.2 Frontend (build-time, public)
 
 `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`,
-`VITE_FIREBASE_APP_ID`, `VITE_APP_VERSION`. **`VITE_` values are inlined into the public bundle.**
+`VITE_FIREBASE_APP_ID`, `VITE_FIRESTORE_DATABASE` (from `kredibel-env`; the build stops when the API
+key is empty), `VITE_APP_VERSION` (the commit). **`VITE_` values are inlined into the public bundle.**
 Never put a server-side value behind a `VITE_` name. Restrict the Firebase web API key to the app's
 domains in the console.
 
@@ -336,12 +349,12 @@ still prints "released rules … to cloud.firestore"; the release that actually 
 | 1 `backend-check` | `python:3.12-slim` + uv | ruff, pyright, import-linter, repo checks (schema drift, policy load), pytest incl. migrations on the emulator |
 | 2 `frontend-check` | Playwright image (`node:22` + Chromium) | `npm ci`, eslint, tsc, vitest, `make tokens-check`, `no_raw_styles.py`, Storybook tests with axe, Playwright visual and axe at 390/834/1440 ([`15`](15-testing-and-evaluation.md) §2.6) |
 | 3 `secret-scan` | `python:3.12-slim` | `tools/checks/scan_secrets.py` over the repo |
-| 4 `build` | `gcr.io/cloud-builders/docker` | build with `_VITE_FIREBASE_*` substitutions, tag `:$SHORT_SHA` and `:latest` |
+| 4 `build` | `gcr.io/cloud-builders/docker` | build with the `VITE_` values from `kredibel-env` (stops if the API key is empty), tag `:$SHORT_SHA` and `:latest` |
 | 5 `push` | docker | push to Artifact Registry |
 | 5a `indexes` | `node:22-slim` + firebase CLI | `firebase deploy --only firestore:indexes,firestore:rules`; wait until every index is `READY` |
 | 5a′ `knowledge` (P1) | `python:3.12-slim` + uv | `tools/knowledge/build.py`: embed changed policy and help passages into `knowledgeChunks` |
 | 5b `migrate` | cloud-sdk | update the `kredibel-migrate` job to the new image; dry run; if pending migrations exist, export to the backups bucket and run them; stop the build on `FAILED` or `failed > 0` ([`22`](22-data-migrations.md) §7) |
-| 6 `deploy-worker` | `gcr.io/google.com/cloudsdktool/cloud-sdk` | `gcloud run deploy kredibel-worker …` |
+| 6 `deploy-worker` | `gcr.io/google.com/cloudsdktool/cloud-sdk` | `gcloud run deploy kredibel-worker …` with `kredibel-env` mounted at `/secrets/.env` |
 | 7 `deploy-web` | cloud-sdk | read `WORKER_URL`; `gcloud run deploy kredibel-web …` |
 | 7a `hosting` | docker + `node:22-slim` | copy `/app/static` out of the new image; `firebase deploy --only hosting` (ADR-018) |
 | 8 `smoke` | cloud-sdk | `$WEB_URL/api/health` and `https://kredibel-app.web.app/api/health` both return the new `APP_VERSION` |

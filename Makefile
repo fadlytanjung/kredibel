@@ -8,7 +8,7 @@ SCENARIO ?= S1
 SEED ?= 1
 ENV ?= local
 
-.PHONY: help setup dev check test synth gen-api record evals deploy deploy-hosting tokens tokens-check mocks mock-shots dev-agents migrate migrate-dry migrate-status docker-up docker-down schema-snapshot
+.PHONY: help setup dev check test synth gen-api record evals deploy env-keys env-pull env-push deploy-hosting tokens tokens-check mocks mock-shots dev-agents migrate migrate-dry migrate-status docker-up docker-down schema-snapshot
 
 help: ## Show this help message
 	@echo "Kredibel — Developer Commands"
@@ -99,12 +99,20 @@ evals: ## Run model evaluations (DeepEval)
 	@echo "==> Running model evals..."
 	cd backend && uv run python -m evals.runner
 
-deploy: ## Deploy to Cloud Run via Cloud Build
+deploy: ## Deploy to Cloud Run via Cloud Build (configuration: the kredibel-env secret, ADR-024)
+	@test -z "$$(git status --porcelain --untracked-files=no)" || { echo "Commit first: the build must match a commit"; exit 1; }
 	@echo "==> Submitting Cloud Build for project $(PROJECT_ID)..."
-	@if [ -f .env ]; then export $$(cat .env | grep -v '^#' | xargs); fi; \
-	COMMIT_SHA=$$(git rev-parse --short HEAD 2>/dev/null || echo "latest"); \
-	gcloud builds submit --config=cloudbuild.yaml \
-		--substitutions=_COMMIT_SHA=$${COMMIT_SHA},_VITE_FIREBASE_API_KEY="$${VITE_FIREBASE_API_KEY}",_VITE_FIREBASE_AUTH_DOMAIN="$${VITE_FIREBASE_AUTH_DOMAIN}",_VITE_FIREBASE_PROJECT_ID="$${VITE_FIREBASE_PROJECT_ID}",_VITE_FIREBASE_APP_ID="$${VITE_FIREBASE_APP_ID}"
+	gcloud builds submit --project=$(PROJECT_ID) --config=cloudbuild.yaml \
+		--substitutions=_COMMIT_SHA=$$(git rev-parse --short HEAD)
+
+env-keys: ## List which keys .env.production sets, never their values
+	@infra/env-secret.sh keys .env.production
+
+env-pull: ## Write the latest kredibel-env secret to .env.production
+	@PROJECT_ID=$(PROJECT_ID) infra/env-secret.sh pull .env.production
+
+env-push: ## Add a kredibel-env version from .env.production (then make deploy)
+	@PROJECT_ID=$(PROJECT_ID) infra/env-secret.sh push .env.production
 
 deploy-hosting: ## Build frontend and deploy to Firebase Hosting (kredibel-app)
 	@echo "==> Building frontend for production..."

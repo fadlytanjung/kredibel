@@ -19,6 +19,7 @@ gcloud services enable \
   firestore.googleapis.com \
   storage.googleapis.com \
   cloudtasks.googleapis.com \
+  secretmanager.googleapis.com \
   documentai.googleapis.com \
   aiplatform.googleapis.com \
   modelarmor.googleapis.com \
@@ -105,6 +106,15 @@ for role in roles/run.admin roles/iam.serviceAccountUser roles/artifactregistry.
   roles/firebasehosting.admin roles/logging.logWriter; do
   gcloud projects add-iam-policy-binding "$PROJECT_ID" \
     --member="serviceAccount:${BUILD_SA}" --role="$role" --condition=None || true
+done
+
+# Production configuration: one secret read by both services and the build (ADR-024). Its payload
+# is pushed separately with `make env-push`; here only the secret and who may read it.
+gcloud secrets describe kredibel-env >/dev/null 2>&1 || \
+  gcloud secrets create kredibel-env --replication-policy=automatic --labels=app=kredibel,managed-by=cli
+for member in "serviceAccount:$(SA kredibel-web)" "serviceAccount:$(SA kredibel-worker)" "serviceAccount:${BUILD_SA}"; do
+  gcloud secrets add-iam-policy-binding kredibel-env --member="$member" \
+    --role=roles/secretmanager.secretAccessor --condition=None || true
 done
 
 # Cloud Tasks enqueuing

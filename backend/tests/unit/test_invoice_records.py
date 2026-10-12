@@ -141,3 +141,14 @@ def test_an_amount_printed_as_a_word_is_not_an_amount():
     assert inv.lines[-1].amount is None
     assert "lines.3.amount" not in inv.consensus
     assert not any("Included" in n for n in inv.notes)
+
+
+def test_the_documents_type_follows_the_kind_decided_in_code():
+    """The classifier cannot tell sales from purchase; the workspace's names can (AC-005-1), and the
+    document's type then follows, so the library's purchase filter is not empty."""
+    from app.domain.invoice_records import document_type_of
+
+    assert document_type_of(["PURCHASE"], "SALES_INVOICE") == "PURCHASE_INVOICE"
+    assert document_type_of(["SALES", "SALES"], "PURCHASE_INVOICE") == "SALES_INVOICE"
+    assert document_type_of(["SALES", "PURCHASE"], "SALES_INVOICE") == "SALES_INVOICE"
+    assert document_type_of([], "PURCHASE_INVOICE") == "PURCHASE_INVOICE"

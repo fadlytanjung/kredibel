@@ -135,6 +135,7 @@ async def test_an_invoice_upload_ends_with_a_grounded_sales_invoice():
     assert doc["reading"]["lines"] == 1
     [inv] = listed["items"]
     assert inv["kind"] == "SALES"  # the workspace issued it, whatever the classifier said
+    assert doc["docType"] == "SALES_INVOICE"  # and the document's type follows (AC-005-1)
     assert (inv["number"], inv["issueDate"], inv["dueDate"]) == (
         "INV/SCR/2026/03/0009",
         "2026-03-12",
@@ -159,3 +160,25 @@ async def test_removing_the_invoice_document_removes_its_invoices():
         assert await invoices.list_records("org_1", doc_id=doc_id)
         assert (await client.delete(f"/api/documents/{doc_id}", headers=AUTH)).status_code == 204
     assert await invoices.list_records("org_1", doc_id=doc_id) == []
+
+
+async def test_the_buyers_workspace_files_the_same_invoice_as_a_purchase():
+    """The classifier calls it a sales invoice; the workspace is the buyer, so the code decides
+    PURCHASE and the document's type follows (AC-005-1): the library's purchase filter finds it."""
+    deps, _ = _deps()
+    workspace = deps.workspace_repo.workspaces["org_1"]  # type: ignore[attr-defined]
+    deps.workspace_repo.workspaces["org_1"] = workspace.model_copy(  # type: ignore[attr-defined]
+        update={"name": "Daybreak Café", "profile": Profile(legal_name="Daybreak Café")}
+    )
+    deps._reader = FakeDocumentReader(  # the classifier guesses "sales"
+        DocClassification(doc_type="SALES_INVOICE", confidence=0.93), invoice_pages=_recorded
+    )
+    async with _client(deps) as client:
+        doc_id = await _upload(client, deps)
+        doc = (await client.get(f"/api/documents/{doc_id}", headers=AUTH)).json()
+        [inv] = (await client.get("/api/invoices", params={"docId": doc_id}, headers=AUTH)).json()[
+            "items"
+        ]
+
+    assert inv["kind"] == "PURCHASE"
+    assert doc["docType"] == "PURCHASE_INVOICE"

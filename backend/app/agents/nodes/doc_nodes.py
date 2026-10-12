@@ -33,7 +33,7 @@ from app.domain.duplicates import (
     statement_duplicate,
 )
 from app.domain.findings import Evidence, Finding, finding_id
-from app.domain.invoice_records import build_invoices, build_receipts
+from app.domain.invoice_records import build_invoices, build_receipts, document_type_of
 from app.domain.layout import Chunk, chunk_page, chunks_from_json, chunks_to_json, render_chunks
 from app.domain.models.bank_line import BankLine
 from app.domain.models.document import (
@@ -365,6 +365,7 @@ def verify_pages(deps: PipelineDeps):
         ]
         updated = replace(
             doc,
+            doc_type=DocType(outcome.doc_type) if outcome.doc_type else doc.doc_type,
             status=DocStatus.CHECKING,
             months=outcome.months,
             pages=pages,
@@ -401,6 +402,7 @@ class _Verified:
     months: list[str]
     notes: list[str]
     statement_meta: dict[str, Any] | None = None
+    doc_type: str | None = None  # an invoice document's type, decided in code (AC-005-1)
 
     @property
     def agreement(self) -> float:
@@ -468,12 +470,14 @@ async def _records(
         )
         await deps.invoices.replace_for_document(org_id, doc.doc_id, result.records)
         noun = "invoices"
+        doc_type = document_type_of([r.kind for r in result.records], doc.doc_type.value)
     else:
         if deps.receipts is None:
             return None
         result = build_receipts(doc.doc_id, readings, words)
         await deps.receipts.replace_for_document(org_id, doc.doc_id, result.records)
         noun = "receipts"
+        doc_type = None
     return _Verified(
         records=len(result.records),
         noun=noun,
@@ -482,6 +486,7 @@ async def _records(
         page_agreement=result.page_agreement,
         months=result.months,
         notes=result.notes,
+        doc_type=doc_type,
     )
 
 

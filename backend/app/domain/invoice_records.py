@@ -102,6 +102,16 @@ def invoice_kind(
     return "SALES" if classified == "SALES_INVOICE" else "PURCHASE"
 
 
+def document_type_of(kinds: Sequence[str], classified: str) -> str:
+    """The document's type from the kinds decided in code: one kind for every invoice it holds
+    wins over the classifier's guess; a mixed or empty document keeps the guess."""
+    if kinds and all(kind == "PURCHASE" for kind in kinds):
+        return "PURCHASE_INVOICE"
+    if kinds and all(kind == "SALES" for kind in kinds):
+        return "SALES_INVOICE"
+    return classified
+
+
 def _group[P: (InvoicePageReading, ReceiptPageReading)](
     pages: list[P], number: Callable[[P], str | None]
 ) -> list[list[P]]:

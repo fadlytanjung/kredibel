@@ -10,6 +10,7 @@ from typing import Any
 from google import genai
 from google.genai import errors as genai_errors
 from google.genai import types
+from opentelemetry import trace
 from pydantic import BaseModel
 
 from app.adapters.prompt_files import Prompt, load_prompt
@@ -23,6 +24,8 @@ from app.domain.reading import (
     TransactionItem,
 )
 from app.ports.document_reader import DocumentReader, ReaderCall
+
+_tracer = trace.get_tracer("kredibel.gemini")
 
 _TASKS = {
     "classify": "classify_document",
@@ -79,10 +82,64 @@ class GeminiDocumentReader(DocumentReader):
         prompt = load_prompt(_TASKS[task])
         return self._model(prompt), prompt.ref
 
+    async def _attempt[T: BaseModel](
+        self,
+        prompt: Prompt,
+        parts: list[Any],
+        schema: type[T],
+        config: types.GenerateContentConfig,
+        number: int,
+    ) -> ReaderCall[T]:
+        model = self._model(prompt)
+        started = time.monotonic()
+        with _tracer.start_as_current_span(
+            f"generate_content {model}",
+            kind=trace.SpanKind.CLIENT,
+            attributes={
+                "gen_ai.operation.name": "generate_content",
+                "gen_ai.provider.name": "gcp.vertex_ai",
+                "gen_ai.request.model": model,
+                "kredibel.prompt_version": prompt.ref,
+                "kredibel.attempt": number,
+            },
+            record_exception=False,
+            set_status_on_exception=False,
+        ) as span:
+            try:
+                response = await asyncio.wait_for(
+                    self._genai().aio.models.generate_content(
+                        model=model, contents=[prompt.text, *parts], config=config
+                    ),
+                    timeout=self._settings.reader_timeout_seconds,
+                )
+                parsed = response.parsed
+                value = parsed if isinstance(parsed, schema) else schema.model_validate(parsed)
+                usage = response.usage_metadata
+                tokens_in = (usage.prompt_token_count or 0) if usage else 0
+                tokens_out = (usage.candidates_token_count or 0) if usage else 0
+                span.set_attribute("gen_ai.usage.input_tokens", tokens_in)
+                span.set_attribute("gen_ai.usage.output_tokens", tokens_out)
+                return ReaderCall(
+                    value=value,
+                    model=model,
+                    prompt_version=prompt.ref,
+                    tokens_in=tokens_in,
+                    tokens_out=tokens_out,
+                    seconds=time.monotonic() - started,
+                )
+            except Exception as exc:
+                # SDK and schema exceptions may contain document text. Export only their type
+                # or numeric API status; no exception event, message, stack or response body.
+                error = (
+                    str(exc.code) if isinstance(exc, genai_errors.APIError) else type(exc).__name__
+                )
+                span.set_attribute("error.type", error)
+                span.set_status(trace.Status(trace.StatusCode.ERROR, error))
+                raise
+
     async def _call[T: BaseModel](
         self, prompt: Prompt, parts: list[Any], schema: type[T]
     ) -> ReaderCall[T]:
-        model = self._model(prompt)
         config = types.GenerateContentConfig(
             temperature=0,
             thinking_config=types.ThinkingConfig(
@@ -96,25 +153,8 @@ class GeminiDocumentReader(DocumentReader):
         throttled = 0
         attempt = 0
         while attempt < attempts:
-            started = time.monotonic()
             try:
-                response = await asyncio.wait_for(
-                    self._genai().aio.models.generate_content(
-                        model=model, contents=[prompt.text, *parts], config=config
-                    ),
-                    timeout=self._settings.reader_timeout_seconds,
-                )
-                parsed = response.parsed
-                value = parsed if isinstance(parsed, schema) else schema.model_validate(parsed)
-                usage = response.usage_metadata
-                return ReaderCall(
-                    value=value,
-                    model=model,
-                    prompt_version=prompt.ref,
-                    tokens_in=(usage.prompt_token_count or 0) if usage else 0,
-                    tokens_out=(usage.candidates_token_count or 0) if usage else 0,
-                    seconds=time.monotonic() - started,
-                )
+                return await self._attempt(prompt, parts, schema, config, attempt + throttled + 1)
             except genai_errors.APIError as exc:
                 # Rate limits and transient server errors wait and retry without using up an
                 # attempt; anything else (a bad request, no access) fails at once.

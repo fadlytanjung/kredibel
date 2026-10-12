@@ -74,7 +74,7 @@ _Last updated: 12 Oct 2026 — Spec 007 candidate scoring and honest skeleton mo
 | Money flow (Flow, Bars, Table, By client and supplier) + drill-down | 010 | Specified | Statement view (IFRS or US GAAP) by default; full-width charts, one per row |
 | Months in and out, cash-flow statement waterfall | 010 | Specified | `GET /api/cash-flow`; docs/08 §5.2 |
 | Category → cash-flow class per framework | 007, 016 | Specified | `contracts/policy/categories.v1.yaml` |
-| Traces in Cloud Trace + ADK dev UI (`make dev-agents`) | 001, 004, 017 | Built | One trace per run (`workflow:` root, `node:` spans, ADK spans), `runs.traceId`, trace field on logs, `TRACE_EXPORT=cloud` on Cloud Run; dev apps for both workflows load and run in tests; guide in docs/23. Deploy to see traces in Cloud Trace |
+| Traces in Cloud Trace + local OTel + ADK dev UI | 001, 004, 017 | Built | One trace per run, `runs.traceId`, node spans and direct Gemini SDK attempts with model, prompt version, tokens and sanitized errors. Cloud Run uses `TRACE_EXPORT=cloud`; `make trace-up` / `make dev-traced` export locally to Jaeger at :16686. `make trace-smoke` verified ingestion; retries/content-exclusion tests and `make check` pass. `make dev-agents` has fixture apps for both workflows. Guide in docs/23 |
 
 ## P1
 

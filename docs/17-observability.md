@@ -51,6 +51,17 @@ opens the `workflow:<name>` root span, stores its trace ID on the run and binds 
 log line of the run; `stage()` tags `node:` spans with the ADK invocation ID so the dev UI groups them.
 How to find a run's trace: [`23`](23-agents-and-tracing-guide.md) §5.
 
+**Local OTLP/HTTP**: `TRACE_EXPORT=otlp` installs a traces-only provider using
+`OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` (default `http://127.0.0.1:4318/v1/traces`). `make trace-up`
+starts Jaeger on loopback; `make dev-traced` runs the API and inline worker with this exporter and
+content capture off. The viewer is `http://localhost:16686`; `make trace-smoke` verifies ingestion.
+This local open-source tool does not add a managed service. No OpenInference instrumentor is needed.
+
+The document reader uses the Gemini SDK directly. Its `generate_content <model>` span records
+each request attempt, prompt version, input/output token counts, latency and sanitized error type
+(numeric API status or exception class). Request/response content and exception messages are omitted,
+including on schema-validation failures. Cached reads naturally have no model-request span.
+
 **Content capture follows the data** (`AI_CONTENT_CAPTURE`, [ADR-017](adr/ADR-017-agent-observability-on-google-cloud.md)).
 Outside Agent Runtime, ADK records prompts and responses in span attributes unless
 `ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS=false`.

@@ -294,7 +294,8 @@ for hashed assets. Firebase Hosting (`kredibel-app.web.app`) serves the same fil
 | `POLICY_DIR` | `/app/contracts/policy` | both |
 | `EXPLAINER_MAX_ATTEMPTS` / `DOCUMENT_RUN_BUDGET_SECONDS` / `MONTH_RUN_BUDGET_SECONDS` | `2` / `600` / `120` | worker |
 | `FEATURE_MODEL_ARMOR`, `FEATURE_VISUAL_FORENSICS`, `FEATURE_REVISION_DIFF`, `FEATURE_ASSISTANT`, `FEATURE_ROLES`, `FEATURE_RUN_GRAPH`, `FEATURE_SIGN_OFF`, `FEATURE_LABELS`, `FEATURE_AGENT_ANALYTICS`, `FEATURE_DATASET_EXPORT` | `false` | both |
-| `TRACE_EXPORT` | `cloud` on Cloud Run \| `none` (default: tests and local runs) | both: where workflow spans go ([`17`](17-observability.md) §2) |
+| `TRACE_EXPORT` | `cloud` on Cloud Run \| `otlp` for local Jaeger \| `none` (default) | both: where workflow spans go ([`17`](17-observability.md) §2) |
+| `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` | `http://127.0.0.1:4318/v1/traces` | local traces-only OTLP/HTTP endpoint when `TRACE_EXPORT=otlp` |
 | `LOG_LEVEL` | `INFO` | both |
 | `BACKUPS_BUCKET` | `<PROJECT_ID>-kredibel-backups` | migrate job |
 | `MIGRATION_MAX_OPS_PER_SEC` / `MIGRATION_PAGE_SIZE` | `500` / `300` | migrate job |

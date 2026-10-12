@@ -108,6 +108,35 @@ explain_month → build_flows → sync_review_items → finalize_month`
 
 ## 4. Debug locally: the ADK dev UI (`make dev-agents`)
 
+### 4.1 Trace uploads through the running application
+
+```bash
+make trace-up             # Docker: local Jaeger, http://localhost:16686
+make trace-smoke          # verifies ingestion and prints a working trace URL; no credentials
+make dev-traced           # API :8000 + inline worker; uses your normal local .env
+# In another terminal:
+make dev-frontend         # app http://localhost:5173
+```
+
+Upload through the app, then open **http://localhost:16686**, choose service **kredibel-all**
+(or the configured `K_SERVICE`) and **Find Traces**. Each `workflow:document_workflow` trace contains
+the classification, page reading, verification, categorization and finalization nodes. Direct Gemini
+requests appear as `generate_content <model>` with attempt number, prompt version, tokens and errors.
+A month run is a separate `workflow:month_workflow` trace linked by `orgId` and `month`.
+To open one directly, use `http://localhost:16686/trace/<traceId>` from `GET /api/runs/{runId}`.
+
+`dev-traced` changes telemetry only; it uses the same storage/auth/model configuration as
+`dev-backend`. Use a synthetic workspace for generated documents. `trace-smoke` creates only a
+two-span synthetic trace and never touches workspace data or Gemini. Jaeger stores traces in memory;
+`make trace-down` stops it and clears that history. Both viewer and collector bind only to loopback.
+
+Cloud Run keeps `TRACE_EXPORT=cloud`. `adk web --otel_to_cloud` is for Google Cloud export;
+local export here uses `TRACE_EXPORT=otlp` and `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`.
+We use the locked OTel SDK/exporter already in the repository, with
+[Jaeger 2.22](https://www.jaegertracing.io/docs/2.22/getting-started/), without LangSmith.
+
+### 4.2 Inspect fixture workflows in ADK
+
 ```bash
 make dev-agents            # http://localhost:8501  (adk web on backend/app/agents/dev_apps)
 ```
@@ -198,7 +227,7 @@ can link straight to the failing span.
 
 | Setting | Value | Effect |
 |---|---|---|
-| `TRACE_EXPORT` | `cloud` on Cloud Run, `none` by default | Whether spans leave the process |
+| `TRACE_EXPORT` | `cloud` on Cloud Run, `otlp` for local Jaeger, `none` by default | Where spans go |
 | `AI_CONTENT_CAPTURE` | `off` (default, the only value allowed with real data) | Spans keep model, tokens, durations and IDs; never prompts, page text or outputs (`ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS=false`) |
 | | `synthetic` (only with `DATA_CLASS=synthetic`; start-up refuses otherwise) | Prompts and responses appear in span attributes, so Trace Explorer and the dev UI show them |
 
@@ -228,5 +257,5 @@ Logs never contain document text, names or account numbers ([`17`](17-observabil
 | Traces tab shows the invocation with "0us" and nothing under it | Spans without `gcp.vertex.agent.invocation_id`; `stage()` sets it, so this means a node bypasses `stage()` |
 | No trace in Cloud Trace for a production run | `TRACE_EXPORT` not `cloud` on that service, or the service account lacks `roles/cloudtrace.agent` (bootstrap step 4) |
 | A task's trace holds only its three request spans; the worker logs `Failed to export span batch code: 400` | The resource lacks `gcp.project_id` (`Resource is missing required attribute "gcp.project_id"`); `setup_tracing` merges ADK's `get_gcp_resource` (fixed) |
-| A local run has no trace | Local runs keep spans in the process unless `.env` sets `TRACE_EXPORT=cloud`; with real data `AI_CONTENT_CAPTURE` stays `off`, so the trace shows nodes, models, tokens and durations, never prompts |
+| A local run has no trace | Run `make trace-up`, `make trace-smoke`, then `make dev-traced`; select `kredibel-all` in Jaeger. With real data, content capture stays off |
 | A run has no `traceId` | It ran before tracing was configured, or outside `run_workflow` |

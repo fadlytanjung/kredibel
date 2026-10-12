@@ -123,8 +123,9 @@ class Settings(BaseSettings):
     learning_file: str = "contracts/policy/learning.v1.yaml"
 
     # Observability
-    # Where spans go: Cloud Trace on Cloud Run; nowhere in tests and local runs (docs/17 §2).
-    trace_export: Literal["none", "cloud"] = "none"
+    # Cloud Trace on Cloud Run; local Jaeger through OTLP/HTTP; opt-in (docs/17 §2).
+    trace_export: Literal["none", "cloud", "otlp"] = "none"
+    otel_exporter_otlp_traces_endpoint: str = "http://127.0.0.1:4318/v1/traces"
     ai_content_capture: Literal["off", "synthetic"] = "off"
     adk_capture_message_content_in_spans: bool = False
     analytics_dataset: str = "kredibel_agent_analytics"

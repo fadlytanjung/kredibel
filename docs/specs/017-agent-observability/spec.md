@@ -20,6 +20,13 @@ corrections people made.
 
 ### US-017-1: Debug locally (P0)
 
+- **AC-017-9** `make trace-up` starts a local, loopback-only OTLP/HTTP collector and Jaeger
+  viewer at `http://localhost:16686`. `make dev-traced` exports the local application's workflow,
+  node and Gemini request spans to it. `make trace-smoke` verifies ingestion and prints a trace URL;
+  it needs no Google credentials and touches no workspace. Each direct Gemini SDK attempt records
+  the model, prompt version, attempt number, token usage and sanitized error type/status, never
+  document content, images or exception messages. Cloud Run continues to use Cloud Trace.
+
 - **AC-017-1** `make dev-agents` starts the ADK dev UI (`adk web`) on `backend/app/agents/dev_apps/`
   with one app per LLM node (classifier, page reader, ledger mapper, categorizer, explainer) and the
   assistant, wired to recorded fixtures by default and to real Gemini with `LIVE=1`; the Trace view

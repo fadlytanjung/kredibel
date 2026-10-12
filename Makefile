@@ -135,6 +135,19 @@ mock-shots: ## Take screenshots of HTML mocks for docs
 dev-agents: ## Open the ADK dev UI on every workflow and agent (http://localhost:8501, docs/23)
 	cd backend && PYTHONPATH=. uv run adk web --port 8501 --reload_agents app/agents/dev_apps
 
+.PHONY: trace-up trace-down trace-smoke dev-traced
+trace-up: ## Start local OTel collector and viewer (http://localhost:16686)
+	docker compose --profile tracing up -d jaeger
+
+trace-down: ## Stop the local trace viewer (clears transient traces)
+	docker compose --profile tracing stop jaeger
+
+trace-smoke: ## Send a synthetic trace and verify it appears in the local viewer
+	cd backend && ENV_FILE=/dev/null PYTHONPATH=. uv run python scripts/trace_smoke.py
+
+dev-traced: ## Run the local API/inline worker with metadata traces in Jaeger
+	TRACE_EXPORT=otlp AI_CONTENT_CAPTURE=off $(MAKE) dev-backend
+
 migrate-dry: ## Dry-run pending data migrations
 	@if [ "$(ENV)" = "local" ]; then \
 		cd backend && uv run python -m migrations run --dry-run; \

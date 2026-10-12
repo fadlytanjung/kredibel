@@ -64,7 +64,7 @@
 | NFR-07 | ≤ USD 0.01 per page; ≤ USD 0.40 for S1's statements and invoices; exact duplicates free | E-EXT, E-PERF; [`21`](21-cost-analysis.md) |
 | NFR-08 | WCAG AA contrast; no colour-only meaning; chart table alternatives | axe in stories and E2E; AC-008-10, AC-010-7 |
 | NFR-09 | Idempotent workflows; order-independent months | AC-004-3, AC-004-5, AC-007-7 |
-| NFR-10 | Correlated logs and traces | AC-004-12; manual check in Cloud Logging and Trace |
+| NFR-10 | Correlated logs and traces | AC-004-12, AC-017-9; tracing unit/integration tests, `make trace-smoke`, manual check in Cloud Logging and Trace |
 | NFR-11 | English UI, all strings externalized | ESLint `i18next/no-literal-string` in `make check`; AC-001-14 |
 | NFR-12 | Personal data minimization | `test_accounts.py`, log review, AC-003-4, AC-013-2 |
 | NFR-13 | Responsive and touch-friendly | Visual tests at 390/834/1440; 360 px check; AC-001-16 |

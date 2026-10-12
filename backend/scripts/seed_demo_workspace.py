@@ -12,6 +12,7 @@ Usage (from backend/):
 
 import argparse
 import asyncio
+import os
 import sys
 from datetime import UTC, date, datetime, time, timedelta
 from typing import Protocol
@@ -110,7 +111,8 @@ async def _main(args: argparse.Namespace) -> None:
         owner=_owner(args.owner),
         now=datetime.now(UTC),
     )
-    await seed(FirestoreWorkspaceRepository(AsyncClient(project=args.project)), identity, new)
+    client = AsyncClient(project=args.project, database=args.database)
+    await seed(FirestoreWorkspaceRepository(client), identity, new)
     print(f"Seeded {args.org} ({args.name}); trial ends {new.workspace.subscription.trial_ends_at}")
     print(f"Owner {args.owner} has claims orgId={args.org}, role=owner")
 
@@ -124,6 +126,11 @@ def main() -> int:
     parser.add_argument("--timezone", default="Asia/Jakarta")
     parser.add_argument("--owner", required=True, help="Email of the demo owner")
     parser.add_argument("--project", default=None, help="Defaults to the ADC project")
+    parser.add_argument(
+        "--database",
+        default=os.environ.get("FIRESTORE_DATABASE", "(default)"),
+        help="Firestore database (ADR-021: kredibel)",
+    )
     asyncio.run(_main(parser.parse_args()))
     return 0
 

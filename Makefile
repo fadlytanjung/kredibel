@@ -36,7 +36,7 @@ dev: ## Run local dev servers (FastAPI on :8000 + worker inline, Vite on :5173)
 	)
 
 dev-backend: ## Run local backend with reload
-	cd backend && APP_ROLE=all TASK_QUEUE_MODE=inline uv run uvicorn app.main:app --reload --port 8000
+	cd backend && APP_ROLE=all TASK_QUEUE_MODE=inline FIRESTORE_DATABASE=$${FIRESTORE_DATABASE:-kredibel} DATA_CLASS=$${DATA_CLASS:-real} uv run uvicorn app.main:app --reload --port 8000
 
 dev-frontend: ## Run local frontend Vite dev server
 	cd frontend && npm run dev

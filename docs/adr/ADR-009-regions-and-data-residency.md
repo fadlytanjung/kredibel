@@ -12,7 +12,8 @@ broadly available on the `global` endpoint. The prototype processes **synthetic 
 ## Decision
 
 - **Prototype:** state (Firestore, GCS, Cloud Tasks, Cloud Run) in `asia-southeast1`; Document AI in
-  `us`; Gemini on `global`; Model Armor regional. Acceptable because no real data exists (P8).
+  `us`; Gemini on `global`; Model Armor regional. Acceptable because the only real data is the
+  owner's own, by their choice ([ADR-022](ADR-022-owners-own-documents-for-testing-and-demo.md)).
 - **Production path (documented, not built):**
   1. Run the witness (Enterprise OCR) and any escalation parser in-region where offered (Custom
      Extractor is offered in `asia-southeast1`); the text-layer witness already runs inside our

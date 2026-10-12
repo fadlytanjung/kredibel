@@ -12,6 +12,7 @@ Usage (from backend/):
 
 import argparse
 import asyncio
+import os
 import sys
 from datetime import UTC, datetime
 from typing import Any, get_args
@@ -91,7 +92,7 @@ def _org_of_email(email: str) -> str:
 
 async def _main(args: argparse.Namespace) -> int:
     org_id = args.org or _org_of_email(args.email)
-    db = AsyncClient(project=args.project)
+    db = AsyncClient(project=args.project, database=args.database)
     try:
         result = await set_workspace_currency(
             db,
@@ -122,6 +123,11 @@ def main() -> int:
     parser.add_argument("--force", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--project", default=None, help="Defaults to the ADC project")
+    parser.add_argument(
+        "--database",
+        default=os.environ.get("FIRESTORE_DATABASE", "(default)"),
+        help="Firestore database (ADR-021: kredibel)",
+    )
     return asyncio.run(_main(parser.parse_args()))
 
 

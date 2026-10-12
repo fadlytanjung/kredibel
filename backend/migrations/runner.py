@@ -33,7 +33,8 @@ class MigrationRunner:
             self.db = db
         else:
             project_id = os.environ.get("GOOGLE_CLOUD_PROJECT", "cloud-hack2skill")
-            self.db = firestore.Client(project=project_id)
+            database = os.environ.get("FIRESTORE_DATABASE", "(default)")
+            self.db = firestore.Client(project=project_id, database=database)
         self.operator = operator
 
     @property

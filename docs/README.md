@@ -114,6 +114,8 @@ only; when a change alters what a diagram shows, update the diagram in the same 
 | [018](adr/ADR-018-firebase-hosting-in-front-of-cloud-run.md) | Firebase Hosting serves the SPA and rewrites `/api` to Cloud Run (supersedes the hosting part of 008) |
 | [019](adr/ADR-019-one-component-stylesheet-for-mocks-and-app.md) | `kit.css` and the mock icon set are the component stylesheet and icons of the app too (supersedes the Tailwind rebuild rule of 12 §0) |
 | [020](adr/ADR-020-workspace-currency-chosen-at-onboarding.md) | One currency per workspace (IDR, MYR, SGD, JPY, USD), chosen at onboarding and fixed afterwards; hundredths in Firestore for every currency |
+| [021](adr/ADR-021-kredibel-firestore-database.md) | Kredibel's own Firestore database `kredibel` in the shared project; firebase.json targets only it |
+| [022](adr/ADR-022-owners-own-documents-for-testing-and-demo.md) | The owner's own statements and invoices for end-to-end testing and the demo, as real data (amends P8) |
 
 ## Machine-readable contracts
 

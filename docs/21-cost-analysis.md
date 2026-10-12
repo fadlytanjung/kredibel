@@ -12,7 +12,7 @@
 
 | Question | Answer |
 |---|---|
-| Which database? | **Firestore (Standard edition, Native mode, the single `(default)` database)**. It meets every data requirement, and its daily free quota covers our expected workload: about **USD 0** for the competition. |
+| Which database? | **Firestore (Standard edition, Native mode), database `kredibel`** in the shared project ([ADR-021](adr/ADR-021-kredibel-firestore-database.md)). It meets every data requirement. The daily free quota covers one database per project and goes to `(default)`, so Kredibel pays from the first operation: cents for the competition. |
 | What about Cloud SQL for PostgreSQL? | It works, but it is always-on: **≈ USD 9–17/month** for the smallest shared-core instance (no SLA, 0.6 GiB RAM), **≈ USD 50/month** for 1 dedicated vCPU. It also has no realtime push, so the UI would need polling or a second store. Not worth it for this workload. |
 | What actually drives cost? | **Reading pages with AI**, not the database. Explanations, categorization and ledger mapping are cents per half-year. |
 | How do we read documents? | **Adaptive reading** ([ADR-010](adr/ADR-010-adaptive-extraction-ai-reader-and-witness.md)): Gemini reads each page image; the PDF text layer (free) or Document AI OCR (USD 1.50 per 1,000 pages, scans only) is the independent witness. Document AI parsers are used only to escalate a doubtful page. |
@@ -47,7 +47,7 @@ analytical store, not the operational one.
 
 | Option | Smallest realistic setup | Monthly cost (list) | D1 realtime | D3 atomic | D6 ops | Verdict |
 |---|---|---|---|---|---|---|
-| **Firestore Standard (Native)** | `(default)` database | **≈ USD 0**: free 50K reads, 20K writes, 20K deletes and 1 GiB per day; then USD 0.03 / 0.09 / 0.01 per 100K reads/writes/deletes | ✅ native listeners | ✅ transactions | ✅ serverless | **Chosen** |
+| **Firestore Standard (Native)** | database `kredibel` | **≈ cents**: USD 0.03 / 0.09 / 0.01 per 100K reads/writes/deletes (the free 50K reads, 20K writes, 20K deletes and 1 GiB per day go to `(default)`) | ✅ native listeners | ✅ transactions | ✅ serverless | **Chosen** |
 | Cloud SQL for PostgreSQL, `db-f1-micro` (shared core) | 0.6 GiB RAM, 10 GiB SSD | ≈ USD 7.7 compute + 1.7 storage; + ≈ 7.3 if it holds a public IPv4 → **≈ USD 9–17** | ❌ (poll or add a channel) | ✅ | ⚠️ connector/IP, migrations, pool limits; no SLA | Fallback only |
 | Cloud SQL `db-g1-small` | 1.7 GiB RAM | ≈ USD 25.6 + storage | ❌ | ✅ | ⚠️ | Not needed |
 | Cloud SQL dedicated 1 vCPU / 3.75 GiB | — | ≈ USD 49 + storage (HA doubles it) | ❌ | ✅ | ⚠️ | Not needed |
@@ -77,10 +77,11 @@ Estimated for importing S1 (a half-year, uploaded in one go) plus one review ses
 | Reads | ~8,000 | Month runs read their month and its neighbours; UI listeners and table loads |
 | Storage | < 10 MB per workspace and half-year | Files live in Cloud Storage, not Firestore |
 
-The free quota (20,000 writes and 50,000 reads per day) covers **~3 full half-year imports per day**,
-or hundreds of everyday uploads. Beyond it, a full import costs about **USD 0.01** in Firestore
-operations. The month-run debounce (20 s) keeps bursts of uploads from multiplying writes. The free tier applies to **one database per project**, which is
-why we use only `(default)` (ADR-003).
+A full half-year import costs about **USD 0.01** in Firestore operations; everyday uploads cost
+fractions of a cent. The month-run debounce (20 s) keeps bursts of uploads from multiplying writes.
+The free quota (20,000 writes and 50,000 reads per day) applies to one database per project and sits
+with `(default)`; Kredibel runs in its own database `kredibel` in the shared project and pays from the
+first operation ([ADR-021](adr/ADR-021-kredibel-firestore-database.md)).
 
 ### 2.4 If the team still wants PostgreSQL
 

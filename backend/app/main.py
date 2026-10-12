@@ -134,7 +134,11 @@ class AppDeps:
     def firestore(self) -> AsyncClient:
         # Honours FIRESTORE_EMULATOR_HOST for local runs.
         return self._once(
-            "firestore", lambda: AsyncClient(project=self.settings.google_cloud_project)
+            "firestore",
+            lambda: AsyncClient(
+                project=self.settings.google_cloud_project,
+                database=self.settings.firestore_database,
+            ),
         )
 
     @property

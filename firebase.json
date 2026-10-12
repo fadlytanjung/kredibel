@@ -1,8 +1,11 @@
 {
-  "firestore": {
-    "rules": "contracts/firestore.rules",
-    "indexes": "contracts/firestore.indexes.json"
-  },
+  "firestore": [
+    {
+      "database": "kredibel",
+      "rules": "contracts/firestore.rules",
+      "indexes": "contracts/firestore.indexes.json"
+    }
+  ],
   "hosting": {
     "site": "kredibel-app",
     "public": "frontend/dist",

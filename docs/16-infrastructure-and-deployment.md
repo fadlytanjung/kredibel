@@ -25,10 +25,10 @@ the S2–S4 extras ready to upload live; `scripts/reset_demo.py` resets it.
 | Cloud Run service (public) | `kredibel-web` | `asia-southeast1` |
 | Cloud Run service (IAM-only) | `kredibel-worker` | `asia-southeast1` |
 | Cloud Tasks queues | `kredibel-documents` (one task per upload), `kredibel-months` (one task per month and generation) | `asia-southeast1` |
-| Firestore (Native, `(default)`) | — | `asia-southeast1` |
+| Firestore (Native, database `kredibel`, [ADR-021](adr/ADR-021-kredibel-firestore-database.md)) | — | `asia-southeast1` |
 | Cloud Storage bucket | `<PROJECT_ID>-kredibel-docs` (object versioning on, noncurrent kept 7 days) | `asia-southeast1` |
 | Cloud Storage bucket (backups) | `<PROJECT_ID>-kredibel-backups` (Firestore exports before migrations; deleted after 30 days) | `asia-southeast1` |
-| Firestore protection | point-in-time recovery (7 days) and a daily backup schedule (7-day retention) on `(default)` | `asia-southeast1` |
+| Firestore protection | point-in-time recovery (7 days), delete protection and a daily backup schedule (7-day retention) on `kredibel` | `asia-southeast1` |
 | Cloud Run job | `kredibel-migrate` (data migrations, [`22`](22-data-migrations.md)) | `asia-southeast1` |
 | Document AI processors | `kredibel-ocr` (Enterprise Document OCR: witness for scanned pages, P0); `kredibel-form` and `kredibel-invoice` (escalation and thorough mode, P1) | `us` |
 | Model Armor template (P1) | `kredibel-docs` | `asia-southeast1` (confirm in S4) |
@@ -61,9 +61,9 @@ gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregi
 gcloud artifacts repositories create kredibel --repository-format=docker --location="$REGION" || true
 gcloud storage buckets create "gs://${PROJECT_ID}-kredibel-docs" --location="$REGION" \
   --uniform-bucket-level-access --public-access-prevention || true
-gcloud firestore databases create --location="$REGION" --type=firestore-native || true
-gcloud firestore databases update --database='(default)' --enable-pitr                      # 7-day PITR
-gcloud firestore backups schedules create --database='(default)' --recurrence=daily --retention=7d || true
+gcloud firestore databases create --database=kredibel --location="$REGION" --type=firestore-native \
+  --enable-pitr --delete-protection || true                                                # ADR-021
+gcloud firestore backups schedules create --database=kredibel --recurrence=daily --retention=7d || true
 gcloud storage buckets create "gs://${PROJECT_ID}-kredibel-backups" --location="$REGION" \
   --uniform-bucket-level-access --public-access-prevention || true
 gcloud storage buckets update "gs://${PROJECT_ID}-kredibel-backups" --lifecycle-file=infra/backups-lifecycle.json
@@ -182,7 +182,7 @@ creates processors of type `OCR_PROCESSOR` (Enterprise Document OCR) and, with `
 `FORM_PARSER_PROCESSOR` and `INVOICE_PROCESSOR` (confirm with `fetch_processor_types`), and prints the
 processor IDs and the stable version names to use.
 
-`infra/firebase.json` points `firestore.rules` and `firestore.indexes.json` at `../contracts/`.
+`firebase.json` (repository root) points the `kredibel` database's rules and indexes at `contracts/`.
 
 ---
 
@@ -286,7 +286,8 @@ for hashed assets. Firebase Hosting (`kredibel-app.web.app`) serves the same fil
 | `ASSISTANT_MEMORY` | `on` \| `off` (sessions only) | web (P1) |
 | `ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS` | Set from `AI_CONTENT_CAPTURE` at start-up (`false` unless `synthetic`); must be explicit outside Agent Runtime | both |
 | `AI_CONTENT_CAPTURE` | `off` (default) \| `synthetic` (prompts and responses in traces and agent events; refused unless `DATA_CLASS=synthetic`), [ADR-017](adr/ADR-017-agent-observability-on-google-cloud.md) | both |
-| `DATA_CLASS` | `synthetic` (the prototype project) \| `real` | both |
+| `DATA_CLASS` | `real` on the services and in local development, where the owner's own documents run ([ADR-022](adr/ADR-022-owners-own-documents-for-testing-and-demo.md)); `synthetic` (the default) for tests and evals | both |
+| `FIRESTORE_DATABASE` | `kredibel` ([ADR-021](adr/ADR-021-kredibel-firestore-database.md)); `(default)` for the emulator and tests | both, migrate job, scripts |
 | `ANALYTICS_DATASET` / `AGENT_CONTENT_BUCKET` | `kredibel_agent_analytics` / `<PROJECT_ID>-kredibel-agent-content` | both (P1) |
 | `LEARNING_FILE` / `CATEGORIES_FILE` | `/app/contracts/policy/learning.v1.yaml` / `categories.v1.yaml` | both |
 | `POLICY_DIR` | `/app/contracts/policy` | both |
@@ -321,8 +322,10 @@ curl -s -H "Authorization: Bearer $TOKEN" -H "x-goog-user-project: $PROJECT_ID" 
   "https://firebaserules.googleapis.com/v1/projects/$PROJECT_ID/releases"
 ```
 
-We use the `(default)` database only, which avoids the multi-database rules-deploy pitfall we hit in a
-previous project.
+Kredibel deploys to its own database, `kredibel` ([ADR-021](adr/ADR-021-kredibel-firestore-database.md)):
+`firebase.json` lists only that database, so rules and indexes never reach another app's. The CLI
+still prints "released rules … to cloud.firestore"; the release that actually changes is
+`cloud.firestore/kredibel`, which the `curl` above shows.
 
 ---
 
@@ -376,7 +379,8 @@ push never redeploys the demo by accident.
 The full analysis, including the database comparison, is in [`21-cost-analysis.md`](21-cost-analysis.md).
 
 - Budget equal to the team's limit, with alerts at 50% / 90% / 100%.
-- Firestore `(default)` database only (one database per project gets the free tier); no Cloud SQL.
+- Firestore database `kredibel` (ADR-021); the free tier covers one database per project and goes to
+  `(default)`, so Kredibel pays from the first read (cents at demo volumes); no Cloud SQL.
 - Cloud Run scales to zero; Firestore and GCS are pay-per-use.
 - Adaptive reading (`EXTRACTION_MODE=adaptive`): one AI reading per page, free text-layer witness, OCR
   only for scans; per-page extraction cache; exact duplicates never read; ledger files parsed by code.

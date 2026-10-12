@@ -159,7 +159,7 @@ No service account keys are created. Everything uses Application Default Credent
 | Minimization | Logs and traces carry IDs, counts and durations only; prompt and response content only where `AI_CONTENT_CAPTURE=synthetic`, which start-up refuses unless `DATA_CLASS=synthetic` ([ADR-017](adr/ADR-017-agent-observability-on-google-cloud.md)); page images never |
 | Labels and training data (P1, later) | Labels stay in the workspace; verified examples in prompts come only from the same workspace; a dataset export needs the owner's consent (`learning.shareVerifiedLabels`, off by default), masks account numbers, tax IDs and personal names, and is refused below the minimum size ([ADR-016](adr/ADR-016-human-verified-labels-and-learning-loop.md)) |
 | Storage | Uniform bucket-level access, public access prevention, object versioning (7 days), 90-day lifecycle for page images |
-| Synthetic only | Constitution P8; every generated file carries "SYNTHETIC — FOR TESTING" |
+| Synthetic, plus the owner's own | Constitution P8: tests, evals and fixtures are synthetic and carry "SYNTHETIC — FOR TESTING"; the owner's own documents run as real data (`DATA_CLASS=real`, no content capture, never committed), [ADR-022](adr/ADR-022-owners-own-documents-for-testing-and-demo.md) |
 | Deletion | Deleting a document removes its records, chunks and files; `reset_demo.py` removes a workspace's Firestore tree, GCS prefix, sessions and memories together |
 
 ---

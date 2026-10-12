@@ -48,11 +48,11 @@ gcloud storage buckets create "gs://${PROJECT_ID}-kredibel-docs" \
   --public-access-prevention || true
 gcloud storage buckets update "gs://${PROJECT_ID}-kredibel-docs" --versioning || true
 
-gcloud firestore databases create \
+# Kredibel's own database in the shared project (ADR-021).
+gcloud firestore databases create --database=kredibel \
   --location="$REGION" \
-  --type=firestore-native || true
-gcloud firestore databases update --database='(default)' --enable-pitr || true
-gcloud firestore backups schedules create --database='(default)' --recurrence=daily --retention=7d || true
+  --type=firestore-native --enable-pitr --delete-protection || true
+gcloud firestore backups schedules create --database=kredibel --recurrence=daily --retention=7d || true
 
 gcloud storage buckets create "gs://${PROJECT_ID}-kredibel-backups" \
   --location="$REGION" \
@@ -140,7 +140,7 @@ gcloud run jobs create kredibel-migrate \
   --service-account="$(SA kredibel-migrate)" \
   --tasks=1 --max-retries=1 --task-timeout=3600s --cpu=1 --memory=1Gi \
   --labels=app=kredibel,component=migrate \
-  --set-env-vars=APP_ROLE=migrate,PROJECT_ID=${PROJECT_ID},BACKUPS_BUCKET=${PROJECT_ID}-kredibel-backups \
+  --set-env-vars=APP_ROLE=migrate,GOOGLE_CLOUD_PROJECT=${PROJECT_ID},FIRESTORE_DATABASE=kredibel,BACKUPS_BUCKET=${PROJECT_ID}-kredibel-backups \
   --command=python --args=-m,migrations,run || true
 
 echo "==> 6. Ensuring Firebase Hosting site is created..."

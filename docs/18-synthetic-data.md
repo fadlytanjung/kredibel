@@ -1,6 +1,8 @@
 # 18 — Synthetic Data
 
-> Every document Kredibel ever sees in this project comes from this generator (constitution P8).
+> Every test, eval and fixture document comes from this generator (constitution P8); the only other
+> documents are the owner's own, run as real data for end-to-end testing and the demo
+> ([ADR-022](adr/ADR-022-owners-own-documents-for-testing-and-demo.md)).
 > The generator also writes the ground truth that tests and evals depend on
 > ([`15`](15-testing-and-evaluation.md) §3). All generated documents are **in English**, so
 > international judges can read every page shown in the demo.

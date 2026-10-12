@@ -38,6 +38,8 @@ class Settings(BaseSettings):
 
     # Google Cloud Platform
     google_cloud_project: str = "cloud-hack2skill"
+    # Kredibel's own database (ADR-021); "(default)" for the emulator and tests.
+    firestore_database: str = "(default)"
     google_cloud_location: str = "global"
     google_genai_use_vertexai: bool = True
     region: str = "asia-southeast1"

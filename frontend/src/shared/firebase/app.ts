@@ -18,6 +18,7 @@ const firebaseConfig = {
 
 export const firebaseApp = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig)
 export const auth = getAuth(firebaseApp)
-export const db = getFirestore(firebaseApp)
+// Kredibel's own database in the shared project (ADR-021).
+export const db = getFirestore(firebaseApp, import.meta.env.VITE_FIRESTORE_DATABASE || '(default)')
 export const googleAuthProvider = new GoogleAuthProvider()
 

@@ -60,6 +60,8 @@ steps:
       - '--build-arg'
       - 'VITE_APP_VERSION=$_COMMIT_SHA'
       - '--build-arg'
+      - 'VITE_FIRESTORE_DATABASE=kredibel'
+      - '--build-arg'
       - 'APP_VERSION=$_COMMIT_SHA'
       - '-t'
       - 'asia-southeast1-docker.pkg.dev/$PROJECT_ID/kredibel/app:$_COMMIT_SHA'
@@ -86,7 +88,8 @@ steps:
     args:
       - '-c'
       - |
-        npx --yes firebase-tools deploy --only firestore:indexes,firestore:rules --project "$PROJECT_ID" --config infra/firebase.json
+        # Kredibel's database only (firebase.json, ADR-021); the CLI is pinned so its rules stay put.
+        npx --yes firebase-tools@14.27.0 deploy --only firestore --project "$PROJECT_ID" --config firebase.json --non-interactive
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     id: 'firestore-indexes-ready'
@@ -97,7 +100,7 @@ steps:
         set -euo pipefail
         # Queries on new indexes fail until they are READY; wait up to 15 minutes.
         for i in $$(seq 1 90); do
-          pending=$$(gcloud firestore indexes composite list --format='value(state)' | grep -cv READY || true)
+          pending=$$(gcloud firestore indexes composite list --database=kredibel --format='value(state)' | grep -cv READY || true)
           [ "$$pending" = "0" ] && exit 0
           echo "$$pending index(es) still building..."; sleep 10
         done
@@ -115,12 +118,12 @@ steps:
           --image="asia-southeast1-docker.pkg.dev/$PROJECT_ID/kredibel/app:$_COMMIT_SHA" \
           --region=asia-southeast1 \
           --service-account="kredibel-migrate@$PROJECT_ID.iam.gserviceaccount.com" \
-          --set-env-vars=APP_ROLE=migrate,GOOGLE_CLOUD_PROJECT=$PROJECT_ID,BACKUPS_BUCKET=$PROJECT_ID-kredibel-backups \
+          --set-env-vars=APP_ROLE=migrate,GOOGLE_CLOUD_PROJECT=$PROJECT_ID,FIRESTORE_DATABASE=kredibel,BACKUPS_BUCKET=$PROJECT_ID-kredibel-backups \
           --command=python --args=-m,migrations,run \
           --tasks=1 --max-retries=1 --task-timeout=3600s --cpu=1 --memory=1Gi \
           --labels=app=kredibel,component=migrate
         gcloud run jobs execute kredibel-migrate --args=-m,migrations,run,--dry-run --region=asia-southeast1 --wait
-        gcloud firestore export "gs://$PROJECT_ID-kredibel-backups/pre-release/$_COMMIT_SHA"
+        gcloud firestore export "gs://$PROJECT_ID-kredibel-backups/pre-release/$_COMMIT_SHA" --database=kredibel
         gcloud run jobs execute kredibel-migrate --args=-m,migrations,run --region=asia-southeast1 --wait
 
   # 6. Deploy worker service (IAM authenticated only)

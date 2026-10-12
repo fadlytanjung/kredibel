@@ -272,7 +272,11 @@ class ReceiptPage(BaseModel):
 ```
 
 Pages of the same document are merged in code: global `row_index` = order of (page, row_on_page);
-header fields come from the first page that has them; totals from the last.
+header fields come from the first page that has them; totals from the last. A PDF can hold several
+invoices or receipts: a page that prints a different invoice or receipt number starts the next
+record, and a page without one continues the current record. Sales or purchase is decided in code
+from the workspace's names (legal, trading, aliases) against issuer and buyer; the classifier's guess
+only breaks a tie. An amount printed as a word ("Included", "FREE") is no amount and is not compared.
 
 ### 5.3 The witness
 
@@ -291,12 +295,13 @@ The witness never interprets the page: it does not decide what is a row or a tot
 `domain/normalize.py` turns every source's strings into the same canonical types:
 
 - **Amounts:** English format `1,250,000.00` is the default. The dot-grouped format `1.250.000,00`
-  (used by many regional banks) is detected per document from the majority pattern. Strip `IDR` and
-  spaces; handle `CR`/`DR` suffixes and parentheses for negatives. Parse into `Decimal`. A value that
+  (used by many regional banks) is detected per document from the majority pattern; whole amounts
+  grouped by dots (`Rp. 1.500.000`) count as dot-grouped. Strip `IDR`, `Rp.`, `RM` and spaces; handle `CR`/`DR` suffixes and parentheses for negatives. Parse into `Decimal`. A value that
   does not parse is `None` plus a parse note. It is never guessed.
-- **Dates:** `DD/MM`, `DD/MM/YYYY`, `DD-MMM-YY`, `05 MAR`, English month names. Missing years are
-  inferred from the statement period; a date outside the period gets a parse note. Local-language
-  month names come with market packs (P2).
+- **Dates:** `DD/MM`, `DD/MM/YYYY`, `DD-MMM-YY`, `05 MAR`; English, Malay and Indonesian month names
+  and abbreviations (`Disember`, `Ogos`, `Agustus`, `Okt`). Missing years are inferred from the
+  statement period; a date outside the period gets a parse note. Other languages come with market
+  packs (P2).
 - **Direction:** a row with a debit amount is `DEBIT`, a credit amount is `CREDIT`; both or neither →
   row flagged `AMBIGUOUS_DIRECTION`.
 - **Descriptions:** whitespace collapsed; original kept in `descriptionRaw`.

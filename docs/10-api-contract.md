@@ -64,8 +64,8 @@
 |---|---|---|
 | `GET /api/bank-lines?docId=&month=&accountId=&matchState=&category=&counterpartyId=&q=&flow=` | Bank lines with each value's readings (status, page, box); `docId` gives one statement's lines (the document page); `flow` is a money-flow link ID (Sankey drill-down) | P0 |
 | `PATCH /api/bank-lines/{txId}` | Change the category (`categorizedBy: USER`); same as correcting its `CATEGORY` label (§2.10); marks the month dirty | P0 |
-| `GET /api/invoices?kind=&month=&paymentState=&counterpartyId=` · `GET /api/invoices/{invoiceId}` | Sales and purchase invoices with payment state and matches | P0 |
-| `GET /api/receipts?month=&paymentState=` · `GET /api/receipts/{receiptId}` | Receipts | P0 |
+| `GET /api/invoices?docId=&kind=&month=&paymentState=&counterpartyId=` · `GET /api/invoices/{invoiceId}` | Sales and purchase invoices with payment state, matches and each value's readings; `docId` gives the invoices read from one document (a PDF can hold several) | P0 |
+| `GET /api/receipts?docId=&month=&paymentState=` · `GET /api/receipts/{receiptId}` | Receipts with each value's readings; `docId` gives one document's | P0 |
 | `GET /api/ledger-entries?month=&isBankCash=&matchState=&accountCode=` | Imported ledger entries | P0 |
 
 ### 2.4 Months and reconciliation

@@ -4,14 +4,17 @@ from dataclasses import dataclass
 
 from app.core.clock import Clock, SystemClock
 from app.core.settings import Settings
+from app.domain.models.invoice import Invoice, Receipt
 from app.ports.bank_line_repository import BankLineRepository
 from app.ports.document_reader import DocumentReader
 from app.ports.document_repository import DocumentRepository
 from app.ports.document_storage import DocumentStorage
 from app.ports.month_repository import MonthRepository
 from app.ports.page_text import PageText
+from app.ports.record_repository import DocumentRecords
 from app.ports.run_repository import RunRepository
 from app.ports.task_queue import TaskQueue
+from app.ports.workspace_repository import WorkspaceRepository
 
 
 @dataclass
@@ -29,3 +32,7 @@ class PipelineDeps:
     reader: DocumentReader | None = None
     page_text: PageText | None = None
     bank_lines: BankLineRepository | None = None
+    invoices: DocumentRecords[Invoice] | None = None
+    receipts: DocumentRecords[Receipt] | None = None
+    # The workspace's own names decide sales or purchase (AC-005-1).
+    workspaces: WorkspaceRepository | None = None

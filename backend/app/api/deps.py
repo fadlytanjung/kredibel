@@ -9,6 +9,7 @@ from app.services.bank_line_service import BankLineService
 from app.services.document_service import DocumentService
 from app.services.entitlement_service import EntitlementService
 from app.services.month_service import MonthService
+from app.services.record_service import RecordService
 from app.services.runs import RunService
 from app.services.workspace_service import WorkspaceService
 
@@ -37,6 +38,9 @@ class ServiceProvider(Protocol):
 
     @property
     def bank_line_service(self) -> BankLineService: ...
+
+    @property
+    def record_service(self) -> RecordService: ...
 
 
 def org_of(principal: Principal) -> str:

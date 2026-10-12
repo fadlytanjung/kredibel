@@ -29,10 +29,11 @@ column mapping once per layout, let the user confirm it, and parse every row in 
 
 ### US-005-2: Read statements, invoices and receipts twice
 
-- **AC-005-4** Each non-blank page is read once by `MODEL_FAST` from the page image only (page 1
-  first, the rest in parallel with page 1's header as context), returning values **as printed** in the
-  schemas of [`docs/07`](../../07-document-intelligence.md) §5.2 (`StatementPage`, `InvoicePage`,
-  `ReceiptPage`).
+- **AC-005-4** Each non-blank page is read once by `MODEL_FAST` from the page image plus its numbered
+  layout chunks ([ADR-023](../../adr/ADR-023-parse-extract-ground.md); page 1 first, the rest in
+  parallel with page 1's header as context), returning values **as printed** in the schemas of
+  [`docs/07`](../../07-document-intelligence.md) §5.2 (`StatementPage`, `InvoicePage`,
+  `ReceiptPage`). A PDF with several invoices or receipts gives one record per printed number.
 - **AC-005-5** The witness is the text layer when usable, else Enterprise OCR (≤ 15 pages per request).
 - **AC-005-6** The verifier gives every value a status (`AGREED`, `CONFLICT`, `SINGLE_SOURCE`,
   `MISSING`) and a box from witness tokens; witness-only rows are inserted in printed order; a value

@@ -156,11 +156,13 @@ The salted hash of the full number lives in `orgPrivate/{orgId}/accountHashes/{a
 | `lines[]` | `{description, qty, unitPriceMinor, amountMinor}` |
 | `supplyKind` | `GOODS` \| `SERVICES` \| `MIXED` (purchase invoices; from the reader, a `FIELD_VALUE` label); decides `INVENTORY_PURCHASE` or `SUPPLIER_PAYMENT` ([`08`](08-risk-engine.md) §4.1) |
 | `payment` | `state` (`UNPAID`, `PAID`, `PARTIAL`, `NOT_DUE`, `WAITING_FOR_STATEMENT`), `paidMinor`, `matchIds[]` |
-| `consensus`, `heldAsDuplicate`, `counterpartyId?` | |
+| `currency`, `pages[]`, `notes[]` | Currency as printed (else the workspace's); the pages it was read from; parse notes |
+| `consensus`, `heldAsDuplicate`, `counterpartyId?` | Per field (`number`, `issuerName`, `total`, `lines.{i}.amount`, …): status, page, box, raw readings; `payTo` raw readings masked |
 | `dupKey`, `dupKeyAlt` | Content keys for `D03`/`D04` (issuer + number; issuer + date + total), single-field indexed |
 
-Receipts: `docId`, `merchantName`, `date`, `month`, `totalMinor`, `taxMinor?`, `paymentMethod`
-(`CASH`, `CARD`, `TRANSFER`, `UNKNOWN`), `items[]?`, `payment` (as above), `consensus`,
+Receipts: `docId`, `merchantName`, `merchantTaxId?` (masked), `number?`, `date`, `time?`, `month`,
+`currency`, `totalMinor`, `taxMinor?`, `paymentMethod` (`CASH`, `CARD`, `TRANSFER`, `UNKNOWN`),
+`items[]?`, `pages[]`, `notes[]`, `payment` (as above), `consensus`,
 `heldAsDuplicate`, `dupKey` (merchant + date + total, for `D05`; the perceptual hash is on the
 document).
 

@@ -25,20 +25,21 @@ class Parsed[T]:
 
 # ---------------------------------------------------------------------------- amounts
 
-_CURRENCY = re.compile(r"(?i)\b(?:IDR|MYR|SGD|JPY|USD|RM|RP|S\$|US\$)|[¥$€£]")
+_CURRENCY = re.compile(r"(?i)\b(?:IDR|MYR|SGD|JPY|USD|RM|RP|S\$|US\$)\.?|[¥$€£]")
 _EN = re.compile(r"^\d{1,3}(,\d{3})*(\.\d+)?$|^\d+(\.\d+)?$")
 _EU = re.compile(r"^\d{1,3}(\.\d{3})*(,\d+)?$|^\d+(,\d+)?$")
 
 
 def detect_amount_style(samples: list[str]) -> AmountStyle:
     """The document's format from the majority of its amounts: a comma before the last two digits
-    (`1.250.000,00`, `12,50`) votes EU; a dot there votes EN."""
+    (`1.250.000,00`, `12,50`) votes EU; a dot there votes EN. Whole amounts grouped by dots
+    (`Rp 1.500.000`) vote EU, grouped by commas (`1,500,000`) EN."""
     eu = en = 0
     for text in samples:
-        core = re.sub(r"[^\d.,]", "", text or "")
-        if re.search(r",\d{2}$", core):
+        core = re.sub(r"[^\d.,]", "", text or "").strip(".,")
+        if re.search(r",\d{2}$", core) or re.fullmatch(r"\d{1,3}(\.\d{3})+", core):
             eu += 1
-        elif re.search(r"\.\d{2}$", core):
+        elif re.search(r"\.\d{2}$", core) or re.fullmatch(r"\d{1,3}(,\d{3})+", core):
             en += 1
     return "EU" if eu > en else "EN"
 
@@ -77,18 +78,19 @@ _MONTHS = {
     name: i
     for i, names in enumerate(
         [
-            ("jan", "january"),
-            ("feb", "february"),
-            ("mar", "march"),
+            # English, then Malay and Indonesian names and abbreviations
+            ("jan", "january", "januari"),
+            ("feb", "february", "februari", "peb"),
+            ("mar", "march", "mac", "maret"),
             ("apr", "april"),
-            ("may",),
-            ("jun", "june"),
-            ("jul", "july"),
-            ("aug", "august"),
+            ("may", "mei"),
+            ("jun", "june", "juni"),
+            ("jul", "july", "julai", "juli"),
+            ("aug", "august", "ogos", "ogo", "agustus", "agu", "agt"),
             ("sep", "sept", "september"),
-            ("oct", "october"),
-            ("nov", "november"),
-            ("dec", "december"),
+            ("oct", "october", "oktober", "okt"),
+            ("nov", "november", "nop"),
+            ("dec", "december", "disember", "desember", "dis", "des"),
         ],
         start=1,
     )

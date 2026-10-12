@@ -4,7 +4,12 @@ plus its layout chunks. Implemented with Gemini; tests use a recorded fake."""
 from dataclasses import dataclass
 from typing import Protocol
 
-from app.domain.reading import DocClassification, StatementPageReading
+from app.domain.reading import (
+    DocClassification,
+    InvoicePageReading,
+    ReceiptPageReading,
+    StatementPageReading,
+)
 
 
 @dataclass(frozen=True)
@@ -30,4 +35,16 @@ class DocumentReader(Protocol):
         self, image_png: bytes, chunks: str, *, page: int, context: str | None
     ) -> ReaderCall[StatementPageReading]:
         """One statement page from its image and numbered chunks; `context` is page 1's header."""
+        ...
+
+    async def read_invoice_page(
+        self, image_png: bytes, chunks: str, *, page: int
+    ) -> ReaderCall[InvoicePageReading]:
+        """One invoice page; each carries its own invoice number, so pages read independently."""
+        ...
+
+    async def read_receipt_page(
+        self, image_png: bytes, chunks: str, *, page: int
+    ) -> ReaderCall[ReceiptPageReading]:
+        """One receipt page or photo; `chunks` is empty for a photo without a text layer."""
         ...

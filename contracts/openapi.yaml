@@ -464,6 +464,7 @@ paths:
       tags: [books]
       operationId: listInvoices
       parameters:
+        - { name: docId, in: query, schema: { type: string }, description: "Invoices read from one document (a PDF can hold several)" }
         - { name: kind, in: query, schema: { type: string, enum: [SALES, PURCHASE] } }
         - $ref: "#/components/parameters/MonthQuery"
         - { name: paymentState, in: query, schema: { $ref: "#/components/schemas/PaymentState" } }
@@ -496,6 +497,7 @@ paths:
       tags: [books]
       operationId: listReceipts
       parameters:
+        - { name: docId, in: query, schema: { type: string }, description: "Receipts read from one document" }
         - $ref: "#/components/parameters/MonthQuery"
         - { name: paymentState, in: query, schema: { $ref: "#/components/schemas/PaymentState" } }
         - $ref: "#/components/parameters/Limit"
@@ -1927,27 +1929,33 @@ components:
       type: object
       properties:
         description: { type: string }
-        qty: { $ref: "#/components/schemas/Decimal" }
-        unitPrice: { $ref: "#/components/schemas/Money" }
-        amount: { $ref: "#/components/schemas/Money" }
+        qty: { oneOf: [{ $ref: "#/components/schemas/Decimal" }, { type: "null" }] }
+        unitPrice: { oneOf: [{ $ref: "#/components/schemas/Money" }, { type: "null" }] }
+        amount: { oneOf: [{ $ref: "#/components/schemas/Money" }, { type: "null" }] }
     Invoice:
       type: object
-      required: [invoiceId, docId, kind, number, issueDate, total, payment]
+      description: A value the reader could not read is null; `readings` says how each was read.
+      required: [invoiceId, docId, kind, payment]
       properties:
         invoiceId: { type: string }
         docId: { type: string }
         kind: { type: string, enum: [SALES, PURCHASE] }
-        number: { type: string }
-        issuerName: { type: string }
+        number: { type: [string, "null"] }
+        issuerName: { type: [string, "null"] }
         issuerTaxIdMasked: { type: [string, "null"] }
-        buyerName: { type: string }
-        issueDate: { type: string, format: date }
+        buyerName: { type: [string, "null"] }
+        buyerTaxIdMasked: { type: [string, "null"] }
+        issueDate: { type: [string, "null"], format: date }
         dueDate: { type: [string, "null"], format: date }
-        month: { $ref: "#/components/schemas/YearMonth" }
-        subtotal: { $ref: "#/components/schemas/Money" }
-        tax: { $ref: "#/components/schemas/Money" }
-        total: { $ref: "#/components/schemas/Money" }
+        month: { oneOf: [{ $ref: "#/components/schemas/YearMonth" }, { type: "null" }] }
+        subtotal: { oneOf: [{ $ref: "#/components/schemas/Money" }, { type: "null" }] }
+        tax: { oneOf: [{ $ref: "#/components/schemas/Money" }, { type: "null" }] }
+        total: { oneOf: [{ $ref: "#/components/schemas/Money" }, { type: "null" }] }
+        payToBank: { type: [string, "null"] }
         payToMasked: { type: [string, "null"], description: "Bank account printed on the invoice" }
+        supplyKind: { type: [string, "null"], enum: [GOODS, SERVICES, MIXED, null] }
+        pages: { type: array, items: { type: integer } }
+        notes: { type: array, items: { type: string } }
         lines: { type: array, items: { $ref: "#/components/schemas/InvoiceLine" } }
         counterpartyId: { type: [string, "null"] }
         payment: { $ref: "#/components/schemas/PaymentRef" }
@@ -1961,15 +1969,28 @@ components:
         nextCursor: { type: [string, "null"] }
     Receipt:
       type: object
-      required: [receiptId, docId, merchantName, date, total, payment]
+      description: A value the reader could not read is null; `readings` says how each was read.
+      required: [receiptId, docId, payment]
       properties:
         receiptId: { type: string }
         docId: { type: string }
-        merchantName: { type: string }
-        date: { type: string, format: date }
-        month: { $ref: "#/components/schemas/YearMonth" }
-        total: { $ref: "#/components/schemas/Money" }
+        merchantName: { type: [string, "null"] }
+        merchantTaxIdMasked: { type: [string, "null"] }
+        number: { type: [string, "null"] }
+        date: { type: [string, "null"], format: date }
+        time: { type: [string, "null"] }
+        month: { oneOf: [{ $ref: "#/components/schemas/YearMonth" }, { type: "null" }] }
+        total: { oneOf: [{ $ref: "#/components/schemas/Money" }, { type: "null" }] }
         tax: { oneOf: [{ $ref: "#/components/schemas/Money" }, { type: "null" }] }
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              description: { type: string }
+              amount: { oneOf: [{ $ref: "#/components/schemas/Money" }, { type: "null" }] }
+        pages: { type: array, items: { type: integer } }
+        notes: { type: array, items: { type: string } }
         paymentMethod: { type: string, enum: [CASH, CARD, TRANSFER, UNKNOWN] }
         payment: { $ref: "#/components/schemas/PaymentRef" }
         readings: { type: object, additionalProperties: { $ref: "#/components/schemas/ValueReading" } }

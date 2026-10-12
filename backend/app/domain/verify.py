@@ -97,7 +97,7 @@ class PageVerification:
 
 
 _AMOUNT = re.compile(
-    r"^\(?-?(?:[A-Z]{1,3}\$?|[$¥€£])?\s?\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{1,2})?\)?(?:CR|DR|-)?$",
+    r"^\(?-?(?:[A-Z]{1,3}\$?\.?|[$¥€£])?\s?(?:\d{1,3}(?:[.,]\d{3})+|\d+)(?:[.,]\d{1,2})?\)?(?:CR|DR|-)?$",
     re.IGNORECASE,
 )
 _COLUMN_TOLERANCE = 0.04  # of the page width: amounts of one column are right-aligned within this
@@ -587,4 +587,123 @@ def verify_header(values: dict[str, str | None], words: list[Word]) -> dict[str,
             out[name] = FieldCheck("SINGLE_SOURCE", value, None, None)
         else:
             out[name] = FieldCheck("AGREED", value, " ".join(w.text for w in hit), _box(hit))
+    return out
+
+
+# ---------------------------------------------------------------------------- invoices and receipts
+
+ValueKind = Literal["text", "amount", "date"]
+
+
+def _lines_of(words: list[Word]) -> list[list[Word]]:
+    out: list[list[Word]] = []
+    for w in sorted(words, key=lambda w: (w.top, w.x0)):
+        if out and _same_line(out[-1][0], w):
+            out[-1].append(w)
+        else:
+            out.append([w])
+    return [sorted(line, key=lambda w: w.x0) for line in out]
+
+
+def _span(target: str, seq: list[Word]) -> list[Word] | None:
+    """Whole words of `seq` whose squashed text is exactly `target`."""
+    starts: list[int] = []
+    text = ""
+    for w in seq:
+        starts.append(len(text))
+        text += squash(w.text)
+    ends = [*starts[1:], len(text)]
+    i = text.find(target)
+    while i != -1:
+        j = i + len(target)
+        if i in starts and j in ends:
+            return seq[starts.index(i) : ends.index(j) + 1]
+        i = text.find(target, i + 1)
+    return None
+
+
+def _exact_word(value: str, words: list[Word]) -> Word | None:
+    """A whole amount printed without separators ("15000", "1") is found as the exact word."""
+    target = squash(value)
+    return next((w for w in words if squash(w.text) == target), None) if target else None
+
+
+def locate(value: str | None, words: list[Word]) -> list[Word] | None:
+    """The words a printed value occupies: whole words on one line, or across two consecutive lines
+    for a wrapped value. Compared squashed, so `ACME SDN BHD` finds `ACMESDN BHD`."""
+    target = squash(value)
+    if not target:
+        return None
+    lines = _lines_of(words)
+    for seq in [*lines, *(a + b for a, b in zip(lines, lines[1:], strict=False))]:
+        if hit := _span(target, seq):
+            return hit
+    return None
+
+
+def check_value(value: str | None, kind: ValueKind, words: list[Word]) -> FieldCheck | None:
+    """A header or total value found anywhere on its page (docs/07 §6.2); None when not read."""
+    if not value or not value.strip():
+        return None
+    if kind == "amount":
+        hit = _match_amount(value, words) or _exact_word(value, words)
+        found = [hit] if hit else None
+    else:
+        found = locate(value, words)
+        digits = _digits(value)
+        if found is None and len(digits) >= 4:  # a date or number printed with other separators
+            found = next(
+                (p for p in _phrases(words) if _digits("".join(w.text for w in p)) == digits), None
+            )
+    if not found:
+        return FieldCheck("SINGLE_SOURCE", value, None, None)
+    return FieldCheck("AGREED", value, " ".join(w.text for w in found), _box(found))
+
+
+@dataclass
+class ItemCheck:
+    """An invoice line or receipt item: its description anchors a band holding its amount."""
+
+    description: FieldCheck
+    amount: FieldCheck | None
+    chunk_ids: tuple[str, ...] = ()
+
+
+def check_items(items: Sequence[tuple[str, str | None]], words: list[Word]) -> list[ItemCheck]:
+    """Items in printed order: each description's first line is found below the previous item, and
+    its amount on the same line or the lines down to the next item (docs/07 §6.2)."""
+    lines = _lines_of(words)
+    anchors: list[float | None] = []
+    after = -1.0
+    for description, _ in items:
+        first = (description or "").splitlines()[0] if description else ""
+        below = [w for w in words if w.top > after]
+        hit = locate(first, below)
+        anchors.append(hit[0].top if hit else None)
+        if hit:
+            after = hit[0].top
+    used: set[int] = set()
+    out: list[ItemCheck] = []
+    for i, (description, amount) in enumerate(items):
+        top = anchors[i]
+        first = (description or "").splitlines()[0] if description else ""
+        if top is None:
+            desc = FieldCheck("SINGLE_SOURCE", description, None, None)
+            band = words
+        else:
+            hit = locate(first, [w for w in words if abs(w.top - top) < 0.004])
+            desc = FieldCheck("AGREED", description, first, _box(hit or []))
+            nxt = next((a for a in anchors[i + 1 :] if a is not None), None)
+            bottom = nxt - 0.002 if nxt is not None else top + 0.06
+            band = [w for line in lines if top - 0.004 <= line[0].top < bottom for w in line]
+        amt: FieldCheck | None = None
+        if amount:
+            free = [w for w in band if id(w) not in used] or [w for w in words if id(w) not in used]
+            word = _match_amount(amount, free) or _exact_word(amount, free)
+            if word is not None:
+                used.add(id(word))
+                amt = FieldCheck("AGREED", amount, word.text, _box([word]))
+            else:
+                amt = FieldCheck("SINGLE_SOURCE", amount, None, None)
+        out.append(ItemCheck(desc, amt))
     return out

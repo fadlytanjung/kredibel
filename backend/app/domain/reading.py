@@ -97,6 +97,58 @@ _OPENING = re.compile(r"(?i)\b(B/?F|BROUGHT\s*FORWARD|OPENING|BAKI\s*AWAL|SALDO\
 _CLOSING = re.compile(r"(?i)\b(C/?F|CARRIED\s*FORWARD|CLOSING|BAKI\s*AKHIR|SALDO\s*AKHIR)")
 
 
+class InvoiceLineReading(BaseModel):
+    description: str
+    quantity_text: str | None = None
+    unit_price_text: str | None = None
+    amount_text: str | None = None
+    chunk_ids: list[str] = Field(default_factory=list)
+
+
+class InvoicePageReading(BaseModel):
+    """One page of an invoice, values as printed. A PDF can hold several invoices: a page with a
+    different invoice number starts the next one."""
+
+    page: int
+    invoice_number: str | None = None
+    issuer_name: str | None = None
+    issuer_tax_id: str | None = None
+    buyer_name: str | None = None
+    buyer_tax_id: str | None = None
+    issue_date_text: str | None = None
+    due_date_text: str | None = None
+    currency: str | None = None
+    payment_bank_text: str | None = None
+    payment_account_text: str | None = None
+    lines: list[InvoiceLineReading] = Field(default_factory=list)
+    subtotal_text: str | None = None
+    tax_text: str | None = None
+    total_text: str | None = None
+    supply_kind: Literal["GOODS", "SERVICES", "MIXED"] | None = None
+    differs_from_text: list[str] = Field(default_factory=list)
+
+
+class ReceiptItemReading(BaseModel):
+    description: str
+    amount_text: str | None = None
+    chunk_ids: list[str] = Field(default_factory=list)
+
+
+class ReceiptPageReading(BaseModel):
+    page: int
+    merchant_name: str | None = None
+    merchant_tax_id: str | None = None
+    receipt_number: str | None = None
+    date_text: str | None = None
+    time_text: str | None = None
+    currency: str | None = None
+    items: list[ReceiptItemReading] = Field(default_factory=list)
+    tax_text: str | None = None
+    total_text: str | None = None
+    payment_method_text: str | None = None
+    differs_from_text: list[str] = Field(default_factory=list)
+
+
 @dataclass
 class StatementMeta:
     bank_name: str | None

@@ -214,4 +214,55 @@ describe('DocumentPage', () => {
     expect(apiBlob).toHaveBeenCalledWith('/api/documents/doc_lines/pages/2?variant=full')
     expect(screen.getByTestId('page-lamp').style.left).toBe('61.6%')
   })
+
+  it('shows the invoices read from a document and lights a value on its page (T005-03)', async () => {
+    const box = { x0: 0.7, y0: 0.5, x1: 0.85, y1: 0.52 }
+    const agreed = { status: 'AGREED', page: 1, bbox: box, sources: ['GEMINI', 'TEXT_LAYER'] }
+    vi.mocked(apiClient).mockImplementation(async (path: string) =>
+      path.startsWith('/api/invoices')
+        ? {
+            items: [
+              {
+                invoiceId: 'inv_0000000000000001',
+                docId: 'doc_inv',
+                kind: 'SALES',
+                number: 'INV/SCR/2026/03/0009',
+                issuerName: 'Sunrise Coffee Roasters',
+                buyerName: 'Daybreak Café',
+                issueDate: '2026-03-12',
+                total: { amount: '19597050.00', currency: 'IDR' },
+                tax: { amount: '1942050.00', currency: 'IDR' },
+                lines: [{ description: 'Drip bags, box of 20', qty: '93', amount: { amount: '8835000.00', currency: 'IDR' } }],
+                payment: { state: 'UNPAID' },
+                readings: { total: agreed, number: { ...agreed, bbox: undefined }, 'lines.0.amount': agreed },
+              },
+            ],
+          }
+        : {
+            docId: 'doc_inv',
+            fileName: 'invoice.pdf',
+            contentType: 'application/pdf',
+            docType: 'SALES_INVOICE',
+            status: 'DONE',
+            pageCount: 1,
+            pages: [{ pageNo: 1, status: 'DONE', textLayer: true, witness: 'TEXT_LAYER' }],
+            reading: { method: 'AI_TEXT_LAYER', agreement: '1.000', fieldsCompared: 12, fieldsAgreed: 12, lines: 1 },
+            uploadedAt: '2026-10-12T01:57:18Z',
+          },
+    )
+
+    renderPage('doc_inv')
+
+    await waitFor(() => expect(screen.getByText('INV/SCR/2026/03/0009')).toBeInTheDocument())
+    expect(apiClient).toHaveBeenCalledWith('/api/invoices?docId=doc_inv')
+    expect(screen.getByText('Sales invoice')).toBeInTheDocument()
+    expect(screen.getByText('12 of 12 values found on the page')).toBeInTheDocument()
+    expect(screen.getByText('Daybreak Café')).toBeInTheDocument()
+    expect(screen.queryByTestId('page-lamp')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /Total/ }))
+
+    await waitFor(() => expect(screen.getByTestId('page-lamp')).toBeInTheDocument())
+    expect(screen.getByTestId('page-lamp').style.left).toBe('69.6%')
+  })
 })

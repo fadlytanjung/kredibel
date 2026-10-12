@@ -141,3 +141,25 @@ def test_counterparty_after_common_prefixes(description, party):
 )
 def test_receipt_payment_method(text, method):
     assert payment_method(text) == method
+
+
+# Found on real Malaysian and Indonesian invoices and receipts (spec 005, T005-03).
+
+
+def test_a_currency_with_a_dot_is_stripped():
+    assert parse_amount("Rp. 15.000", "EU").value == Decimal("15000.00")
+    assert parse_amount("RM 1,200.00").value == Decimal("1200.00")
+
+
+def test_whole_amounts_grouped_by_dots_are_detected_as_dot_grouped():
+    assert detect_amount_style(["Rp. 15.000", "1.500.000", "Rp 250.000"]) == "EU"
+    assert detect_amount_style(["1,500,000", "250,000"]) == "EN"
+    assert detect_amount_style(["1,200.00", "300.00"]) == "EN"
+
+
+def test_malay_and_indonesian_month_names_parse():
+    assert parse_date("22 Disember 2025").value == date(2025, 12, 22)
+    assert parse_date("5 Ogos 2026").value == date(2026, 8, 5)
+    assert parse_date("17 Agustus 2026").value == date(2026, 8, 17)
+    assert parse_date("1 Mac 2026").value == date(2026, 3, 1)
+    assert parse_date("30 Okt 2026").value == date(2026, 10, 30)

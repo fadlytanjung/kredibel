@@ -102,6 +102,46 @@
     "file": "base.py",
     "schemaVersion": 1
   },
+  "InvoiceDoc": {
+    "fields": {
+      "buyer_name": "str | None",
+      "buyer_tax_id": "str | None",
+      "consensus": "dict[str, Any]",
+      "counterparty_id": "str | None",
+      "currency": "str | None",
+      "doc_id": "str",
+      "due_date": "str | None",
+      "held_as_duplicate": "bool",
+      "invoice_id": "str",
+      "issue_date": "str | None",
+      "issuer_name": "str | None",
+      "issuer_tax_id": "str | None",
+      "kind": "str",
+      "lines": "list[InvoiceLineDoc]",
+      "month": "str | None",
+      "notes": "list[str]",
+      "number": "str | None",
+      "pages": "list[int]",
+      "pay_to": "PayToDoc",
+      "payment": "dict[str, Any]",
+      "subtotal_minor": "int | None",
+      "supply_kind": "str | None",
+      "tax_minor": "int | None",
+      "total_minor": "int | None"
+    },
+    "file": "invoice.py",
+    "schemaVersion": null
+  },
+  "InvoiceLineDoc": {
+    "fields": {
+      "amount_minor": "int | None",
+      "description": "str",
+      "qty": "str | None",
+      "unit_price_minor": "int | None"
+    },
+    "file": "invoice.py",
+    "schemaVersion": null
+  },
   "MemberDoc": {
     "fields": {
       "created_at": "datetime",
@@ -132,6 +172,46 @@
       "timezone": "str"
     },
     "file": "workspace.py",
+    "schemaVersion": null
+  },
+  "PayToDoc": {
+    "fields": {
+      "account_masked": "str | None",
+      "bank_name": "str | None"
+    },
+    "file": "invoice.py",
+    "schemaVersion": null
+  },
+  "ReceiptDoc": {
+    "fields": {
+      "consensus": "dict[str, Any]",
+      "currency": "str | None",
+      "date": "str | None",
+      "doc_id": "str",
+      "held_as_duplicate": "bool",
+      "items": "list[ReceiptItemDoc]",
+      "merchant_name": "str | None",
+      "merchant_tax_id": "str | None",
+      "month": "str | None",
+      "notes": "list[str]",
+      "number": "str | None",
+      "pages": "list[int]",
+      "payment": "dict[str, Any]",
+      "payment_method": "str",
+      "receipt_id": "str",
+      "tax_minor": "int | None",
+      "time": "str | None",
+      "total_minor": "int | None"
+    },
+    "file": "invoice.py",
+    "schemaVersion": null
+  },
+  "ReceiptItemDoc": {
+    "fields": {
+      "amount_minor": "int | None",
+      "description": "str"
+    },
+    "file": "invoice.py",
     "schemaVersion": null
   },
   "SignupDoc": {

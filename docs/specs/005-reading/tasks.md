@@ -4,7 +4,7 @@
 
 - [x] **T005-01** **TDD** `normalize.py` (amount formats, dates, direction, counterparty extraction, payment methods). (AC-005-7, edge cases)
 - [x] **T005-02** **TDD** `verify.py` for statements: anchoring, columns, coverage, witness-only rows, conflicts, boxes. (AC-005-6)
-- [ ] **T005-03** [P] **TDD** `verify.py` for invoices and receipts. (AC-005-6)
+- [x] **T005-03** [P] **TDD** `verify.py` for invoices and receipts. (AC-005-6)
 - [ ] **T005-04** **TDD** `ledger_parse.py`: both layouts, bad rows, 2% rule, layout signature, shape masking. (AC-005-10, AC-005-12)
 
 ## Phase 2 — Model calls

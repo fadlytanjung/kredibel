@@ -14,6 +14,7 @@ from app.adapters.firebase_identity import FirebaseIdentityAdmin
 from app.adapters.firestore.bank_line_repo import FirestoreBankLineRepository
 from app.adapters.firestore.document_repo import FirestoreDocumentRepository
 from app.adapters.firestore.month_repo import FirestoreMonthRepository
+from app.adapters.firestore.record_repo import firestore_invoices, firestore_receipts
 from app.adapters.firestore.run_repo import FirestoreRunRepository
 from app.adapters.firestore.usage_repo import FirestoreUsageRepository
 from app.adapters.firestore.workspace_repo import FirestoreWorkspaceRepository
@@ -34,6 +35,7 @@ from app.api.health import create_health_router
 from app.api.me import create_me_router
 from app.api.months import create_months_router
 from app.api.plans import create_plans_router
+from app.api.records import create_records_router
 from app.api.runs import create_runs_router
 from app.api.static import mount_static_spa
 from app.api.tasks import create_tasks_router
@@ -53,6 +55,7 @@ from app.core.errors import register_error_handlers
 from app.core.logging import LoggingMiddleware, setup_logging
 from app.core.security_headers import SecurityHeadersMiddleware
 from app.core.settings import Settings
+from app.domain.models.invoice import Invoice, Receipt
 from app.domain.plans import PlanCatalog
 from app.observability.tracing import setup_tracing
 from app.ports.bank_line_repository import BankLineRepository
@@ -63,6 +66,7 @@ from app.ports.identity_admin import IdentityAdmin
 from app.ports.month_repository import MonthRepository
 from app.ports.page_renderer import PageRenderer
 from app.ports.page_text import PageText
+from app.ports.record_repository import DocumentRecords
 from app.ports.run_repository import RunRepository
 from app.ports.spreadsheet_reader import SpreadsheetReader
 from app.ports.task_queue import TaskQueue
@@ -71,6 +75,7 @@ from app.services.bank_line_service import BankLineService
 from app.services.document_service import DocumentService
 from app.services.entitlement_service import EntitlementService
 from app.services.month_service import MonthService
+from app.services.record_service import RecordService
 from app.services.runs import DocumentWorkflowRunner, MonthWorkflowRunner, RunService
 from app.services.workspace_service import WorkspaceService
 
@@ -105,6 +110,8 @@ class AppDeps:
         reader: DocumentReader | None = None,
         page_text: PageText | None = None,
         bank_lines: BankLineRepository | None = None,
+        invoices: DocumentRecords[Invoice] | None = None,
+        receipts: DocumentRecords[Receipt] | None = None,
     ) -> None:
         self.settings = settings
         self._plans = plans
@@ -125,6 +132,8 @@ class AppDeps:
         self._reader = reader
         self._page_text = page_text
         self._bank_lines = bank_lines
+        self._invoices = invoices
+        self._receipts = receipts
         self._built: dict[str, Any] = {}
 
     def _once(self, name: str, build: Callable[[], T]) -> T:
@@ -276,6 +285,8 @@ class AppDeps:
                 renderer=self.renderer,
                 spreadsheet_reader=self.spreadsheet_reader,
                 bank_lines=self.bank_lines,
+                invoices=self.invoices,
+                receipts=self.receipts,
                 clock=self.clock,
                 runs_enabled=self.settings.runs_enabled,
             ),
@@ -302,6 +313,14 @@ class AppDeps:
     @property
     def page_text(self) -> PageText:
         return self._once("page_text", lambda: self._page_text or PdfTextLayer())
+
+    @property
+    def invoices(self) -> DocumentRecords[Invoice]:
+        return self._once("invoices", lambda: self._invoices or firestore_invoices(self.firestore))
+
+    @property
+    def receipts(self) -> DocumentRecords[Receipt]:
+        return self._once("receipts", lambda: self._receipts or firestore_receipts(self.firestore))
 
     @property
     def bank_lines(self) -> BankLineRepository:
@@ -338,6 +357,9 @@ class AppDeps:
                 reader=self.reader,
                 page_text=self.page_text,
                 bank_lines=self.bank_lines,
+                invoices=self.invoices,
+                receipts=self.receipts,
+                workspaces=self.workspace_repo,
             )
             await run_workflow(
                 build_document_workflow(pipeline_deps),
@@ -392,6 +414,15 @@ class AppDeps:
                 clock=self.clock,
                 document_workflow_runner=self.document_workflow_runner,
                 month_workflow_runner=self.month_workflow_runner,
+            ),
+        )
+
+    @property
+    def record_service(self) -> RecordService:
+        return self._once(
+            "record_service",
+            lambda: RecordService(
+                invoices=self.invoices, receipts=self.receipts, workspaces=self.workspace_repo
             ),
         )
 
@@ -471,6 +502,7 @@ def create_app(
         app.include_router(create_runs_router(deps, workspace_dep))
         app.include_router(create_months_router(deps, workspace_dep))
         app.include_router(create_bank_lines_router(deps, workspace_dep))
+        app.include_router(create_records_router(deps, workspace_dep))
 
     # 3. Worker role endpoints
     if active_settings.app_role in ("worker", "all"):

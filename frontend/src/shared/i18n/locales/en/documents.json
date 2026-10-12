@@ -104,6 +104,36 @@
     "witnessRow": "Found on the page only",
     "opening": "Opening balance",
     "closing": "Closing balance",
-    "currency": "Currency"
+    "currency": "Currency",
+    "invoices": "Invoices read",
+    "receipts": "Receipts read",
+    "recordsSummary": "{{agreed}} of {{compared}} values found on the page",
+    "invoice": {
+      "untitled": "Invoice without a number",
+      "kind": {
+        "SALES": "Sales invoice",
+        "PURCHASE": "Purchase invoice"
+      },
+      "issuer": "Issued by",
+      "buyer": "Billed to",
+      "issueDate": "Issue date",
+      "dueDate": "Due date",
+      "subtotal": "Subtotal",
+      "tax": "Tax",
+      "total": "Total",
+      "payTo": "Pay to",
+      "qty": "Qty"
+    },
+    "receipt": {
+      "untitled": "Receipt",
+      "date": "Date",
+      "number": "Receipt no.",
+      "method": {
+        "CASH": "Cash",
+        "CARD": "Card",
+        "TRANSFER": "Transfer",
+        "UNKNOWN": "Payment not shown"
+      }
+    }
   }
 }

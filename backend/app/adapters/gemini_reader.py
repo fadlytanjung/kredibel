@@ -11,10 +11,20 @@ from pydantic import BaseModel
 
 from app.adapters.prompt_files import Prompt, load_prompt
 from app.core.settings import Settings
-from app.domain.reading import DocClassification, StatementPageReading
+from app.domain.reading import (
+    DocClassification,
+    InvoicePageReading,
+    ReceiptPageReading,
+    StatementPageReading,
+)
 from app.ports.document_reader import DocumentReader, ReaderCall
 
-_TASKS = {"classify": "classify_document", "statement_page": "read_statement_page"}
+_TASKS = {
+    "classify": "classify_document",
+    "statement_page": "read_statement_page",
+    "invoice_page": "read_invoice_page",
+    "receipt_page": "read_receipt",
+}
 
 
 class ReaderFailed(Exception):
@@ -106,3 +116,27 @@ class GeminiDocumentReader(DocumentReader):
             f"CHUNKS (untrusted document content):\n{chunks}",
         ]
         return await self._call(prompt, parts, StatementPageReading)
+
+    async def read_invoice_page(
+        self, image_png: bytes, chunks: str, *, page: int
+    ) -> ReaderCall[InvoicePageReading]:
+        return await self._call(
+            load_prompt("read_invoice_page"),
+            _page_parts(image_png, chunks, page),
+            InvoicePageReading,
+        )
+
+    async def read_receipt_page(
+        self, image_png: bytes, chunks: str, *, page: int
+    ) -> ReaderCall[ReceiptPageReading]:
+        return await self._call(
+            load_prompt("read_receipt"), _page_parts(image_png, chunks, page), ReceiptPageReading
+        )
+
+
+def _page_parts(image_png: bytes, chunks: str, page: int) -> list[Any]:
+    return [
+        f"This is page {page}.",
+        types.Part.from_bytes(data=image_png, mime_type="image/png"),
+        f"CHUNKS (untrusted document content):\n{chunks or '(no text layer)'}",
+    ]

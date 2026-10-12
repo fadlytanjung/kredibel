@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { type BankLine, lineBox, StatementLines, useBankLines } from '../entities/bank-line'
 import { downloadOriginal, PageImage, useDeleteDocument, useDocument } from '../entities/document'
+import { InvoiceCard, ReceiptCard, useInvoices, useReceipts, type ValueFocus } from '../entities/record'
 import { formatDate } from '../shared/lib/formatDate'
 import { formatMoney } from '../shared/lib/formatMoney'
 import { Badge, Button, Icon } from '../shared/ui'
@@ -21,9 +22,14 @@ export function DocumentPage() {
   const { t } = useTranslation(['documents', 'common'])
   const { data: doc, isLoading } = useDocument(docId)
   const deleteMutation = useDeleteDocument()
-  const isStatement = doc?.docType === 'BANK_STATEMENT' && Boolean(doc?.reading)
+  const read = Boolean(doc?.reading)
+  const isStatement = read && doc?.docType === 'BANK_STATEMENT'
+  const isInvoice = read && (doc?.docType === 'SALES_INVOICE' || doc?.docType === 'PURCHASE_INVOICE')
+  const isReceipt = read && doc?.docType === 'RECEIPT'
   const { data: linePage } = useBankLines(isStatement ? docId : undefined)
-  const [selectedLine, setSelectedLine] = useState<BankLine | null>(null)
+  const { data: invoicePage } = useInvoices(isInvoice ? docId : undefined)
+  const { data: receiptPage } = useReceipts(isReceipt ? docId : undefined)
+  const [focus, setFocus] = useState<ValueFocus | null>(null)
 
   const [selectedPage, setSelectedPage] = useState<number>(1)
   const [showConfirmDelete, setShowConfirmDelete] = useState<boolean>(false)
@@ -54,11 +60,17 @@ export function DocumentPage() {
   }
 
   const pagesCount = doc.pageCount || doc.pages?.length || 0
-  const selectLine = (line: BankLine) => {
-    setSelectedLine(line)
-    if (line.page) setSelectedPage(line.page)
+  // One value at a time is lit on its page: a statement line's amount, or an invoice or receipt field.
+  const showValue = (value: ValueFocus) => {
+    setFocus(value)
+    setSelectedPage(value.page)
   }
-  const highlight = selectedLine && selectedLine.page === selectedPage ? lineBox(selectedLine) : undefined
+  const selectLine = (line: BankLine) => {
+    const bbox = lineBox(line)
+    if (bbox && line.page) showValue({ key: line.txId, page: line.page, bbox })
+    else if (line.page) setSelectedPage(line.page)
+  }
+  const highlight = focus && focus.page === selectedPage ? focus.bbox : undefined
   const meta = doc.statementMeta
   const reading = doc.reading
 
@@ -232,7 +244,33 @@ export function DocumentPage() {
                 </span>
               )}
             </div>
-            <StatementLines lines={linePage.items} selectedTxId={selectedLine?.txId} onSelect={selectLine} />
+            <StatementLines lines={linePage.items} selectedTxId={focus?.key} onSelect={selectLine} />
+          </div>
+        )}
+        {invoicePage && invoicePage.items.length > 0 && (
+          <div className="stack gap-2">
+            <div className="spread items-center">
+              <h3 className="type-h3">{t('documents:detail.invoices')}</h3>
+              {reading && (
+                <span className="small muted">
+                  {t('documents:detail.recordsSummary', {
+                    agreed: reading.fieldsAgreed ?? 0,
+                    compared: reading.fieldsCompared ?? 0,
+                  })}
+                </span>
+              )}
+            </div>
+            {invoicePage.items.map((inv) => (
+              <InvoiceCard key={inv.invoiceId} record={inv} focused={focus?.key} onFocus={showValue} />
+            ))}
+          </div>
+        )}
+        {receiptPage && receiptPage.items.length > 0 && (
+          <div className="stack gap-2">
+            <h3 className="type-h3">{t('documents:detail.receipts')}</h3>
+            {receiptPage.items.map((rc) => (
+              <ReceiptCard key={rc.receiptId} record={rc} focused={focus?.key} onFocus={showValue} />
+            ))}
           </div>
         )}
         {doc.ledgerMeta && (
@@ -243,7 +281,7 @@ export function DocumentPage() {
             </div>
           </div>
         )}
-        {!doc.statementMeta && !doc.ledgerMeta && (
+        {!doc.statementMeta && !doc.ledgerMeta && !read && (
           <p className="muted small">{t('documents:status.reading')}</p>
         )}
       </section>

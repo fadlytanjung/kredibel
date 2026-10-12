@@ -13,12 +13,14 @@ import {
   type BankAccount,
 } from '../../entities/bank-account'
 import { ProblemError } from '../../shared/api/client'
+import { DataTable, type DataTableColumn, type DataTableFilter } from '../../shared/ui'
 import { Badge } from '../../shared/ui/Badge'
 import { Field, Input } from '../../shared/ui/Field'
 import { Icon } from '../../shared/ui/Icon'
 import { Skeleton } from '../../shared/ui/Skeleton'
 
-function AccountRow({ account }: { account: BankAccount }) {
+/** The actions cell of one account: edit nickname and ledger code, or remove it (state per row). */
+function AccountActions({ account }: { account: BankAccount }) {
   const { t } = useTranslation('settings')
   const update = useUpdateBankAccount()
   const remove = useDeleteBankAccount()
@@ -37,31 +39,7 @@ function AccountRow({ account }: { account: BankAccount }) {
   }
 
   return (
-    <tr>
-      <td>
-        <span className="doc-cell">
-          <span className="thumb">
-            <Icon name="bank" />
-          </span>
-          <span>
-            <strong>{account.nickname || account.bankName}</strong>
-            <span className="sub">
-              {t('bank.subline', {
-                bank: account.bankName,
-                masked: account.accountMasked,
-                holder: account.holderName,
-              })}
-            </span>
-          </span>
-        </span>
-      </td>
-      <td>
-        <Badge variant={account.source === 'DETECTED' ? 'evidence' : 'default'}>
-          {account.source === 'DETECTED' ? t('bank.detected') : t('bank.declared')}
-        </Badge>
-      </td>
-      <td className="muted">{account.ledgerAccountCode || t('bank.noLedgerCode')}</td>
-      <td className="r" data-cell="wide">
+    <>
         {editing ? (
           <form className="row justify-end" onSubmit={save}>
             <Input
@@ -110,8 +88,7 @@ function AccountRow({ account }: { account: BankAccount }) {
             </button>
           </span>
         )}
-      </td>
-    </tr>
+    </>
   )
 }
 
@@ -190,6 +167,55 @@ export function BankAccountsSection() {
   const { t } = useTranslation('settings')
   const accounts = useBankAccounts()
   const [adding, setAdding] = useState(false)
+  const all = accounts.data ?? []
+  const bySource = (source: BankAccount['source']) => (account: BankAccount) => account.source === source
+  const filters: DataTableFilter<BankAccount>[] = [
+    { key: 'all', label: t('bank.filterAll'), predicate: () => true, count: all.length },
+    { key: 'declared', label: t('bank.declared'), predicate: bySource('DECLARED'), count: all.filter(bySource('DECLARED')).length },
+    { key: 'detected', label: t('bank.detected'), predicate: bySource('DETECTED'), count: all.filter(bySource('DETECTED')).length },
+  ]
+  const columns: DataTableColumn<BankAccount>[] = [
+    {
+      key: 'account',
+      header: t('bank.colAccount'),
+      sortable: true,
+      sortValue: (account) => (account.nickname || account.bankName).toLowerCase(),
+      render: (account) => (
+        <span className="doc-cell">
+          <span className="thumb">
+            <Icon name="bank" />
+          </span>
+          <span>
+            <strong>{account.nickname || account.bankName}</strong>
+            <span className="sub">
+              {t('bank.subline', { bank: account.bankName, masked: account.accountMasked, holder: account.holderName })}
+            </span>
+          </span>
+        </span>
+      ),
+    },
+    {
+      key: 'source',
+      header: t('bank.colSource'),
+      render: (account) => (
+        <Badge variant={account.source === 'DETECTED' ? 'evidence' : 'default'}>
+          {account.source === 'DETECTED' ? t('bank.detected') : t('bank.declared')}
+        </Badge>
+      ),
+    },
+    {
+      key: 'ledger',
+      header: t('bank.colLedger'),
+      render: (account) => <span className="muted">{account.ledgerAccountCode || t('bank.noLedgerCode')}</span>,
+    },
+    {
+      key: 'actions',
+      header: t('bank.colActions'),
+      align: 'right',
+      wideOnMobile: true,
+      render: (account) => <AccountActions account={account} />,
+    },
+  ]
 
   return (
     <div className="stack gap-4">
@@ -197,15 +223,20 @@ export function BankAccountsSection() {
       {accounts.isLoading ? (
         <Skeleton className="h-24" />
       ) : accounts.data && accounts.data.length > 0 ? (
-        <div className="table-panel rt-wrap">
-          <table className="data-table rt">
-            <tbody>
-              {accounts.data.map((account) => (
-                <AccountRow key={account.accountId} account={account} />
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          data={accounts.data}
+          columns={columns}
+          getRowKey={(account) => account.accountId}
+          filters={filters}
+          filterGroupAriaLabel={t('bank.filterLabel')}
+          searchable
+          searchPlaceholder={t('bank.search')}
+          searchPredicate={(account, q) =>
+            [account.nickname, account.bankName, account.accountMasked, account.holderName, account.ledgerAccountCode]
+              .filter(Boolean)
+              .some((text) => String(text).toLowerCase().includes(q))
+          }
+        />
       ) : (
         <p className="panel panel-pad muted">{t('bank.empty')}</p>
       )}

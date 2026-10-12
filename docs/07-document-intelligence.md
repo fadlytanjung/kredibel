@@ -127,7 +127,8 @@ and findings are mapped to the part and page that contain the region.
 
 ## 4. Classification
 
-- Model: `MODEL_LITE` (Flash-Lite). Input: page 1 image plus up to 2,000 characters of text layer (if
+- Model: `MODEL_LITE` (Flash-Lite), like every reader call with `thinking_level=low` (spike S1: 7.8 s
+  instead of 56 s per page, same output). Input: page 1 image plus up to 2,000 characters of text layer (if
   usable and not quarantined); for CSV and XLSX, the header and the first 20 rows with values masked to
   their shape. Cached by document SHA-256 + model + prompt version.
 - A `docTypeHint` from the upload form is passed as a hint, not trusted.
@@ -341,13 +342,16 @@ business data leaves the workspace for this step beyond column names.
 `domain/verify.py`, pure and unit-tested:
 
 1. **Anchor each AI row.** Find the witness token(s) equal to `date_text` on that page, in printed
-   order (each anchor below the previous one). The **row band** runs from the anchor's top to just
+   order (each anchor below the previous one). Strings are compared with whitespace removed and case
+   folded: a text layer often stores printed "16 Aug" as one token `16Aug` (spike S1). The **row band** runs from the anchor's top to just
    above the next row's anchor (multi-line descriptions stay inside).
 2. **Match values in the band.** For `debit_text`, `credit_text`, `balance_text`: a witness token in
-   the band that is equal as a string, else equal after digits-only normalization.
+   the band that is equal as a string (whitespace removed), else equal after digits-only normalization.
 3. **Check the column.** Column x-ranges are learned from the matched tokens of the page (median
    x-centre per field ± half the median gap). A match outside its column is a `CONFLICT`.
-4. **Description:** `rapidfuzz.partial_ratio(band text without date/amounts, description) ≥ 85`.
+4. **Description:** `rapidfuzz.partial_ratio(band text without date/amounts, description) ≥ 85`;
+   all-digit words of six or more digits that the description does not contain (a cheque or serial
+   number column) are left out of the band text.
 5. **Status per value:** `AGREED` (found in band and column), `CONFLICT` (a different value sits in
    that band and column), `SINGLE_SOURCE` (AI only: nothing printed there, e.g. the witness could
    not read it).
@@ -357,7 +361,12 @@ business data leaves the workspace for this step beyond column names.
    order. A band with an extra amount next to a matched one (two values printed in one cell's place)
    marks the row `CONFLICT` and adds a note for `M05` (P1).
 7. **Header fields** (holder, account number, period, opening and closing balance, totals) are
-   searched on their page as exact strings, else digits-only.
+   searched on their page as exact strings, else digits-only. Words equal to the printed totals
+   below the last row belong to the totals line, not to the last row's band.
+8. **Continuations.** A reader row with no date and no amounts is the rest of a wrapped description:
+   it joins the row above, or, at the top of a page, the previous page's last row.
+
+On a real 13-page RHB statement (spike S1) these rules give 1.000 agreement on every page.
 
 **Bounding boxes** come from the witness tokens (union of the matched tokens), so every agreed value
 has an exact box, also on scanned pages.

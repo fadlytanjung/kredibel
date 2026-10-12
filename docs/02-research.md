@@ -254,7 +254,7 @@ _To be filled in on day 0._
 
 | ID | Result | Consequence |
 |---|---|---|
-| S1 | | |
+| S1 | 12 Oct 2026, on a real 13-page RHB (MYR, bilingual English/Malay) statement, page 2 rendered at 150 dpi. `gemini-3.8-flash` with `response_schema=StatementPage` returned all 14 rows the text layer anchors, values as printed, multi-line descriptions joined. ≈1,840 tokens in, 1,200 out. Default thinking: **56 s** per page; `thinking_level=low`: **7.8 s**, same output (`minimal` is not supported). The text layer drops spaces (`DEBITCARDTXN-DR`, date `16Aug` for printed "16 Aug"), so the verifier compares strings with whitespace removed. Dates carry no year (taken from the period `16Aug26–15Sep26`); the statement spans two calendar months. With the verifier rules of [`07`](07-document-intelligence.md) §6.1 (whitespace-free matching, a serial-number column, continuation rows, the totals line) all 13 pages agree at **1.000** | `MODEL_FAST` calls use `thinking_level=low`; verifier matching ignores whitespace and case ([`07`](07-document-intelligence.md) §6.1); date normalisation infers the year from a cross-month period |
 | S2 | | |
 | S3 | | |
 | S4 | | |

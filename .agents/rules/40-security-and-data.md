@@ -5,8 +5,10 @@ description: Security and data-handling rules. Applies to every change, includin
 
 # Security and data
 
-- **Synthetic data only.** Never add real customer documents, names, account numbers or tax IDs. Test
-  and demo files come from `tools/synthetic/`.
+- **Real documents in production, synthetic everywhere else** (ADR-022). Never commit real customer
+  documents, names, account numbers or tax IDs; test, fixture, eval and mock files come from
+  `tools/synthetic/`. When checking a change on a real document, print only statuses, counts and
+  masked shapes, never its values.
 - **No secrets** in code, config, images, logs, commit messages or tool output. Use ADC and service
   accounts. If a secret is ever needed, it goes to Secret Manager and is mounted as an env var.
 - **Never print** tokens, keys or credentials to stdout, even while debugging.

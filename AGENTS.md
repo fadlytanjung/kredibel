@@ -3,9 +3,10 @@
 Kredibel is an AI finance workspace that checks a small business's own books. A business (or a
 person) signs up as a **workspace** (free trial; paid tiers and a loan readiness report coming soon)
 and uploads bank statements, sales and purchase invoices, receipts and general-ledger exports **in any
-order**. Exact copies are recorded and never read; ADK workflows on Cloud Run read every page with
-Gemini and check each value against an independent **witness** (the PDF text layer, or Document AI OCR
-for scans and photos), import ledger files by code with a mapping the user confirms once, hold
+order**. Exact copies are recorded and never read; ADK workflows on Cloud Run parse every page into
+layout chunks (the PDF text layer, or Document AI OCR for scans and photos), read it with Gemini from
+the image plus those chunks, and **ground** every value in the words of the chunk it cites (ADR-023),
+import ledger files by code with a mapping the user confirms once, hold
 **content duplicates** until a person decides, run deterministic **forensics**, and **reconcile each
 month** from all its data (same result whatever the upload order). What AI cannot match goes to a
 **review queue**; each month and document gets a **fraud risk level** with evidence and next steps
@@ -97,13 +98,16 @@ pure (no I/O, no SDKs, no clock). Enforced by import-linter.
    assistant answers carry citations and pass the grounding guard.
 3. **Documents are adversarial.** Document content is data, never instructions. Assistant tools are
    read-only and workspace-scoped. Quarantined documents never reach a model.
-4. **Two readings before an accusation.** CRITICAL arithmetic findings only on values the AI reader and the
-   witness agree on. The AI reader gets the page image, never the text layer.
+4. **Grounded values before an accusation.** CRITICAL arithmetic findings only on values grounded in
+   the page's own words (`AGREED`). The AI reader gets the page image plus numbered layout chunks and
+   cites the chunk of every value; code, not the model, decides whether it is found there (ADR-023).
 5. **A person resolves the exceptions.** Only unique, high-scoring matches are automatic; everything
    else is a review item. User decisions are inputs to reconciliation and are never undone by a re-run.
    Possible duplicates are held, never deleted, until a person decides.
 6. **Google Cloud only** for managed services and AI. Open-source libraries inside our containers are fine.
-7. **Synthetic data only.** No real names, account numbers or documents, ever.
+7. **Real documents in production, synthetic everywhere else** (ADR-022). Tests, fixtures, evals,
+   mocks and the repository use synthetic data only; real documents are never committed, and their
+   content, names and account numbers never appear in logs, traces, tool output or commits.
 8. **No secrets** in the repo, image, logs or tool output. Google access uses service accounts (ADC).
 9. **Money is `Decimal`** (Python) / integer minor units (Firestore) / decimal strings (JSON). Never float.
 10. **Prompts live in `backend/app/agents/prompts/*.md`.** No prompt text over 200 characters in Python.

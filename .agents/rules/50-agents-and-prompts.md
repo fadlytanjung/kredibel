@@ -17,8 +17,9 @@ description: Rules for ADK workflow nodes, LLM agents and prompt files.
   `output_schema`. Bump `version` on any prompt change and re-record affected scenario recordings.
 - Prompts that see document content include the untrusted-content framing and pass the document as a
   separate content part.
-- Page-reading prompts ask for values **as printed** (strings) from **one page image**; normalization
-  happens in `domain/normalize.py`, verification in `domain/verify.py`.
+- Page-reading prompts ask for values **as printed** (strings) from **one page image and its numbered
+  chunks**, with the chunk IDs each value was read from; normalization happens in
+  `domain/normalize.py`, grounding in `domain/verify.py` (ADR-023).
 - LLM prose (explanations, assistant answers) is written in English with `[[…]]` citation markers;
   prompts say so explicitly. The grounding guard runs on every one.
 - Temperature 0 for classification, reading, ledger mapping, categorization and visual examination;

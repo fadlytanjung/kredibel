@@ -42,6 +42,19 @@ class Duplicates(_Model):
 
 class CrossDocument(_Model):
     holder_name_min_score: int = 80
+    continuity_tolerance_minor: int = 100
+
+
+class ReconciliationChecks(_Model):
+    overdue_grace_days: int = 30
+    overdue_medium_share: Decimal = Decimal("0.10")
+
+
+class Behaviour(_Model):
+    gambling_min_count: int = 1
+    returned_items_medium: int = 1
+    returned_items_high: int = 3
+    negative_days_threshold: int = 3
 
 
 class Verdict(_Model):
@@ -66,6 +79,8 @@ class ForensicsPolicy(_Model):
     extraction: Extraction = Field(default_factory=Extraction)
     duplicates: Duplicates = Field(default_factory=Duplicates)
     cross_document: CrossDocument = Field(default_factory=CrossDocument)
+    reconciliation_checks: ReconciliationChecks = Field(default_factory=ReconciliationChecks)
+    behaviour: Behaviour = Field(default_factory=Behaviour)
     verdict: Verdict = Field(default_factory=Verdict)
     next_steps: dict[str, str] = Field(default_factory=dict)  # from risk.v1.yaml
 

@@ -50,7 +50,7 @@ def side(active: str) -> str:
     <span class="nav-group-label">AI quality</span><span class="nav-sep" aria-hidden="true"></span>{ai}
   </nav>
   <div class="side-foot">
-    <a class="trial-status" href="plan-usage.html" title="Plan and usage"><strong>Free trial: 23 days left</strong><span class="bar" aria-hidden="true"><i style="width:72%"></i></span><span class="pages">286 of 400 pages</span></a>
+    <a class="trial-status" href="plan-usage.html" title="Plan and usage"><div class="trial-head"><strong>Free trial: 23 days left</strong><span class="pages">286 of 400 pages</span></div><span class="bar" aria-hidden="true"><i style="width:72%"></i></span></a>
     <a class="user" href="plan-usage.html"{profile_current} title="Settings" aria-label="Settings, signed in as Maya Sari (Owner)"><span class="avatar" aria-hidden="true">MS</span><span><strong>Maya Sari</strong>Owner</span>{icon("sliders", "icon user-action")}</a>
   </div>
 </aside>"""

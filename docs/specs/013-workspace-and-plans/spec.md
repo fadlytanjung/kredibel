@@ -68,18 +68,19 @@ member (`owner`); P1 adds an accounting team with roles.
   pages, AI spend, month runs today, seats), Starter, Professional and Enterprise with a **Coming soon**
   badge and disabled buttons, and the **Loan readiness report** and **Bank feeds** as coming-soon
   features. Nothing can start a purchase.
-- **AC-013-12** The trial status is always visible: from 1200 px as a row at the sidebar foot (days
-  left and pages read this month, opening Plan and usage), below that as a badge in the top bar; in
-  the last 7 days and after expiry a banner says what happens; after expiry Upload is disabled with
-  the reason.
+- **AC-013-12** The trial status is always visible: from 1200 px as a compact row at the sidebar foot (days
+  left and pages read this month with progress meter, fitting within 768 px viewport height without
+  scrolling, opening Plan and usage), below that as a badge in the top bar; in the last 7 days and after
+  expiry a banner says what happens; after expiry Upload is disabled with the reason.
 - **AC-013-13** A `403 PLAN_LIMIT_REACHED` opens a dialog naming the limit, the usage and the maximum;
   the upload sheet warns before ("4 of 400 pages left this month").
 
 ### US-013-4: Settings
 
 - **AC-013-14** **Profile**: names, trading name, legal form (company), industry, tax ID (stored
-  masked), address, aliases; the entity type is shown and fixed. **Bank accounts**: list (masked), add,
-  nickname, ledger account code, delete when no statement uses it.
+  masked), address, aliases; the entity type and reporting currency are shown and fixed (with "Coming soon"
+  for changing currency). **Bank accounts**: list (masked), add, nickname, ledger account code, delete when
+  no statement uses it.
 - **AC-013-15** **Language & formats**: English selected; other languages disabled with "Coming soon"
   (`422 LANGUAGE_NOT_AVAILABLE` on PATCH); the currency is shown read-only with "Coming soon" for
   changing it (it is not part of the PATCH body), and the date format is read-only.

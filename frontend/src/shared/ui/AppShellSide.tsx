@@ -66,11 +66,13 @@ export function TrialStatus({ trial }: { trial: AppShellTrial }) {
       to="/settings/plan"
       title={t('shell.planAndUsage')}
     >
-      <strong>{ended ? t('shell.trialEndedCard') : t('shell.trialDaysLeft', { count: trial.daysLeft })}</strong>
+      <div className="trial-head">
+        <strong>{ended ? t('shell.trialEndedCard') : t('shell.trialDaysLeft', { count: trial.daysLeft })}</strong>
+        <span className="pages">{t('shell.pagesShort', { used: trial.pagesUsed, max: trial.pagesMax })}</span>
+      </div>
       <span className="bar" aria-hidden="true">
         <i style={{ width: `${percent}%` }} /* allow-raw-style: computed meter width */ />
       </span>
-      <span className="pages">{t('shell.pagesShort', { used: trial.pagesUsed, max: trial.pagesMax })}</span>
     </Link>
   )
 }

@@ -49,5 +49,5 @@
   "timeZoneOption": "{{zone}} ({{offset}})",
   "bankAccount": "Main bank account",
   "currency": "Currency",
-  "currencyHint": "The currency of your books. Changing it later is coming soon."
+  "currencyHint": "Reporting currency of your books (IDR, MYR, SGD, JPY, USD). Changing it later is coming soon."
 }

@@ -113,8 +113,7 @@ The sidebar foot has two rows and nothing else, so the labelled sidebar shows ev
 scrolling in a window 768 px tall (below that only the navigation scrolls; the logo and the foot stay
 put):
 
-- **Trial status**: "Free trial: 23 days left", then a thin meter with "286 of 400 pages" read this
-  month; the row opens Plan and usage. After expiry it reads "Your free trial has ended". From 600 to
+- **Trial status**: compact row with "Free trial: 23 days left" alongside "286 of 400 pages", and a 3px progress bar; the row opens Plan and usage. After expiry it reads "Your free trial has ended". From 600 to
   1199 px the rail hides it and the top bar's trial badge carries it (AC-013-12).
 - **Profile**: the avatar, name and role, with a settings icon; it opens Settings (the profile section
   first) and is marked current on every Settings page. In the rail it is the avatar alone.

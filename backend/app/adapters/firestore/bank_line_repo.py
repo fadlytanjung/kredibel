@@ -36,6 +36,8 @@ def _to_doc(line: BankLine) -> BankLineDoc:
         category_confidence=None
         if line.category_confidence is None
         else str(line.category_confidence),
+        match={"state": line.match_state, "matchIds": line.match_ids},
+        support=line.support,
     )
 
 
@@ -62,6 +64,9 @@ def _to_domain(doc: BankLineDoc) -> BankLine:
         category_confidence=None
         if doc.category_confidence is None
         else Decimal(doc.category_confidence),
+        match_state=str(doc.match.get("state", "UNMATCHED")),
+        match_ids=list(doc.match.get("matchIds") or []),
+        support=doc.support,
     )
 
 
@@ -101,6 +106,19 @@ class FirestoreBankLineRepository(BankLineRepository):
             batch = self._db.batch()
             for ref in refs[start : start + _BATCH]:
                 batch.update(ref, {"heldAsDuplicate": held})
+            await batch.commit()
+
+    async def set_support(
+        self, org_id: str, updates: dict[str, tuple[str, list[str], str]]
+    ) -> None:
+        items = sorted(updates.items())
+        for start in range(0, len(items), _BATCH):
+            batch = self._db.batch()
+            for tx_id, (state, match_ids, support) in items[start : start + _BATCH]:
+                batch.update(
+                    self._col(org_id).document(tx_id),
+                    {"match": {"state": state, "matchIds": match_ids}, "support": support},
+                )
             await batch.commit()
 
     async def get_line(self, org_id: str, tx_id: str) -> BankLine | None:

@@ -21,3 +21,9 @@ class BankLineRepository(Protocol):
         ...
 
     async def get_line(self, org_id: str, tx_id: str) -> BankLine | None: ...
+
+    async def set_support(
+        self, org_id: str, updates: dict[str, tuple[str, list[str], str]]
+    ) -> None:
+        """Write the month run's (match state, match IDs, support) per line (ADR-025)."""
+        ...

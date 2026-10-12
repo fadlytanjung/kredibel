@@ -44,7 +44,8 @@ def bank_line_body(line: BankLine, currency: str) -> dict[str, Any]:
         "categorizedBy": line.categorized_by,
         "source": line.source,
         "notes": line.notes,
-        "match": {"state": "UNMATCHED", "matchIds": []},
+        "match": {"state": line.match_state, "matchIds": line.match_ids},
+        "support": line.support,
         "heldAsDuplicate": False,
         "corrected": False,
     }

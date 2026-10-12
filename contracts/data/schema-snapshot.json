@@ -47,6 +47,7 @@
       "risk_tags": "list[str]",
       "row_index": "int",
       "source": "str",
+      "support": "str | None",
       "tx_id": "str"
     },
     "file": "bank_line.py",
@@ -176,6 +177,7 @@
       "currency": "str | None",
       "doc_id": "str",
       "due_date": "str | None",
+      "evidence": "dict[str, Any] | None",
       "held_as_duplicate": "bool",
       "invoice_id": "str",
       "issue_date": "str | None",
@@ -205,6 +207,30 @@
       "unit_price_minor": "int | None"
     },
     "file": "invoice.py",
+    "schemaVersion": null
+  },
+  "MatchDoc": {
+    "fields": {
+      "alternatives": "list[str]",
+      "amount_difference_minor": "int",
+      "amount_minor": "int",
+      "bank_line_ids": "list[str]",
+      "created_at": "datetime | None",
+      "created_by": "str",
+      "invoice_ids": "list[str]",
+      "kind": "str",
+      "ledger_entry_ids": "list[str]",
+      "match_id": "str",
+      "method": "str | None",
+      "month": "str",
+      "reasons": "list[str]",
+      "receipt_ids": "list[str]",
+      "requires_review": "bool",
+      "run_id": "str | None",
+      "score": "str",
+      "status": "str"
+    },
+    "file": "match.py",
     "schemaVersion": null
   },
   "MemberDoc": {
@@ -253,6 +279,7 @@
       "currency": "str | None",
       "date": "str | None",
       "doc_id": "str",
+      "evidence": "dict[str, Any] | None",
       "held_as_duplicate": "bool",
       "items": "list[ReceiptItemDoc]",
       "merchant_name": "str | None",

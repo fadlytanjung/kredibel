@@ -17,7 +17,7 @@ from app.ports.document_reader import DocumentReader, ReaderCall
 class FakeDocumentReader(DocumentReader):
     def __init__(
         self,
-        classification: DocClassification | None = None,
+        classification: DocClassification | Callable[[str], DocClassification] | None = None,
         pages: Callable[[int], StatementPageReading] | None = None,
         invoice_pages: Callable[[int], InvoicePageReading] | None = None,
         receipt_pages: Callable[[int], ReceiptPageReading] | None = None,
@@ -37,7 +37,8 @@ class FakeDocumentReader(DocumentReader):
 
     async def classify(self, image_png: bytes, text: str) -> ReaderCall[DocClassification]:
         self.calls.append(("classify", 1))
-        return ReaderCall(self.classification, "fake-model", "classify@test", 100, 20)
+        value = self.classification(text) if callable(self.classification) else self.classification
+        return ReaderCall(value, "fake-model", "classify@test", 100, 20)
 
     async def read_statement_page(
         self, image_png: bytes, chunks: str, *, page: int, context: str | None

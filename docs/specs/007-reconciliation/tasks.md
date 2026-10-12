@@ -32,11 +32,13 @@
   currency, audited agreement to use unchanged amounts in workspace currency and pending exclusion.
   (AC-007-14…16, AC-007-19)
   Done: pure derivation of payment evidence, coverage and bank support (`domain/evidence.py`);
-  contract and audited decisions (`/api/decisions`, `decisions` collection). Open: writing
-  `evidence` and `support` from the month run (T007-08).
+  contract and audited decisions (`/api/decisions`, `decisions` collection); the month run writes
+  `evidence` and `support`.
 - [ ] **T007-07** **TDD** month checks `X01`, `X02`, `X08`, `X09`, `R01`, `R02`, `B01`, `B04`, `C02`, `D07`. (AC-007-10, AC-007-11)
   `domain/checks/month.py`: all but `X09` done and tested; `X09` needs ledger import (T005-04/09).
 - [ ] **T007-08** Month nodes and `finalize_month`; scenario tests S1 (≥ 85%, 0 wrong), S4, S5 = S1. (AC-007-8, AC-007-11)
+  Done: `reconcile`, `check_month`, `finalize_month` write matches, evidence, support, figures,
+  findings and the state; statement + invoice end-to-end test. Open: the S1/S4/S5 scenario gates.
   Align generator expectations for tax shortfalls with explicit adjustment decisions (ADR-025);
   the legacy generator scorer alone is not proof of runtime assignment quality.
 

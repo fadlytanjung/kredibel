@@ -32,3 +32,11 @@ class FakeBankLineRepository(BankLineRepository):
 
     async def get_line(self, org_id: str, tx_id: str) -> BankLine | None:
         return self.lines.get((org_id, tx_id))
+
+    async def set_support(
+        self, org_id: str, updates: dict[str, tuple[str, list[str], str]]
+    ) -> None:
+        for tx_id, (state, match_ids, support) in updates.items():
+            line = self.lines.get((org_id, tx_id))
+            if line is not None:
+                line.match_state, line.match_ids, line.support = state, match_ids, support

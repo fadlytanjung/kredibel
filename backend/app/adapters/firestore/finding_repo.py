@@ -95,6 +95,23 @@ class FirestoreFindingRepository(FindingRepository):
         await batch.commit()
         return merged
 
+    async def replace_month_findings(
+        self, org_id: str, month: str, fresh: list[Finding], *, run_id: str | None
+    ) -> list[Finding]:
+        existing = [
+            f
+            for f in await self.list_findings(org_id, month=month, limit=1000)
+            if f.scope == "MONTH"
+        ]
+        for f in fresh:
+            f.last_seen_run_id = run_id
+        merged = merge_findings(existing, fresh)
+        batch = self._db.batch()
+        for f in merged:
+            batch.set(self._col(org_id).document(f.finding_id), dump(_to_doc(f)))
+        await batch.commit()
+        return merged
+
     async def list_findings(
         self,
         org_id: str,

@@ -41,6 +41,7 @@ class Invoice:
     pages: list[int] = field(default_factory=list)
     consensus: dict[str, dict[str, Any]] = field(default_factory=dict)
     notes: list[str] = field(default_factory=list)
+    evidence: dict[str, Any] | None = None  # written by the month run (ADR-025)
 
 
 @dataclass
@@ -67,3 +68,4 @@ class Receipt:
     pages: list[int] = field(default_factory=list)
     consensus: dict[str, dict[str, Any]] = field(default_factory=dict)
     notes: list[str] = field(default_factory=list)
+    evidence: dict[str, Any] | None = None  # written by the month run (ADR-025)

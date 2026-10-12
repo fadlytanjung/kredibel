@@ -29,6 +29,21 @@ class FakeFindingRepository(FindingRepository):
             self.findings[(org_id, f.finding_id)] = f
         return merged
 
+    async def replace_month_findings(
+        self, org_id: str, month: str, fresh: list[Finding], *, run_id: str | None
+    ) -> list[Finding]:
+        existing = [
+            f
+            for f in await self.list_findings(org_id, month=month, limit=1000)
+            if f.scope == "MONTH"
+        ]
+        for f in fresh:
+            f.last_seen_run_id = run_id
+        merged = merge_findings(existing, fresh)
+        for f in merged:
+            self.findings[(org_id, f.finding_id)] = f
+        return merged
+
     async def list_findings(
         self,
         org_id: str,

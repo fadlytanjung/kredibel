@@ -29,6 +29,26 @@ def readings_body(consensus: dict[str, dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def evidence_body(evidence: dict[str, Any] | None, currency: str) -> dict[str, Any] | None:
+    """Stored in minor units by the month run (ADR-025); the contract carries Money."""
+    if not evidence:
+        return None
+
+    def money(key: str) -> dict[str, str]:
+        return {"amount": f"{Decimal(evidence.get(key) or 0) / 100:.2f}", "currency": currency}
+
+    return {
+        "payment": evidence["payment"],
+        "covered": evidence.get("covered", False),
+        "bankPaid": money("bankPaidMinor"),
+        "confirmedPaid": money("confirmedPaidMinor"),
+        "outstanding": money("outstandingMinor"),
+        "printedCurrency": evidence.get("printedCurrency"),
+        "approved": evidence.get("approved", False),
+        "matchIds": evidence.get("matchIds", []),
+    }
+
+
 def invoice_body(inv: Invoice, workspace_currency: str) -> dict[str, Any]:
     cur = inv.currency or workspace_currency
     return {
@@ -62,6 +82,7 @@ def invoice_body(inv: Invoice, workspace_currency: str) -> dict[str, Any]:
         ],
         "counterpartyId": None,
         "payment": {"state": "UNPAID", "matchIds": []},
+        "evidence": evidence_body(inv.evidence, workspace_currency),
         "readings": readings_body(inv.consensus),
         "heldAsDuplicate": False,
     }
@@ -85,6 +106,7 @@ def receipt_body(r: Receipt, workspace_currency: str) -> dict[str, Any]:
         "pages": r.pages,
         "notes": r.notes,
         "payment": {"state": "UNPAID", "matchIds": []},
+        "evidence": evidence_body(r.evidence, workspace_currency),
         "readings": readings_body(r.consensus),
         "heldAsDuplicate": False,
     }

@@ -152,15 +152,15 @@ Legend: **F** function node (deterministic), **L** LLM call.
 | `categorize_bank_lines` | F + L (`MODEL_LITE`) | category, tags, counterparty name; `CATEGORY` label per line (P1) | skip rows with `categorizedBy` set; never changes a person's label | P0 |
 | `finalize_document` | F | `status = DONE`, document `risk`, months `dirty`, month tasks | — | P0 |
 | `load_month` | F | — | — | P0 |
-| `reconcile` | F | `matches/*`, `match` on lines and entries, `payment` on documents | deterministic match IDs | P0 |
-| `check_month` | F | findings `X0x`, `R0x`, `B0x`, `C02`, `D07` | deterministic IDs | P0 |
+| `reconcile` | F | the run's `AUTO`/`PROPOSED` `matches/*` (a person's `MANUAL`/`REJECTED` stay), `match` and `support` on lines, `evidence` on invoices and receipts, month figures (ADR-025) | deterministic match IDs | P0 |
+| `check_month` | F | findings `X0x`, `R0x`, `B0x`, `C02`, `D07` (month scope); counts blocking findings incl. the month's statements' own HIGH/CRITICAL | deterministic IDs | P0 |
 | `build_counterparties` | F | `counterparties/*` | deterministic IDs | P0 |
 | `suggest_profile` | F | `suggestions/*` | decided suggestions never reopened | P0 |
 | `score_risk` | F | `months.risk.level/score/reasons`, documents' `risk` | overwrite | P0 |
 | `explain_month` | L (`MODEL_FAST`) | `months.risk.summary`, `nextSteps`, finding `explanation` | skip if facts unchanged (hash) | P0 (template fallback) |
 | `build_flows` | F | `months.flows` | overwrite | P0 |
 | `sync_review_items` | F | `reviewItems/*` (create, close as resolved by data) | deterministic IDs | P0 |
-| `finalize_month` | F | `months.state`, `figures`, `dirty = false`, run status | generation check | P0 |
+| `finalize_month` | F | `months.state` (`RECONCILED` only when computed, every account's statements cover the whole month and nothing blocks; `NEEDS_REVIEW` with proposals or blockers; else `COLLECTING` with a note), `figures`, `statements`, `dirty = false`, run status | generation check | P0 |
 
 Retries: Gemini and Document AI calls retry 3× on `429`, `500`, `503`, `DEADLINE_EXCEEDED` with
 exponential backoff and jitter; schema failures retry once with the validation error appended.

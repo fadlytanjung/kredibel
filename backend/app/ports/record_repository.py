@@ -1,6 +1,6 @@
 """Records read from one document, replaced as a set (docs/09 §3.7): invoices and receipts."""
 
-from typing import Protocol
+from typing import Any, Protocol
 
 
 class DocumentRecords[T](Protocol):
@@ -17,3 +17,7 @@ class DocumentRecords[T](Protocol):
         ...
 
     async def get_record(self, org_id: str, record_id: str) -> T | None: ...
+
+    async def set_evidence(self, org_id: str, updates: dict[str, dict[str, Any]]) -> None:
+        """Write the month run's payment evidence per record (ADR-025)."""
+        ...

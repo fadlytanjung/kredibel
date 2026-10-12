@@ -30,3 +30,4 @@ class BankLineDoc(FirestoreModel):
     category_confidence: str | None = None
     held_as_duplicate: bool = False
     match: dict[str, Any] = Field(default_factory=lambda: {"state": "UNMATCHED", "matchIds": []})
+    support: str | None = None

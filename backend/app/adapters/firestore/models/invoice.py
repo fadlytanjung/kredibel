@@ -49,6 +49,7 @@ class InvoiceDoc(FirestoreModel):
     consensus: dict[str, Any] = Field(default_factory=dict)
     notes: list[str] = Field(default_factory=list)
     payment: dict[str, Any] = Field(default_factory=_unpaid)
+    evidence: dict[str, Any] | None = None
     held_as_duplicate: bool = False
     counterparty_id: str | None = None
 
@@ -77,4 +78,5 @@ class ReceiptDoc(FirestoreModel):
     consensus: dict[str, Any] = Field(default_factory=dict)
     notes: list[str] = Field(default_factory=list)
     payment: dict[str, Any] = Field(default_factory=_unpaid)
+    evidence: dict[str, Any] | None = None
     held_as_duplicate: bool = False

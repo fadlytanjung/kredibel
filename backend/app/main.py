@@ -15,6 +15,7 @@ from app.adapters.firestore.bank_line_repo import FirestoreBankLineRepository
 from app.adapters.firestore.decision_repo import FirestoreDecisionRepository
 from app.adapters.firestore.document_repo import FirestoreDocumentRepository
 from app.adapters.firestore.finding_repo import FirestoreFindingRepository
+from app.adapters.firestore.match_repo import FirestoreMatchRepository
 from app.adapters.firestore.month_repo import FirestoreMonthRepository
 from app.adapters.firestore.record_repo import firestore_invoices, firestore_receipts
 from app.adapters.firestore.run_repo import FirestoreRunRepository
@@ -24,7 +25,12 @@ from app.adapters.gcs_storage import GcsDocumentStorage
 from app.adapters.gemini_reader import GeminiDocumentReader
 from app.adapters.page_renderer import DefaultPageRenderer
 from app.adapters.pdf_inspector import PdfInspector
-from app.adapters.policy_files import load_category_policy, load_forensics, load_plans
+from app.adapters.policy_files import (
+    load_category_policy,
+    load_forensics,
+    load_plans,
+    load_reconciliation_policy,
+)
 from app.adapters.spreadsheet_reader import DefaultSpreadsheetReader
 from app.adapters.text_layer import PdfTextLayer
 from app.agents.deps import PipelineDeps
@@ -64,6 +70,7 @@ from app.domain.categorize import CategoryPolicy
 from app.domain.checks.policy import ForensicsPolicy
 from app.domain.models.invoice import Invoice, Receipt
 from app.domain.plans import PlanCatalog
+from app.domain.reconciliation_policy import ReconciliationPolicy
 from app.observability.tracing import setup_tracing
 from app.ports.bank_line_repository import BankLineRepository
 from app.ports.decision_repository import DecisionRepository
@@ -73,6 +80,7 @@ from app.ports.document_storage import DocumentStorage
 from app.ports.file_inspector import FileInspector
 from app.ports.finding_repository import FindingRepository
 from app.ports.identity_admin import IdentityAdmin
+from app.ports.match_repository import MatchRepository
 from app.ports.month_repository import MonthRepository
 from app.ports.page_renderer import PageRenderer
 from app.ports.page_text import PageText
@@ -125,6 +133,7 @@ class AppDeps:
         receipts: DocumentRecords[Receipt] | None = None,
         findings: FindingRepository | None = None,
         decisions: DecisionRepository | None = None,
+        matches: MatchRepository | None = None,
     ) -> None:
         self.settings = settings
         self._plans = plans
@@ -149,6 +158,7 @@ class AppDeps:
         self._receipts = receipts
         self._findings = findings
         self._decisions = decisions
+        self._matches = matches
         self._built: dict[str, Any] = {}
 
     def _once(self, name: str, build: Callable[[], T]) -> T:
@@ -343,6 +353,21 @@ class AppDeps:
         )
 
     @property
+    def matches(self) -> MatchRepository:
+        return self._once(
+            "matches", lambda: self._matches or FirestoreMatchRepository(self.firestore)
+        )
+
+    @property
+    def reconciliation(self) -> ReconciliationPolicy:
+        return self._once(
+            "reconciliation",
+            lambda: load_reconciliation_policy(
+                self.settings.contract_path(self.settings.policy_dir)
+            ),
+        )
+
+    @property
     def decision_service(self) -> DecisionService:
         return self._once(
             "decision_service",
@@ -455,6 +480,16 @@ class AppDeps:
                 month_repo=self.month_repo,
                 task_queue=self.task_queue,
                 clock=self.clock,
+                bank_lines=self.bank_lines,
+                invoices=self.invoices,
+                receipts=self.receipts,
+                workspaces=self.workspace_repo,
+                forensics=self.forensics,
+                findings=self.findings,
+                categories=self.categories,
+                matches=self.matches,
+                decisions=self.decisions,
+                reconciliation=self.reconciliation,
             )
             return await run_workflow(
                 build_month_workflow(pipeline_deps),

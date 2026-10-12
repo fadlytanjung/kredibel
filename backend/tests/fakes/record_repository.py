@@ -20,6 +20,12 @@ class FakeRecords[T](DocumentRecords[T]):
         for record in records:
             self.records[(org_id, self._id(record))] = record
 
+    async def set_evidence(self, org_id: str, updates: dict[str, dict[str, Any]]) -> None:
+        for record_id, evidence in updates.items():
+            record = self.records.get((org_id, record_id))
+            if record is not None:
+                record.evidence = evidence  # type: ignore[attr-defined]
+
     async def get_record(self, org_id: str, record_id: str) -> T | None:
         return self.records.get((org_id, record_id))
 

@@ -30,6 +30,7 @@ dependencies = [
     "opentelemetry-sdk>=1.24.0",
     "opentelemetry-exporter-gcp-trace>=1.6.0",
     "pyyaml>=6.0.1",
+    "opentelemetry-exporter-otlp-proto-http>=1.36",
 ]
 
 [dependency-groups]

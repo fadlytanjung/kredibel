@@ -88,19 +88,34 @@ describe('DocumentsPage', () => {
     expect(screen.getByText('Clean')).toBeInTheDocument()
     expect(screen.getAllByText('LOW').length).toBeGreaterThan(0)
 
-    // Test filter chip click
-    vi.mocked(apiClient).mockResolvedValueOnce({
-      items: [mockDocs[0]],
-      nextCursor: null,
-    })
+    // Filters work in the table with counts; search by name; 10 rows a page.
+    fireEvent.click(screen.getByRole('button', { name: /Statements/ }))
+    expect(screen.getByText('BCA_Mar_2026.pdf')).toBeInTheDocument()
+    expect(screen.queryByText('Invoice_Daybreak.pdf')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Statements/ })).toHaveTextContent('1')
+    fireEvent.click(screen.getByRole('button', { name: /^All/ }))
+    fireEvent.change(screen.getByRole('textbox', { name: /Search/i }), { target: { value: 'daybreak' } })
+    expect(screen.getByText('Invoice_Daybreak.pdf')).toBeInTheDocument()
+    expect(screen.queryByText('BCA_Mar_2026.pdf')).not.toBeInTheDocument()
+    expect(apiClient).not.toHaveBeenCalledWith(expect.stringContaining('type=BANK_STATEMENT'))
+  })
 
-    const statementsChip = screen.getByRole('button', { name: 'Statements' })
-    fireEvent.click(statementsChip)
+  it('pages the library ten documents at a time', async () => {
+    const docs = Array.from({ length: 23 }, (_, i) => ({
+      docId: `doc_${i}`,
+      fileName: `receipt-${String(i).padStart(2, '0')}.pdf`,
+      contentType: 'application/pdf',
+      docType: 'RECEIPT',
+      status: 'DONE',
+      pageCount: 1,
+      months: ['2026-03'],
+      uploadedAt: `2026-03-${String(i + 1).padStart(2, '0')}T10:00:00Z`,
+    }))
+    vi.mocked(apiClient).mockResolvedValueOnce({ items: docs, nextCursor: null })
 
-    await waitFor(() => {
-      expect(apiClient).toHaveBeenCalledWith(
-        expect.stringContaining('type=BANK_STATEMENT'),
-      )
-    })
+    renderPage()
+
+    await waitFor(() => expect(screen.getByText('1 to 10 of 23')).toBeInTheDocument())
+    expect(screen.getByRole('button', { name: /Receipts/ })).toHaveTextContent('23')
   })
 })

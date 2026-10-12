@@ -414,8 +414,9 @@ stateDiagram-v2
 | NeedsColumns | "New column layout. Check the columns once and every row is imported." | **Check columns** |
 | CouldNotRead | "Could not read this file." | **Try again** |
 
-- **Library:** chips by type with counts (Statements, Sales invoices, Purchase invoices, Receipts,
-  Ledger, Possible copies); table of document (type icon, name, what it is), status, check (Clean,
+- **Library:** one table of the workspace's documents (`DataTable`: 10 a page, search by name, type,
+  status or month, sortable columns), chips by type with counts (Statements, Sales invoices, Purchase
+  invoices, Receipts, Ledger, Possible copies); table of document (type icon, name, what it is), status, check (Clean,
   Edited, Not checked), risk level, months, uploaded. A row with a critical finding is tinted. On
   compact each row is a card with risk and status.
 - **Document page** (`/documents/:docId`, mock `document.html`):

@@ -22,6 +22,9 @@ export interface UseDocumentsLiveResult {
   error: Error | null
 }
 
+// The library lists the workspace's documents in one table (pages of 10, filtered in the browser).
+const LIVE_LIMIT = 500
+
 export function useDocumentsLive(
   orgId: string | undefined | null,
   filters?: DocumentLiveFilters,
@@ -34,7 +37,7 @@ export function useDocumentsLive(
     if (!orgId) return
 
     const colRef = collection(db, 'orgs', orgId, 'documents')
-    const q = query(colRef, orderBy('uploadedAt', 'desc'), limit(100))
+    const q = query(colRef, orderBy('uploadedAt', 'desc'), limit(LIVE_LIMIT))
 
     const unsubscribe = onSnapshot(
       q,

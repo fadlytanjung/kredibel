@@ -29,7 +29,8 @@
     "purchaseInvoices": "Purchase invoices",
     "receipts": "Receipts",
     "ledger": "Ledger",
-    "duplicates": "Possible copies"
+    "duplicates": "Possible copies",
+    "label": "Filter documents"
   },
   "table": {
     "document": "Document",
@@ -41,7 +42,8 @@
     "empty": "No documents yet. Drop your first statement, invoice or receipt above.",
     "pages": "{{count}} pages",
     "page": "1 page",
-    "rows": "{{count}} rows"
+    "rows": "{{count}} rows",
+    "search": "Search documents"
   },
   "status": {
     "uploaded": "Uploaded",

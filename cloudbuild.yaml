@@ -138,6 +138,12 @@ steps:
     args:
       - '-c'
       - |
+        set -euo pipefail
+        # The worker queues month runs to itself, so it needs its own URL as WORKER_URL. On the very
+        # first deploy the URL exists only afterwards, so it is set right after.
+        WORKER_URL=$$(gcloud run services describe kredibel-worker --region=asia-southeast1 --format='value(status.url)' 2>/dev/null || true)
+        cp infra/env.worker.yaml infra/env.worker.resolved.yaml
+        [ -n "$$WORKER_URL" ] && echo "WORKER_URL: \"$$WORKER_URL\"" >> infra/env.worker.resolved.yaml
         gcloud run deploy kredibel-worker \
           --image="asia-southeast1-docker.pkg.dev/$PROJECT_ID/kredibel/app:$_COMMIT_SHA" \
           --region=asia-southeast1 \
@@ -146,7 +152,11 @@ steps:
           --cpu=2 --memory=2Gi --concurrency=4 --timeout=900 \
           --max-instances=3 --labels=app=kredibel,component=worker \
           --set-secrets=/secrets/.env=kredibel-env:latest \
-          --env-vars-file=infra/env.worker.yaml
+          --env-vars-file=infra/env.worker.resolved.yaml
+        if [ -z "$$WORKER_URL" ]; then
+          WORKER_URL=$$(gcloud run services describe kredibel-worker --region=asia-southeast1 --format='value(status.url)')
+          gcloud run services update kredibel-worker --region=asia-southeast1 --update-env-vars="WORKER_URL=$$WORKER_URL"
+        fi
 
   # 7. Deploy web service (public HTTPS)
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'

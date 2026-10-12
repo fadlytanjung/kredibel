@@ -304,7 +304,8 @@ for hashed assets. Firebase Hosting (`kredibel-app.web.app`) serves the same fil
 Production values live in one Secret Manager secret, **`kredibel-env`**
 ([ADR-024](adr/ADR-024-runtime-configuration-in-secret-manager.md)): a dotenv file that both services
 mount at `/secrets/.env` and read through `ENV_FILE`. `infra/env.web.yaml` and `infra/env.worker.yaml`
-hold only what differs per service (`APP_ROLE`, `ENV_FILE`; the web deploy adds `WORKER_URL`). No
+hold only what differs per service (`APP_ROLE`, `ENV_FILE`; both deploys add `WORKER_URL`, the
+worker's own URL: web queues document runs, the worker queues month runs to itself). No
 server API key is part of it: all Google access uses the service accounts.
 
 ```bash

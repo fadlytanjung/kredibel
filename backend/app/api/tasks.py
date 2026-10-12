@@ -9,7 +9,7 @@ from collections.abc import Callable, Coroutine
 from typing import Any, Literal
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 from pydantic import BaseModel, Field
 
 from app.api.deps import ServiceProvider
@@ -31,6 +31,11 @@ class ReconcileMonthTask(BaseModel):
     month: str
     generation: int
     runId: str
+
+
+# Cloud Tasks retries a task with the same body; its retry header says which attempt this is.
+# kredibel-documents allows 3 attempts (infra/bootstrap.sh).
+MAX_DOCUMENT_ATTEMPTS = 3
 
 
 class TaskResult(BaseModel):
@@ -56,20 +61,24 @@ def create_tasks_router(
         status_code=status.HTTP_200_OK,
         dependencies=auth_dependencies,
     )
-    async def process_document(task: ProcessDocumentTask) -> TaskResult:
+    async def process_document(
+        task: ProcessDocumentTask,
+        retry_count: int = Header(default=0, alias="X-CloudTasks-TaskRetryCount"),
+    ) -> TaskResult:
+        attempt = max(task.attempt, retry_count + 1)
         _log.info(
             "task_process_document_received",
             org_id=task.orgId,
             doc_id=task.docId,
             run_id=task.runId,
-            attempt=task.attempt,
+            attempt=attempt,
         )
         try:
             result = await deps.run_service.process_document_task(
                 org_id=task.orgId,
                 doc_id=task.docId,
                 run_id=task.runId,
-                attempt=task.attempt,
+                attempt=attempt,
             )
             return TaskResult(
                 ok=result.get("ok", True),
@@ -81,8 +90,18 @@ def create_tasks_router(
                 org_id=task.orgId,
                 doc_id=task.docId,
                 run_id=task.runId,
+                attempt=attempt,
                 error=str(exc),
             )
+            if attempt >= MAX_DOCUMENT_ATTEMPTS:
+                # The last try: whatever failed (even before the workflow started), the person
+                # sees a failed document instead of one waiting forever.
+                try:
+                    await deps.document_service.mark_failed(
+                        task.orgId, task.docId, "E02_EXTRACTION_FAILED"
+                    )
+                except Exception:
+                    _log.exception("task_mark_failed_failed", doc_id=task.docId)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Document processing failed: {exc}",

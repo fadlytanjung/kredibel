@@ -7,6 +7,7 @@ GCS storage, page rendering & triage, task enqueueing, and audit events.
 import asyncio
 import hashlib
 from collections.abc import Awaitable, Callable
+from dataclasses import replace
 from datetime import datetime
 from typing import Any
 
@@ -277,6 +278,14 @@ class DocumentService:
         await self._task_queue.enqueue_document_task(org_id, doc_id, run_id)
 
         return document
+
+    async def mark_failed(self, org_id: str, doc_id: str, detail: str) -> None:
+        """A document whose last processing attempt failed is FAILED, never left as UPLOADED."""
+        doc = await self._doc_repo.get_document(org_id, doc_id)
+        if doc is not None and doc.status not in (DocStatus.DONE, DocStatus.FAILED):
+            await self._doc_repo.save_document(
+                org_id, replace(doc, status=DocStatus.FAILED, status_detail=detail)
+            )
 
     async def get_document(self, principal: Principal, doc_id: str) -> Document:
         """Fetch a document. Raises NotFoundError (404) if foreign or not found."""

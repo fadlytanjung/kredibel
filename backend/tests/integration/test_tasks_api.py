@@ -243,3 +243,52 @@ async def test_ac001_10_tasks_not_mounted_on_web_role(base_deps):
             json={"orgId": "org_demo", "docId": "doc_1", "runId": "doc-doc_1-1"},
         )
         assert res.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_the_last_cloud_tasks_attempt_marks_the_document_failed(base_deps):
+    """Cloud Tasks resends the same body; its retry header says which attempt this is. A document
+    whose third attempt fails is FAILED, not left UPLOADED (found in production)."""
+    from app.domain.models.document import Document
+
+    deps, _, _ = base_deps
+    seen: list[int] = []
+
+    async def failing_runner(org_id: str, doc_id: str, run_id: str, attempt: int):
+        seen.append(attempt)
+        raise RuntimeError("worker misconfigured")
+
+    deps.run_service._document_workflow_runner = failing_runner
+    doc_id = "doc_stuck"
+    await deps.doc_repo.save_document(
+        "org_demo",
+        Document(
+            doc_id=doc_id,
+            file_name="s.pdf",
+            content_type="application/pdf",
+            size_bytes=1,
+            page_count=1,
+            sha256="0" * 64,
+            gcs_path=f"orgs/org_demo/documents/{doc_id}/original.pdf",
+            uploaded_by="u-1",
+            uploaded_at=NOW,
+        ),
+    )
+    app = create_app(settings=Settings(app_role="worker"), deps=deps)
+    payload = {"orgId": "org_demo", "docId": doc_id, "runId": "run_x", "attempt": 1}
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        for retry in ("0", "1"):
+            res = await client.post(
+                "/tasks/process-document",
+                json=payload,
+                headers={"X-CloudTasks-TaskRetryCount": retry},
+            )
+            assert res.status_code == 500
+            assert (await deps.doc_repo.get_document("org_demo", doc_id)).status.value == "UPLOADED"
+        res = await client.post(
+            "/tasks/process-document", json=payload, headers={"X-CloudTasks-TaskRetryCount": "2"}
+        )
+    assert res.status_code == 500
+    assert seen == [1, 2, 3]
+    doc = await deps.doc_repo.get_document("org_demo", doc_id)
+    assert (doc.status.value, doc.status_detail) == ("FAILED", "E02_EXTRACTION_FAILED")

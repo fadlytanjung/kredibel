@@ -85,7 +85,8 @@ class WorkspaceCreate(DomainModel):
     """POST /api/workspaces (contracts/openapi.yaml WorkspaceCreate, AC-013-2)."""
 
     name: str = Field(min_length=2, max_length=100)
-    entity_type: EntityType
+    # Kredibel is for businesses (AC-013-2): a new workspace is always a company.
+    entity_type: Literal["COMPANY"] = "COMPANY"
     profile: Profile | None = None
     tax_id: str | None = Field(default=None, max_length=30)
     country: Literal["ID"] = "ID"

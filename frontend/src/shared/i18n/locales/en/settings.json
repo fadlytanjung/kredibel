@@ -104,5 +104,9 @@
     "dateExample": "Day, month, year: {{example}}",
     "readOnly": "Set by your workspace; it cannot change yet.",
     "currencyFixed": "Chosen when the workspace was created. Changing the currency is coming soon."
+  },
+  "entityTypes": {
+    "COMPANY": "A company",
+    "INDIVIDUAL": "Myself"
   }
 }

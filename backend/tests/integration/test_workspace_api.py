@@ -113,7 +113,11 @@ async def test_ac013_2_an_invalid_body_is_a_422_with_fields(h):
         res = await c.post(
             "/api/workspaces", json={**CREATE, "entityType": "TRUST"}, headers=h.auth("new")
         )
+        person = await c.post(
+            "/api/workspaces", json={**CREATE, "entityType": "INDIVIDUAL"}, headers=h.auth("new")
+        )
 
+    assert person.status_code == 422  # Kredibel is for businesses (AC-013-2)
     assert res.status_code == 422
     assert res.json()["code"] == "VALIDATION_ERROR"
     assert res.json()["errors"][0]["field"] == "body.entityType"

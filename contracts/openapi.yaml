@@ -1725,10 +1725,10 @@ components:
           description: Consent to use this workspace's verified labels, masked, in Kredibel's tuning datasets (P2). Off by default.
     WorkspaceCreate:
       type: object
-      required: [name, entityType, timezone]
+      required: [name, timezone]
       properties:
-        name: { type: string, minLength: 2, maxLength: 100 }
-        entityType: { $ref: "#/components/schemas/EntityType" }
+        name: { type: string, minLength: 2, maxLength: 100, description: "The business's legal name" }
+        entityType: { type: string, enum: [COMPANY], default: COMPANY, description: "Kredibel is for businesses: a workspace is always a company (spec 013, AC-013-2)" }
         profile: { $ref: "#/components/schemas/WorkspaceProfile" }
         taxId: { type: string, maxLength: 30, writeOnly: true, description: "Stored masked" }
         country: { type: string, enum: [ID], default: ID }

@@ -85,12 +85,16 @@ function renderForm(refreshes: MeResponse[] = [me(false)]) {
 }
 
 describe('CreateWorkspaceForm (AC-013-2)', () => {
-  it('switches the name field between a company and a person', async () => {
-    const { user } = renderForm()
+  it('asks only for a business, in three sections, with no person choice', () => {
+    renderForm()
 
+    expect(screen.getByRole('region', { name: 'Your business' })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Your books' })).toBeInTheDocument()
     expect(screen.getByLabelText('Legal name')).toBeInTheDocument()
-    await user.click(screen.getByRole('radio', { name: /Myself/ }))
-    expect(screen.getByLabelText('Full name')).toBeInTheDocument()
+    expect(screen.getByLabelText('Legal form')).toBeInTheDocument()
+    expect(screen.queryByRole('radio')).not.toBeInTheDocument()
+    expect(screen.queryByText(/Myself/)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'IFRS' })).toHaveAttribute('aria-pressed', 'true')
   })
 
   it('states the trial terms from the plan catalog before the button', async () => {
@@ -104,7 +108,10 @@ describe('CreateWorkspaceForm (AC-013-2)', () => {
     const { user, refreshSession } = renderForm()
 
     await user.type(screen.getByLabelText('Legal name'), 'Synthetic Roasters Ltd')
+    await user.selectOptions(screen.getByLabelText('Legal form'), 'PARTNERSHIP')
     await user.selectOptions(screen.getByLabelText('Industry'), 'Professional services')
+    await user.type(screen.getByLabelText(/Tax ID/), '12.345.678.9-012.000')
+    await user.click(screen.getByRole('button', { name: 'US GAAP' }))
     await user.click(screen.getByRole('button', { name: 'Start the free trial' }))
 
     expect(await screen.findByText('Dashboard home')).toBeInTheDocument()
@@ -113,7 +120,13 @@ describe('CreateWorkspaceForm (AC-013-2)', () => {
         name: 'Synthetic Roasters Ltd',
         entityType: 'COMPANY',
         country: 'ID',
-        profile: { industry: 'Professional services' },
+        taxId: '12.345.678.9-012.000',
+        profile: {
+          legalName: 'Synthetic Roasters Ltd',
+          legalForm: 'PARTNERSHIP',
+          industry: 'Professional services',
+          accountingFramework: 'US_GAAP',
+        },
       }),
     ])
     expect(refreshSession).toHaveBeenCalledOnce()

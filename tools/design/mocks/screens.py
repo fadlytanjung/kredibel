@@ -853,18 +853,19 @@ def onboarding() -> str:
 </section>"""
     form = f"""
 <section class="onboard-form" aria-labelledby="ob-h">
-  <div class="stack gap-2"><h1 class="type-title" id="ob-h">Whose books are these?</h1><p class="muted">One workspace is one business or one person. You can add details later; Kredibel will suggest them from your documents.</p></div>
-  <div class="who-choice" role="radiogroup" aria-label="Workspace type">
-    <div class="who" role="radio" aria-checked="false" tabindex="-1"><span class="ico">{icon("user")}</span><strong>Myself</strong><span class="d">A freelancer or sole trader with a business account</span></div>
-    <div class="who is-checked" role="radio" aria-checked="true" tabindex="0"><span class="tick">{icon("check")}</span><span class="ico">{icon("building")}</span><strong>A company</strong><span class="d">A partnership or a limited company</span></div>
-  </div>
-  <div class="form-wrap"><div class="form-grid">
+  <div class="stack gap-2"><h1 class="type-title" id="ob-h">Set up your business</h1><p class="muted">One workspace is one business. You can add details later; Kredibel will suggest them from your documents.</p></div>
+  <section class="form-section" aria-labelledby="ob-biz"><h2 id="ob-biz">Your business</h2><div class="form-wrap"><div class="form-grid">
     <div class="field span-2"><label for="n">Legal name</label><input class="input" id="n" value="Sunrise Coffee Roasters"/></div>
     <div class="field"><label for="t">Trading name <span class="muted">(optional)</span></label><input class="input" id="t" placeholder="As on your invoices"/></div>
+    <div class="field"><label for="f">Legal form</label><select class="select" id="f"><option>Partnership</option></select></div>
     <div class="field"><label for="i">Industry</label><select class="select" id="i"><option>Food and drink, wholesale</option></select></div>
-    <div class="field"><label for="z">Time zone</label><select class="select" id="z"><option>Asia/Jakarta (UTC+7)</option></select><span class="hint">Months are counted in this time zone.</span></div>
+    <div class="field"><label for="x">Tax ID <span class="muted">(optional)</span></label><input class="input" id="x" placeholder="Stored masked"/></div>
+  </div></div></section>
+  <section class="form-section" aria-labelledby="ob-books"><h2 id="ob-books">Your books</h2><div class="form-wrap"><div class="form-grid">
     <div class="field"><label for="c">Currency</label><select class="select" id="c"><option>Indonesian Rupiah (IDR)</option></select><span class="hint">The currency of your books. Changing it later is coming soon.</span></div>
-  </div></div>
+    <div class="field"><label for="z">Time zone</label><select class="select" id="z"><option>Asia/Jakarta (UTC+7)</option></select><span class="hint">Months are counted in this time zone.</span></div>
+    <div class="field span-2"><span class="label" id="fw-l">Accounting framework</span>{seg("obfw", [("IFRS", "IFRS"), ("US_GAAP", "US GAAP")], "IFRS", "Accounting framework")}<span class="hint">How cash flows are grouped on your dashboard. You can switch the view any time.</span></div>
+  </div></div></section>
   <details class="disclosure"><summary><span>Main bank account<span class="opt">optional</span></span>{icon("chevron-down")}</summary></details>
   <p class="trial-note">{icon("clock")}<span><strong>30-day free trial.</strong> 150 documents and 400 pages a month. No card, no payment. Paid plans are coming soon.</span></p>
   <a class="button button-primary button-lg button-block" href="documents.html">Start the free trial</a>

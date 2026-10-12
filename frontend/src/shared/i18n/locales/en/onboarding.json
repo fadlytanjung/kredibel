@@ -1,13 +1,7 @@
 {
-  "title": "Whose books are these?",
-  "subtitle": "One workspace is one business or one person. You can add details later; Kredibel will suggest them from your documents.",
-  "typeLabel": "Workspace type",
-  "individual": "Myself",
-  "individualHint": "A freelancer or sole trader with a business account",
-  "company": "A company",
-  "companyHint": "A partnership or a limited company",
+  "title": "Set up your business",
+  "subtitle": "One workspace is one business. You can add details later; Kredibel will suggest them from your documents.",
   "legalName": "Legal name",
-  "fullName": "Full name",
   "tradingName": "Trading name",
   "optional": "optional",
   "tradingNamePlaceholder": "As on your invoices",
@@ -49,5 +43,23 @@
   "timeZoneOption": "{{zone}} ({{offset}})",
   "bankAccount": "Main bank account",
   "currency": "Currency",
-  "currencyHint": "Reporting currency of your books (IDR, MYR, SGD, JPY, USD). Changing it later is coming soon."
+  "currencyHint": "Reporting currency of your books (IDR, MYR, SGD, JPY, USD). Changing it later is coming soon.",
+  "sectionBusiness": "Your business",
+  "sectionBooks": "Your books",
+  "legalForm": "Legal form",
+  "legalForms": {
+    "LIMITED_COMPANY": "Limited company",
+    "PARTNERSHIP": "Partnership",
+    "SOLE_PROPRIETOR": "Sole proprietor",
+    "COOPERATIVE": "Cooperative",
+    "OTHER": "Other"
+  },
+  "taxId": "Tax ID",
+  "taxIdPlaceholder": "Stored masked",
+  "framework": "Accounting framework",
+  "frameworkHint": "How cash flows are grouped on your dashboard. You can switch the view any time.",
+  "frameworks": {
+    "IFRS": "IFRS",
+    "US_GAAP": "US GAAP"
+  }
 }

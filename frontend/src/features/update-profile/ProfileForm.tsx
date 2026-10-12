@@ -56,7 +56,7 @@ export function ProfileForm({ workspace }: { workspace: Workspace }) {
   const form = useForm<Values>({ defaultValues: valuesOf(workspace) })
   const { register, formState, reset, setError } = form
   const company = workspace.entityType === 'COMPANY'
-  const typeLabel = t(company ? 'company' : 'individual', { ns: 'onboarding' })
+  const typeLabel = t(`entityTypes.${workspace.entityType}`, { ns: 'settings' })
   const industries = INDUSTRY_KEYS.map((key) => t(`industries.${key}`, { ns: 'onboarding' }))
   const currentIndustry = workspace.profile?.industry ?? ''
   const industryOptions = [...new Set([...industries, currentIndustry].filter(Boolean))]

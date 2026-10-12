@@ -25,11 +25,14 @@ member (`owner`); P1 adds an accounting team with roles.
   `needsWorkspace: true`, the SPA routes to `/onboarding`, and every other `/api` route except
   `GET /api/plans`, `POST /api/workspaces` and `POST /api/invites/{id}/accept` returns
   `403 WORKSPACE_REQUIRED`.
-- **AC-013-2** Onboarding asks: **individual or company** (two large choices with a sentence each),
-  the name (legal name for a company, full name for a person, plus an optional trading name), industry,
-  time zone, the **currency** of the books (IDR, MYR, SGD, JPY or USD; suggested from the time zone,
-  [ADR-020](../../adr/ADR-020-workspace-currency-chosen-at-onboarding.md)), and optionally the main bank
-  account (bank, account number, holder). `POST
+- **AC-013-2** Kredibel is for businesses, so onboarding asks no "individual or company" question:
+  every workspace is a company. The form has three sections. **Your business:** legal name, trading
+  name (optional), legal form, industry, tax ID (optional, stored masked). **Your books:** the
+  **currency** (IDR, MYR, SGD, JPY or USD; suggested from the time zone,
+  [ADR-020](../../adr/ADR-020-workspace-currency-chosen-at-onboarding.md)), the accounting framework
+  (IFRS or US GAAP, a segmented choice) and the time zone. **Main bank account** (optional): bank,
+  account number, holder (the legal name unless changed). A request for an individual workspace is
+  refused with `422`. `POST
   /api/workspaces` returns `201`; in one transaction it creates `orgs/{orgId}` with `entityType`,
   `profile`, `subscription {planId: free_trial, status: TRIALING, trialEndsAt: now + 30 days}`,
   the chosen `currency`, `defaultLanguage: en`, the member doc with role `owner`, the bank account (mask +

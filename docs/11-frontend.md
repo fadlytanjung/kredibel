@@ -331,10 +331,12 @@ wins; on looks, the mock and [`12`](12-design-system.md) win.
 
 <p><img src="assets/mocks/onboarding-desktop.png" alt="Onboarding at 1440 px: dark ledger-paper brand panel with the logo, tagline and three ledger lines; the form asks whose books these are" width="66%"> <img src="assets/mocks/onboarding-mobile.png" alt="Onboarding on a phone: brand band with the tagline above the form" width="26%"></p>
 
-- One question first: **Whose books are these?** *Myself* (freelancer or sole trader) or *A
-  company*. The choice switches the fields: legal or full name, trading name (optional), industry,
-  time zone (months are counted in it), the currency of the books (IDR, MYR, SGD, JPY or USD,
-  suggested from the time zone; fixed afterwards), and an optional main bank account.
+- For a business only (no "myself or a company" question), in three sections:
+  **Your business** (legal name, trading name optional, legal form, industry, tax ID optional),
+  **Your books** (the currency of the books: IDR, MYR, SGD, JPY or USD, suggested from the time zone
+  and fixed afterwards; the accounting framework, IFRS or US GAAP, as a segmented choice; the time
+  zone, in which months are counted), and an optional **Main bank account** whose holder starts as
+  the legal name.
 - The trial terms are stated before the button: "30-day free trial. 150 documents and 400 pages a
   month. No card, no payment. Paid plans are coming soon." (numbers from `GET /api/plans`)
   **Start the free trial** → `POST /api/workspaces` → refresh the ID token → the dashboard's empty

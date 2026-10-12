@@ -23,7 +23,11 @@ Phases 1–3 are needed by specs 003 and 004 (D1). Phase 4 can follow on D5–D6
 
 ## Phase 4 — Frontend
 
-- [x] **T013-11** `OnboardingPage` with the individual-or-company choice; router guard; forced token refresh and one retry. (AC-013-1, AC-013-2)
+- [x] **T013-11** `OnboardingPage`; router guard; forced token refresh and one retry. (AC-013-1, AC-013-2)
+- [x] **T013-11a** Onboarding for businesses only: no individual-or-company choice; three sections (your
+  business with legal form and tax ID, your books with a segmented IFRS / US GAAP framework, an optional
+  main bank account whose holder starts as the legal name); `POST /api/workspaces` creates a company and
+  refuses an individual with 422. (AC-013-2)
 - [x] **T013-12** Trial badge and banner; Upload disabled after expiry. (AC-013-12)
 - [x] **T013-13** Settings: Profile, Bank accounts, Language & formats. (AC-013-14…16)
 - [x] **T013-14** Plan & usage with coming-soon plans and features. (AC-013-11)

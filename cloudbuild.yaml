@@ -10,6 +10,8 @@ steps:
       - '-c'
       - |
         set -euo pipefail
+        # pyright runs on a Node binary that needs libatomic, which the slim image lacks.
+        apt-get update -qq && apt-get install -y -qq --no-install-recommends libatomic1 >/dev/null
         pip install --quiet uv
         cd backend
         uv sync --frozen

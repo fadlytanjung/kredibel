@@ -89,7 +89,7 @@ class Settings(BaseSettings):
 
     # Models (Active Gemini 3.8 / Latest)
     model_fast: str = "gemini-3.8-flash"
-    model_lite: str = "gemini-flash-lite-latest"
+    model_lite: str = "gemini-3.5-flash-lite"
     model_embedding: str = "gemini-embedding-001"
     eval_judge_model: str = "gemini-3.8-flash"
     gemini_api_key: str | None = None

@@ -415,9 +415,27 @@ stateDiagram-v2
   Ledger, Possible copies); table of document (type icon, name, what it is), status, check (Clean,
   Edited, Not checked), risk level, months, uploaded. A row with a critical finding is tinted. On
   compact each row is a card with risk and status.
-- **Document page** (`/documents/:docId`): the pages with read values lit, the two readings, its
-  findings, the matches it takes part in, its events, and P1 "How this was processed" (run graph,
-  [`17`](17-observability.md) §5).
+- **Document page** (`/documents/:docId`, mock `document.html`):
+
+  <p><img src="assets/mocks/document-desktop.png" alt="Document page at 1440 px: the statement page with the selected credit lit, beside the figures and the transactions list" width="66%"> <img src="assets/mocks/document-mobile.png" alt="Document page on a phone: the page zoomed to the selected value above the figures" width="26%"></p>
+
+  - **Header:** file name; what it is (type, bank and account, period) and when it was uploaded;
+    how it was read ("Read: 180 of 180 values found on the page") and its check; **Original file**,
+    **Remove document**.
+  - **Page viewer** (left, sticky from 980 px): one page at a time with previous and next, zoom in
+    steps from 50 to 200 %, and the lamp on the value being looked at. A phone opens at 200 %
+    centred on the lamp. The page image scrolls inside its window.
+  - **What was read** (right): for a statement, the opening and closing balances as printed and
+    the money in and out of its lines, added exactly as decimals; then tabs. **Transactions** (or
+    **Invoices**, **Receipts**): chips All, Money in, Money out, To check (a value only one source
+    read, or readings that differ); 25 a page; each amount with its reading mark and the legend.
+    **Findings**: the document's open findings with facts, next step and **Show on page**.
+    **Details**: type, bank, account, period, currency, pages (digital or scanned), values found,
+    upload date.
+  - Choosing a transaction, an invoice value or a finding's evidence moves the viewer to its page
+    and lights it.
+  - Later: the matches it takes part in (spec 007), its events, and P1 "How this was processed"
+    (run graph, [`17`](17-observability.md) §5).
 - **Page images and the original file** are API routes that need the ID token, which an `<img src>`
   or a plain link cannot send: the SPA fetches them through the API client and shows them from object
   URLs (`PageImage`, `downloadOriginal` in `entities/document`).

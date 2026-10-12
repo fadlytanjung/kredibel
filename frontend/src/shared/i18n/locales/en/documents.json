@@ -67,11 +67,8 @@
   },
   "detail": {
     "back": "Back to documents",
-    "pages": "Pages",
     "page": "Page {{page}}",
-    "extractedValues": "Extracted values",
     "findings": "Findings",
-    "events": "Events",
     "noFindings": "No findings. All checks clean.",
     "deleteDocument": "Remove document",
     "confirmDelete": "Are you sure you want to remove {{name}}? Reconciled figures for its months will be updated.",
@@ -86,15 +83,10 @@
     "period": "Period",
     "to": "to",
     "rowsImported": "Rows imported",
-    "transactions": "Transactions read",
-    "transactionsSummary": "{{count}} lines; {{agreed}} of {{compared}} values found on the page",
     "showOnPage": "Show on page {{page}}",
     "columns": {
-      "date": "Date",
-      "description": "Description",
-      "amount": "Amount",
-      "balance": "Balance",
-      "reading": "Reading"
+      "transaction": "Transaction",
+      "amount": "Amount"
     },
     "readingStatus": {
       "AGREED": "On the page",
@@ -176,6 +168,84 @@
       "pages": "Pages"
     },
     "possibleCopy": "This looks like a copy of a document uploaded earlier. Its values are not counted until you decide whether it is the same.",
-    "openEarlierCopy": "Open the earlier document"
+    "openEarlierCopy": "Open the earlier document",
+    "summary": {
+      "statement": "{{type}}, {{account}}, {{start}} to {{end}}. Uploaded on {{uploaded}}.",
+      "other": "{{type}}. Uploaded on {{uploaded}}."
+    },
+    "docType": {
+      "BANK_STATEMENT": "Bank statement",
+      "SALES_INVOICE": "Sales invoice",
+      "PURCHASE_INVOICE": "Purchase invoice",
+      "RECEIPT": "Receipt",
+      "LEDGER_EXPORT": "Ledger export",
+      "OTHER": "Document",
+      "UNKNOWN": "Document"
+    },
+    "readBadge": "Read: {{agreed}} of {{compared}} values found on the page",
+    "verdictBadge": {
+      "CLEAN": "No signs of editing",
+      "SUSPICIOUS": "Possible signs of editing",
+      "TAMPERED": "Edited",
+      "UNVERIFIABLE": "Could not be fully checked"
+    },
+    "pane": "What was read",
+    "tabs": {
+      "label": "Document sections",
+      "transactions": "Transactions",
+      "invoices": "Invoices",
+      "receipts": "Receipts",
+      "findings": "Findings",
+      "details": "Details"
+    },
+    "figures": {
+      "asPrinted": "{{date}}, as printed",
+      "moneyIn": "Money in",
+      "moneyOut": "Money out",
+      "credits_one": "{{count}} credit",
+      "credits_other": "{{count}} credits",
+      "debits_one": "{{count}} debit",
+      "debits_other": "{{count}} debits"
+    },
+    "lines": {
+      "filter": "Filter transactions",
+      "all": "All",
+      "in": "Money in",
+      "out": "Money out",
+      "check": "To check",
+      "none": "No transactions match this filter.",
+      "where": "{{date}}, page {{page}}",
+      "range": "{{from}} to {{to}} of {{total}}",
+      "previous": "Previous",
+      "next": "Next"
+    },
+    "legend": {
+      "sample": "1,250.00",
+      "agreed": "found on the page",
+      "single": "read from one source only",
+      "conflict": "page and reading differ"
+    },
+    "viewer": {
+      "label": "Page viewer",
+      "pages": "Pages",
+      "previous": "Previous page",
+      "next": "Next page",
+      "pageOf": "Page {{page}} of {{total}}",
+      "zoom": "Zoom",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out",
+      "zoomLevel": "{{zoom}}%",
+      "lit": "The box shows where the selected value is printed, from the word positions in the file itself.",
+      "hint": "Choose a transaction or a value to see where it is printed on its page."
+    },
+    "info": {
+      "type": "Type",
+      "pages": "Pages",
+      "valuesFound": "Values found on the page",
+      "valuesFoundValue": "{{agreed}} of {{compared}}",
+      "uploaded": "Uploaded"
+    },
+    "checksAfterReading": "The checks run once the document is read.",
+    "loadingLines": "Loading the transactions…"
   }
 }

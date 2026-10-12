@@ -523,8 +523,9 @@ def review() -> str:
 # Evidence viewer (Risk → finding)
 # ------------------------------------------------------------------------------------------------
 
-def statement_page() -> str:
-    rows = [
+def statement_page(rows: list | None = None, period: str = "01 Mar 2026 to 31 Mar 2026",
+                   page: str = "Page 2 / 3", label: str = "March statement, page 2, with two highlighted values") -> str:
+    rows = rows or [
         ("10 Mar", "VAT PAYMENT FEB", "4,860,000.00", "", "38,940,000.00", ""),
         ("11 Mar", "TRANSFER IN DAYBREAK CAFE", "", "6,420,000.00", "45,360,000.00", ""),
         ("12 Mar", "TRANSFER OUT GREEN VALLEY FARMS 0912", "9,850,000.00", "", "35,510,000.00", ""),
@@ -543,13 +544,16 @@ def statement_page() -> str:
             credit = '<span class="lamp helvetica">7,250,000.00<span class="lamp-marker" aria-hidden="true">1</span></span>'
         if bal == "HIT2":
             bal = '<span class="lamp">42,500,000.00<span class="lamp-marker" aria-hidden="true">2</span></span>'
+        if hit == "lit":  # the value selected in the document page: one box, no number
+            credit = f'<span class="lamp">{credit}</span>' if credit else credit
+            debit = f'<span class="lamp">{debit}</span>' if debit else debit
         trs.append(f'<tr><td>{d}</td><td>{desc}</td><td class="r">{debit}</td><td class="r">{credit}</td><td class="r">{bal}</td></tr>')
     return f"""
-<figure class="doc-page" aria-label="March statement, page 2, with two highlighted values">
+<figure class="doc-page" aria-label="{label}">
   <div class="watermark" aria-hidden="true">SYNTHETIC — FOR TESTING</div>
   <div class="doc-head">
     <div><p class="doc-bank"><i aria-hidden="true"></i>ARCHIPELAGO COMMERCE BANK</p><p style="margin-top:6px">SUNRISE COFFEE ROASTERS<br/>12 Roastery Lane, Bandung</p></div>
-    <div class="meta"><strong>ACCOUNT STATEMENT</strong><br/>01 Mar 2026 to 31 Mar 2026<br/>Currency IDR<br/>Page 2 / 3</div>
+    <div class="meta"><strong>ACCOUNT STATEMENT</strong><br/>{period}<br/>Currency IDR<br/>{page}</div>
   </div>
   <table class="doc-table">
     <thead><tr><th>Date</th><th>Description</th><th class="r">Debit</th><th class="r">Credit</th><th class="r">Balance</th></tr></thead>
@@ -628,6 +632,88 @@ def evidence_viewer() -> str:
   </div>
 </div>"""
     return f'<div class="viewport"><div class="drawer-frame"><div class="drawer-behind" aria-hidden="true"></div>{drawer}</div></div>'
+
+
+
+# ------------------------------------------------------------------------------------------------
+# Document (one read statement: the viewer beside what was read)
+# ------------------------------------------------------------------------------------------------
+
+def document() -> str:
+    # ACB_Feb_2026.pdf: February as in the other mocks (money in 214.9 M, out 208.1 M, 45 lines,
+    # closing 47.9 M = March's opening), page 1 of 3, with 9 Feb's Daybreak Café credit selected.
+    page_rows = [
+        ("2 Feb", "OPENING BALANCE", "", "", "41,100,000.00", ""),
+        ("3 Feb", "TRANSFER OUT GREEN VALLEY FARMS 0912", "12,400,000.00", "", "28,700,000.00", ""),
+        ("4 Feb", "CASH DEPOSIT", "", "2,050,000.00", "30,750,000.00", ""),
+        ("5 Feb", "TRANSFER IN SPICE ROUTE RESTAURANT", "", "9,800,000.00", "40,550,000.00", ""),
+        ("6 Feb", "DEBIT CARD CENDANA FUEL STATION", "720,000.00", "", "39,830,000.00", ""),
+        ("9 Feb", "TRANSFER IN DAYBREAK CAFE", "", "18,700,000.00", "58,530,000.00", "lit"),
+        ("10 Feb", "VAT PAYMENT JAN", "4,410,000.00", "", "54,120,000.00", ""),
+        ("11 Feb", "TRANSFER OUT PRIMEPACK PACKAGING", "3,060,000.00", "", "51,060,000.00", ""),
+        ("12 Feb", "INSTANT TRANSFER IN HIGHLAND RESORT &amp; SPA", "", "7,600,000.00", "58,660,000.00", ""),
+        ("13 Feb", "TRANSFER OUT ANDI PRATAMA", "5,000,000.00", "", "53,660,000.00", ""),
+    ]
+    list_rows = [
+        ("3 Feb", "TRANSFER OUT GREEN VALLEY FARMS 0912", "−12,400,000.00", "out", "agreed"),
+        ("4 Feb", "CASH DEPOSIT", "+2,050,000.00", "in", "agreed"),
+        ("5 Feb", "TRANSFER IN SPICE ROUTE RESTAURANT", "+9,800,000.00", "in", "agreed"),
+        ("6 Feb", "DEBIT CARD CENDANA FUEL STATION", "−720,000.00", "out", "single"),
+        ("9 Feb", "TRANSFER IN DAYBREAK CAFE", "+18,700,000.00", "in", "agreed"),
+        ("10 Feb", "VAT PAYMENT JAN", "−4,410,000.00", "out", "agreed"),
+        ("11 Feb", "TRANSFER OUT PRIMEPACK PACKAGING", "−3,060,000.00", "out", "agreed"),
+        ("12 Feb", "INSTANT TRANSFER IN HIGHLAND RESORT &amp; SPA", "+7,600,000.00", "in", "agreed"),
+        ("13 Feb", "TRANSFER OUT ANDI PRATAMA", "−5,000,000.00", "out", "agreed"),
+    ]
+    trs = "".join(
+        f"""<tr class="is-clickable{' is-selected' if desc.endswith('DAYBREAK CAFE') else ''}"{' aria-selected="true"' if desc.endswith('DAYBREAK CAFE') else ''}>
+  <td><strong>{desc}</strong><div class="reason">{day}, page 1</div></td>
+  <td class="r"><span class="{'amt-in' if way == 'in' else 'amt-out'}"><span class="reading reading-{mark}">{amt}</span></span></td>
+</tr>""" for day, desc, amt, way, mark in list_rows)
+    page = statement_page(page_rows, "01 Feb 2026 to 28 Feb 2026", "Page 1 / 3",
+                          "February statement, page 1, with the selected credit highlighted")
+    viewer = f"""
+<section class="viewer" aria-label="Page viewer">
+  <div class="viewer-bar">
+    <span class="file">{icon("file-text", "icon icon-sm")}ACB_Feb_2026.pdf</span>
+    <span class="pages" role="group" aria-label="Pages"><button type="button" aria-label="Previous page" disabled>{icon("chevron-left", "icon icon-sm")}</button><span>Page 1 of 3</span><button type="button" aria-label="Next page">{icon("chevron-right", "icon icon-sm")}</button></span>
+    <span class="zoom" role="group" aria-label="Zoom"><button type="button" aria-label="Zoom out">{icon("zoom-out", "icon icon-sm")}</button><span>100%</span><button type="button" aria-label="Zoom in">{icon("zoom-in", "icon icon-sm")}</button></span>
+  </div>
+  <div class="doc-window">{page}</div>
+  <div class="spread"><p class="muted small">The box shows where the selected value is printed, from the word positions in the file itself.</p><button class="button button-secondary button-sm whole-page" type="button">{icon("file-text", "icon icon-sm")}Whole page</button></div>
+</section>"""
+    pane = f"""
+<section class="doc-pane" aria-label="What was read">
+  <dl class="ledger-figures">
+    <div><dt>Opening balance</dt><dd class="v"><small>IDR</small><span class="reading reading-agreed">41.1 M</span></dd><dd class="n">1 Feb, as printed</dd></div>
+    <div><dt>Closing balance</dt><dd class="v"><small>IDR</small><span class="reading reading-agreed">47.9 M</span></dd><dd class="n">28 Feb, as printed</dd></div>
+    <div><dt>Money in</dt><dd class="v"><small>IDR</small>214.9 M</dd><dd class="n">21 credits</dd></div>
+    <div><dt>Money out</dt><dd class="v"><small>IDR</small>208.1 M</dd><dd class="n">24 debits</dd></div>
+  </dl>
+  <nav class="tabs" role="tablist" aria-label="Document sections"><a class="tab" role="tab" aria-selected="true" href="#">Transactions <span class="count">45</span></a><a class="tab" role="tab" aria-selected="false" href="#">Findings <span class="count">0</span></a><a class="tab" role="tab" aria-selected="false" href="#">Details</a></nav>
+  <div class="chips" role="group" aria-label="Filter transactions"><a class="chip" aria-pressed="true" href="#">All <span class="n">45</span></a><a class="chip" href="#">Money in <span class="n">21</span></a><a class="chip" href="#">Money out <span class="n">24</span></a><a class="chip" href="#">To check <span class="n">1</span></a></div>
+  <div class="table-panel rt-wrap"><table class="data-table rt">
+    <thead><tr><th>Transaction</th><th class="r">Amount, IDR</th></tr></thead>
+    <tbody>{trs}</tbody>
+  </table></div>
+  <div class="pager-line"><span>1 to 25 of 45</span><span class="row"><button class="button button-secondary button-sm" type="button" disabled>Previous</button><button class="button button-secondary button-sm" type="button">Next</button></span></div>
+  <p class="reading-legend"><span><span class="reading reading-agreed">18,700,000</span> found on the page</span><span><span class="reading reading-single">720,000</span> read from the image only</span><span><span class="reading reading-conflict">7,250,000</span> page and reading differ</span></p>
+</section>"""
+    content = f"""
+<div class="page stack gap-5">
+  <header class="stack gap-2">
+    <h1 class="type-title">ACB_Feb_2026.pdf</h1>
+    <p class="muted">Bank statement, Archipelago Commerce Bank ••4821, 1 to 28 February 2026. Uploaded on 2 July.</p>
+    <div class="doc-status">
+      <span class="badge badge-brand">{icon("check")}Read: 180 of 180 values found on the page</span>
+      <span class="badge badge-clean">{icon("shield-check")}No signs of editing</span>
+      <span class="spacer"></span>
+      <span class="row"><a class="button button-secondary button-sm" href="#">{icon("download", "icon icon-sm")}Original file</a><a class="button button-ghost button-sm" href="#">{icon("trash", "icon icon-sm")}Remove</a></span>
+    </div>
+  </header>
+  <div class="doc-layout">{viewer}{pane}</div>
+</div>"""
+    return shell("documents", topbar("ACB_Feb_2026.pdf", (("Documents", "documents.html"), "ACB_Feb_2026.pdf"), back=("Documents", "documents.html")), content)
 
 
 # ------------------------------------------------------------------------------------------------
@@ -786,6 +872,7 @@ def onboarding() -> str:
 SCREENS = {
     "dashboard": ("Dashboard", dashboard),
     "documents": ("Documents", documents),
+    "document": ("Document", document),
     "month": ("Month reconciliation", month),
     "reconciliation": ("Bank evidence and document support", reconciliation),
     "review": ("Review queue", review),
@@ -797,6 +884,7 @@ SCREENS = {
 
 NOTES = {
     "dashboard": "One sentence says where the books stand, then what needs you and the open risks. Below, full-width charts grouped by IFRS or US GAAP: money flow (flow, bars, table or by client and supplier), money in and out by month, and the cash-flow statement.",
+    "document": "One read document: the page viewer with the selected value lit, beside what was read from it, a paginated list with reading marks, its findings and details.",
     "documents": "Upload anything in any order. Exact copies are recognised at once; possible copies wait for you; ledgers ask for their columns once.",
     "month": "One month's reconciliation: figures with their provenance marks, the explained risk with next steps, and every bank line with its match and reason.",
     "reconciliation": "A separate synthetic MYR workspace preview: grouped and split payments, bank-only rows, documents before statements, separate approval/payment confirmation and currency agreement without conversion.",

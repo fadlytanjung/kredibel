@@ -546,6 +546,7 @@ make mock-shots    tools/design/shoot_mocks.py at 390, 834, 1440 px → docs/ass
 | `onboarding.html` | Myself or a company, the trial terms, the brand panel | 013 |
 | `dashboard.html` | Status sentence, figures, Needs you, Risk, then full-width charts with the IFRS / US GAAP switch: money flow (Flow, Bars, Table, By client and supplier), money in and out by month, cash-flow statement; months as binder tabs | 010 |
 | `documents.html` | Upload tray with an exact copy, a held copy, a page being read and a new ledger layout; the library | 003, 006 |
+| `document.html` | One read statement: page viewer (pages, zoom, the lamp) beside the figures and the transactions with reading marks, filters and pages | 003, 005, 006 |
 | `month.html` | March 2026: figures, the critical explanation with citations and next steps, bank lines with matches | 007, 008 |
 | `review.html` | The queue by month and the fix panel for a bank line that fits two invoices | 009 |
 | `evidence-viewer.html` | The lamp, calculation, two readings; magnifier on compact | 005, 008 |

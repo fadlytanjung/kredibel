@@ -5,6 +5,7 @@
 
 import { useParams } from 'react-router-dom'
 import { DashboardPage } from '../pages/DashboardPage'
+import { DocumentPage } from '../pages/DocumentPage'
 import { SettingsPage } from '../pages/SettingsPage'
 import { AppShell } from '../shared/ui'
 
@@ -30,6 +31,15 @@ export function SettingsPreview() {
   return (
     <AppShell {...PREVIEW_PROPS} activePath={`/settings/${section}`} onUpload={() => undefined}>
       <SettingsPage />
+    </AppShell>
+  )
+}
+
+/** One document inside the shell; the caller serves its API data and page images (screenshots). */
+export function DocumentPreview() {
+  return (
+    <AppShell {...PREVIEW_PROPS} activePath="/documents" onUpload={() => undefined}>
+      <DocumentPage />
     </AppShell>
   )
 }

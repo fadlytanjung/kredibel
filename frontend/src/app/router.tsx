@@ -28,7 +28,7 @@ import { SettingsPage } from '../pages/SettingsPage'
 import { AppShell, Button } from '../shared/ui'
 import { OnboardingPreview } from './OnboardingPreview'
 import { TrialBanner } from '../widgets/TrialBanner'
-import { SettingsPreview, ShellPreview } from './ShellPreview'
+import { DocumentPreview, SettingsPreview, ShellPreview } from './ShellPreview'
 
 function FullPageLoading() {
   const { t } = useTranslation()
@@ -147,6 +147,7 @@ export function AppRouter() {
       {import.meta.env.DEV && (
         <Route path="/preview/settings/:section" element={<SettingsPreview />} />
       )}
+      {import.meta.env.DEV && <Route path="/preview/documents/:docId" element={<DocumentPreview />} />}
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   )

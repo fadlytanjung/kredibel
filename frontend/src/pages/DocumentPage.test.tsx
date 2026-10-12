@@ -38,7 +38,7 @@ describe('DocumentPage', () => {
     )
   }
 
-  it('renders document details, pages, and extracted values (AC-003-9)', async () => {
+  it('renders the document beside its page viewer, with its details (AC-003-9)', async () => {
     const mockDoc = {
       docId: 'doc_test_123',
       fileName: 'BCA_Statement_March.pdf',
@@ -60,18 +60,23 @@ describe('DocumentPage', () => {
       uploadedAt: '2026-03-02T10:00:00Z',
     }
 
-    vi.mocked(apiClient).mockResolvedValueOnce(mockDoc)
+    vi.mocked(apiClient).mockImplementation(async (path: string) =>
+      path.startsWith('/api/findings') ? { items: [] } : mockDoc,
+    )
 
     renderPage()
 
-    await waitFor(() => {
-      expect(screen.getByText('BCA_Statement_March.pdf')).toBeInTheDocument()
-      expect(screen.getByText('Bank Central Asia')).toBeInTheDocument()
-      expect(screen.getByText('••••4821')).toBeInTheDocument()
-    })
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'BCA_Statement_March.pdf' })).toBeInTheDocument())
+    expect(screen.getByText(/Bank statement, Bank Central Asia ••••4821/)).toBeInTheDocument()
+    expect(screen.getByText('No signs of editing')).toBeInTheDocument()
+    expect(screen.getByText('Page 1 of 2')).toBeInTheDocument()
+    expect(screen.getByText('Digital')).toBeInTheDocument()
 
-    // Check pages viewer
-    expect(screen.getByText('Pages (2)')).toBeInTheDocument()
+    // Not read yet: the findings and details tabs only; details lists what the file is.
+    expect(screen.queryByRole('tab', { name: /Transactions/ })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('tab', { name: 'Details' }))
+    expect(screen.getByText('Bank Central Asia')).toBeInTheDocument()
+    expect(screen.getByText('••••4821')).toBeInTheDocument()
   })
 
   it('loads page images and the original with the token (they came back 401 as <img src>)', async () => {
@@ -90,8 +95,9 @@ describe('DocumentPage', () => {
     })
     renderPage('doc_img')
 
-    await waitFor(() => expect(apiBlob).toHaveBeenCalledWith('/api/documents/doc_img/pages/1?variant=thumb'))
-    expect(apiBlob).toHaveBeenCalledWith('/api/documents/doc_img/pages/1?variant=full')
+    await waitFor(() => expect(apiBlob).toHaveBeenCalledWith('/api/documents/doc_img/pages/1?variant=full'))
+    expect(apiBlob).not.toHaveBeenCalledWith('/api/documents/doc_img/pages/1?variant=thumb')
+    expect(screen.getByText('Reading')).toBeInTheDocument()
     await waitFor(() =>
       expect(
         screen.getAllByRole('img', { name: 'Page 1' }).some((el) => el.getAttribute('src')?.startsWith('blob:')),
@@ -120,7 +126,7 @@ describe('DocumentPage', () => {
     renderPage('doc_del_999')
 
     await waitFor(() => {
-      expect(screen.getByText('To_Delete.pdf')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'To_Delete.pdf' })).toBeInTheDocument()
     })
 
     // Click remove document button
@@ -148,7 +154,7 @@ describe('DocumentPage', () => {
     })
   })
 
-  it('lists the lines read and points at a value on its page (T005-11)', async () => {
+  it('lists the lines read a page at a time and points at a value on its page (T005-11)', async () => {
     const box = { x0: 0.62, y0: 0.3, x1: 0.7, y1: 0.31 }
     const reading = (status: string) => ({ status, page: 2, bbox: box, sources: ['GEMINI', 'TEXT_LAYER'] })
     const doc = {
@@ -162,10 +168,11 @@ describe('DocumentPage', () => {
         { pageNo: 1, status: 'DONE', textLayer: true, witness: 'TEXT_LAYER' },
         { pageNo: 2, status: 'DONE', textLayer: true, witness: 'TEXT_LAYER' },
       ],
-      reading: { method: 'AI_TEXT_LAYER', agreement: '1.000', fieldsCompared: 8, fieldsAgreed: 8, lines: 2 },
+      reading: { method: 'AI_TEXT_LAYER', agreement: '1.000', fieldsCompared: 90, fieldsAgreed: 89, lines: 30 },
       statementMeta: {
         bankName: 'RHB Bank Berhad',
         accountMasked: '••••3876',
+        currency: 'MYR',
         periodStart: '2026-08-16',
         periodEnd: '2026-09-15',
         opening: { amount: '1216.73', currency: 'MYR' },
@@ -187,32 +194,76 @@ describe('DocumentPage', () => {
       readings: { amount: { ...reading(status), page }, date: reading('AGREED') },
       match: { state: 'UNMATCHED' },
     })
+    // 28 small debits of 0.10 (2.80 exactly, where floats drift), one credit, one line to check.
+    const items = [
+      ...Array.from({ length: 28 }, (_, i) => line(`tx_${i}`, 1, '-0.10', `DEBIT CARD TXN-DR\nSHOP ${i}`)),
+      line('tx_in', 2, '250.00', 'MBK INSTANT TRF CR\nNURUL AINA'),
+      line('tx_odd', 2, '-12.40', 'DEBIT CARD TXN-DR\nGRAB RIDES', 'CONFLICT'),
+    ]
     vi.mocked(apiClient).mockImplementation(async (path: string) =>
-      path.startsWith('/api/bank-lines')
-        ? {
-            items: [
-              line('tx_1', 1, '-12.40', 'DEBIT CARD TXN-DR\nGRAB RIDES'),
-              line('tx_2', 2, '250.00', 'MBK INSTANT TRF CR\nNURUL AINA', 'CONFLICT'),
-            ],
-          }
-        : doc,
+      path.startsWith('/api/bank-lines') ? { items } : doc,
     )
 
     renderPage('doc_lines')
 
-    await waitFor(() => expect(screen.getByText('Transactions read')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('1 to 25 of 30')).toBeInTheDocument())
+    expect(screen.getByRole('tab', { name: /Transactions/ })).toHaveAttribute('aria-selected', 'true')
     expect(apiClient).toHaveBeenCalledWith('/api/bank-lines?docId=doc_lines')
-    expect(screen.getByText('2 lines; 8 of 8 values found on the page')).toBeInTheDocument()
-    expect(screen.getByText('On the page')).toBeInTheDocument()
-    expect(screen.getByText('Readings differ')).toBeInTheDocument()
+    expect(screen.getByText('Read: 89 of 90 values found on the page')).toBeInTheDocument()
     expect(screen.getByText(/1,216\.73/)).toBeInTheDocument()
+    expect(screen.getByText(/^\D*250\.00$/)).toBeInTheDocument() // money in
+    expect(screen.getByText(/^\D*15\.20$/)).toBeInTheDocument() // money out: 2.80 + 12.40
+    expect(screen.getByText('1 credit')).toBeInTheDocument()
+    expect(screen.getByText('29 debits')).toBeInTheDocument()
+
+    // A page of 25 lines, then the rest.
+    expect(screen.queryByText('NURUL AINA')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+    expect(screen.getByText('26 to 30 of 30')).toBeInTheDocument()
+    expect(screen.getByText('NURUL AINA')).toBeInTheDocument()
+
+    // To check: only the line whose readings differ, and it says why.
+    fireEvent.click(screen.getByRole('button', { name: /To check/ }))
+    expect(screen.getByText('1 to 1 of 1')).toBeInTheDocument()
+    expect(screen.getByText(/page 2 · Readings differ/)).toBeInTheDocument()
     expect(screen.queryByTestId('page-lamp')).not.toBeInTheDocument()
 
-    fireEvent.click(screen.getByText('MBK INSTANT TRF CR'))
+    fireEvent.click(screen.getByText('DEBIT CARD TXN-DR'))
 
     await waitFor(() => expect(screen.getByTestId('page-lamp')).toBeInTheDocument())
     expect(apiBlob).toHaveBeenCalledWith('/api/documents/doc_lines/pages/2?variant=full')
+    expect(screen.getByText('Page 2 of 2')).toBeInTheDocument()
     expect(screen.getByTestId('page-lamp').style.left).toBe('61.6%')
+  })
+
+  it('moves between pages and zooms the page (docs/11 §6.3)', async () => {
+    vi.mocked(apiClient).mockResolvedValue({
+      docId: 'doc_view',
+      fileName: 'scan.pdf',
+      contentType: 'application/pdf',
+      docType: 'RECEIPT',
+      status: 'DONE',
+      pageCount: 3,
+      pages: [1, 2, 3].map((pageNo) => ({ pageNo, status: 'DONE', textLayer: false, witness: 'OCR' })),
+      uploadedAt: '2026-10-12T01:57:18Z',
+    })
+    renderPage('doc_view')
+
+    await waitFor(() => expect(screen.getByText('Page 1 of 3')).toBeInTheDocument())
+    expect(screen.getByText('Scanned')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Previous page' })).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: 'Next page' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Next page' }))
+    expect(screen.getByText('Page 3 of 3')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Next page' })).toBeDisabled()
+    await waitFor(() => expect(apiBlob).toHaveBeenCalledWith('/api/documents/doc_view/pages/3?variant=full'))
+
+    expect(screen.getByText('100%')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }))
+    expect(screen.getByText('125%')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Zoom out' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Zoom out' }))
+    expect(screen.getByText('75%')).toBeInTheDocument()
   })
 
   it('shows the invoices read from a document and lights a value on its page (T005-03)', async () => {
@@ -256,6 +307,7 @@ describe('DocumentPage', () => {
     await waitFor(() => expect(screen.getByText('INV/SCR/2026/03/0009')).toBeInTheDocument())
     expect(apiClient).toHaveBeenCalledWith('/api/invoices?docId=doc_inv')
     expect(screen.getByText('Sales invoice')).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: /Invoices/ })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByText('12 of 12 values found on the page')).toBeInTheDocument()
     expect(screen.getByText('Daybreak Café')).toBeInTheDocument()
     expect(screen.queryByTestId('page-lamp')).not.toBeInTheDocument()
@@ -315,8 +367,10 @@ describe('DocumentPage', () => {
 
     renderPage('doc_t')
 
-    await waitFor(() => expect(screen.getByText('The balance on 15 Mar does not follow from the last')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByRole('tab', { name: /Findings/ })).toHaveTextContent('1'))
     expect(screen.getByText('Edited')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('tab', { name: /Findings/ }))
+    expect(screen.getByText('The balance on 15 Mar does not follow from the last')).toBeInTheDocument()
     expect(screen.getByText('Critical')).toBeInTheDocument()
     expect(screen.getByText('-6000000.00')).toBeInTheDocument()
     expect(screen.getByText('Ask the bank for the original statement.')).toBeInTheDocument()

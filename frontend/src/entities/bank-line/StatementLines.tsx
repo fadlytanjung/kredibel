@@ -1,25 +1,32 @@
-/** One statement's lines as read, each with how its values were found (spec 005, T005-11). */
+/**
+ * One statement's lines as read: filtered, a page at a time, each amount marked with how it was
+ * found (spec 005, T005-11; mock design/mocks/document.html).
+ */
 
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { formatDate } from '../../shared/lib/formatDate'
 import { formatMoney } from '../../shared/lib/formatMoney'
-import { Badge } from '../../shared/ui'
-import type { BankLine, ValueReading } from './api'
+import { Button } from '../../shared/ui'
+import type { BankLine } from './api'
+import { isIncoming, lineStatus, needsCheck } from './lines'
 
-type Status = ValueReading['status']
+type Filter = 'all' | 'in' | 'out' | 'check'
 
-const RANK: Record<string, number> = { AGREED: 0, SINGLE_SOURCE: 1, CONFLICT: 2, MISSING: 3 }
-const VARIANT = { AGREED: 'clean', SINGLE_SOURCE: 'medium', CONFLICT: 'high', MISSING: 'critical' } as const
+const PAGE_SIZE = 25
+const FILTERS: Filter[] = ['all', 'in', 'out', 'check']
+const MARK = {
+  AGREED: 'reading-agreed',
+  SINGLE_SOURCE: 'reading-single',
+  CONFLICT: 'reading-conflict',
+  MISSING: 'reading-conflict',
+} as const
 
-/** The weakest reading among a line's values decides its badge. */
-export function lineStatus(line: BankLine): Status {
-  const statuses = Object.values(line.readings ?? {}).map((r) => r.status)
-  return statuses.reduce<Status>((worst, s) => ((RANK[s] ?? 0) > (RANK[worst] ?? 0) ? s : worst), 'AGREED')
-}
-
-/** Where to point on the page: the amount's box, else the description's. */
-export function lineBox(line: BankLine) {
-  return line.readings?.amount?.bbox ?? line.readings?.description?.bbox
+const KEEP: Record<Filter, (line: BankLine) => boolean> = {
+  all: () => true,
+  in: isIncoming,
+  out: (line) => !isIncoming(line),
+  check: needsCheck,
 }
 
 interface StatementLinesProps {
@@ -30,58 +37,116 @@ interface StatementLinesProps {
 
 export function StatementLines({ lines, selectedTxId, onSelect }: StatementLinesProps) {
   const { t } = useTranslation('documents')
+  const [filter, setFilter] = useState<Filter>('all')
+  const [start, setStart] = useState(0)
+  const shown = lines.filter(KEEP[filter])
+  const page = shown.slice(start, start + PAGE_SIZE)
+  const choose = (next: Filter) => {
+    setFilter(next)
+    setStart(0)
+  }
+
   return (
-    <div className="table-panel rt-wrap">
-      <table className="data-table rt">
-        <thead>
-          <tr>
-            <th>{t('detail.columns.date')}</th>
-            <th>{t('detail.columns.description')}</th>
-            <th className="r">{t('detail.columns.amount')}</th>
-            <th className="r">{t('detail.columns.balance')}</th>
-            <th>{t('detail.columns.reading')}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {lines.map((line) => {
-            const status = lineStatus(line)
-            const incoming = !line.amount.amount.startsWith('-')
-            const [first, ...rest] = line.description.split('\n')
-            return (
-              <tr
-                key={line.txId}
-                className={`is-clickable ${line.txId === selectedTxId ? 'is-selected' : ''}`}
-                aria-selected={line.txId === selectedTxId}
-                tabIndex={0}
-                onClick={() => onSelect(line)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault()
-                    onSelect(line)
-                  }
-                }}
-              >
-                <td className="whitespace-nowrap">{formatDate(line.date)}</td>
-                <td data-cell="wide">
-                  <strong className="block">{line.counterpartyName || first}</strong>
-                  <span className="small muted">{line.counterpartyName ? line.description.replace(/\n/g, ' · ') : rest.join(' · ')}</span>
-                </td>
-                <td className={`r ${incoming ? 'amt-in' : 'amt-out'}`}>
-                  {formatMoney(line.amount.amount, { currency: line.amount.currency })}
-                </td>
-                <td className="r">
-                  {line.balance ? formatMoney(line.balance.amount, { currency: line.balance.currency }) : '—'}
-                </td>
-                <td>
-                  <Badge variant={VARIANT[status]}>
-                    {line.source === 'WITNESS' ? t('detail.witnessRow') : t(`detail.readingStatus.${status}`)}
-                  </Badge>
-                </td>
+    <div className="stack gap-3">
+      <div className="chips" role="group" aria-label={t('detail.lines.filter')}>
+        {FILTERS.map((key) => (
+          <button key={key} type="button" className="chip" aria-pressed={filter === key} onClick={() => choose(key)}>
+            {t(`detail.lines.${key}`)} <span className="n">{lines.filter(KEEP[key]).length}</span>
+          </button>
+        ))}
+      </div>
+
+      {page.length === 0 ? (
+        <p className="muted small">{t('detail.lines.none')}</p>
+      ) : (
+        <div className="table-panel rt-wrap">
+          <table className="data-table rt">
+            <thead>
+              <tr>
+                <th>{t('detail.columns.transaction')}</th>
+                <th className="r">{t('detail.columns.amount')}</th>
               </tr>
-            )
-          })}
-        </tbody>
-      </table>
+            </thead>
+            <tbody>
+              {page.map((line) => {
+                const status = lineStatus(line)
+                const amountStatus = line.readings?.amount?.status ?? status
+                const incoming = isIncoming(line)
+                const [first, ...rest] = line.description.split('\n')
+                const detail = line.counterpartyName ? line.description.replace(/\n/g, ' · ') : rest.join(' · ')
+                const where = t('detail.lines.where', { date: formatDate(line.date), page: line.page })
+                const check =
+                  line.source === 'WITNESS' ? t('detail.witnessRow') : status !== 'AGREED' ? t(`detail.readingStatus.${status}`) : ''
+                return (
+                  <tr
+                    key={line.txId}
+                    className={`is-clickable ${line.txId === selectedTxId ? 'is-selected' : ''}`}
+                    aria-selected={line.txId === selectedTxId}
+                    tabIndex={0}
+                    onClick={() => onSelect(line)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        onSelect(line)
+                      }
+                    }}
+                  >
+                    <td>
+                      <strong className="block">{line.counterpartyName || first}</strong>
+                      {detail && <div className="reason">{detail}</div>}
+                      <div className="reason">{check ? `${where} · ${check}` : where}</div>
+                    </td>
+                    <td className="r">
+                      <span className={incoming ? 'amt-in' : 'amt-out'}>
+                        <span className={`reading ${line.source === 'WITNESS' ? MARK.SINGLE_SOURCE : MARK[amountStatus]}`}>
+                          {incoming ? '+' : ''}
+                          {formatMoney(line.amount.amount, { currency: line.amount.currency })}
+                        </span>
+                      </span>
+                      <span className="sr-only">{t(`detail.readingStatus.${amountStatus}`)}</span>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {shown.length > 0 && (
+        <div className="pager-line">
+          <span>
+            {t('detail.lines.range', { from: start + 1, to: Math.min(start + PAGE_SIZE, shown.length), total: shown.length })}
+          </span>
+          {shown.length > PAGE_SIZE && (
+            <span className="row">
+              <Button variant="secondary" size="sm" disabled={start === 0} onClick={() => setStart(start - PAGE_SIZE)}>
+                {t('detail.lines.previous')}
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={start + PAGE_SIZE >= shown.length}
+                onClick={() => setStart(start + PAGE_SIZE)}
+              >
+                {t('detail.lines.next')}
+              </Button>
+            </span>
+          )}
+        </div>
+      )}
+
+      <p className="reading-legend">
+        <span>
+          <span className="reading reading-agreed">{t('detail.legend.sample')}</span> {t('detail.legend.agreed')}
+        </span>
+        <span>
+          <span className="reading reading-single">{t('detail.legend.sample')}</span> {t('detail.legend.single')}
+        </span>
+        <span>
+          <span className="reading reading-conflict">{t('detail.legend.sample')}</span> {t('detail.legend.conflict')}
+        </span>
+      </p>
     </div>
   )
 }

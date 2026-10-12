@@ -33,6 +33,7 @@ from app.domain.models.document import (
 )
 from app.domain.models.events import AuditEvent
 from app.domain.plans import UploadRequest
+from app.ports.bank_line_repository import BankLineRepository
 from app.ports.document_repository import DocumentRepository
 from app.ports.document_storage import DocumentStorage
 from app.ports.page_renderer import PageRenderer
@@ -57,6 +58,7 @@ class DocumentService:
         renderer: PageRenderer,
         clock: Clock,
         spreadsheet_reader: SpreadsheetReader | None = None,
+        bank_lines: BankLineRepository | None = None,
         runs_enabled: bool = True,
         sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
     ) -> None:
@@ -67,6 +69,7 @@ class DocumentService:
         self._renderer = renderer
         self._clock = clock
         self._spreadsheet_reader = spreadsheet_reader
+        self._bank_lines = bank_lines
         self._runs_enabled = runs_enabled
         self._sleep = sleep
 
@@ -367,6 +370,8 @@ class DocumentService:
             subject={"docId": doc_id},
             details={"fileName": doc.file_name, "months": ",".join(doc.months)},
         )
+        if self._bank_lines is not None:  # everything read from it goes too (AC-003-10)
+            await self._bank_lines.replace_document_lines(org_id, doc_id, [])
         await self._doc_repo.delete_document(org_id, doc_id, months=doc.months, event=event)
 
 

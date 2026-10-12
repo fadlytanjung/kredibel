@@ -226,3 +226,26 @@ async def test_the_document_carries_its_statement_in_contract_shape():
     assert "openingMinor" not in meta
     assert body["reading"]["agreement"] == "1.000"
     assert body["reading"]["lines"] == len(TRUTH["rows"])
+
+
+async def test_removing_a_statement_removes_its_lines():
+    lines, docs = FakeBankLineRepository(), FakeDocumentRepository()
+    deps = _deps(lines, docs)
+    app = create_app(deps.settings, deps=deps)
+    pdf = (FIXTURES / "acb-2026-03.pdf").read_bytes()
+    auth = {"Authorization": "Bearer owner"}
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+        res = await c.post(
+            "/api/documents",
+            files={"file": ("acb.pdf", io.BytesIO(pdf), "application/pdf")},
+            headers=auth,
+        )
+        queue = deps.task_queue
+        assert isinstance(queue, InlineTaskQueue)
+        await queue.drain()
+        doc_id = res.json()["docId"]
+        assert await lines.list_lines("org_1", doc_id=doc_id)
+        removed = await c.delete(f"/api/documents/{doc_id}", headers=auth)
+
+    assert removed.status_code == 204
+    assert await lines.list_lines("org_1", doc_id=doc_id) == []

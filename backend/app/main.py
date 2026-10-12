@@ -275,6 +275,7 @@ class AppDeps:
                 entitlements=self.entitlement_service,
                 renderer=self.renderer,
                 spreadsheet_reader=self.spreadsheet_reader,
+                bank_lines=self.bank_lines,
                 clock=self.clock,
                 runs_enabled=self.settings.runs_enabled,
             ),

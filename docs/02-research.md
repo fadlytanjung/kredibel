@@ -218,7 +218,8 @@ finance teams are; the fraud figures describe what goes wrong with documents and
   supplier (`X08`).
 - **Regulatory context for production (not the prototype):** Indonesia's Personal Data Protection Law
   (Law No. 27 of 2022) and record-keeping rules for accounting documents. ⚠️ Have a compliance
-  reviewer confirm before any real-data pilot. The prototype uses synthetic data only.
+  reviewer confirm before onboarding customers; production runs on real documents
+  ([ADR-022](adr/ADR-022-real-documents-in-production.md)).
 
 ---
 

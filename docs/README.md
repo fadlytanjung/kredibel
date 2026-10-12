@@ -115,7 +115,8 @@ only; when a change alters what a diagram shows, update the diagram in the same 
 | [019](adr/ADR-019-one-component-stylesheet-for-mocks-and-app.md) | `kit.css` and the mock icon set are the component stylesheet and icons of the app too (supersedes the Tailwind rebuild rule of 12 §0) |
 | [020](adr/ADR-020-workspace-currency-chosen-at-onboarding.md) | One currency per workspace (IDR, MYR, SGD, JPY, USD), chosen at onboarding and fixed afterwards; hundredths in Firestore for every currency |
 | [021](adr/ADR-021-kredibel-firestore-database.md) | Kredibel's own Firestore database `kredibel` in the shared project; firebase.json targets only it |
-| [022](adr/ADR-022-owners-own-documents-for-testing-and-demo.md) | The owner's own statements and invoices for end-to-end testing and the demo, as real data (amends P8) |
+| [022](adr/ADR-022-real-documents-in-production.md) | Real documents in production with real-data controls always on; synthetic data for tests (amends P8) |
+| [023](adr/ADR-023-parse-extract-ground.md) | Parse pages into layout chunks (text layer or Document AI OCR), extract with Gemini from image plus chunks with citations, ground every value in code |
 
 ## Machine-readable contracts
 

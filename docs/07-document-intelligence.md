@@ -186,9 +186,14 @@ Costs and their sources: [`21`](21-cost-analysis.md) §3.
 
 ### 5.2 The AI reader (Gemini)
 
-- **One call per page**, `MODEL_FAST`, `temperature = 0`, `response_schema` set, media resolution
-  `high` (1,120 image tokens; spike S1 compares `ultra_high`). The input is the **page PNG only**; the
-  text layer is never sent, so the reader stays independent of the witness.
+- **Parse, extract, ground** ([ADR-023](adr/ADR-023-parse-extract-ground.md)). The page is first parsed
+  into layout chunks (`domain/layout.py`: text lines and blocks, table rows with cells, header and
+  totals lines, each with an ID `p{page}-c{n}` and boxes) from the text layer, or from Enterprise OCR
+  words for scans and photos.
+- **One call per page**, `MODEL_FAST`, `temperature = 0`, `thinking_level=low`, `response_schema` set,
+  media resolution `high`. The input is the **page PNG and its chunks** as numbered context; every
+  value comes back as printed with the `chunk_ids` it was read from, and `differs_from_text` when the
+  image shows something different from the chunk text.
 - **Page 1 first.** Its output includes the header; pages 2..n run in parallel (`PAGE_CONCURRENCY`,
   default 6) and receive a short context: account number, period and the printed column order.
 - The prompt asks for **values exactly as printed** (strings) plus the row order on the page; no
@@ -335,7 +340,12 @@ business data leaves the workspace for this step beyond column names.
 
 ---
 
-## 6. Verification (AI reader vs witness)
+## 6. Grounding (reading vs the page's words)
+
+Since [ADR-023](adr/ADR-023-parse-extract-ground.md) the witness is the reader's context too: a value
+is `AGREED` when it is found in the words of a chunk it cites (the band rules below decide which words
+belong to a row when a citation is missing), `CONFLICT` when the cited chunk holds something else or
+`differs_from_text` is set, `SINGLE_SOURCE` when nothing is cited or printed there.
 
 ### 6.1 Statements
 

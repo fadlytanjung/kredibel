@@ -1,6 +1,6 @@
 # ADR-010 — Adaptive extraction: one AI reader and a deterministic witness per page
 
-**Status:** Accepted · **Date:** 2026-10-10 · **Supersedes in part:** [ADR-004](ADR-004-dual-extraction-consensus.md)
+**Status:** Accepted, amended by [ADR-023](ADR-023-parse-extract-ground.md) (the reader gets the page's layout chunks as context and cites them) · **Date:** 2026-10-10 · **Supersedes in part:** [ADR-004](ADR-004-dual-extraction-consensus.md)
 (the "two readers" principle stays; the choice of readers changes)
 
 ## Context

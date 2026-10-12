@@ -7,13 +7,14 @@
 Businesses and accounting firms in Indonesia and the region expect financial data to stay in-region. In the
 prototype, all Document AI processors sit in `us` (the optional Bank Statement Parser is only offered
 in `us`/`eu`), and the newest Gemini models are
-broadly available on the `global` endpoint. The prototype processes **synthetic data only**.
+broadly available on the `global` endpoint. Production processes **real documents** ([ADR-022](ADR-022-real-documents-in-production.md)).
 
 ## Decision
 
 - **Prototype:** state (Firestore, GCS, Cloud Tasks, Cloud Run) in `asia-southeast1`; Document AI in
-  `us`; Gemini on `global`; Model Armor regional. Acceptable because the only real data is the
-  owner's own, by their choice ([ADR-022](ADR-022-owners-own-documents-for-testing-and-demo.md)).
+  `us`; Gemini on `global`; Model Armor regional. Acceptable for the first real documents (the
+  owner's own); the production path below is a launch condition for customers who require
+  in-region processing ([ADR-022](ADR-022-real-documents-in-production.md)).
 - **Production path (documented, not built):**
   1. Run the witness (Enterprise OCR) and any escalation parser in-region where offered (Custom
      Extractor is offered in `asia-southeast1`); the text-layer witness already runs inside our

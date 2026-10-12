@@ -664,7 +664,7 @@ def onboarding() -> str:
     <div class="ledger-line"><span>11 Mar</span><span class="desc">TRANSFER IN DAYBREAK CAFE</span><span class="amt">6,420,000 <span class="tick">{icon("check", "icon icon-sm")}matched</span></span></div>
     <div class="ledger-line"><span>12 Mar</span><span class="desc">ACB_Feb_2026 (1).pdf</span><span class="amt"><span class="tick dup">{icon("copy", "icon icon-sm")}copy, not read</span></span></div>
   </div>
-  <p class="small-print">Synthetic data only. Kredibel never moves money and never changes your accounting system.</p>
+  <p class="small-print">Kredibel only reads your documents. It never moves money and never changes your accounting system.</p>
 </section>"""
     form = f"""
 <section class="onboard-form" aria-labelledby="ob-h">

@@ -362,8 +362,9 @@ stateDiagram-v2
 | Model Armor (P1) | regional endpoint, default `asia-southeast1` (confirm in spike S4) | Requires a regional endpoint |
 | Sessions and Memory Bank (P1) | `asia-southeast1` if offered, else `us-central1` | Assistant conversations and preferences |
 
-Synthetic data only, so cross-region processing is acceptable for the prototype. The production
-residency path is in [ADR-009](adr/ADR-009-regions-and-data-residency.md).
+Reading sends page content to `global` (Gemini) and `us` (Document AI). That is acceptable for the
+first real documents; the in-region production path of [ADR-009](adr/ADR-009-regions-and-data-residency.md)
+is a launch condition for customers who require it ([ADR-022](adr/ADR-022-real-documents-in-production.md)).
 
 ---
 

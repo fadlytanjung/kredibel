@@ -58,13 +58,13 @@ Document AI, Model Armor, Cloud Run, Cloud Tasks, Firestore, Cloud Storage, Fire
 Build, Artifact Registry. Agent orchestration uses ADK. Open-source libraries inside our own containers
 are allowed. No third-party AI APIs or SaaS.
 
-## P8 — Synthetic data, plus the owner's own documents
+## P8 — Real data in production, protected; synthetic data for tests
 
-No customer document, account number or personal data ever enters the repository, the cloud project
-or the demo. Tests, evals and fixtures come from the generator in `tools/synthetic/` and carry a
-"SYNTHETIC — FOR TESTING" mark. The one exception: the project owner may run their own statements and
-invoices through their own workspace for end-to-end testing and the demo, as real data
-(`DATA_CLASS=real`, no content capture), never committed ([ADR-022](adr/ADR-022-owners-own-documents-for-testing-and-demo.md)).
+Kredibel runs on real businesses' documents, so the real-data controls (no content capture, IDs-only
+logs, masked account numbers, deletion) are always on. Tests, evals, fixtures and CI use the generator
+in `tools/synthetic/` and carry a "SYNTHETIC — FOR TESTING" mark; real documents never enter the
+repository. Residency is applied before onboarding customers who require it
+([ADR-022](adr/ADR-022-real-documents-in-production.md)).
 
 ## P9 — Demo-first, P0 first
 

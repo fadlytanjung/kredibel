@@ -286,7 +286,7 @@ for hashed assets. Firebase Hosting (`kredibel-app.web.app`) serves the same fil
 | `ASSISTANT_MEMORY` | `on` \| `off` (sessions only) | web (P1) |
 | `ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS` | Set from `AI_CONTENT_CAPTURE` at start-up (`false` unless `synthetic`); must be explicit outside Agent Runtime | both |
 | `AI_CONTENT_CAPTURE` | `off` (default) \| `synthetic` (prompts and responses in traces and agent events; refused unless `DATA_CLASS=synthetic`), [ADR-017](adr/ADR-017-agent-observability-on-google-cloud.md) | both |
-| `DATA_CLASS` | `real` on the services and in local development, where the owner's own documents run ([ADR-022](adr/ADR-022-owners-own-documents-for-testing-and-demo.md)); `synthetic` (the default) for tests and evals | both |
+| `DATA_CLASS` | `real` on the services and in local development, where the owner's own documents run ([ADR-022](adr/ADR-022-real-documents-in-production.md)); `synthetic` (the default) for tests and evals | both |
 | `FIRESTORE_DATABASE` | `kredibel` ([ADR-021](adr/ADR-021-kredibel-firestore-database.md)); `(default)` for the emulator and tests | both, migrate job, scripts |
 | `ANALYTICS_DATASET` / `AGENT_CONTENT_BUCKET` | `kredibel_agent_analytics` / `<PROJECT_ID>-kredibel-agent-content` | both (P1) |
 | `LEARNING_FILE` / `CATEGORIES_FILE` | `/app/contracts/policy/learning.v1.yaml` / `categories.v1.yaml` | both |

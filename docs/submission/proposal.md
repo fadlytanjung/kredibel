@@ -98,7 +98,8 @@ injection). All components are managed Google Cloud services; no custom model tr
 
 People resolve the exceptions; every match, finding and number shows its source; possible duplicates
 are held, never deleted; "unverifiable" is an honest outcome instead of a guess; no personal attributes
-are used; synthetic data only in this prototype.
+are used; real documents are processed with no content capture, masked account numbers and
+IDs-only logs, and tests run on synthetic books.
 
 ---
 

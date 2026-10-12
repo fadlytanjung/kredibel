@@ -92,8 +92,8 @@ enough consented data.
   stays short and about the books.
 - Evals gain a real-world ground truth from people, alongside the synthetic truth.
 - Prompts get a small "verified examples" block; the gateway keeps it to the same workspace.
-- No customer data is used for training without consent, masking and a minimum dataset size; the
-  prototype uses synthetic data only (P8).
+- No customer data is used for training without consent, masking and a minimum dataset size (P8,
+  [ADR-022](ADR-022-real-documents-in-production.md)).
 - Tunable model versions and dataset limits are checked when the first export is ready (they change
   more often than this decision).
 

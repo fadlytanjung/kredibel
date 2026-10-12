@@ -2460,8 +2460,19 @@ components:
         framework: { $ref: "#/components/schemas/AccountingFramework" }
         opening: { $ref: "#/components/schemas/Money" }
         closing: { $ref: "#/components/schemas/Money" }
-        balanced: { type: boolean, description: "opening + Σ byActivity = closing; false means a statement or month is missing" }
-        gapReason: { type: [string, "null"] }
+        balanced: { type: boolean, description: "opening + Σ byActivity = closing for every account; false means a statement or month is missing (see gaps)" }
+        gapReason: { type: [string, "null"], deprecated: true, description: "Superseded by gaps; always null" }
+        gaps:
+          type: array
+          description: Why the balances do not add up, one entry per account and cause (docs/08 §5.2); the UI words them
+          items:
+            type: object
+            required: [kind]
+            properties:
+              kind: { type: string, enum: [MISSING_MONTH, NO_BALANCES, TRANSFERS_ELSEWHERE, BALANCE_BREAK] }
+              month: { type: string, pattern: "^\\d{4}-\\d{2}$" }
+              account: { type: string, description: "Bank and masked number" }
+              amount: { $ref: "#/components/schemas/Money" }
         months:
           type: array
           items:
@@ -2481,6 +2492,7 @@ components:
             OPERATING: { $ref: "#/components/schemas/Money" }
             INVESTING: { $ref: "#/components/schemas/Money" }
             FINANCING: { $ref: "#/components/schemas/Money" }
+            UNCLASSIFIED: { $ref: "#/components/schemas/Money", description: "Lines not categorized yet; part of the opening-to-closing check" }
         byLine:
           type: array
           items:

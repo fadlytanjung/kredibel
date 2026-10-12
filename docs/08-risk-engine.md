@@ -348,6 +348,23 @@ so a person who cannot read a Sankey sees the same numbers.
 `opening + Σ byActivity = closing` is checked in code; a gap means a statement is missing or a month
 is incomplete, and the chart says so instead of drawing a balance that does not exist.
 
+Rules the code follows (`domain/cash_flow.py`, T010-01b; wording from `categories.v1.yaml`):
+
+- **Balances per account.** An account's opening is its first printed balance less the lines up to
+  and including it; its closing is its last printed balance plus the lines after it. The period's
+  opening and closing are their sums. A month's closing is the sum of each account's latest balance
+  up to that month.
+- **Activities.** Credits less debits per class under the framework. Uncategorized lines are their
+  own `UNCLASSIFIED` step ("Not categorized yet"), so they still add up. Lines between own accounts
+  and reversals (`NON_CASH`) are not activities.
+- **Gaps** (`gaps[]`, the UI words them; `balanced` is false when there is any):
+  `MISSING_MONTH` (an account has statements before and after a month of the period but none for
+  it), `NO_BALANCES` (an account's lines print no balance), `BALANCE_BREAK` (an account's opening
+  plus its lines does not reach its closing: pages or lines are missing; with the difference), and
+  `TRANSFERS_ELSEWHERE` (transfers between own accounts do not cancel out: money went to or came
+  from an account without statements; with the amount).
+- **Held lines** of possible duplicates are left out.
+
 ---
 
 ## 6. Reconciliation

@@ -14,5 +14,7 @@ def test_the_client_uses_the_configured_database():
     assert deps.firestore._database == "kredibel"
 
 
-def test_the_default_is_the_emulator_database():
-    assert Settings().firestore_database == "(default)"
+def test_the_default_is_the_emulator_database(monkeypatch):
+    monkeypatch.delenv("FIRESTORE_DATABASE", raising=False)
+    settings = Settings(_env_file=None)  # type: ignore[call-arg]  # not the developer's .env
+    assert settings.firestore_database == "(default)"

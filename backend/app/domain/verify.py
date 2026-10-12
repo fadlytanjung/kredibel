@@ -7,10 +7,10 @@ removed and case folded, because text layers often drop spaces (spike S1: "16 Au
 """
 
 import re
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from statistics import median
-from typing import Literal, NamedTuple
+from typing import Literal, NamedTuple, Protocol
 
 from rapidfuzz import fuzz
 
@@ -39,6 +39,21 @@ class AiRow(NamedTuple):
     debit_text: str | None
     credit_text: str | None
     balance_text: str | None
+    chunk_ids: tuple[str, ...] = ()  # the layout chunks the values were read from (ADR-023)
+    differs_from_text: tuple[str, ...] = ()  # fields where the image shows something else
+
+
+class ChunkLike(Protocol):
+    """A layout chunk (domain/layout.py) as grounding needs it."""
+
+    @property
+    def id(self) -> str: ...
+
+    @property
+    def kind(self) -> str: ...
+
+    @property
+    def words(self) -> list[Word]: ...
 
 
 @dataclass(frozen=True)
@@ -64,6 +79,7 @@ class VerifiedRow:
     source: Literal["AI", "WITNESS"]
     fields: dict[str, FieldCheck]
     notes: list[str] = field(default_factory=list)
+    chunk_ids: tuple[str, ...] = ()
 
 
 @dataclass
@@ -256,7 +272,7 @@ def verify_statement_page(
         band_words = in_band(band)
         band_box = BBox(0.0, band.top, 1.0, band.bottom)
         if band.ai is None:
-            fields, n = _witness_row(band, band_words, column_of)
+            fields, n = _witness_row(band.anchor, band_words, column_of)
             rows.append(VerifiedRow(page, 0, "WITNESS", fields))
             compared += n
             continue
@@ -303,7 +319,7 @@ def verify_statement_page(
                 f = column_of(w)
                 if f and f in fields and fields[f].status == "AGREED":
                     fields[f].status = "CONFLICT"
-        fields["description"] = _description(ai.description, band, band_words)
+        fields["description"] = _description(ai.description, band.anchor, band_words)
         for check in fields.values():
             compared += 1
             agreed += check.status == "AGREED"
@@ -354,13 +370,13 @@ def _match_amount(value: str, band_words: list[Word]) -> Word | None:
     return loose[0] if loose else None
 
 
-def _description(text: str, band: _Band, band_words: list[Word]) -> FieldCheck:
+def _description(text: str, anchor: list[Word], band_words: list[Word]) -> FieldCheck:
     read = squash(text)
     # A serial or cheque number in its own column is not part of the description the reader gives.
     rest = [
         w
         for w in band_words
-        if w not in band.anchor
+        if w not in anchor
         and not is_amount(w.text)
         and not (w.text.isdigit() and len(w.text) >= 6 and w.text not in read)
     ]
@@ -373,21 +389,184 @@ def _description(text: str, band: _Band, band_words: list[Word]) -> FieldCheck:
 
 
 def _witness_row(
-    band: _Band, band_words: list[Word], column_of
+    anchor: list[Word], band_words: list[Word], column_of: Callable[[Word], str | None]
 ) -> tuple[dict[str, FieldCheck], int]:
     """A row printed on the page that the AI reader missed: every value from the witness only."""
-    fields = {"date": FieldCheck("SINGLE_SOURCE", None, band.anchor[0].text, _box(band.anchor))}
+    fields = {"date": FieldCheck("SINGLE_SOURCE", None, anchor[0].text, _box(anchor))}
     for w in band_words:
         if is_amount(w.text):
             f = column_of(w)
             if f and f not in fields:
                 fields[f] = FieldCheck("SINGLE_SOURCE", None, w.text, _box([w]))
-    rest = [w for w in band_words if w not in band.anchor and not is_amount(w.text)]
+    rest = [w for w in band_words if w not in anchor and not is_amount(w.text)]
     if rest:
         fields["description"] = FieldCheck(
             "SINGLE_SOURCE", None, " ".join(w.text for w in rest), _box(rest)
         )
     return fields, len(fields)
+
+
+# ---------------------------------------------------------------------------- grounding (ADR-023)
+
+
+def _date_phrase(date_text: str, words: list[Word]) -> list[Word] | None:
+    target = squash(date_text)
+    if not target:
+        return None
+    return next((p for p in _phrases(words) if squash("".join(w.text for w in p)) == target), None)
+
+
+def _assign_chunks(
+    ai_rows: list[AiRow], chunks: Sequence[ChunkLike]
+) -> list[tuple[AiRow, list[ChunkLike]]]:
+    """The chunks each row was read from: its valid citations, else the next table row with its
+    date, in order (a reader that forgets to cite is still grounded)."""
+    by_id = {c.id: c for c in chunks}
+    order = {c.id: i for i, c in enumerate(chunks)}
+    table = [c for c in chunks if c.kind == "TABLE_ROW"]
+    assigned = [(row, [by_id[i] for i in row.chunk_ids if i in by_id]) for row in ai_rows]
+    used = {c.id for _, cs in assigned for c in cs}
+    last = -1
+    for k, (row, cs) in enumerate(assigned):
+        if cs:
+            last = max(order[c.id] for c in cs)
+            continue
+        for c in table:
+            if c.id in used or order[c.id] <= last:
+                continue
+            if _date_phrase(row.date_text, c.words):
+                assigned[k] = (row, [c])
+                used.add(c.id)
+                last = order[c.id]
+                break
+    return assigned
+
+
+def _ungrounded(row: AiRow, page: int) -> tuple[VerifiedRow, int]:
+    values = (
+        ("date", row.date_text),
+        ("description", row.description),
+        ("debit", row.debit_text),
+        ("credit", row.credit_text),
+        ("balance", row.balance_text),
+    )
+    fields = {name: FieldCheck("SINGLE_SOURCE", v, None, None) for name, v in values if v}
+    return VerifiedRow(page, 0, "AI", fields, ["UNGROUNDED"]), len(fields)
+
+
+def ground_statement_page(
+    ai_rows: list[AiRow], chunks: Sequence[ChunkLike], *, page: int
+) -> PageVerification:
+    """Every value must be found in the words of a chunk it was read from (docs/07 §6)."""
+    ai_rows, carry_over = merge_continuations(ai_rows)
+    assigned = _assign_chunks(ai_rows, chunks)
+    order = {c.id: i for i, c in enumerate(chunks)}
+
+    matches: dict[tuple[int, str], Word] = {}
+    centres: dict[str, list[float]] = {f: [] for f in AMOUNT_FIELDS}
+    for k, (row, cs) in enumerate(assigned):
+        evidence = [w for c in cs for w in c.words]
+        for f in AMOUNT_FIELDS:
+            value = getattr(row, f"{f}_text")
+            hit = _match_amount(value, evidence) if value and evidence else None
+            if hit is not None:
+                matches[(k, f)] = hit
+                centres[f].append(hit.xc)
+    column_x = {f: median(xs) for f, xs in centres.items() if xs}
+
+    def column_of(w: Word) -> str | None:
+        if not column_x:
+            return None
+        nearest = min(column_x, key=lambda f: abs(column_x[f] - w.xc))
+        return nearest if abs(column_x[nearest] - w.xc) <= _COLUMN_TOLERANCE else None
+
+    def belongs(w: Word, f: str) -> bool:
+        return column_of(w) == f if f in column_x else column_of(w) is None
+
+    consumed = {id(w) for w in matches.values()}
+    placed: list[tuple[float, VerifiedRow]] = []
+    agreed = compared = 0
+    for k, (row, cs) in enumerate(assigned):
+        if not cs:
+            ungrounded, n = _ungrounded(row, page)
+            compared += n
+            placed.append((float("inf"), ungrounded))
+            continue
+        evidence = [w for c in cs for w in c.words]
+        anchor = _date_phrase(row.date_text, evidence) or []
+        fields: dict[str, FieldCheck] = {}
+        if anchor:
+            printed_date = " ".join(w.text for w in anchor)
+            fields["date"] = FieldCheck("AGREED", row.date_text, printed_date, _box(anchor))
+        else:
+            other_date = next((w for w in evidence if _is_date(w.text)), None)
+            fields["date"] = FieldCheck(
+                "CONFLICT" if other_date else "SINGLE_SOURCE",
+                row.date_text,
+                other_date.text if other_date else None,
+                _box([other_date]) if other_date else None,
+            )
+        notes: list[str] = []
+        row_box = _box(evidence)
+        for f in AMOUNT_FIELDS:
+            value = getattr(row, f"{f}_text")
+            hit = matches.get((k, f))
+            in_column = [
+                w for w in evidence if is_amount(w.text) and belongs(w, f) and w is not hit
+            ]
+            if value and hit is not None:
+                status: Status = "AGREED" if belongs(hit, f) else "CONFLICT"
+                fields[f] = FieldCheck(status, value, hit.text, _box([hit]))
+            elif value:
+                other = in_column[0] if in_column else None
+                fields[f] = FieldCheck(
+                    "CONFLICT" if other else "SINGLE_SOURCE",
+                    value,
+                    other.text if other else None,
+                    _box([other]) if other else row_box,
+                )
+            elif in_column:
+                fields[f] = FieldCheck("CONFLICT", None, in_column[0].text, _box([in_column[0]]))
+        extra = [
+            w
+            for w in evidence
+            if is_amount(w.text)
+            and id(w) not in consumed
+            and not any(c.witness == w.text for c in fields.values())
+        ]
+        if extra:
+            notes.append("EXTRA_AMOUNT_IN_ROW")
+            for w in extra:
+                f = column_of(w)
+                if f and f in fields and fields[f].status == "AGREED":
+                    fields[f].status = "CONFLICT"
+        for f in row.differs_from_text:
+            if f in fields:
+                fields[f].status = "CONFLICT"
+        if row.differs_from_text:
+            notes.append("VISIBLE_DIFFERS_FROM_TEXT")
+        fields["description"] = _description(row.description, anchor, evidence)
+        for check in fields.values():
+            compared += 1
+            agreed += check.status == "AGREED"
+        ids = tuple(c.id for c in cs)
+        position = float(min(order[i] for i in ids))
+        placed.append((position, VerifiedRow(page, 0, "AI", fields, notes, ids)))
+
+    used = {i for _, r in placed for i in r.chunk_ids}
+    for c in chunks:
+        if c.kind != "TABLE_ROW" or c.id in used:
+            continue
+        evidence = list(c.words)
+        printed = next((w for w in evidence if _is_date(w.text)), evidence[0])
+        fields, n = _witness_row([printed], evidence, column_of)
+        compared += n
+        placed.append((float(order[c.id]), VerifiedRow(page, 0, "WITNESS", fields, [], (c.id,))))
+
+    rows = [r for _, r in sorted(placed, key=lambda p: p[0])]
+    for i, r in enumerate(rows):
+        r.row_on_page = i
+    return PageVerification(page, rows, agreed, compared, carry_over)
 
 
 # ---------------------------------------------------------------------------- header fields

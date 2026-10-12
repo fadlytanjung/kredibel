@@ -3,7 +3,7 @@
 import asyncio
 from datetime import datetime, timedelta
 
-from app.domain.models.document import Document
+from app.domain.models.document import Document, DuplicateKind
 from app.domain.models.events import AuditEvent
 from app.ports.document_repository import DocumentRepository
 
@@ -102,11 +102,15 @@ class FakeDocumentRepository(DocumentRepository):
         if not target.duplicate and holder is not None and holder[0] == doc_id:
             del self.claims[(org_id, target.sha256)]
 
-        # Cascade: delete any duplicate records that point to this doc as original (AC-003-10)
+        # Cascade: exact copies of this file go with it (AC-003-10); a content duplicate is a file
+        # of its own and stays (its next run releases it).
         duplicates_to_delete = [
             d_id
             for (o, d_id), doc in self.documents.items()
-            if o == org_id and doc.duplicate and doc.duplicate.of_doc_id == doc_id
+            if o == org_id
+            and doc.duplicate
+            and doc.duplicate.of_doc_id == doc_id
+            and doc.duplicate.kind == DuplicateKind.EXACT
         ]
         for d_id in duplicates_to_delete:
             self.documents.pop((org_id, d_id), None)

@@ -382,6 +382,14 @@ class DocumentService:
             await records.replace_for_document(org_id, doc_id, [])
         await self._doc_repo.delete_document(org_id, doc_id, months=doc.months, event=event)
 
+        # Documents held as content duplicates of this one are read again, which releases them
+        # now that the earlier copy is gone (AC-006-5).
+        others, _ = await self._doc_repo.list_documents(org_id, limit=500)
+        for other in others:
+            dup = other.duplicate
+            if dup and dup.kind == DuplicateKind.CONTENT and dup.of_doc_id == doc_id:
+                await self._task_queue.enqueue_document_task(org_id, other.doc_id, new_id("run"))
+
 
 def _extension_for(filename: str, content_type: str) -> str:
     lower = filename.lower()

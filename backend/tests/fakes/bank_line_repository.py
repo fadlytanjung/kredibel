@@ -7,6 +7,7 @@ from app.ports.bank_line_repository import BankLineRepository
 class FakeBankLineRepository(BankLineRepository):
     def __init__(self) -> None:
         self.lines: dict[tuple[str, str], BankLine] = {}
+        self.held: set[tuple[str, str]] = set()
 
     async def replace_document_lines(self, org_id: str, doc_id: str, lines: list[BankLine]) -> None:
         for key in [k for k, v in self.lines.items() if k[0] == org_id and v.doc_id == doc_id]:
@@ -25,3 +26,6 @@ class FakeBankLineRepository(BankLineRepository):
             and (month is None or v.month == month)
         ]
         return sorted(out, key=lambda ln: (ln.date, ln.doc_id, ln.row_index))[:limit]
+
+    async def set_held(self, org_id: str, doc_id: str, held: bool) -> None:
+        (self.held.add if held else self.held.discard)((org_id, doc_id))

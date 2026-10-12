@@ -2,6 +2,7 @@
 
 import json
 from dataclasses import dataclass, replace
+from datetime import date
 from decimal import Decimal
 from pathlib import PurePosixPath
 from typing import Any
@@ -12,9 +13,26 @@ from pydantic import BaseModel
 from app.agents.deps import PipelineDeps
 from app.agents.stages import stage
 from app.domain.checks.base import CheckContext, DeclaredAccount, PdfInfo, run_document_checks
+from app.domain.duplicates import (
+    InvoiceKey,
+    Match,
+    ReceiptKey,
+    StatementKey,
+    invoice_duplicate,
+    receipt_duplicate,
+    statement_duplicate,
+)
+from app.domain.findings import Evidence, Finding, finding_id
 from app.domain.invoice_records import build_invoices, build_receipts
 from app.domain.layout import Chunk, chunk_page, chunks_from_json, chunks_to_json, render_chunks
-from app.domain.models.document import DocStatus, DocType, PageStatus
+from app.domain.models.document import (
+    DocStatus,
+    DocType,
+    DuplicateDecision,
+    DuplicateInfo,
+    DuplicateKind,
+    PageStatus,
+)
 from app.domain.page_triage import TextLayerStatus
 from app.domain.reading import (
     InvoicePageReading,
@@ -78,6 +96,10 @@ def inspect_file(deps: PipelineDeps):
         doc = await deps.doc_repo.get_document(org_id, doc_id)
         if doc is None or deps.inspector is None or deps.storage is None:
             return {**node_input, "summary": "Inspection skipped"}
+        first_page = await deps.storage.get_page_image(org_id, doc_id, 1)
+        if first_page is not None:  # every type: receipts photographed twice are found by it (D05)
+            doc = replace(doc, p_hash=deps.inspector.page_hash(first_page))
+            await deps.doc_repo.save_document(org_id, doc)
         if not doc.content_type.endswith("pdf"):
             return {**node_input, "summary": "Not a PDF"}
         original = await deps.storage.get_original(
@@ -567,11 +589,134 @@ async def _check_context(deps: PipelineDeps, org_id: str, doc: Any) -> CheckCont
 
 
 def detect_content_duplicates(deps: PipelineDeps):
+    """D02–D05 (docs/08 §2.2): the same statement period, invoice or receipt in another file. The
+    newer document is held, its values not counted until a person decides (AC-006-5)."""
+
     @stage(deps, "detect_content_duplicates")
     async def _node(ctx: Context, node_input: dict[str, Any]) -> dict[str, Any]:
-        return {**node_input, "summary": "No duplicates detected"}
+        org_id, doc_id = _ids(node_input)
+        doc = await deps.doc_repo.get_document(org_id, doc_id)
+        if doc is None or deps.forensics is None or deps.findings is None:
+            return {**node_input, "summary": "Duplicate detection skipped"}
+        if doc.duplicate is not None and doc.duplicate.kind == DuplicateKind.EXACT:
+            return {**node_input, "summary": "Exact copy: not read"}
+        others, _ = await deps.doc_repo.list_documents(org_id, limit=500)
+        others = [o for o in others if o.doc_id != doc_id and not _exact_copy(o)]
+        match = await _find_duplicate(deps, org_id, doc, others)
+        findings = [_duplicate_finding(doc, match)] if match else []
+        await deps.findings.replace_document_findings(
+            org_id, doc_id, findings, run_id=node_input.get("runId"), categories={"DUPLICATE"}
+        )
+        decided = doc.duplicate is not None and doc.duplicate.decision != DuplicateDecision.PENDING
+        if not decided:
+            hold = match is not None and match.hold
+            info = (
+                DuplicateInfo(
+                    DuplicateKind.CONTENT, match.code, match.of_doc_id, DuplicateDecision.PENDING
+                )
+                if match is not None and match.hold
+                else None
+            )
+            if hold != doc.held_as_duplicate or info != doc.duplicate:
+                await deps.doc_repo.save_document(
+                    org_id, replace(doc, duplicate=info, held_as_duplicate=hold)
+                )
+                for store in (deps.bank_lines, deps.invoices, deps.receipts):
+                    if store is not None:
+                        await store.set_held(org_id, doc_id, hold)
+        summary = f"{match.code} of {match.of_doc_id}" if match else "No duplicates detected"
+        return {**node_input, "summary": summary}
 
     return _node
+
+
+def _exact_copy(doc: Any) -> bool:
+    return doc.duplicate is not None and doc.duplicate.kind == DuplicateKind.EXACT
+
+
+async def _find_duplicate(
+    deps: PipelineDeps, org_id: str, doc: Any, others: list[Any]
+) -> Match | None:
+    assert deps.forensics is not None
+    policy = deps.forensics.duplicates
+    uploaded = {o.doc_id: o.uploaded_at for o in [doc, *others]}
+    if doc.doc_type == DocType.BANK_STATEMENT and deps.bank_lines is not None:
+        keys = []
+        for d in [doc, *[o for o in others if o.doc_type == DocType.BANK_STATEMENT]]:
+            if key := await _statement_key(deps, org_id, d):
+                keys.append(key)
+        mine = next((k for k in keys if k.doc_id == doc.doc_id), None)
+        return statement_duplicate(mine, keys, policy) if mine else None
+    if doc.doc_type in (DocType.SALES_INVOICE, DocType.PURCHASE_INVOICE) and deps.invoices:
+        everything = await deps.invoices.list_records(org_id, limit=1000)
+        keys = [
+            InvoiceKey(i.doc_id, uploaded[i.doc_id], i.issuer_name, i.number, i.issue_date, i.total)
+            for i in everything
+            if i.doc_id in uploaded
+        ]
+        for mine in [k for k in keys if k.doc_id == doc.doc_id]:
+            if match := invoice_duplicate(mine, keys, policy):
+                return match
+        return None
+    if doc.doc_type == DocType.RECEIPT and deps.receipts:
+        hashes = {o.doc_id: o.p_hash for o in [doc, *others]}
+        everything = await deps.receipts.list_records(org_id, limit=1000)
+        keys = [
+            ReceiptKey(
+                r.doc_id, uploaded[r.doc_id], r.merchant_name, r.date, r.total, hashes.get(r.doc_id)
+            )
+            for r in everything
+            if r.doc_id in uploaded
+        ]
+        for mine in [k for k in keys if k.doc_id == doc.doc_id]:
+            if match := receipt_duplicate(mine, keys, policy):
+                return match
+    return None
+
+
+async def _statement_key(deps: PipelineDeps, org_id: str, doc: Any) -> StatementKey | None:
+    meta = doc.statement_meta or {}
+    if not (meta.get("periodStart") and meta.get("periodEnd") and deps.bank_lines):
+        return None
+    lines = await deps.bank_lines.list_lines(org_id, doc_id=doc.doc_id, limit=5000)
+    return StatementKey(
+        doc_id=doc.doc_id,
+        uploaded_at=doc.uploaded_at,
+        bank=meta.get("bankName"),
+        last4=(meta.get("accountMasked") or "")[-4:] or None,
+        start=date.fromisoformat(meta["periodStart"]),
+        end=date.fromisoformat(meta["periodEnd"]),
+        rows=frozenset((ln.date, ln.amount, ln.balance) for ln in lines),
+    )
+
+
+_DUPLICATE_TITLES = {
+    "D02_STATEMENT_PERIOD_DUPLICATE": "This statement covers days another statement already covers",
+    "D03_INVOICE_DUPLICATE": "This invoice was already uploaded",
+    "D04_INVOICE_NUMBER_REUSED": "Another invoice from this issuer has the same number",
+    "D05_RECEIPT_DUPLICATE": "This receipt was already uploaded",
+}
+
+
+def _duplicate_finding(doc: Any, match: Match) -> Finding:
+    return Finding(
+        finding_id=finding_id(match.code, f"{doc.doc_id}|{match.of_doc_id}"),
+        code=match.code,
+        category="DUPLICATE",
+        severity=match.severity,
+        title=_DUPLICATE_TITLES[match.code],
+        facts={
+            **match.facts,
+            "otherDocument": match.of_doc_id,
+            "held": "yes" if match.hold else "no",
+        },
+        evidence=[
+            Evidence(doc_id=doc.doc_id, page=1, label="This document"),
+            Evidence(doc_id=match.of_doc_id, page=1, label="Earlier document"),
+        ],
+        doc_id=doc.doc_id,
+        month=doc.months[0] if doc.months else None,
+    )
 
 
 def categorize_bank_lines(deps: PipelineDeps):

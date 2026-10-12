@@ -61,9 +61,19 @@ class FirestoreFindingRepository(FindingRepository):
         return self._db.collection("orgs").document(org_id).collection("findings")
 
     async def replace_document_findings(
-        self, org_id: str, doc_id: str, fresh: list[Finding], *, run_id: str | None
+        self,
+        org_id: str,
+        doc_id: str,
+        fresh: list[Finding],
+        *,
+        run_id: str | None,
+        categories: set[str] | None = None,
     ) -> list[Finding]:
-        existing = await self.list_findings(org_id, doc_id=doc_id, limit=1000)
+        existing = [
+            f
+            for f in await self.list_findings(org_id, doc_id=doc_id, limit=1000)
+            if categories is None or f.category in categories
+        ]
         for f in fresh:
             f.last_seen_run_id = run_id
         merged = merge_findings(existing, fresh)

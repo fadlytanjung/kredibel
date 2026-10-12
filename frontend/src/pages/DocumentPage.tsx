@@ -135,6 +135,19 @@ export function DocumentPage() {
         </div>
       )}
 
+      {doc.heldAsDuplicate && doc.duplicate && (
+        <div className="found" role="status">
+          <Icon name="copy" />
+          <div className="stack gap-1">
+            <strong>{t('documents:status.possibleCopy')}</strong>
+            <p className="small">{t('documents:detail.possibleCopy')}</p>
+            <Link className="link small" to={`/documents/${doc.duplicate.ofDocId}`}>
+              {t('documents:detail.openEarlierCopy')}
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Pages & Viewer */}
       {pagesCount > 0 && (
         <section className="stack gap-4">

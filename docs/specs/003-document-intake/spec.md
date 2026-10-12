@@ -61,7 +61,8 @@ document workflow (spec 004). The **Documents** library lists everything with li
 
 - **AC-003-10** `DELETE /api/documents/{docId}` removes the document, its GCS prefix and everything
   read from it (bank lines, invoices, receipts, ledger entries, findings scoped to it, retrieval
-  chunks), records `DOCUMENT_REMOVED` and marks its months dirty; the UI asks for confirmation and
+  chunks), records `DOCUMENT_REMOVED` and marks its months dirty; exact copies of the file go with it,
+  while documents held as content duplicates of it are read again, which releases them; the UI asks for confirmation and
   names what will change ("March will be reconciled again").
 
 ### US-003-5: Only my workspace

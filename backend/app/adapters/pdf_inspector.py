@@ -5,8 +5,10 @@ import io
 import re
 from datetime import UTC, datetime, timedelta, timezone
 
+import imagehash
 import pdfplumber
 import pikepdf
+from PIL import Image
 
 from app.domain.checks.base import PdfInfo, ValueFont
 from app.domain.verify import is_amount
@@ -95,3 +97,7 @@ class PdfInspector(FileInspector):
             revision_changes=changes,
             value_fonts=tuple(fonts),
         )
+
+    def page_hash(self, image_png: bytes) -> str:
+        with Image.open(io.BytesIO(image_png)) as image:
+            return str(imagehash.phash(image))

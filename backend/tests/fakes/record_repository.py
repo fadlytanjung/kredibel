@@ -12,6 +12,7 @@ class FakeRecords[T](DocumentRecords[T]):
         self._id = record_id
         self._order = order
         self.records: dict[tuple[str, str], T] = {}
+        self.held: set[tuple[str, str]] = set()
 
     async def replace_for_document(self, org_id: str, doc_id: str, records: list[T]) -> None:
         for key in [k for k, v in self.records.items() if k[0] == org_id and v.doc_id == doc_id]:  # type: ignore[attr-defined]
@@ -30,6 +31,9 @@ class FakeRecords[T](DocumentRecords[T]):
             and (month is None or v.month == month)  # type: ignore[attr-defined]
         ]
         return sorted(found, key=self._order)[:limit]
+
+    async def set_held(self, org_id: str, doc_id: str, held: bool) -> None:
+        (self.held.add if held else self.held.discard)((org_id, doc_id))
 
 
 def fake_invoices() -> FakeRecords[Invoice]:

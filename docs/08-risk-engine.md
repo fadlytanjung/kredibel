@@ -80,7 +80,7 @@ longer applies becomes `RESOLVED`; `ACKNOWLEDGED` and `DISMISSED` keep their sta
 | `D01_EXACT_FILE_DUPLICATE` | SHA-256 of the uploaded bytes equals an existing document's | INFO | Not read, not counted; library shows "Copy of …" | P0 |
 | `D02_STATEMENT_PERIOD_DUPLICATE` | Same account (bank + last 4 digits) and statement periods overlapping by ≥ 1 day | HIGH if the overlapping rows differ, MEDIUM if they are identical | Newer document held as possible duplicate | P0 |
 | `D03_INVOICE_DUPLICATE` | Same issuer (`token_set_ratio ≥ 90`) and invoice number, or same issuer, issue date and total | MEDIUM | Newer document held | P0 |
-| `D04_INVOICE_NUMBER_REUSED` | Same issuer and invoice number with a **different** total or date | HIGH | Both kept; both flagged | P0 |
+| `D04_INVOICE_NUMBER_REUSED` | Same issuer and invoice number with a **different** total or date | HIGH | Both kept; flagged on the later document with the earlier one as evidence | P0 |
 | `D05_RECEIPT_DUPLICATE` | Same merchant, date and total (± 1 unit), or page perceptual hash distance ≤ `pHashMaxDistance` (8) | MEDIUM | Newer document held | P0 |
 | `D06_LEDGER_ENTRY_DUPLICATE` | Two ledger entries with the same date, amount, account and reference (from one or several imports) | MEDIUM | Later entry held | P0 |
 | `D07_DOUBLE_PAYMENT` | Two bank debits matched (or matchable) to the same purchase invoice or receipt | HIGH | Second payment goes to review | P0 |

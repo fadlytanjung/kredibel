@@ -118,6 +118,7 @@ export function DocumentsPage() {
                   const isDuplicate = doc.status === 'DUPLICATE'
 
                   let statusText = t(`documents:status.${doc.status.toLowerCase()}`, { defaultValue: doc.status })
+                  if (doc.heldAsDuplicate) statusText = t('documents:status.possibleCopy')
                   if (doc.status === 'READING' && doc.pages && doc.pages.length > 0) {
                     const donePages = doc.pages.filter((p) => p.status === 'DONE').length
                     statusText = t('documents:upload.readingPage', { page: donePages + 1, total: doc.pageCount })
@@ -146,6 +147,8 @@ export function DocumentsPage() {
                           {t('documents:verdict.suspicious')}
                         </Badge>
                       )
+                    } else if (verdict === 'UNVERIFIABLE') {
+                      checkBadge = <Badge variant="medium">{t('documents:verdict.unverifiable')}</Badge>
                     }
                   } else if (isProcessing) {
                     checkBadge = <span className="muted small">{t('documents:status.afterReading')}</span>

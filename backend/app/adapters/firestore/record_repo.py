@@ -147,6 +147,15 @@ class FirestoreRecordRepository[T, D: FirestoreModel](DocumentRecords[T]):
                     batch.delete(item)
             await batch.commit()
 
+    async def set_held(self, org_id: str, doc_id: str, held: bool) -> None:
+        query = self._col(org_id).where(filter=FieldFilter("docId", "==", doc_id))
+        refs = [snap.reference async for snap in query.stream()]
+        for start in range(0, len(refs), _BATCH):
+            batch = self._db.batch()
+            for ref in refs[start : start + _BATCH]:
+                batch.update(ref, {"heldAsDuplicate": held})
+            await batch.commit()
+
     async def list_records(
         self, org_id: str, *, doc_id: str | None = None, month: str | None = None, limit: int = 200
     ) -> list[T]:

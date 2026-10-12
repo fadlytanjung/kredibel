@@ -15,3 +15,7 @@ class BankLineRepository(Protocol):
     ) -> list[BankLine]:
         """Lines in printed order (date, then row)."""
         ...
+
+    async def set_held(self, org_id: str, doc_id: str, held: bool) -> None:
+        """Hold or release a document's lines as a possible duplicate (AC-006-5)."""
+        ...

@@ -7,9 +7,16 @@ from app.domain.findings import Finding
 
 class FindingRepository(Protocol):
     async def replace_document_findings(
-        self, org_id: str, doc_id: str, fresh: list[Finding], *, run_id: str | None
+        self,
+        org_id: str,
+        doc_id: str,
+        fresh: list[Finding],
+        *,
+        run_id: str | None,
+        categories: set[str] | None = None,
     ) -> list[Finding]:
-        """Merge a run's findings over the stored ones (merge_findings) and return all of them."""
+        """Merge a run's findings over the stored ones of these categories (all when None), so the
+        checks and the duplicate detection never resolve each other's findings."""
         ...
 
     async def list_findings(

@@ -323,12 +323,14 @@ class FirestoreDocumentRepository(DocumentRepository):
             if claim.exists and (claim.to_dict() or {}).get("docId") == doc_id:
                 batch.delete(claim_ref)
 
-        # Cascade: delete any duplicate records that point to this original (AC-003-10)
+        # Cascade: exact copies of this file go with it (AC-003-10); a content duplicate is a file
+        # of its own and stays (its next run releases it).
         dups_query = org_ref.collection("documents").where(
             filter=FieldFilter("duplicate.ofDocId", "==", doc_id)
         )
         async for dup_snap in dups_query.stream():
-            batch.delete(dup_snap.reference)
+            if ((dup_snap.to_dict() or {}).get("duplicate") or {}).get("kind") == "EXACT":
+                batch.delete(dup_snap.reference)
 
         # Mark months dirty
         affected_months = set(months or [])

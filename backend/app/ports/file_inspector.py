@@ -1,0 +1,9 @@
+"""Inspecting an original file's structure (docs/07 §3.3): metadata, saves, fonts of values."""
+
+from typing import Protocol
+
+from app.domain.checks.base import PdfInfo
+
+
+class FileInspector(Protocol):
+    def inspect_pdf(self, data: bytes) -> PdfInfo: ...

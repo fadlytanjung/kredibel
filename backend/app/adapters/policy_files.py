@@ -7,6 +7,7 @@ from pathlib import Path
 
 import yaml
 
+from app.domain.checks.policy import ForensicsPolicy, parse_forensics
 from app.domain.plans import PlanCatalog, parse_plans
 
 
@@ -14,3 +15,12 @@ def load_plans(path: Path) -> PlanCatalog:
     """Load and validate contracts/plans.v1.yaml; any problem raises and stops start-up."""
     with path.open(encoding="utf-8") as handle:
         return parse_plans(yaml.safe_load(handle))
+
+
+def load_forensics(policy_dir: Path) -> ForensicsPolicy:
+    """forensics.v1.yaml with the next steps of risk.v1.yaml (docs/08 §2–§3)."""
+    with (policy_dir / "forensics.v1.yaml").open(encoding="utf-8") as handle:
+        raw = yaml.safe_load(handle)
+    with (policy_dir / "risk.v1.yaml").open(encoding="utf-8") as handle:
+        steps = (yaml.safe_load(handle) or {}).get("nextSteps") or {}
+    return parse_forensics(raw, steps)

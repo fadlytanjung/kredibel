@@ -4,11 +4,14 @@ from dataclasses import dataclass
 
 from app.core.clock import Clock, SystemClock
 from app.core.settings import Settings
+from app.domain.checks.policy import ForensicsPolicy
 from app.domain.models.invoice import Invoice, Receipt
 from app.ports.bank_line_repository import BankLineRepository
 from app.ports.document_reader import DocumentReader
 from app.ports.document_repository import DocumentRepository
 from app.ports.document_storage import DocumentStorage
+from app.ports.file_inspector import FileInspector
+from app.ports.finding_repository import FindingRepository
 from app.ports.month_repository import MonthRepository
 from app.ports.page_text import PageText
 from app.ports.record_repository import DocumentRecords
@@ -36,3 +39,7 @@ class PipelineDeps:
     receipts: DocumentRecords[Receipt] | None = None
     # The workspace's own names decide sales or purchase (AC-005-1).
     workspaces: WorkspaceRepository | None = None
+    # Checks (spec 006): the file's structure, the policy, and where findings go.
+    inspector: FileInspector | None = None
+    forensics: ForensicsPolicy | None = None
+    findings: FindingRepository | None = None

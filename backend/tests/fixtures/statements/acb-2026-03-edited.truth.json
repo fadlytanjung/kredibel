@@ -1,0 +1,228 @@
+{
+ "file": "acb-2026-03-edited.pdf",
+ "accountNumber": "9900004821",
+ "holder": "SUNRISE COFFEE ROASTERS",
+ "currency": "IDR",
+ "period": {
+  "start": "2026-03-01",
+  "end": "2026-03-31"
+ },
+ "opening": "184048975.00",
+ "closing": "147727195.00",
+ "tampering": [
+  {
+   "technique": "T1",
+   "rowIndex": 11,
+   "field": "credit",
+   "before": "1250000.00",
+   "after": "7250000.00"
+  }
+ ],
+ "expected": {
+  "verdict": "TAMPERED",
+  "riskLevel": "CRITICAL",
+  "findingsP0": [
+   "A01_RUNNING_BALANCE_BREAK",
+   "A02_OPENING_CLOSING_MISMATCH",
+   "M01_EDITING_SOFTWARE_PRODUCER",
+   "M02_MODIFIED_AFTER_CREATION",
+   "M03_MULTIPLE_REVISIONS",
+   "M04_FONT_ANOMALY_IN_VALUES"
+  ],
+  "duplicate": null
+ },
+ "rows": [
+  {
+   "page": 1,
+   "date": "2026-03-01",
+   "description": "WAREHOUSE RENT MAR",
+   "debit": "15000000.00",
+   "credit": null,
+   "balance": "169048975.00"
+  },
+  {
+   "page": 1,
+   "date": "2026-03-04",
+   "description": "CASH DEPOSIT",
+   "debit": null,
+   "credit": "2500000.00",
+   "balance": "171548975.00"
+  },
+  {
+   "page": 1,
+   "date": "2026-03-05",
+   "description": "LOAN INSTALLMENT LN-0071-2291",
+   "debit": "8450000.00",
+   "credit": null,
+   "balance": "163098975.00"
+  },
+  {
+   "page": 1,
+   "date": "2026-03-06",
+   "description": "CASH DEPOSIT",
+   "debit": null,
+   "credit": "1750000.00",
+   "balance": "164848975.00"
+  },
+  {
+   "page": 1,
+   "date": "2026-03-08",
+   "description": "DEBIT CARD SWIFT COURIER",
+   "debit": "355200.00",
+   "credit": null,
+   "balance": "164493775.00"
+  },
+  {
+   "page": 1,
+   "date": "2026-03-09",
+   "description": "TRANSFER OUT GREEN VALLEY FARMS 7312",
+   "debit": "27250500.00",
+   "credit": null,
+   "balance": "137243275.00"
+  },
+  {
+   "page": 1,
+   "date": "2026-03-11",
+   "description": "VAT PAYMENT FEB",
+   "debit": "5252000.00",
+   "credit": null,
+   "balance": "131991275.00"
+  },
+  {
+   "page": 1,
+   "date": "2026-03-12",
+   "description": "TRANSFER OUT ROASTLINE EQUIPMENT SERVICE 3318",
+   "debit": "5183700.00",
+   "credit": null,
+   "balance": "126807575.00"
+  },
+  {
+   "page": 1,
+   "date": "2026-03-12",
+   "description": "INTERNET BILL 0227814455",
+   "debit": "1150000.00",
+   "credit": null,
+   "balance": "125657575.00"
+  },
+  {
+   "page": 1,
+   "date": "2026-03-13",
+   "description": "INSTANT TRANSFER IN SPICE ROUTE RESTAURANT INV/SCR/2026/03/0011",
+   "debit": null,
+   "credit": "24358950.00",
+   "balance": "150016525.00"
+  },
+  {
+   "page": 1,
+   "date": "2026-03-14",
+   "description": "CASH DEPOSIT",
+   "debit": null,
+   "credit": "1250000.00",
+   "balance": "151266525.00"
+  },
+  {
+   "page": 1,
+   "date": "2026-03-15",
+   "description": "TRANSFER OUT PRIMEPACK PACKAGING 6645",
+   "debit": "6265340.00",
+   "credit": null,
+   "balance": "145001185.00"
+  },
+  {
+   "page": 1,
+   "date": "2026-03-16",
+   "description": "WATER BILL 4471-0938",
+   "debit": "368000.00",
+   "credit": null,
+   "balance": "144633185.00"
+  },
+  {
+   "page": 1,
+   "date": "2026-03-17",
+   "description": "CASH DEPOSIT",
+   "debit": null,
+   "credit": "3400000.00",
+   "balance": "148033185.00"
+  },
+  {
+   "page": 1,
+   "date": "2026-03-18",
+   "description": "ELECTRICITY BILL 532110987421",
+   "debit": "3126000.00",
+   "credit": null,
+   "balance": "144907185.00"
+  },
+  {
+   "page": 1,
+   "date": "2026-03-20",
+   "description": "DEBIT CARD CORNER BAKERY",
+   "debit": "142080.00",
+   "credit": null,
+   "balance": "144765105.00"
+  },
+  {
+   "page": 1,
+   "date": "2026-03-21",
+   "description": "INSTANT TRANSFER IN DAYBREAK CAFE INV/SCR/2026/03/0009",
+   "debit": null,
+   "credit": "19597050.00",
+   "balance": "164362155.00"
+  },
+  {
+   "page": 1,
+   "date": "2026-03-21",
+   "description": "DEBIT CARD CORNER BAKERY",
+   "debit": "35520.00",
+   "credit": null,
+   "balance": "164326635.00"
+  },
+  {
+   "page": 1,
+   "date": "2026-03-21",
+   "description": "CASH DEPOSIT",
+   "debit": null,
+   "credit": "2450000.00",
+   "balance": "166776635.00"
+  },
+  {
+   "page": 2,
+   "date": "2026-03-22",
+   "description": "TRANSFER OUT ANDI PRATAMA",
+   "debit": "6000000.00",
+   "credit": null,
+   "balance": "160776635.00"
+  },
+  {
+   "page": 2,
+   "date": "2026-03-23",
+   "description": "TRANSFER IN SPICE ROUTE RESTAURANT INV/SCR/2026/02/0008",
+   "debit": null,
+   "credit": "19980000.00",
+   "balance": "180756635.00"
+  },
+  {
+   "page": 2,
+   "date": "2026-03-23",
+   "description": "TRANSFER IN HIGHLAND RESORT & SPA INV/SCR/2026/03/0010",
+   "debit": null,
+   "credit": "11095560.00",
+   "balance": "191852195.00"
+  },
+  {
+   "page": 2,
+   "date": "2026-03-25",
+   "description": "PAYROLL MAR",
+   "debit": "44100000.00",
+   "credit": null,
+   "balance": "147752195.00"
+  },
+  {
+   "page": 2,
+   "date": "2026-03-31",
+   "description": "ADMIN FEE",
+   "debit": "25000.00",
+   "credit": null,
+   "balance": "147727195.00"
+  }
+ ]
+}

@@ -87,12 +87,48 @@
     "file": "workspace.py",
     "schemaVersion": null
   },
+  "EvidenceDoc": {
+    "fields": {
+      "bbox": "dict[str, float] | None",
+      "doc_id": "str | None",
+      "invoice_id": "str | None",
+      "label": "str | None",
+      "page": "int | None",
+      "receipt_id": "str | None",
+      "tx_id": "str | None"
+    },
+    "file": "finding.py",
+    "schemaVersion": null
+  },
   "FileHashDoc": {
     "fields": {
       "claimed_at": "datetime",
       "doc_id": "str"
     },
     "file": "document.py",
+    "schemaVersion": null
+  },
+  "FindingDoc": {
+    "fields": {
+      "category": "str",
+      "code": "str",
+      "detected_by": "str",
+      "dismissal": "dict[str, Any] | None",
+      "doc_id": "str | None",
+      "evidence": "list[EvidenceDoc]",
+      "explanation": "str | None",
+      "facts": "dict[str, str]",
+      "finding_id": "str",
+      "last_seen_run_id": "str | None",
+      "month": "str | None",
+      "next_steps": "list[str]",
+      "scope": "str",
+      "severity": "str",
+      "severity_rank": "int",
+      "status": "str",
+      "title": "str"
+    },
+    "file": "finding.py",
     "schemaVersion": null
   },
   "FirestoreModel": {

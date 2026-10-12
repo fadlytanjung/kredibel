@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { type BankLine, lineBox, StatementLines, useBankLines } from '../entities/bank-line'
 import { downloadOriginal, PageImage, useDeleteDocument, useDocument } from '../entities/document'
+import { FindingList, useDocumentFindings } from '../entities/finding'
 import { InvoiceCard, ReceiptCard, useInvoices, useReceipts, type ValueFocus } from '../entities/record'
 import { formatDate } from '../shared/lib/formatDate'
 import { formatMoney } from '../shared/lib/formatMoney'
@@ -29,6 +30,7 @@ export function DocumentPage() {
   const { data: linePage } = useBankLines(isStatement ? docId : undefined)
   const { data: invoicePage } = useInvoices(isInvoice ? docId : undefined)
   const { data: receiptPage } = useReceipts(isReceipt ? docId : undefined)
+  const { data: findingPage } = useDocumentFindings(doc?.integrity ? docId : undefined)
   const [focus, setFocus] = useState<ValueFocus | null>(null)
 
   const [selectedPage, setSelectedPage] = useState<number>(1)
@@ -291,6 +293,7 @@ export function DocumentPage() {
         <h2 className="type-h2">{t('documents:detail.findings')}</h2>
         {doc.integrity?.verdict ? (
           <div className="row items-center gap-2">
+            <span className="muted small">{t('documents:detail.verdictLabel')}</span>
             <Badge
               variant={
                 doc.integrity.verdict === 'CLEAN'
@@ -300,11 +303,14 @@ export function DocumentPage() {
                   : 'critical'
               }
             >
-              {doc.integrity.verdict}
+              {t(`documents:verdict.${doc.integrity.verdict.toLowerCase()}`)}
             </Badge>
           </div>
         ) : (
           <p className="muted small">{t('documents:detail.noFindings')}</p>
+        )}
+        {findingPage && (
+          <FindingList findings={findingPage.items} focused={focus?.key} onFocus={showValue} />
         )}
       </section>
     </div>

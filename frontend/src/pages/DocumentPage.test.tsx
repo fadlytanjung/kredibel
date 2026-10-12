@@ -265,4 +265,64 @@ describe('DocumentPage', () => {
     await waitFor(() => expect(screen.getByTestId('page-lamp')).toBeInTheDocument())
     expect(screen.getByTestId('page-lamp').style.left).toBe('69.6%')
   })
+
+  it('shows the verdict and each finding with its facts, and lights its evidence (spec 006)', async () => {
+    const box = { x0: 0.72, y0: 0.4, x1: 0.8, y1: 0.41 }
+    vi.mocked(apiClient).mockImplementation(async (path: string) => {
+      if (path.startsWith('/api/findings'))
+        return {
+          items: [
+            {
+              findingId: 'fnd_0000000000000001',
+              code: 'A01_RUNNING_BALANCE_BREAK',
+              category: 'ARITHMETIC',
+              scope: 'DOCUMENT',
+              severity: 'CRITICAL',
+              title: 'The balance on 15 Mar does not follow from the last',
+              facts: { row: '12', difference: '-6000000.00' },
+              nextSteps: ['Ask the bank for the original statement.'],
+              evidence: [{ docId: 'doc_t', page: 1, bbox: box, label: 'Printed balance' }],
+              detectedBy: 'RULE',
+              status: 'OPEN',
+            },
+            {
+              findingId: 'fnd_0000000000000002',
+              code: 'M01_EDITING_SOFTWARE_PRODUCER',
+              category: 'STRUCTURE',
+              scope: 'DOCUMENT',
+              severity: 'MEDIUM',
+              title: 'Old finding',
+              facts: {},
+              evidence: [],
+              detectedBy: 'RULE',
+              status: 'RESOLVED',
+            },
+          ],
+        }
+      if (path.startsWith('/api/bank-lines')) return { items: [] }
+      return {
+        docId: 'doc_t',
+        fileName: 'edited.pdf',
+        contentType: 'application/pdf',
+        docType: 'BANK_STATEMENT',
+        status: 'DONE',
+        pageCount: 1,
+        pages: [{ pageNo: 1, status: 'DONE', textLayer: true, witness: 'TEXT_LAYER' }],
+        integrity: { verdict: 'TAMPERED' },
+        uploadedAt: '2026-10-12T01:57:18Z',
+      }
+    })
+
+    renderPage('doc_t')
+
+    await waitFor(() => expect(screen.getByText('The balance on 15 Mar does not follow from the last')).toBeInTheDocument())
+    expect(screen.getByText('Edited')).toBeInTheDocument()
+    expect(screen.getByText('Critical')).toBeInTheDocument()
+    expect(screen.getByText('-6000000.00')).toBeInTheDocument()
+    expect(screen.getByText('Ask the bank for the original statement.')).toBeInTheDocument()
+    expect(screen.queryByText('Old finding')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show on page 1' }))
+    await waitFor(() => expect(screen.getByTestId('page-lamp')).toBeInTheDocument())
+  })
 })

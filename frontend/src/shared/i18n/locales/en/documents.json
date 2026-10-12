@@ -134,6 +134,45 @@
         "TRANSFER": "Transfer",
         "UNKNOWN": "Payment not shown"
       }
+    },
+    "verdictLabel": "Integrity",
+    "severity": {
+      "CRITICAL": "Critical",
+      "HIGH": "High",
+      "MEDIUM": "Medium",
+      "LOW": "Low",
+      "INFO": "Info"
+    },
+    "facts": {
+      "row": "Row",
+      "date": "Date",
+      "previousBalance": "Previous balance",
+      "amount": "Amount",
+      "expectedBalance": "Expected balance",
+      "printedBalance": "Printed balance",
+      "difference": "Difference",
+      "continuesFromPrinted": "Later rows follow the printed balance",
+      "opening": "Opening",
+      "credits": "Money in",
+      "debits": "Money out",
+      "expectedClosing": "Expected closing",
+      "printedClosing": "Printed closing",
+      "producer": "Saved by",
+      "creator": "Created with",
+      "created": "Created",
+      "modified": "Modified",
+      "minutesLater": "Minutes later",
+      "revisions": "Saves",
+      "changes": "Changes",
+      "value": "Value",
+      "font": "Font",
+      "usualFont": "Usual font",
+      "shareOfPageValues": "Share of values",
+      "agreement": "Agreement",
+      "holder": "Holder",
+      "bank": "Bank",
+      "account": "Account",
+      "pages": "Pages"
     }
   }
 }

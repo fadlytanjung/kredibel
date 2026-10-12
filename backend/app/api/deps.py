@@ -5,6 +5,7 @@ from typing import Protocol
 from app.core.auth import Principal
 from app.core.clock import Clock
 from app.domain.plans import PlanCatalog
+from app.ports.finding_repository import FindingRepository
 from app.services.bank_line_service import BankLineService
 from app.services.document_service import DocumentService
 from app.services.entitlement_service import EntitlementService
@@ -41,6 +42,9 @@ class ServiceProvider(Protocol):
 
     @property
     def record_service(self) -> RecordService: ...
+
+    @property
+    def findings(self) -> FindingRepository: ...
 
 
 def org_of(principal: Principal) -> str:

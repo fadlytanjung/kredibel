@@ -21,12 +21,14 @@ def _never_a_real_model_or_store(monkeypatch: pytest.MonkeyPatch) -> None:
     the developer's credentials or a Firestore the build machine does not run (docs/15 §2)."""
     from tests.fakes.bank_line_repository import FakeBankLineRepository
     from tests.fakes.document_reader import FakeDocumentReader
+    from tests.fakes.finding_repository import FakeFindingRepository
     from tests.fakes.record_repository import fake_invoices, fake_receipts
 
     monkeypatch.setattr("app.main.GeminiDocumentReader", lambda settings: FakeDocumentReader())
     monkeypatch.setattr("app.main.FirestoreBankLineRepository", lambda db: FakeBankLineRepository())
     monkeypatch.setattr("app.main.firestore_invoices", lambda db: fake_invoices())
     monkeypatch.setattr("app.main.firestore_receipts", lambda db: fake_receipts())
+    monkeypatch.setattr("app.main.FirestoreFindingRepository", lambda db: FakeFindingRepository())
 
 
 @pytest.fixture

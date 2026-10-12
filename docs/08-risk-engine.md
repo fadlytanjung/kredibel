@@ -96,7 +96,7 @@ figures and matching until the user confirms ("it is a duplicate", values stay e
 | `A01_RUNNING_BALANCE_BREAK` | For consecutive rows: `abs(balance[i-1] + credit[i] − debit[i] − balance[i]) > tol` (tol = 1 unit); the first row uses the opening balance; witness-only rows are included | CRITICAL if agreed and no witness-only row sits between, else `E01` | P0 |
 | `A02_OPENING_CLOSING_MISMATCH` | `opening + Σcredits − Σdebits ≠ closing` | CRITICAL if agreed, else `E01` | P0 |
 | `A03_PRINTED_TOTALS_MISMATCH` | Printed total credits/debits ≠ sum of rows | HIGH | P1 |
-| `A04_INVOICE_TOTAL_MISMATCH` | `Σ lines ≠ subtotal`, `subtotal + tax ≠ total`, or `qty × unit price ≠ line` (tol = 1 unit per line); receipts: `Σ items + tax ≠ total` | HIGH | P0 |
+| `A04_INVOICE_TOTAL_MISMATCH` | `Σ lines ≠ subtotal`, `subtotal + tax ≠ total`, or `qty × unit price ≠ line` (tol = 1 unit per line); receipts: neither `Σ items + tax` nor `Σ items` equals the total (prices in our markets often include SST or PPN); checked only when every line or item has an amount | HIGH | P0 |
 | `A05_TAX_RATE_INCONSISTENT` | `tax / subtotal` not within ±0.5 pp of any rate in `policy.vatRates` | MEDIUM | P1 |
 
 `A01` reports one finding per broken row and states whether the following rows continue from the
@@ -109,7 +109,7 @@ printed (wrong) balance, which shows where the edit was made.
 | `M01_EDITING_SOFTWARE_PRODUCER` | `Producer`/`Creator` matches `policy.editorProducerPatterns` | MEDIUM | P0 |
 | `M02_MODIFIED_AFTER_CREATION` | `ModDate − CreationDate > policy.modifiedAfterCreationMinutes` (10) | MEDIUM | P0 |
 | `M03_MULTIPLE_REVISIONS` | > 1 revision: MEDIUM if later revisions only add signatures or annotations; HIGH if they replace page content; CRITICAL (P1) if the revision diff changes numbers | MEDIUM / HIGH / CRITICAL | P0 (detect) / P1 (diff) |
-| `M04_FONT_ANOMALY_IN_VALUES` | In a numeric column, one value's font or size is used by < 10% of that column's values on the page | HIGH | P0 |
+| `M04_FONT_ANOMALY_IN_VALUES` | Among the read transaction values of a page (amounts and balances of its rows; printed totals excluded), one value's font or size is used by < 10% of them. Measured per page, not per column: a short column of 7 credits would hide a single edited value at 14% | HIGH | P0 |
 | `M05_COVERED_TEXT` | A filled rectangle overlaps existing characters and new characters are drawn on top | HIGH | P1 |
 | `M06_IMAGE_ONLY` | No text layer on a page | INFO | P0 |
 
@@ -153,7 +153,7 @@ anchored to it), top-down:
 | Verdict | Rule |
 |---|---|
 | `TAMPERED` | ≥ 1 CRITICAL finding from `A01`, `A02` or `M03`-with-diff (deterministic, agreed) |
-| `SUSPICIOUS` | `S01`, or ≥ 1 HIGH integrity finding, or ≥ 2 MEDIUM integrity findings |
+| `SUSPICIOUS` | `S01`, or ≥ 1 HIGH integrity finding, or ≥ 2 MEDIUM integrity findings. Extraction findings (`E0x`) do not count here: they say how well the page was read, not that it was changed, and lead to `UNVERIFIABLE` |
 | `UNVERIFIABLE` | `E01` or `E02` present |
 | `CLEAN` | none of the above |
 

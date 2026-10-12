@@ -52,6 +52,7 @@ _Last updated: 12 Oct 2026 — Specs 001, 003, 004 and 013 (P0) built; spec 005 
 | Ledger import (mapper proposes, user confirms, code parses) | 005 | Specified | |
 | Escalation to Form/Invoice Parser, thorough mode | 005 | Specified (P1) | |
 | Content duplicates `D02`–`D06` (held) | 006 | Specified | |
+| Integrity checks `A01`, `A02`, `A04`, `M01`–`M04`, `M06`, `E01`, `E02`, `E05`, `X05`, `X06`; verdict; findings API and document page | 006 | Built | `inspect_file` (pikepdf metadata, saves excluding linearization, what each later save changed, fonts of values) and `check_document` (policy-enabled checks, upsert by ID with the re-run rules, verdict). S2's edited March statement → `TAMPERED` with all six expected codes; S1 → `CLEAN`. `M04` is measured per page, not per column (docs/08 §2.4) |
 | Integrity checks `A01`, `A02`, `A04`, `M01`–`M04`, `M06`, `E0x`, `X05`, `X06` + verdict | 006 | Specified | |
 | Categorization | 007 | Specified | |
 | `reconcile_month` (order-independent) + figures | 007 | Specified | |

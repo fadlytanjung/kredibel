@@ -72,8 +72,8 @@ structure:
     - '(?i)\bpypdf\b'
   modifiedAfterCreationMinutes: 10
   fontAnomaly:
-    majorityShare: "0.90"           # a font used by ≥90% of a numeric column's values is "normal"
-    minValuesInColumn: 5
+    majorityShare: "0.90"           # a value whose font is used by < 10% of the page's transaction values is odd
+    minValuesOnPage: 5
 
 visual:
   maxSeverityUncorroborated: MEDIUM
@@ -89,6 +89,10 @@ crossDocument:
 profile:
   aliasNameMinScore: 90
   relatedPartyMinMonths: 3          # P1
+
+extraction:
+  minAgreement: "0.90"              # E01 below this (AC-005-8)
+  minTypeConfidence: "0.60"         # E03 below this (AC-005-2)
 
 verification:                       # AI reader vs witness (docs/07 §6)
   descriptionMinScore: 85           # rapidfuzz partial_ratio

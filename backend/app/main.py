@@ -13,6 +13,7 @@ from app.adapters.cloud_tasks import CloudTasksQueue, InlineTaskQueue
 from app.adapters.firebase_identity import FirebaseIdentityAdmin
 from app.adapters.firestore.bank_line_repo import FirestoreBankLineRepository
 from app.adapters.firestore.document_repo import FirestoreDocumentRepository
+from app.adapters.firestore.finding_repo import FirestoreFindingRepository
 from app.adapters.firestore.month_repo import FirestoreMonthRepository
 from app.adapters.firestore.record_repo import firestore_invoices, firestore_receipts
 from app.adapters.firestore.run_repo import FirestoreRunRepository
@@ -21,7 +22,8 @@ from app.adapters.firestore.workspace_repo import FirestoreWorkspaceRepository
 from app.adapters.gcs_storage import GcsDocumentStorage
 from app.adapters.gemini_reader import GeminiDocumentReader
 from app.adapters.page_renderer import DefaultPageRenderer
-from app.adapters.policy_files import load_plans
+from app.adapters.pdf_inspector import PdfInspector
+from app.adapters.policy_files import load_forensics, load_plans
 from app.adapters.spreadsheet_reader import DefaultSpreadsheetReader
 from app.adapters.text_layer import PdfTextLayer
 from app.agents.deps import PipelineDeps
@@ -31,6 +33,7 @@ from app.agents.workflows.month_workflow import build_month_workflow
 from app.api.bank_accounts import create_bank_accounts_router
 from app.api.bank_lines import create_bank_lines_router
 from app.api.documents import create_documents_router
+from app.api.findings import create_findings_router
 from app.api.health import create_health_router
 from app.api.me import create_me_router
 from app.api.months import create_months_router
@@ -55,6 +58,7 @@ from app.core.errors import register_error_handlers
 from app.core.logging import LoggingMiddleware, setup_logging
 from app.core.security_headers import SecurityHeadersMiddleware
 from app.core.settings import Settings
+from app.domain.checks.policy import ForensicsPolicy
 from app.domain.models.invoice import Invoice, Receipt
 from app.domain.plans import PlanCatalog
 from app.observability.tracing import setup_tracing
@@ -62,6 +66,8 @@ from app.ports.bank_line_repository import BankLineRepository
 from app.ports.document_reader import DocumentReader
 from app.ports.document_repository import DocumentRepository
 from app.ports.document_storage import DocumentStorage
+from app.ports.file_inspector import FileInspector
+from app.ports.finding_repository import FindingRepository
 from app.ports.identity_admin import IdentityAdmin
 from app.ports.month_repository import MonthRepository
 from app.ports.page_renderer import PageRenderer
@@ -112,6 +118,7 @@ class AppDeps:
         bank_lines: BankLineRepository | None = None,
         invoices: DocumentRecords[Invoice] | None = None,
         receipts: DocumentRecords[Receipt] | None = None,
+        findings: FindingRepository | None = None,
     ) -> None:
         self.settings = settings
         self._plans = plans
@@ -134,6 +141,7 @@ class AppDeps:
         self._bank_lines = bank_lines
         self._invoices = invoices
         self._receipts = receipts
+        self._findings = findings
         self._built: dict[str, Any] = {}
 
     def _once(self, name: str, build: Callable[[], T]) -> T:
@@ -316,6 +324,23 @@ class AppDeps:
         return self._once("page_text", lambda: self._page_text or PdfTextLayer())
 
     @property
+    def findings(self) -> FindingRepository:
+        return self._once(
+            "findings", lambda: self._findings or FirestoreFindingRepository(self.firestore)
+        )
+
+    @property
+    def forensics(self) -> ForensicsPolicy:
+        return self._once(
+            "forensics",
+            lambda: load_forensics(self.settings.contract_path(self.settings.policy_dir)),
+        )
+
+    @property
+    def inspector(self) -> FileInspector:
+        return self._once("inspector", PdfInspector)
+
+    @property
     def invoices(self) -> DocumentRecords[Invoice]:
         return self._once("invoices", lambda: self._invoices or firestore_invoices(self.firestore))
 
@@ -361,6 +386,9 @@ class AppDeps:
                 invoices=self.invoices,
                 receipts=self.receipts,
                 workspaces=self.workspace_repo,
+                inspector=self.inspector,
+                forensics=self.forensics,
+                findings=self.findings,
             )
             await run_workflow(
                 build_document_workflow(pipeline_deps),
@@ -504,6 +532,7 @@ def create_app(
         app.include_router(create_months_router(deps, workspace_dep))
         app.include_router(create_bank_lines_router(deps, workspace_dep))
         app.include_router(create_records_router(deps, workspace_dep))
+        app.include_router(create_findings_router(deps, workspace_dep))
 
     # 3. Worker role endpoints
     if active_settings.app_role in ("worker", "all"):

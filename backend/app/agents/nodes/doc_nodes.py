@@ -11,6 +11,7 @@ from pydantic import BaseModel
 
 from app.agents.deps import PipelineDeps
 from app.agents.stages import stage
+from app.domain.checks.base import CheckContext, DeclaredAccount, PdfInfo, run_document_checks
 from app.domain.invoice_records import build_invoices, build_receipts
 from app.domain.layout import Chunk, chunk_page, chunks_from_json, chunks_to_json, render_chunks
 from app.domain.models.document import DocStatus, DocType, PageStatus
@@ -21,6 +22,7 @@ from app.domain.reading import (
     StatementPageReading,
     build_statement,
 )
+from app.domain.verdict import integrity_verdict
 
 
 def pages_to_read(doc: dict[str, Any]) -> list[int]:
@@ -60,12 +62,39 @@ def screen_document(deps: PipelineDeps):
     return _node
 
 
+def _pdf_key(sha256: str) -> str:
+    return f"{sha256}/pdf-v1.json"
+
+
 def inspect_file(deps: PipelineDeps):
+    """The original PDF's metadata, saves and value fonts (docs/07 §3.3): the full inspection goes
+    to the extraction cache for check_document, a summary onto the document."""
+
     @stage(deps, "inspect_file")
     async def _node(ctx: Context, node_input: dict[str, Any]) -> dict[str, Any]:
         if node_input.get("_simulate_failure"):
             raise RuntimeError("Simulated inspection failure")
-        return {**node_input, "summary": "File metadata inspected"}
+        org_id, doc_id = _ids(node_input)
+        doc = await deps.doc_repo.get_document(org_id, doc_id)
+        if doc is None or deps.inspector is None or deps.storage is None:
+            return {**node_input, "summary": "Inspection skipped"}
+        if not doc.content_type.endswith("pdf"):
+            return {**node_input, "summary": "Not a PDF"}
+        original = await deps.storage.get_original(
+            org_id, doc_id, PurePosixPath(doc.gcs_path).suffix
+        )
+        if original is None:
+            return {**node_input, "summary": "Original missing"}
+        info = deps.inspector.inspect_pdf(original)
+        await deps.storage.put_cached(
+            org_id, _pdf_key(doc.sha256), json.dumps(info.to_dict()).encode()
+        )
+        summary = {k: v for k, v in info.to_dict().items() if k != "valueFonts"}
+        await deps.doc_repo.save_document(org_id, replace(doc, pdf=summary))
+        return {
+            **node_input,
+            "summary": f"{info.revisions} save(s), producer {info.producer or 'unknown'}",
+        }
 
     return _node
 
@@ -468,11 +497,73 @@ def escalate_pages(deps: PipelineDeps):
 
 
 def check_document(deps: PipelineDeps):
+    """Integrity checks (docs/08 §2): arithmetic, structure, extraction and holder findings with
+    evidence, upserted by ID; the document gets its verdict (docs/08 §3)."""
+
     @stage(deps, "check_document")
     async def _node(ctx: Context, node_input: dict[str, Any]) -> dict[str, Any]:
-        return {**node_input, "summary": "Integrity checks passed"}
+        org_id, doc_id = _ids(node_input)
+        doc = await deps.doc_repo.get_document(org_id, doc_id)
+        if doc is None or deps.forensics is None or deps.findings is None:
+            return {**node_input, "summary": "Checks skipped"}
+        if doc.doc_type == DocType.LEDGER_EXPORT:
+            return {**node_input, "summary": "Ledger exports have no integrity verdict"}
+        context = await _check_context(deps, org_id, doc)
+        fresh = run_document_checks(context)
+        stored = await deps.findings.replace_document_findings(
+            org_id, doc_id, fresh, run_id=node_input.get("runId")
+        )
+        live = [f for f in stored if f.status in ("OPEN", "ACKNOWLEDGED")]
+        verdict = integrity_verdict(live, deps.forensics)
+        await deps.doc_repo.save_document(
+            org_id,
+            replace(
+                doc, integrity={"verdict": verdict, "findingIds": [f.finding_id for f in live]}
+            ),
+        )
+        codes = sorted({f.code for f in fresh})
+        return {
+            **node_input,
+            "verdict": verdict,
+            "summary": f"{verdict}: {len(fresh)} finding(s)"
+            + (f" ({', '.join(codes)})" if codes else ""),
+        }
 
     return _node
+
+
+async def _check_context(deps: PipelineDeps, org_id: str, doc: Any) -> CheckContext:
+    assert deps.forensics is not None
+    pdf = None
+    if deps.storage is not None:
+        cached = await deps.storage.get_cached(org_id, _pdf_key(doc.sha256))
+        pdf = PdfInfo.from_dict(json.loads(cached)) if cached else None
+    meta = doc.statement_meta or {}
+    minor = lambda v: None if v is None else Decimal(v) / 100  # noqa: E731
+    accounts: list[DeclaredAccount] = []
+    if deps.workspaces is not None:
+        accounts = [
+            DeclaredAccount(a.bank_name, a.account_masked, a.holder_name)
+            for a in await deps.workspaces.list_bank_accounts(org_id)
+        ]
+    return CheckContext(
+        doc=doc,
+        policy=deps.forensics,
+        pdf=pdf,
+        lines=await deps.bank_lines.list_lines(org_id, doc_id=doc.doc_id, limit=5000)
+        if deps.bank_lines and doc.doc_type == DocType.BANK_STATEMENT
+        else [],
+        opening=minor(meta.get("openingMinor")),
+        closing=minor(meta.get("closingMinor")),
+        invoices=await deps.invoices.list_records(org_id, doc_id=doc.doc_id)
+        if deps.invoices
+        else [],
+        receipts=await deps.receipts.list_records(org_id, doc_id=doc.doc_id)
+        if deps.receipts
+        else [],
+        own_names=[n for n in await _own_names(deps, org_id) if n],
+        accounts=accounts,
+    )
 
 
 def detect_content_duplicates(deps: PipelineDeps):

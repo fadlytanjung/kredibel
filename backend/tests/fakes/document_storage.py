@@ -7,6 +7,7 @@ class FakeDocumentStorage(DocumentStorage):
     def __init__(self) -> None:
         self.originals: dict[tuple[str, str, str], tuple[bytes, str]] = {}
         self.pages: dict[tuple[str, str, int, bool], bytes] = {}
+        self.cache: dict[tuple[str, str], bytes] = {}
 
     async def store_original(
         self,
@@ -60,3 +61,9 @@ class FakeDocumentStorage(DocumentStorage):
         page_keys = [k for k in self.pages if k[0] == org_id and k[1] == doc_id]
         for k in page_keys:
             del self.pages[k]
+
+    async def get_cached(self, org_id: str, key: str) -> bytes | None:
+        return self.cache.get((org_id, key))
+
+    async def put_cached(self, org_id: str, key: str, data: bytes) -> None:
+        self.cache[(org_id, key)] = data

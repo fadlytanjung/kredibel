@@ -24,6 +24,30 @@
     "file": "workspace.py",
     "schemaVersion": null
   },
+  "BankLineDoc": {
+    "fields": {
+      "account_id": "str | None",
+      "amount_minor": "int",
+      "balance_minor": "int | None",
+      "category": "str | None",
+      "chunk_ids": "list[str]",
+      "consensus": "dict[str, Any]",
+      "counterparty_name": "str | None",
+      "date": "str",
+      "description": "str",
+      "doc_id": "str",
+      "held_as_duplicate": "bool",
+      "match": "dict[str, Any]",
+      "month": "str",
+      "notes": "list[str]",
+      "page": "int",
+      "row_index": "int",
+      "source": "str",
+      "tx_id": "str"
+    },
+    "file": "bank_line.py",
+    "schemaVersion": null
+  },
   "DocumentDocV2": {
     "fields": {
       "doc_type": "str",

@@ -75,6 +75,11 @@ class Settings(BaseSettings):
     extraction_escalation: Literal["off", "on"] = "off"
     escalation_max_pages_per_month: int = 30
     read_media_resolution: Literal["high", "ultra_high"] = "high"
+    # Spike S1: thinking_level=low reads a page in ~8 s instead of 56 s with the same output; a few
+    # calls still take minutes, so each is cut off and retried once.
+    reader_thinking_level: Literal["low", "high"] = "low"
+    reader_timeout_seconds: float = 60.0
+    reader_attempts: int = 2
     page_concurrency: int = 6
     extraction_cache: Literal["on", "ocr_only", "off"] = "on"
     prefill_on_upload: Literal["off", "on"] = "off"

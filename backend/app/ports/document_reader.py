@@ -1,0 +1,33 @@
+"""The AI reader (docs/07 §4–§5, ADR-023): classifies a document and extracts a page from its image
+plus its layout chunks. Implemented with Gemini; tests use a recorded fake."""
+
+from dataclasses import dataclass
+from typing import Protocol
+
+from app.domain.reading import DocClassification, StatementPageReading
+
+
+@dataclass(frozen=True)
+class ReaderCall[T]:
+    value: T
+    model: str
+    prompt_version: str
+    tokens_in: int = 0
+    tokens_out: int = 0
+    seconds: float = 0.0
+
+
+class DocumentReader(Protocol):
+    def version(self, task: str) -> tuple[str, str]:
+        """(model, prompt version) a task runs with; part of the extraction cache key."""
+        ...
+
+    async def classify(self, image_png: bytes, text: str) -> ReaderCall[DocClassification]:
+        """The document type from page 1's image and up to 2,000 characters of its text."""
+        ...
+
+    async def read_statement_page(
+        self, image_png: bytes, chunks: str, *, page: int, context: str | None
+    ) -> ReaderCall[StatementPageReading]:
+        """One statement page from its image and numbered chunks; `context` is page 1's header."""
+        ...

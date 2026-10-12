@@ -52,3 +52,11 @@ class DocumentStorage(Protocol):
     async def delete_prefix(self, org_id: str, doc_id: str) -> None:
         """Delete all objects under orgs/{orgId}/documents/{docId}/."""
         ...
+
+    async def get_cached(self, org_id: str, key: str) -> bytes | None:
+        """A cached extraction artifact at orgs/{orgId}/cache/extraction/{key} (docs/07 §8)."""
+        ...
+
+    async def put_cached(self, org_id: str, key: str, data: bytes) -> None:
+        """Store an extraction artifact; keys are content-addressed, so writes are idempotent."""
+        ...

@@ -88,3 +88,13 @@ class GcsDocumentStorage(DocumentStorage):
         blobs = list(bucket.list_blobs(prefix=prefix))
         if blobs:
             bucket.delete_blobs(blobs)
+
+    async def get_cached(self, org_id: str, key: str) -> bytes | None:
+        blob = self._get_bucket().blob(f"orgs/{org_id}/cache/extraction/{key}")
+        if not blob.exists():
+            return None
+        return blob.download_as_bytes()
+
+    async def put_cached(self, org_id: str, key: str, data: bytes) -> None:
+        blob = self._get_bucket().blob(f"orgs/{org_id}/cache/extraction/{key}")
+        blob.upload_from_string(data, content_type="application/json")

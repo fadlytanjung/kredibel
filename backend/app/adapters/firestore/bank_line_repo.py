@@ -1,0 +1,95 @@
+"""BankLineRepository on Firestore (docs/09 §3.6): lines upserted by deterministic ID."""
+
+from datetime import date
+from decimal import Decimal
+
+from google.cloud.firestore import AsyncClient, FieldFilter
+
+from app.adapters.firestore.models.bank_line import BankLineDoc
+from app.adapters.firestore.txn import dump
+from app.domain.models.bank_line import BankLine
+from app.ports.bank_line_repository import BankLineRepository
+
+_BATCH = 400
+
+
+def _to_doc(line: BankLine) -> BankLineDoc:
+    return BankLineDoc(
+        tx_id=line.tx_id,
+        doc_id=line.doc_id,
+        page=line.page,
+        row_index=line.row_index,
+        date=line.date.isoformat(),
+        month=line.month,
+        description=line.description,
+        counterparty_name=line.counterparty_name,
+        amount_minor=line.amount_minor,
+        balance_minor=line.balance_minor,
+        source=line.source,
+        consensus=line.consensus,
+        notes=line.notes,
+        chunk_ids=list(line.chunk_ids),
+    )
+
+
+def _to_domain(doc: BankLineDoc) -> BankLine:
+    return BankLine(
+        tx_id=doc.tx_id,
+        doc_id=doc.doc_id,
+        page=doc.page,
+        row_index=doc.row_index,
+        date=date.fromisoformat(doc.date),
+        month=doc.month,
+        description=doc.description,
+        amount=Decimal(doc.amount_minor) / 100,
+        balance=None if doc.balance_minor is None else Decimal(doc.balance_minor) / 100,
+        counterparty_name=doc.counterparty_name,
+        source="WITNESS" if doc.source == "WITNESS" else "AI",
+        consensus=doc.consensus,
+        notes=doc.notes,
+        chunk_ids=tuple(doc.chunk_ids),
+    )
+
+
+class FirestoreBankLineRepository(BankLineRepository):
+    def __init__(self, db: AsyncClient) -> None:
+        self._db = db
+
+    def _col(self, org_id: str):
+        return self._db.collection("orgs").document(org_id).collection("bankLines")
+
+    async def replace_document_lines(self, org_id: str, doc_id: str, lines: list[BankLine]) -> None:
+        keep = {line.tx_id for line in lines}
+        stale = [
+            snap.reference
+            async for snap in self._col(org_id)
+            .where(filter=FieldFilter("docId", "==", doc_id))
+            .stream()
+            if snap.id not in keep
+        ]
+        writes = [("set", line) for line in lines] + [("delete", ref) for ref in stale]
+        for start in range(0, len(writes), _BATCH):
+            batch = self._db.batch()
+            for kind, item in writes[start : start + _BATCH]:
+                if kind == "set":
+                    assert isinstance(item, BankLine)
+                    batch.set(
+                        self._col(org_id).document(item.tx_id), dump(_to_doc(item)), merge=True
+                    )
+                else:
+                    batch.delete(item)  # type: ignore[arg-type]
+            await batch.commit()
+
+    async def list_lines(
+        self, org_id: str, *, doc_id: str | None = None, month: str | None = None, limit: int = 500
+    ) -> list[BankLine]:
+        query = self._col(org_id)
+        if doc_id:
+            query = query.where(filter=FieldFilter("docId", "==", doc_id))
+        if month:
+            query = query.where(filter=FieldFilter("month", "==", month))
+        lines = [
+            _to_domain(BankLineDoc.model_validate(s.to_dict()))
+            async for s in query.limit(limit).stream()
+        ]
+        return sorted(lines, key=lambda ln: (ln.date, ln.doc_id, ln.row_index))

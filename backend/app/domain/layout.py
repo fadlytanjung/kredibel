@@ -8,7 +8,7 @@ reader cites (`p{page}-c{n}`), its words and its box. Every word belongs to exac
 import re
 from dataclasses import dataclass, field
 from statistics import median
-from typing import Literal
+from typing import Any, Literal
 
 from .verify import BBox, Word, is_amount, squash
 
@@ -170,3 +170,29 @@ def chunk_page(words: list[Word], *, page: int) -> list[Chunk]:
 def render_chunks(chunks: list[Chunk]) -> str:
     """The numbered context the reader gets: one block per chunk, cells separated by `|`."""
     return "\n\n".join(f"[{c.id}] {c.kind}\n{c.text}" for c in chunks)
+
+
+def chunks_to_json(chunks: list[Chunk]) -> list[dict[str, Any]]:
+    """The cached form of a page's chunks (docs/07 §8 extraction cache)."""
+    return [
+        {
+            "id": c.id,
+            "page": c.page,
+            "kind": c.kind,
+            "lines": [[list(w) for w in ln.words] for ln in c.lines],
+        }
+        for c in chunks
+    ]
+
+
+def chunks_from_json(data: list[dict[str, Any]]) -> list[Chunk]:
+    out: list[Chunk] = []
+    for item in data:
+        lines = [
+            Line(
+                [Word(str(w[0]), float(w[1]), float(w[2]), float(w[3]), float(w[4])) for w in line]
+            )
+            for line in item["lines"]
+        ]
+        out.append(Chunk(str(item["id"]), int(item["page"]), item["kind"], lines))
+    return out

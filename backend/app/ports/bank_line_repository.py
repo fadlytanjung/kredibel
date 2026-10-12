@@ -1,0 +1,17 @@
+"""Bank lines of a workspace (docs/09 §3.6)."""
+
+from typing import Protocol
+
+from app.domain.models.bank_line import BankLine
+
+
+class BankLineRepository(Protocol):
+    async def replace_document_lines(self, org_id: str, doc_id: str, lines: list[BankLine]) -> None:
+        """Write a statement's lines by deterministic ID and drop lines it no longer has."""
+        ...
+
+    async def list_lines(
+        self, org_id: str, *, doc_id: str | None = None, month: str | None = None, limit: int = 500
+    ) -> list[BankLine]:
+        """Lines in printed order (date, then row)."""
+        ...

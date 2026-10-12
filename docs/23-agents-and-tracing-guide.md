@@ -86,10 +86,10 @@ Python. Today most steps are stubs; specs 005 to 008 fill them in.
 ```mermaid
 %%{init: {"theme": "base", "themeVariables": {"fontFamily": "Arial, Helvetica, sans-serif", "fontSize": "14px", "primaryColor": "#E7F2EE", "primaryBorderColor": "#0E5A47", "primaryTextColor": "#16212B", "lineColor": "#56636F", "secondaryColor": "#E8ECEE", "tertiaryColor": "#FFFFFF", "clusterBkg": "#F2F4F5", "clusterBorder": "#B9C2CA", "noteBkgColor": "#FFF5D6", "noteTextColor": "#16212B"}, "htmlLabels": false, "flowchart": {"htmlLabels": false, "padding": 16, "nodeSpacing": 40, "rankSpacing": 50, "wrappingWidth": 220}, "sequence": {"wrap": true, "useMaxWidth": true, "noteFontFamily": "Arial, Helvetica, sans-serif", "messageFontFamily": "Arial, Helvetica, sans-serif", "actorFontFamily": "Arial, Helvetica, sans-serif"}}}%%
 flowchart TB
-    load[load_document] --> screen[screen_document] --> inspect[inspect_file] --> classify[classify_document]
+    load[load_document] --> screen[screen_document] --> inspect[inspect_file] --> parsep[parse_pages] --> classify[classify_document]
     classify -- "needs a person" --> stop1([NEEDS_INPUT])
     classify -- ledger --> map[propose_ledger_mapping] --> parse[parse_ledger]
-    classify -- "pdf or image" --> pages["read_page × N (parallel) + witness_pages"] --> verify[verify_pages] --> esc[escalate_pages] --> check[check_document]
+    classify -- "pdf or image" --> pages["read_page × N (parallel, image + chunks)"] --> verify[verify_pages] --> esc[escalate_pages] --> check[check_document]
     parse --> dup[detect_content_duplicates]
     check --> dup --> cat[categorize_bank_lines] --> fin[finalize_document]
 ```

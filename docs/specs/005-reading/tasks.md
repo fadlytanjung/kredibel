@@ -10,9 +10,9 @@
 ## Phase 2 — Model calls
 
 - [ ] **T005-05** Spike S1 and S3; record results in `docs/02`. (S1 done 12 Oct 2026, incl. ADR-023 grounding; S3 OCR open)
-- [ ] **T005-06** Prompts and schemas; `GeminiGateway` with cache and usage accounting. (AC-005-3, AC-005-9)
-- [ ] **T005-07** `classify_document` node incl. `NEEDS_INPUT` + `CONFIRM_TYPE`. (AC-005-1, AC-005-2)
-- [ ] **T005-08** `read_page` and `witness_pages` (text layer and OCR); `verify_pages` writing records. (AC-005-4…8)
+- [x] **T005-06** Prompts and schemas; `GeminiGateway` with cache and usage accounting. (AC-005-3, AC-005-9)
+- [x] **T005-07** `classify_document` node incl. `NEEDS_INPUT` + `CONFIRM_TYPE`. (AC-005-1, AC-005-2)
+- [x] **T005-08** `read_page` and `witness_pages` (text layer and OCR); `verify_pages` writing records. (AC-005-4…8)
 - [ ] **T005-09** `propose_ledger_mapping` and `parse_ledger` incl. `CONFIRM_LEDGER_MAPPING`. (AC-005-11, AC-005-12)
 
 ## Phase 3 — Scenarios

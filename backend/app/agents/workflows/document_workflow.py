@@ -32,6 +32,8 @@ def build_document_workflow(deps: PipelineDeps) -> Workflow:
 
             doc = await ctx.run_node(n.screen_document(deps), doc)
             doc = await ctx.run_node(n.inspect_file(deps), doc)
+            # Parse first, so the classifier and the reader get the page's chunks (ADR-023).
+            doc = await ctx.run_node(n.parse_pages(deps), doc)
             doc = await ctx.run_node(n.classify_document(deps), doc)
             if doc.get("status") == "NEEDS_INPUT":
                 return doc
@@ -50,15 +52,13 @@ def build_document_workflow(deps: PipelineDeps) -> Workflow:
                             {**doc, "page": page_no, "context": context},
                         )
 
-                witness = asyncio.create_task(ctx.run_node(n.witness_pages(deps), doc))
                 pages = n.pages_to_read(doc)
                 first = await read(1, None)
                 rest = await asyncio.gather(
                     *(read(p, first.get("header_context")) for p in pages[1:])
                 )
                 doc = await ctx.run_node(
-                    n.verify_pages(deps),
-                    {**doc, "doc": doc, "ai": [first, *rest], "witness": await witness},
+                    n.verify_pages(deps), {**doc, "doc": doc, "ai": [first, *rest]}
                 )
                 doc = await ctx.run_node(n.escalate_pages(deps), doc)
                 doc = await ctx.run_node(n.check_document(deps), doc)

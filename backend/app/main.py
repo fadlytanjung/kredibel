@@ -11,15 +11,18 @@ from google.cloud.firestore import AsyncClient
 
 from app.adapters.cloud_tasks import CloudTasksQueue, InlineTaskQueue
 from app.adapters.firebase_identity import FirebaseIdentityAdmin
+from app.adapters.firestore.bank_line_repo import FirestoreBankLineRepository
 from app.adapters.firestore.document_repo import FirestoreDocumentRepository
 from app.adapters.firestore.month_repo import FirestoreMonthRepository
 from app.adapters.firestore.run_repo import FirestoreRunRepository
 from app.adapters.firestore.usage_repo import FirestoreUsageRepository
 from app.adapters.firestore.workspace_repo import FirestoreWorkspaceRepository
 from app.adapters.gcs_storage import GcsDocumentStorage
+from app.adapters.gemini_reader import GeminiDocumentReader
 from app.adapters.page_renderer import DefaultPageRenderer
 from app.adapters.policy_files import load_plans
 from app.adapters.spreadsheet_reader import DefaultSpreadsheetReader
+from app.adapters.text_layer import PdfTextLayer
 from app.agents.deps import PipelineDeps
 from app.agents.runtime import run_workflow
 from app.agents.workflows.document_workflow import build_document_workflow
@@ -51,11 +54,14 @@ from app.core.security_headers import SecurityHeadersMiddleware
 from app.core.settings import Settings
 from app.domain.plans import PlanCatalog
 from app.observability.tracing import setup_tracing
+from app.ports.bank_line_repository import BankLineRepository
+from app.ports.document_reader import DocumentReader
 from app.ports.document_repository import DocumentRepository
 from app.ports.document_storage import DocumentStorage
 from app.ports.identity_admin import IdentityAdmin
 from app.ports.month_repository import MonthRepository
 from app.ports.page_renderer import PageRenderer
+from app.ports.page_text import PageText
 from app.ports.run_repository import RunRepository
 from app.ports.spreadsheet_reader import SpreadsheetReader
 from app.ports.task_queue import TaskQueue
@@ -94,6 +100,9 @@ class AppDeps:
         month_repo: MonthRepository | None = None,
         task_token_verifier: TaskTokenVerifier | None = None,
         document_workflow_runner: DocumentWorkflowRunner | None = None,
+        reader: DocumentReader | None = None,
+        page_text: PageText | None = None,
+        bank_lines: BankLineRepository | None = None,
     ) -> None:
         self.settings = settings
         self._plans = plans
@@ -111,6 +120,9 @@ class AppDeps:
         self._month_repo = month_repo
         self._task_token_verifier = task_token_verifier
         self._document_workflow_runner = document_workflow_runner
+        self._reader = reader
+        self._page_text = page_text
+        self._bank_lines = bank_lines
         self._built: dict[str, Any] = {}
 
     def _once(self, name: str, build: Callable[[], T]) -> T:
@@ -281,6 +293,20 @@ class AppDeps:
         )
 
     @property
+    def reader(self) -> DocumentReader:
+        return self._once("reader", lambda: self._reader or GeminiDocumentReader(self.settings))
+
+    @property
+    def page_text(self) -> PageText:
+        return self._once("page_text", lambda: self._page_text or PdfTextLayer())
+
+    @property
+    def bank_lines(self) -> BankLineRepository:
+        return self._once(
+            "bank_lines", lambda: self._bank_lines or FirestoreBankLineRepository(self.firestore)
+        )
+
+    @property
     def run_repo(self) -> RunRepository:
         return self._once(
             "run_repo", lambda: self._run_repo or FirestoreRunRepository(self.firestore)
@@ -305,6 +331,10 @@ class AppDeps:
                 month_repo=self.month_repo,
                 task_queue=self.task_queue,
                 clock=self.clock,
+                storage=self.storage,
+                reader=self.reader,
+                page_text=self.page_text,
+                bank_lines=self.bank_lines,
             )
             await run_workflow(
                 build_document_workflow(pipeline_deps),

@@ -105,3 +105,11 @@ def test_a_merchant_named_total_is_still_part_of_its_row():
     ]
     chunks = chunk_page(page, page=3)
     assert [c.kind for c in chunks] == ["TABLE_ROW"]
+
+
+def test_chunks_survive_the_cache():
+    from app.domain.layout import chunks_from_json, chunks_to_json
+
+    chunks = chunk_page(PAGE, page=2)
+    again = chunks_from_json(chunks_to_json(chunks))
+    assert [(c.id, c.kind, c.text) for c in again] == [(c.id, c.kind, c.text) for c in chunks]

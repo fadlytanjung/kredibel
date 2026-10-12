@@ -28,13 +28,12 @@ matching, risk levels, state changes). Constitution P2.
 flowchart TB
     S["load_document"] --> SC["screen_document<br/>(P1, Model Armor)"]
     SC --> IN["inspect_file<br/>PDF metadata, fonts, pHash"]
-    IN --> CL["classify_document<br/>(LLM lite)"]
+    IN --> PP["parse_pages<br/>layout chunks from text layer or OCR"]
+    PP --> CL["classify_document<br/>(LLM lite)"]
     CL -->|"ledger export"| LM["propose_ledger_mapping<br/>(LLM lite) or reuse confirmed"]
     LM --> LP["parse_ledger<br/>(code)"]
-    CL -->|"statement, invoice, receipt"| RP["read_page × n<br/>(LLM, page image)"]
-    CL -->|"statement, invoice, receipt"| WP["witness_pages<br/>text layer or OCR"]
-    RP --> VP["verify_pages<br/>(code)"]
-    WP --> VP
+    CL -->|"statement, invoice, receipt"| RP["read_page × n<br/>(LLM, page image + chunks)"]
+    RP --> VP["verify_pages<br/>(code: ground every value)"]
     VP --> CK["check_document<br/>arithmetic, structure"]
     LP --> DD["detect_content_duplicates<br/>(code)"]
     CK --> DD
@@ -80,7 +79,6 @@ def build_document_workflow(deps: PipelineDeps) -> Workflow:
             async def read(page_no: int, context: dict | None):
                 async with page_sem:
                     return await ctx.run_node(n.read_page(deps), {**doc, "page": page_no, "context": context})
-            witness = asyncio.create_task(ctx.run_node(n.witness_pages(deps), doc))
             first = await read(1, None)                                 # page 1 carries the header
             rest = await asyncio.gather(*(read(p, first["header_context"]) for p in n.pages_to_read(doc)[1:]))
             doc = await ctx.run_node(n.verify_pages(deps), {"doc": doc, "ai": [first, *rest], "witness": await witness})
@@ -139,8 +137,8 @@ Legend: **F** function node (deterministic), **L** LLM call.
 | `classify_document` | L (`MODEL_LITE`) | `docType`, classification, `DOC_TYPE` label (P1); `NEEDS_INPUT` + `CONFIRM_TYPE` item if confidence < 0.6 | cache by sha256 + model + prompt | P0 |
 | `propose_ledger_mapping` | L (`MODEL_LITE`) | `ledgerMeta`, proposed mapping; `NEEDS_INPUT` + `CONFIRM_LEDGER_MAPPING` item unless the layout is already confirmed | layout signature | P0 |
 | `parse_ledger` | F | `ledgerEntries/*` | deterministic IDs | P0 |
-| `read_page` | L (`MODEL_FAST`) | cached JSON per page incl. `page_type`; `pages[n].status`; `PAGE_TYPE` label and `extractions/{docId}/p{n}.md` (P1) | cache by sha256 + page + model + prompt | P0 |
-| `witness_pages` | F (pdfplumber) or Document AI OCR | cached OCR JSON per page | cache by sha256 + page + processor | P0 |
+| `parse_pages` | F (pdfplumber) or Document AI OCR | layout chunks per page ([ADR-023](adr/ADR-023-parse-extract-ground.md)) in the extraction cache | cache by file sha256 + page | P0 |
+| `read_page` | L (`MODEL_FAST`) | cached reading per page (rows with chunk citations); `PAGE_TYPE` label and `extractions/{docId}/p{n}.md` (P1) | cache by page-image sha256 + model + prompt | P0 |
 | `verify_pages` | F | `bankLines/*`, `invoices/*`, `receipts/*`, `statementMeta`, `reading` | deterministic IDs | P0 |
 | `escalate_pages` | F (Document AI parsers) | re-verified rows | parser cache | P1 |
 | `check_document` | F | findings `A0x`, `M0x`, `E0x`; `integrity` | deterministic IDs | P0 |

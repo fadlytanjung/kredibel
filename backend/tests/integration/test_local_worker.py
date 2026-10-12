@@ -15,8 +15,11 @@ from app.adapters.spreadsheet_reader import DefaultSpreadsheetReader
 from app.core.settings import Settings
 from app.domain.models.document import DocStatus
 from app.domain.models.workspace import Subscription
+from app.domain.reading import DocClassification
 from app.main import AppDeps, create_app
+from tests.fakes.bank_line_repository import FakeBankLineRepository
 from tests.fakes.clock import FixedClock
+from tests.fakes.document_reader import FakeDocumentReader
 from tests.fakes.document_repository import FakeDocumentRepository
 from tests.fakes.document_storage import FakeDocumentStorage
 from tests.fakes.identity_admin import FakeIdentityAdmin
@@ -30,7 +33,7 @@ from tests.unit.test_auth import FakeTokenVerifier
 AUTH = {"Authorization": "Bearer owner"}
 
 
-def _deps() -> AppDeps:
+def _deps(classification: DocClassification | None = None) -> AppDeps:
     workspaces = FakeWorkspaceRepository()
     usage = FakeUsageRepository(workspaces=workspaces)
     usage.subscriptions["org_1"] = Subscription(
@@ -50,6 +53,8 @@ def _deps() -> AppDeps:
         renderer=DefaultPageRenderer(),
         spreadsheet_reader=DefaultSpreadsheetReader(),
         clock=FixedClock(datetime(2026, 10, 11, 8, 0, tzinfo=UTC)),
+        reader=FakeDocumentReader(classification),
+        bank_lines=FakeBankLineRepository(),
         token_verifier=FakeTokenVerifier(
             {"owner": {"uid": "u-1", "email": "o@example.test", "orgId": "org_1", "role": "owner"}}
         ),
@@ -72,8 +77,8 @@ async def _upload(deps: AppDeps, **data: str) -> str:
     return res.json()["docId"]
 
 
-async def test_an_upload_of_unknown_type_runs_and_asks_for_the_type():
-    deps = _deps()
+async def test_an_upload_the_reader_cannot_place_asks_for_the_type():
+    deps = _deps(DocClassification(doc_type="OTHER", confidence=0.4))
     doc_id = await _upload(deps)
     doc = await deps.doc_repo.get_document("org_1", doc_id)
     assert doc is not None and doc.status == DocStatus.NEEDS_INPUT

@@ -4,9 +4,12 @@ from dataclasses import dataclass
 
 from app.core.clock import Clock, SystemClock
 from app.core.settings import Settings
+from app.ports.bank_line_repository import BankLineRepository
+from app.ports.document_reader import DocumentReader
 from app.ports.document_repository import DocumentRepository
 from app.ports.document_storage import DocumentStorage
 from app.ports.month_repository import MonthRepository
+from app.ports.page_text import PageText
 from app.ports.run_repository import RunRepository
 from app.ports.task_queue import TaskQueue
 
@@ -22,3 +25,7 @@ class PipelineDeps:
     storage: DocumentStorage | None = None
     task_queue: TaskQueue | None = None
     clock: Clock = SystemClock()
+    # Reading (spec 005, ADR-023); without them the reading nodes pass the document through.
+    reader: DocumentReader | None = None
+    page_text: PageText | None = None
+    bank_lines: BankLineRepository | None = None

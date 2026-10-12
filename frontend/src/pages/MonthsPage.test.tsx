@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { apiClient } from '../shared/api/client'
 import { MonthsPage } from './MonthsPage'
@@ -22,9 +22,12 @@ describe('MonthsPage', () => {
 
   function renderPage() {
     return render(
-      <MemoryRouter>
+      <MemoryRouter initialEntries={['/months/all']}>
         <QueryClientProvider client={queryClient}>
-          <MonthsPage />
+          <Routes>
+            <Route path="/months/all" element={<MonthsPage />} />
+            <Route path="/months/:month" element={<p>Month page</p>} />
+          </Routes>
         </QueryClientProvider>
       </MemoryRouter>,
     )
@@ -73,8 +76,12 @@ describe('MonthsPage', () => {
     expect(rows[0]).toHaveTextContent('Needs review')
     expect(rows[1]).toHaveTextContent('January 2026')
     expect(rows[1]).toHaveTextContent('Reconciled')
-    expect(screen.getAllByRole('link', { name: /View/ })[0]).toHaveAttribute('href', '/months/2026-03')
     expect(screen.queryByText('Daybreak Café')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Bank evidence' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Needs review/ })).toHaveTextContent('1')
+    fireEvent.change(screen.getByRole('textbox', { name: /Search/i }), { target: { value: 'january' } })
+    expect(screen.queryByText('March 2026')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByText('January 2026'))
+    expect(screen.getByText('Month page')).toBeInTheDocument()
   })
 })

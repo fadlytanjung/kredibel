@@ -68,6 +68,8 @@
 - [x] **T007-10d** The month page opens on the current month and has the mock's tabs: Bank lines,
   Documents (payment evidence), Ledger and Findings, with counts; `/months/all` lists the months.
   (AC-007-12)
+- [x] **T007-10e** The months list and the month's findings are `DataTable`s: filters with counts (state;
+  severity), search, 10 a page, a row opening the month or the finding's evidence. (AC-007-12)
 
 ## Phase 4 — Close
 

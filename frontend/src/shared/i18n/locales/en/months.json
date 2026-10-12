@@ -12,7 +12,12 @@
     "colStatements": "Statements",
     "colAction": "Action",
     "statementsCount": "{{count}} statements",
-    "viewDetails": "View details"
+    "viewDetails": "View details",
+    "filterAll": "All",
+    "filterLabel": "Filter months",
+    "search": "Search months",
+    "colRisk": "Risk",
+    "noRisk": "No risk found"
   },
   "monthDetail": {
     "previousMonth": "Previous month",
@@ -158,7 +163,10 @@
     },
     "findings": {
       "none": "No open findings for this month.",
-      "all": "All findings"
+      "all": "All findings",
+      "colSeverity": "Severity",
+      "colFinding": "Finding",
+      "search": "Search findings"
     }
   },
   "categories": {

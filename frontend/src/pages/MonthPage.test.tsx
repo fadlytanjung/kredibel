@@ -232,8 +232,9 @@ describe('MonthPage', () => {
 
     fireEvent.click(tab(/Findings/))
     expect(screen.getByTestId('where')).toHaveTextContent('/months/2026-03?tab=findings')
-    expect(screen.getByRole('link', { name: /Invoice from a supplier never paid before/ })).toHaveAttribute('href', '/risk/fnd_1')
+    expect(screen.getByText('Invoice from a supplier never paid before')).toBeInTheDocument()
     expect(screen.queryByText('Old finding')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Medium/ })).toHaveTextContent('1')
 
     fireEvent.click(tab(/Ledger/))
     expect(screen.getByText(/Upload a general-ledger export/)).toBeInTheDocument()

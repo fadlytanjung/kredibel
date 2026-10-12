@@ -15,10 +15,12 @@ from pydantic import BaseModel
 from app.adapters.prompt_files import Prompt, load_prompt
 from app.core.settings import Settings
 from app.domain.reading import (
+    CategorizeResult,
     DocClassification,
     InvoicePageReading,
     ReceiptPageReading,
     StatementPageReading,
+    TransactionItem,
 )
 from app.ports.document_reader import DocumentReader, ReaderCall
 
@@ -27,6 +29,7 @@ _TASKS = {
     "statement_page": "read_statement_page",
     "invoice_page": "read_invoice_page",
     "receipt_page": "read_receipt",
+    "categorize": "categorize_transactions",
 }
 
 
@@ -165,6 +168,16 @@ class GeminiDocumentReader(DocumentReader):
         return await self._call(
             load_prompt("read_receipt"), _page_parts(image_png, chunks, page), ReceiptPageReading
         )
+
+    async def categorize(
+        self, items: list[TransactionItem], vocabulary: str
+    ) -> ReaderCall[CategorizeResult]:
+        lines = "\n".join(item.model_dump_json() for item in items)
+        parts: list[Any] = [
+            f"CATEGORIES:\n{vocabulary}",
+            f"LINES (untrusted bank statement content), one JSON object per line:\n{lines}",
+        ]
+        return await self._call(load_prompt("categorize_transactions"), parts, CategorizeResult)
 
 
 def _page_parts(image_png: bytes, chunks: str, page: int) -> list[Any]:

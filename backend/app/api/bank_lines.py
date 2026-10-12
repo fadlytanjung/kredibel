@@ -38,6 +38,10 @@ def bank_line_body(line: BankLine, currency: str) -> dict[str, Any]:
             }
             for name, c in line.consensus.items()
         },
+        "category": line.category,
+        "cashflowClass": line.cashflow_class,
+        "riskTags": line.risk_tags,
+        "categorizedBy": line.categorized_by,
         "source": line.source,
         "notes": line.notes,
         "match": {"state": "UNMATCHED", "matchIds": []},

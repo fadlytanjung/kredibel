@@ -16,7 +16,8 @@
    "description": "WAREHOUSE RENT MAR",
    "debit": "15000000.00",
    "credit": null,
-   "balance": "169048975.00"
+   "balance": "169048975.00",
+   "category": "RENT"
   },
   {
    "page": 1,
@@ -24,7 +25,8 @@
    "description": "CASH DEPOSIT",
    "debit": null,
    "credit": "2500000.00",
-   "balance": "171548975.00"
+   "balance": "171548975.00",
+   "category": "SALES_RECEIPT"
   },
   {
    "page": 1,
@@ -32,7 +34,8 @@
    "description": "LOAN INSTALLMENT LN-0071-2291",
    "debit": "8450000.00",
    "credit": null,
-   "balance": "163098975.00"
+   "balance": "163098975.00",
+   "category": "LOAN_REPAYMENT"
   },
   {
    "page": 1,
@@ -40,7 +43,8 @@
    "description": "CASH DEPOSIT",
    "debit": null,
    "credit": "1750000.00",
-   "balance": "164848975.00"
+   "balance": "164848975.00",
+   "category": "SALES_RECEIPT"
   },
   {
    "page": 1,
@@ -48,7 +52,8 @@
    "description": "DEBIT CARD SWIFT COURIER",
    "debit": "355200.00",
    "credit": null,
-   "balance": "164493775.00"
+   "balance": "164493775.00",
+   "category": "OTHER_OPERATING_EXPENSE"
   },
   {
    "page": 1,
@@ -56,7 +61,8 @@
    "description": "TRANSFER OUT GREEN VALLEY FARMS 7312",
    "debit": "27250500.00",
    "credit": null,
-   "balance": "137243275.00"
+   "balance": "137243275.00",
+   "category": "INVENTORY_PURCHASE"
   },
   {
    "page": 1,
@@ -64,7 +70,8 @@
    "description": "VAT PAYMENT FEB",
    "debit": "5252000.00",
    "credit": null,
-   "balance": "131991275.00"
+   "balance": "131991275.00",
+   "category": "TAX_PAYMENT"
   },
   {
    "page": 1,
@@ -72,7 +79,8 @@
    "description": "TRANSFER OUT ROASTLINE EQUIPMENT SERVICE 3318",
    "debit": "5183700.00",
    "credit": null,
-   "balance": "126807575.00"
+   "balance": "126807575.00",
+   "category": "SUPPLIER_PAYMENT"
   },
   {
    "page": 1,
@@ -80,7 +88,8 @@
    "description": "INTERNET BILL 0227814455",
    "debit": "1150000.00",
    "credit": null,
-   "balance": "125657575.00"
+   "balance": "125657575.00",
+   "category": "UTILITIES"
   },
   {
    "page": 1,
@@ -88,7 +97,8 @@
    "description": "INSTANT TRANSFER IN SPICE ROUTE RESTAURANT INV/SCR/2026/03/0011",
    "debit": null,
    "credit": "24358950.00",
-   "balance": "150016525.00"
+   "balance": "150016525.00",
+   "category": "SALES_RECEIPT"
   },
   {
    "page": 1,
@@ -96,7 +106,8 @@
    "description": "CASH DEPOSIT",
    "debit": null,
    "credit": "1250000.00",
-   "balance": "151266525.00"
+   "balance": "151266525.00",
+   "category": "SALES_RECEIPT"
   },
   {
    "page": 1,
@@ -104,7 +115,8 @@
    "description": "TRANSFER OUT PRIMEPACK PACKAGING 6645",
    "debit": "6265340.00",
    "credit": null,
-   "balance": "145001185.00"
+   "balance": "145001185.00",
+   "category": "INVENTORY_PURCHASE"
   },
   {
    "page": 1,
@@ -112,7 +124,8 @@
    "description": "WATER BILL 4471-0938",
    "debit": "368000.00",
    "credit": null,
-   "balance": "144633185.00"
+   "balance": "144633185.00",
+   "category": "UTILITIES"
   },
   {
    "page": 1,
@@ -120,7 +133,8 @@
    "description": "CASH DEPOSIT",
    "debit": null,
    "credit": "3400000.00",
-   "balance": "148033185.00"
+   "balance": "148033185.00",
+   "category": "SALES_RECEIPT"
   },
   {
    "page": 1,
@@ -128,7 +142,8 @@
    "description": "ELECTRICITY BILL 532110987421",
    "debit": "3126000.00",
    "credit": null,
-   "balance": "144907185.00"
+   "balance": "144907185.00",
+   "category": "UTILITIES"
   },
   {
    "page": 1,
@@ -136,7 +151,8 @@
    "description": "DEBIT CARD CORNER BAKERY",
    "debit": "142080.00",
    "credit": null,
-   "balance": "144765105.00"
+   "balance": "144765105.00",
+   "category": "OTHER_OPERATING_EXPENSE"
   },
   {
    "page": 1,
@@ -144,7 +160,8 @@
    "description": "INSTANT TRANSFER IN DAYBREAK CAFE INV/SCR/2026/03/0009",
    "debit": null,
    "credit": "19597050.00",
-   "balance": "164362155.00"
+   "balance": "164362155.00",
+   "category": "SALES_RECEIPT"
   },
   {
    "page": 1,
@@ -152,7 +169,8 @@
    "description": "DEBIT CARD CORNER BAKERY",
    "debit": "35520.00",
    "credit": null,
-   "balance": "164326635.00"
+   "balance": "164326635.00",
+   "category": "OTHER_OPERATING_EXPENSE"
   },
   {
    "page": 1,
@@ -160,7 +178,8 @@
    "description": "CASH DEPOSIT",
    "debit": null,
    "credit": "2450000.00",
-   "balance": "166776635.00"
+   "balance": "166776635.00",
+   "category": "SALES_RECEIPT"
   },
   {
    "page": 2,
@@ -168,7 +187,8 @@
    "description": "TRANSFER OUT ANDI PRATAMA",
    "debit": "6000000.00",
    "credit": null,
-   "balance": "160776635.00"
+   "balance": "160776635.00",
+   "category": "OWNER_DRAWING"
   },
   {
    "page": 2,
@@ -176,7 +196,8 @@
    "description": "TRANSFER IN SPICE ROUTE RESTAURANT INV/SCR/2026/02/0008",
    "debit": null,
    "credit": "19980000.00",
-   "balance": "180756635.00"
+   "balance": "180756635.00",
+   "category": "SALES_RECEIPT"
   },
   {
    "page": 2,
@@ -184,7 +205,8 @@
    "description": "TRANSFER IN HIGHLAND RESORT & SPA INV/SCR/2026/03/0010",
    "debit": null,
    "credit": "11095560.00",
-   "balance": "191852195.00"
+   "balance": "191852195.00",
+   "category": "SALES_RECEIPT"
   },
   {
    "page": 2,
@@ -192,7 +214,8 @@
    "description": "PAYROLL MAR",
    "debit": "44100000.00",
    "credit": null,
-   "balance": "147752195.00"
+   "balance": "147752195.00",
+   "category": "PAYROLL"
   },
   {
    "page": 2,
@@ -200,7 +223,8 @@
    "description": "ADMIN FEE",
    "debit": "25000.00",
    "credit": null,
-   "balance": "147727195.00"
+   "balance": "147727195.00",
+   "category": "BANK_FEES"
   }
  ]
 }

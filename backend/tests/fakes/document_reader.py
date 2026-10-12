@@ -3,10 +3,13 @@
 from collections.abc import Callable
 
 from app.domain.reading import (
+    CategorizeResult,
+    CategoryChoice,
     DocClassification,
     InvoicePageReading,
     ReceiptPageReading,
     StatementPageReading,
+    TransactionItem,
 )
 from app.ports.document_reader import DocumentReader, ReaderCall
 
@@ -18,6 +21,7 @@ class FakeDocumentReader(DocumentReader):
         pages: Callable[[int], StatementPageReading] | None = None,
         invoice_pages: Callable[[int], InvoicePageReading] | None = None,
         receipt_pages: Callable[[int], ReceiptPageReading] | None = None,
+        categories: Callable[[TransactionItem], tuple[str, float]] | None = None,
     ) -> None:
         self.classification = classification or DocClassification(
             doc_type="BANK_STATEMENT", confidence=0.97
@@ -25,6 +29,7 @@ class FakeDocumentReader(DocumentReader):
         self.pages = pages or (lambda page: StatementPageReading(page=page))
         self.invoice_pages = invoice_pages or (lambda page: InvoicePageReading(page=page))
         self.receipt_pages = receipt_pages or (lambda page: ReceiptPageReading(page=page))
+        self.categories = categories or (lambda item: ("UNKNOWN", 0.0))
         self.calls: list[tuple[str, int]] = []
 
     def version(self, task: str) -> tuple[str, str]:
@@ -51,3 +56,14 @@ class FakeDocumentReader(DocumentReader):
     ) -> ReaderCall[ReceiptPageReading]:
         self.calls.append(("receipt_page", page))
         return ReaderCall(self.receipt_pages(page), "fake-model", "receipt_page@test", 600, 150)
+
+    async def categorize(
+        self, items: list[TransactionItem], vocabulary: str
+    ) -> ReaderCall[CategorizeResult]:
+        self.calls.append(("categorize", len(items)))
+        choices = [
+            CategoryChoice(id=item.id, category=cat, confidence=conf)
+            for item in items
+            for cat, conf in [self.categories(item)]
+        ]
+        return ReaderCall(CategorizeResult(items=choices), "fake-lite", "categorize@test", 500, 200)

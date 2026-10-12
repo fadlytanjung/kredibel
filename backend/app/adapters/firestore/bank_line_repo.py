@@ -29,6 +29,13 @@ def _to_doc(line: BankLine) -> BankLineDoc:
         consensus=line.consensus,
         notes=line.notes,
         chunk_ids=list(line.chunk_ids),
+        category=line.category,
+        cashflow_class=line.cashflow_class,
+        risk_tags=line.risk_tags,
+        categorized_by=line.categorized_by,
+        category_confidence=None
+        if line.category_confidence is None
+        else str(line.category_confidence),
     )
 
 
@@ -48,6 +55,13 @@ def _to_domain(doc: BankLineDoc) -> BankLine:
         consensus=doc.consensus,
         notes=doc.notes,
         chunk_ids=tuple(doc.chunk_ids),
+        category=doc.category or "UNKNOWN",
+        cashflow_class=doc.cashflow_class,
+        risk_tags=doc.risk_tags,
+        categorized_by=doc.categorized_by,
+        category_confidence=None
+        if doc.category_confidence is None
+        else Decimal(doc.category_confidence),
     )
 
 

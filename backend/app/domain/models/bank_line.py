@@ -22,6 +22,13 @@ class BankLine:
     consensus: dict[str, dict[str, Any]] = field(default_factory=dict)
     notes: list[str] = field(default_factory=list)
     chunk_ids: tuple[str, ...] = ()
+    # Categorization (docs/08 §4.1): the category, its cash-flow class under the workspace's
+    # framework, risk tags, and who decided it.
+    category: str = "UNKNOWN"
+    cashflow_class: str = "UNCLASSIFIED"
+    risk_tags: list[str] = field(default_factory=list)
+    categorized_by: str = "NONE"
+    category_confidence: Decimal | None = None
 
     @property
     def amount_minor(self) -> int:

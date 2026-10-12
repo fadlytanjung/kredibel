@@ -1896,7 +1896,7 @@ components:
         category: { $ref: "#/components/schemas/Category" }
         cashflowClass: { $ref: "#/components/schemas/CashflowClass" }
         riskTags: { type: array, items: { $ref: "#/components/schemas/RiskTag" } }
-        categorizedBy: { type: string, enum: [RULE, MODEL, MATCH, USER] }
+        categorizedBy: { type: string, enum: [USER, MATCH, TRANSFER, RULE, MODEL, NONE] }
         readings:
           type: object
           description: Per field (date, description, amount, balance)

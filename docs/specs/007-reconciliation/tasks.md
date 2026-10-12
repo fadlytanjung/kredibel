@@ -2,8 +2,8 @@
 
 ## Phase 1 — Categorization
 
-- [ ] **T007-01** **TDD** `categorize.py` precedence and rules. (AC-007-1)
-- [ ] **T007-02** Categorizer prompt and node; `PATCH /api/bank-lines/{txId}`. (AC-007-1, AC-007-2)
+- [x] **T007-01** **TDD** `categorize.py` precedence and rules. (AC-007-1)
+- [ ] **T007-02** Categorizer prompt and node; `PATCH /api/bank-lines/{txId}`. (AC-007-1, AC-007-2) (prompt and node done, with a batch cache; the `PATCH` correction comes with the month page)
 
 ## Phase 2 — Reconciliation
 

@@ -29,7 +29,10 @@
       "account_id": "str | None",
       "amount_minor": "int",
       "balance_minor": "int | None",
+      "cashflow_class": "str",
+      "categorized_by": "str",
       "category": "str | None",
+      "category_confidence": "str | None",
       "chunk_ids": "list[str]",
       "consensus": "dict[str, Any]",
       "counterparty_name": "str | None",
@@ -41,6 +44,7 @@
       "month": "str",
       "notes": "list[str]",
       "page": "int",
+      "risk_tags": "list[str]",
       "row_index": "int",
       "source": "str",
       "tx_id": "str"

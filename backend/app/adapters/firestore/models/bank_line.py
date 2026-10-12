@@ -24,5 +24,9 @@ class BankLineDoc(FirestoreModel):
     notes: list[str] = Field(default_factory=list)
     chunk_ids: list[str] = Field(default_factory=list)
     category: str | None = None
+    cashflow_class: str = "UNCLASSIFIED"
+    risk_tags: list[str] = Field(default_factory=list)
+    categorized_by: str = "NONE"
+    category_confidence: str | None = None
     held_as_duplicate: bool = False
     match: dict[str, Any] = Field(default_factory=lambda: {"state": "UNMATCHED", "matchIds": []})

@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 from app.core.clock import Clock, SystemClock
 from app.core.settings import Settings
+from app.domain.categorize import CategoryPolicy
 from app.domain.checks.policy import ForensicsPolicy
 from app.domain.models.invoice import Invoice, Receipt
 from app.ports.bank_line_repository import BankLineRepository
@@ -43,3 +44,4 @@ class PipelineDeps:
     inspector: FileInspector | None = None
     forensics: ForensicsPolicy | None = None
     findings: FindingRepository | None = None
+    categories: CategoryPolicy | None = None

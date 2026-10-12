@@ -149,6 +149,27 @@ class ReceiptPageReading(BaseModel):
     differs_from_text: list[str] = Field(default_factory=list)
 
 
+class TransactionItem(BaseModel):
+    """A bank line as the categorizer sees it (docs/08 §4.1, txn_categorizer)."""
+
+    id: int
+    description: str
+    direction: Literal["in", "out"]
+    amount: str
+
+
+class CategoryChoice(BaseModel):
+    id: int
+    category: str
+    confidence: float = Field(ge=0, le=1)
+    counterparty_name: str | None = None
+    counterparty_kind: Literal["PERSON", "BUSINESS", "GOVERNMENT", "BANK", "UNKNOWN"] | None = None
+
+
+class CategorizeResult(BaseModel):
+    items: list[CategoryChoice] = Field(default_factory=list)
+
+
 @dataclass
 class StatementMeta:
     bank_name: str | None

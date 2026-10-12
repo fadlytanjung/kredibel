@@ -1,6 +1,8 @@
 """Document workflow node factories with stubs for specs 004-008 (docs/06 §2, §4)."""
 
+import hashlib
 import json
+from collections import Counter
 from dataclasses import dataclass, replace
 from datetime import date
 from decimal import Decimal
@@ -12,6 +14,7 @@ from pydantic import BaseModel
 
 from app.agents.deps import PipelineDeps
 from app.agents.stages import stage
+from app.domain.categorize import Categorized, CategoryPolicy, Framework, by_rules, from_model
 from app.domain.checks.base import CheckContext, DeclaredAccount, PdfInfo, run_document_checks
 from app.domain.duplicates import (
     InvoiceKey,
@@ -25,6 +28,7 @@ from app.domain.duplicates import (
 from app.domain.findings import Evidence, Finding, finding_id
 from app.domain.invoice_records import build_invoices, build_receipts
 from app.domain.layout import Chunk, chunk_page, chunks_from_json, chunks_to_json, render_chunks
+from app.domain.models.bank_line import BankLine
 from app.domain.models.document import (
     DocStatus,
     DocType,
@@ -35,9 +39,11 @@ from app.domain.models.document import (
 )
 from app.domain.page_triage import TextLayerStatus
 from app.domain.reading import (
+    CategorizeResult,
     InvoicePageReading,
     ReceiptPageReading,
     StatementPageReading,
+    TransactionItem,
     build_statement,
 )
 from app.domain.verdict import integrity_verdict
@@ -719,12 +725,110 @@ def _duplicate_finding(doc: Any, match: Match) -> Finding:
     )
 
 
+_CATEGORIZE_BATCH = 100
+
+
+# Every bank line gets a category (docs/08 §4.1): keyword rules first, the model for the rest in
+# batches of 100 (cached), unsure answers stay UNKNOWN; the cash-flow class follows from the
+# workspace's accounting framework, never from the model.
 def categorize_bank_lines(deps: PipelineDeps):
+
     @stage(deps, "categorize_bank_lines")
     async def _node(ctx: Context, node_input: dict[str, Any]) -> dict[str, Any]:
-        return {**node_input, "summary": "Transactions categorized"}
+        org_id, doc_id = _ids(node_input)
+        doc = await deps.doc_repo.get_document(org_id, doc_id)
+        policy = deps.categories
+        if doc is None or doc.doc_type != DocType.BANK_STATEMENT or policy is None:
+            return {**node_input, "summary": "Nothing to categorize"}
+        if deps.bank_lines is None:
+            return {**node_input, "summary": "Categorization skipped"}
+        lines = await deps.bank_lines.list_lines(org_id, doc_id=doc_id, limit=5000)
+        framework = await _framework(deps, org_id)
+        decided: dict[str, Categorized] = {}
+        left: list[tuple[BankLine, list[str]]] = []
+        for line in lines:
+            if line.categorized_by == "USER":
+                continue
+            rule, tags = by_rules(line.description, line.counterparty_name, line.amount, policy)
+            if rule is not None:
+                decided[line.tx_id] = rule
+            else:
+                left.append((line, tags))
+        tokens = [0, 0]
+        if left and deps.reader is not None and deps.storage is not None:
+            for start in range(0, len(left), _CATEGORIZE_BATCH):
+                batch = left[start : start + _CATEGORIZE_BATCH]
+                answers = await _model_categories(deps, org_id, batch, policy, tokens)
+                for i, (line, tags) in enumerate(batch):
+                    category, confidence, name = answers.get(i, (None, None, None))
+                    decided[line.tx_id] = from_model(
+                        category, confidence, line.amount, tags, policy
+                    )
+                    if name and not line.counterparty_name:
+                        line.counterparty_name = name
+        else:
+            for line, tags in left:
+                decided[line.tx_id] = from_model(None, None, line.amount, tags, policy)
+        for line in lines:
+            if (c := decided.get(line.tx_id)) is None:
+                continue
+            line.category, line.categorized_by = c.category, c.categorized_by
+            line.category_confidence, line.risk_tags = c.confidence, c.risk_tags
+            line.cashflow_class = policy.categories[c.category].cashflow_class(framework)
+        await deps.bank_lines.replace_document_lines(org_id, doc_id, lines)
+        by = Counter(line.categorized_by for line in lines)
+        return {
+            **node_input,
+            "tokens_in": tokens[0],
+            "tokens_out": tokens[1],
+            "summary": ", ".join(f"{n} by {k.lower()}" for k, n in sorted(by.items())),
+        }
 
     return _node
+
+
+async def _framework(deps: PipelineDeps, org_id: str) -> Framework:
+    workspace = await deps.workspaces.get_workspace(org_id) if deps.workspaces else None
+    framework = workspace.profile.accounting_framework if workspace else "IFRS"
+    return "US_GAAP" if framework == "US_GAAP" else "IFRS"
+
+
+def _vocabulary(policy: CategoryPolicy) -> str:
+    way = {"in": "money in", "out": "money out", "either": "either"}
+    return "\n".join(f"{c.id} ({way[c.direction]}): {c.label}" for c in policy.categories.values())
+
+
+async def _model_categories(
+    deps: PipelineDeps,
+    org_id: str,
+    batch: list[tuple[BankLine, list[str]]],
+    policy: CategoryPolicy,
+    tokens: list[int],
+) -> dict[int, tuple[str | None, float | None, str | None]]:
+    """The model's answers for one batch, cached by the batch's content, model and prompt."""
+    assert deps.reader is not None and deps.storage is not None
+    items = [
+        TransactionItem(
+            id=i,
+            description=" ".join(line.description.split()),
+            direction="in" if line.amount > 0 else "out",
+            amount=f"{abs(line.amount):.2f}",
+        )
+        for i, (line, _) in enumerate(batch)
+    ]
+    model, prompt_version = deps.reader.version("categorize")
+    payload = json.dumps([item.model_dump() for item in items], sort_keys=True)
+    key = f"categories/{hashlib.sha256(payload.encode()).hexdigest()}/{model}-{prompt_version}.json"
+    cached = await deps.storage.get_cached(org_id, key)
+    if cached is not None:
+        result = CategorizeResult.model_validate_json(cached)
+    else:
+        call = await deps.reader.categorize(items, _vocabulary(policy))
+        result = call.value
+        tokens[0] += call.tokens_in
+        tokens[1] += call.tokens_out
+        await deps.storage.put_cached(org_id, key, result.model_dump_json().encode())
+    return {c.id: (c.category, c.confidence, c.counterparty_name) for c in result.items}
 
 
 def finalize_document(deps: PipelineDeps):

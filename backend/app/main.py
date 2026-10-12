@@ -23,7 +23,7 @@ from app.adapters.gcs_storage import GcsDocumentStorage
 from app.adapters.gemini_reader import GeminiDocumentReader
 from app.adapters.page_renderer import DefaultPageRenderer
 from app.adapters.pdf_inspector import PdfInspector
-from app.adapters.policy_files import load_forensics, load_plans
+from app.adapters.policy_files import load_category_policy, load_forensics, load_plans
 from app.adapters.spreadsheet_reader import DefaultSpreadsheetReader
 from app.adapters.text_layer import PdfTextLayer
 from app.agents.deps import PipelineDeps
@@ -58,6 +58,7 @@ from app.core.errors import register_error_handlers
 from app.core.logging import LoggingMiddleware, setup_logging
 from app.core.security_headers import SecurityHeadersMiddleware
 from app.core.settings import Settings
+from app.domain.categorize import CategoryPolicy
 from app.domain.checks.policy import ForensicsPolicy
 from app.domain.models.invoice import Invoice, Receipt
 from app.domain.plans import PlanCatalog
@@ -337,6 +338,16 @@ class AppDeps:
         )
 
     @property
+    def categories(self) -> CategoryPolicy:
+        return self._once(
+            "categories",
+            lambda: load_category_policy(
+                self.settings.contract_path(self.settings.categories_file),
+                self.settings.contract_path(self.settings.policy_dir),
+            ),
+        )
+
+    @property
     def inspector(self) -> FileInspector:
         return self._once("inspector", PdfInspector)
 
@@ -389,6 +400,7 @@ class AppDeps:
                 inspector=self.inspector,
                 forensics=self.forensics,
                 findings=self.findings,
+                categories=self.categories,
             )
             await run_workflow(
                 build_document_workflow(pipeline_deps),

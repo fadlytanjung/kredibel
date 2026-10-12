@@ -5,10 +5,12 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from app.domain.reading import (
+    CategorizeResult,
     DocClassification,
     InvoicePageReading,
     ReceiptPageReading,
     StatementPageReading,
+    TransactionItem,
 )
 
 
@@ -47,4 +49,10 @@ class DocumentReader(Protocol):
         self, image_png: bytes, chunks: str, *, page: int
     ) -> ReaderCall[ReceiptPageReading]:
         """One receipt page or photo; `chunks` is empty for a photo without a text layer."""
+        ...
+
+    async def categorize(
+        self, items: list[TransactionItem], vocabulary: str
+    ) -> ReaderCall[CategorizeResult]:
+        """Categories for up to 100 bank lines the keyword rules left (docs/08 §4.1)."""
         ...

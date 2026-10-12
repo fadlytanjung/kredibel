@@ -53,6 +53,26 @@ export async function apiClient<T>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
+  const response = await authedFetch(path, options)
+  if (response.status === 204) {
+    return {} as T
+  }
+  return (await response.json()) as T
+}
+
+/**
+ * Binary responses (page images, the original file) with the same token and problem handling.
+ * An `<img src>` or a plain link cannot send the token, so the SPA fetches these and shows them
+ * from an object URL (docs/11 §6.3).
+ */
+export async function apiBlob(path: string, options: RequestInit = {}): Promise<Blob> {
+  const headers = new Headers(options.headers || {})
+  if (!headers.has('Accept')) headers.set('Accept', '*/*, application/problem+json')
+  const response = await authedFetch(path, { ...options, headers })
+  return response.blob()
+}
+
+async function authedFetch(path: string, options: RequestInit): Promise<Response> {
   const headers = new Headers(options.headers || {})
 
   if (!headers.has('Accept')) {
@@ -106,9 +126,5 @@ export async function apiClient<T>(
     throw error
   }
 
-  if (response.status === 204) {
-    return {} as T
-  }
-
-  return (await response.json()) as T
+  return response
 }

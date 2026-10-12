@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { StrictMode } from 'react'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -37,6 +38,33 @@ describe('UploadSheet', () => {
       </MemoryRouter>,
     )
   }
+
+  it('sends each file once, even in StrictMode (two documents were created for one drop)', async () => {
+    vi.mocked(apiClient).mockResolvedValue({
+      docId: 'doc_1',
+      fileName: 'RHB.pdf',
+      status: 'UPLOADED',
+      uploadedAt: new Date().toISOString(),
+    })
+    render(
+      <StrictMode>
+        <MemoryRouter>
+          <QueryClientProvider client={queryClient}>
+            <UploadSheet />
+          </QueryClientProvider>
+        </MemoryRouter>
+      </StrictMode>,
+    )
+    const file = new File(['%PDF-1.7'], 'RHB.pdf', { type: 'application/pdf' })
+    fireEvent.drop(screen.getByText('Drop statements, invoices, receipts or a ledger export').closest('section')!, {
+      dataTransfer: { files: [file] },
+    })
+
+    await waitFor(() => expect(screen.getByText('RHB.pdf')).toBeInTheDocument())
+    await waitFor(() => expect(apiClient).toHaveBeenCalled())
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(vi.mocked(apiClient).mock.calls.filter(([path]) => path === '/api/documents')).toHaveLength(1)
+  })
 
   it('renders drop zone with Choose files and Photo of a receipt buttons', () => {
     renderSheet()

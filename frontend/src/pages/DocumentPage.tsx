@@ -9,7 +9,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { useDeleteDocument, useDocument } from '../entities/document'
+import { downloadOriginal, PageImage, useDeleteDocument, useDocument } from '../entities/document'
 import { formatDate } from '../shared/lib/formatDate'
 import { Badge, Button, Icon } from '../shared/ui'
 
@@ -66,14 +66,14 @@ export function DocumentPage() {
             </p>
           </div>
           <div className="row gap-2">
-            <a
-              className="button button-secondary button-sm"
-              href={`/api/documents/${doc.docId}/file`}
-              download={doc.fileName}
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => void downloadOriginal(doc.docId, doc.fileName)}
             >
               <Icon name="download" size="sm" />
               {t('documents:detail.downloadOriginal')}
-            </a>
+            </Button>
             <Button
               variant="secondary"
               size="sm"
@@ -126,8 +126,10 @@ export function DocumentPage() {
                   onClick={() => setSelectedPage(pNo)}
                   className={`card p-2 text-left cursor-pointer ${selectedPage === pNo ? 'border-brand' : ''}`}
                 >
-                  <img
-                    src={`/api/documents/${doc.docId}/pages/${pNo}?variant=thumb`}
+                  <PageImage
+                    docId={doc.docId}
+                    pageNo={pNo}
+                    variant="thumb"
                     alt={t('documents:detail.page', { page: pNo })}
                     className="w-full h-auto block"
                   />
@@ -156,8 +158,10 @@ export function DocumentPage() {
                 )}
               </div>
               <div className="overflow-auto text-center" style={{ maxHeight: '650px' }} /* allow-raw-style: viewer max viewport height */>
-                <img
-                  src={`/api/documents/${doc.docId}/pages/${selectedPage}?variant=full`}
+                <PageImage
+                  docId={doc.docId}
+                  pageNo={selectedPage}
+                  variant="full"
                   alt={t('documents:detail.page', { page: selectedPage })}
                   className="max-w-full h-auto m-auto"
                 />

@@ -1,3 +1,5 @@
 export * from './types'
 export * from './api'
 export * from './useDocumentLive'
+export * from './media'
+export * from './PageImage'

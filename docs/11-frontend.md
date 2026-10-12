@@ -419,6 +419,9 @@ stateDiagram-v2
 - **Document page** (`/documents/:docId`): the pages with read values lit, the two readings, its
   findings, the matches it takes part in, its events, and P1 "How this was processed" (run graph,
   [`17`](17-observability.md) §5).
+- **Page images and the original file** are API routes that need the ID token, which an `<img src>`
+  or a plain link cannot send: the SPA fetches them through the API client and shows them from object
+  URLs (`PageImage`, `downloadOriginal` in `entities/document`).
 
 ### 6.4 Month
 

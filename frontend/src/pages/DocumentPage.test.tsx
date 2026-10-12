@@ -2,13 +2,18 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { apiClient } from '../shared/api/client'
+import { apiBlob, apiClient } from '../shared/api/client'
 import { DocumentPage } from './DocumentPage'
 
 vi.mock('../shared/api/client', () => ({
   apiClient: vi.fn(),
+  apiBlob: vi.fn(async () => new Blob(['png'], { type: 'image/png' })),
   ProblemError: class ProblemError extends Error {},
 }))
+
+// jsdom has no object URLs.
+URL.createObjectURL = vi.fn((blob: Blob) => `blob:test/${blob.size}`)
+URL.revokeObjectURL = vi.fn()
 
 describe('DocumentPage', () => {
   let queryClient: QueryClient
@@ -67,10 +72,35 @@ describe('DocumentPage', () => {
 
     // Check pages viewer
     expect(screen.getByText('Pages (2)')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /Original file/i })).toHaveAttribute(
-      'href',
-      '/api/documents/doc_test_123/file',
+  })
+
+  it('loads page images and the original with the token (they came back 401 as <img src>)', async () => {
+    vi.mocked(apiClient).mockResolvedValueOnce({
+      docId: 'doc_img',
+      fileName: 'RHB.pdf',
+      contentType: 'application/pdf',
+      docType: 'BANK_STATEMENT',
+      status: 'UPLOADED',
+      pageCount: 2,
+      pages: [
+        { pageNo: 1, status: 'PENDING', textLayer: true, witness: 'TEXT_LAYER' },
+        { pageNo: 2, status: 'PENDING', textLayer: true, witness: 'TEXT_LAYER' },
+      ],
+      uploadedAt: '2026-10-12T01:57:18Z',
+    })
+    renderPage('doc_img')
+
+    await waitFor(() => expect(apiBlob).toHaveBeenCalledWith('/api/documents/doc_img/pages/1?variant=thumb'))
+    expect(apiBlob).toHaveBeenCalledWith('/api/documents/doc_img/pages/1?variant=full')
+    await waitFor(() =>
+      expect(
+        screen.getAllByRole('img', { name: 'Page 1' }).some((el) => el.getAttribute('src')?.startsWith('blob:')),
+      ).toBe(true),
     )
+    expect(screen.queryByRole('link', { name: /Original file/i })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /Original file/i }))
+    await waitFor(() => expect(apiBlob).toHaveBeenCalledWith('/api/documents/doc_img/file'))
   })
 
   it('handles document deletion with confirmation dialog (AC-003-10)', async () => {

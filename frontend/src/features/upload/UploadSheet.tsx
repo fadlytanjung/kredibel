@@ -7,7 +7,7 @@
  * - design/mocks/assets/kit.css .tray, .tray-drop, .tray-list
  */
 
-import { useRef, useState, type ChangeEvent, type DragEvent } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent, type DragEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { useUploadDocument, type DocType, type Document } from '../../entities/document'
@@ -46,63 +46,55 @@ export function UploadSheet({ onUploaded, docTypeHint, className = '' }: UploadS
   const fileInputRef = useRef<HTMLInputElement>(null)
   const cameraInputRef = useRef<HTMLInputElement>(null)
 
-  const processQueue = async (queue: UploadItem[]) => {
-    // Max 3 concurrent uploads (AC-003-1)
-    const active = queue.filter((i) => i.status === 'uploading')
-    const waiting = queue.filter((i) => i.status === 'queued')
+  // Uploads start from this effect, never from a state updater: React may call an updater twice
+  // (StrictMode does), and each call would send the file again. `started` makes a start happen
+  // once per item even if the effect itself runs twice.
+  const started = useRef(new Set<string>())
 
-    const slotsAvailable = 3 - active.length
-    if (slotsAvailable <= 0 || waiting.length === 0) return
-
-    const toStart = waiting.slice(0, slotsAvailable)
-
-    // Mark as uploading
-    setItems((prev) =>
-      prev.map((item) =>
-        toStart.some((s) => s.id === item.id)
-          ? { ...item, status: 'uploading', progress: 30 }
-          : item,
-      ),
-    )
-
-    for (const item of toStart) {
-      void (async () => {
-        try {
-          const doc = await uploadMutation.mutateAsync({
-            file: item.file,
-            docTypeHint: docTypeHint ? docTypeHint : undefined,
-          })
-          setItems((prev) => {
-            const next = prev.map((i) =>
-              i.id === item.id
-                ? { ...i, status: 'done' as const, progress: 100, document: doc }
-                : i,
-            )
-            void processQueue(next)
-            return next
-          })
-          onUploaded?.(doc)
-        } catch (err) {
-          let errorMsg = t('errors:fallback')
-          if (err instanceof ProblemError) {
-            const code = err.code
-            errorMsg = t(`errors:${code}`, { defaultValue: err.message })
-          } else if (err instanceof Error) {
-            errorMsg = err.message
-          }
-          setItems((prev) => {
-            const next = prev.map((i) =>
-              i.id === item.id
-                ? { ...i, status: 'error' as const, progress: 100, error: errorMsg }
-                : i,
-            )
-            void processQueue(next)
-            return next
-          })
-        }
-      })()
+  const upload = async (item: UploadItem) => {
+    try {
+      const doc = await uploadMutation.mutateAsync({
+        file: item.file,
+        docTypeHint: docTypeHint ? docTypeHint : undefined,
+      })
+      setItems((prev) =>
+        prev.map((i) =>
+          i.id === item.id ? { ...i, status: 'done' as const, progress: 100, document: doc } : i,
+        ),
+      )
+      onUploaded?.(doc)
+    } catch (err) {
+      let errorMsg = t('errors:fallback')
+      if (err instanceof ProblemError) {
+        errorMsg = t(`errors:${err.code}`, { defaultValue: err.message })
+      } else if (err instanceof Error) {
+        errorMsg = err.message
+      }
+      setItems((prev) =>
+        prev.map((i) =>
+          i.id === item.id ? { ...i, status: 'error' as const, progress: 100, error: errorMsg } : i,
+        ),
+      )
     }
   }
+
+  useEffect(() => {
+    // At most 3 uploads at a time (AC-003-1).
+    const active = items.filter((i) => i.status === 'uploading').length
+    const toStart = items
+      .filter((i) => i.status === 'queued' && !started.current.has(i.id))
+      .slice(0, Math.max(0, 3 - active))
+    if (toStart.length === 0) return
+    for (const item of toStart) started.current.add(item.id)
+    setItems((prev) =>
+      prev.map((i) =>
+        toStart.some((s) => s.id === i.id) ? { ...i, status: 'uploading' as const, progress: 30 } : i,
+      ),
+    )
+    for (const item of toStart) void upload(item)
+    // `upload` reads the latest props through its closure; the queue only reacts to items.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items])
 
   const enqueueFiles = (files: FileList | File[]) => {
     const newItems: UploadItem[] = Array.from(files).map((f) => ({
@@ -112,11 +104,7 @@ export function UploadSheet({ onUploaded, docTypeHint, className = '' }: UploadS
       progress: 0,
     }))
 
-    setItems((prev) => {
-      const combined = [...newItems, ...prev]
-      void processQueue(combined)
-      return combined
-    })
+    setItems((prev) => [...newItems, ...prev])
   }
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {

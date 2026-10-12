@@ -192,3 +192,73 @@ def _score(
         tuple(reasons),
         left.has_conflict or right.has_conflict or net_of_tax,
     )
+
+
+def _party(document: MatchRecord, payment: MatchRecord) -> Decimal:
+    document_text = _fold(document.party or "")
+    payment_text = _fold(payment.party or payment.description)
+    if not document_text or not payment_text:
+        return Decimal(0)
+    return Decimal(str(token_set_ratio(document_text, payment_text))) / 100
+
+
+def score_group(
+    payments: tuple[MatchRecord, ...],
+    documents: tuple[MatchRecord, ...],
+    policy: ReconciliationPolicy,
+    *,
+    workspace_currency: str,
+) -> CandidateScore | None:
+    """One bank row for several invoices (GROUPED) or several bank rows for one invoice (SPLIT),
+    2 to maxSplitParts parts. Every part must be eligible with its counterpart, show the same party
+    (partyMinScoreForSplit) and fall in its date window; the totals must agree within tolerance.
+    Groups get no net-of-tax allowance: an approximate group is not evidence (ADR-025)."""
+    if (len(payments) == 1) == (len(documents) == 1):
+        return None
+    parts = max(len(payments), len(documents))
+    if parts > policy.thresholds.max_split_parts:
+        return None
+    pairs = [(p, d) for p in payments for d in documents]
+    if not all(_valid(r, workspace_currency) for r in (*payments, *documents)):
+        return None
+    if not all(_pair_allowed(p, d) for p, d in pairs):
+        return None
+    if len({d.kind for d in documents}) != 1:
+        return None
+    dates = [_date_score(p, d, policy) for p, d in pairs]
+    parties = [_party(d, p) for p, d in pairs]
+    if any(s is None for s in dates) or min(parties) < policy.thresholds.party_min_score_for_split:
+        return None
+    paid = sum((abs(p.amount) for p in payments if p.amount is not None), Decimal(0))
+    total = sum((abs(d.amount) for d in documents if d.amount is not None), Decimal(0))
+    tolerance = policy.tolerance(total, workspace_currency)
+    if tolerance is None or abs(paid - total) > tolerance:
+        return None
+    text = " ".join(p.description for p in payments)
+    reference = sum((_reference_in(d.reference, text) for d in documents), Decimal(0)) / len(
+        documents
+    )
+    party = min(parties)
+    date_score = min(s for s in dates if s is not None)
+    w = policy.weights
+    score = w.amount + w.party * party + w.reference * reference + w.date * date_score
+    reasons = ["AMOUNT_EXACT"]
+    if party >= policy.reason_thresholds.party:
+        reasons.append("PARTY_MATCH")
+    if reference == 1:
+        reasons.append("REFERENCE_IN_TEXT")
+    if date_score >= policy.reason_thresholds.date:
+        reasons.append("DATE_NEAR")
+    reasons.append("SPLIT" if len(payments) > 1 else "GROUPED")
+    return CandidateScore(
+        "|".join(sorted(p.record_id for p in payments)),
+        "|".join(sorted(d.record_id for d in documents)),
+        Decimal(1),
+        party,
+        reference,
+        date_score,
+        score,
+        paid - total,
+        tuple(reasons),
+        any(r.has_conflict for r in (*payments, *documents)),
+    )

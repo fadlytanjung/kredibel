@@ -393,6 +393,11 @@ live in the policy; code supplies no fallback thresholds.
 
 Assignment is greedy by score, then date, then ID (deterministic); an item is used at most once except
 in split or multi-invoice matches (subset sums of up to 3 items within tol, same party ≥ 0.8).
+Single, grouped (one bank row, 2–3 invoices of one party) and split (2–3 bank rows, one invoice)
+candidates are all scored first and compete; the runner-up for the ambiguity rule is the best other
+candidate sharing any record with the best. Groups need the exact total within tolerance and every
+part in its date window; they get no net-of-tax allowance. A person's manual matches are placed
+first and their records are not offered again; rejected match IDs never return.
 
 | Result | Rule | Status |
 |---|---|---|
@@ -401,7 +406,7 @@ in split or multi-invoice matches (subset sums of up to 3 items within tol, same
 | **None** | Otherwise | Left item stays unmatched |
 
 Every match stores its reason codes (`AMOUNT_EXACT`, `NET_OF_TAX`, `PARTY_MATCH`, `REFERENCE_IN_TEXT`,
-`DATE_NEAR`, `SPLIT`) shown as plain text in the UI ("Same amount, same client, invoice number in the
+`DATE_NEAR`, `SPLIT`, `GROUPED`) shown as plain text in the UI ("Same amount, same client, invoice number in the
 transfer description").
 
 ---

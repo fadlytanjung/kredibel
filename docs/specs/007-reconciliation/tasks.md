@@ -20,8 +20,10 @@
   pair; currency floors, direction, whole references, incomplete evidence). Return contributions
   and reasons; fixed workspace currency and explicit override eligibility; do not assign or persist
   matches. (AC-007-5, AC-007-17, AC-007-19)
-- [ ] **T007-04** **TDD** assignment: ambiguity margin, `CONFLICT` values, splits and multi-invoice, tie-breaking, rejected proposals never return, manual matches fixed. (AC-007-3…6)
-- [ ] **T007-05** **TDD** order independence property test. (AC-007-7)
+- [x] **T007-04** **TDD** assignment: ambiguity margin, `CONFLICT` values, splits and multi-invoice, tie-breaking, rejected proposals never return, manual matches fixed. (AC-007-3…6)
+  `domain/reconcile.py`: allocations only; payment and support states from allocations plus
+  statement coverage are derived in T007-06a.
+- [x] **T007-05** **TDD** order independence property test. (AC-007-7)
 - [ ] **T007-06** `figures.py` facts. (AC-007-9)
 - [ ] **T007-06a** **TDD** versioned evidence/support states and manual attestations: OpenAPI first,
   schema versions/upcasters/migration/snapshot, audited approval and payment confirmation endpoints,

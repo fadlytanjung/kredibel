@@ -130,6 +130,7 @@ def dashboard_body(d: Dashboard) -> dict[str, Any]:
     c = d.currency
     return {
         "period": d.period.key,
+        "periodMonths": list(d.period.months),
         "kpis": [
             {
                 "id": k.id,

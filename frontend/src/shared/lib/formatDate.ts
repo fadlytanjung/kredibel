@@ -40,3 +40,16 @@ export function formatDate(
     ...options,
   }).format(date)
 }
+
+const MONTH_STYLE: Record<'short' | 'long' | 'longYear', Intl.DateTimeFormatOptions> = {
+  short: { month: 'short' },
+  long: { month: 'long' },
+  longYear: { month: 'long', year: 'numeric' },
+}
+
+/** A calendar month (2026-03) in the active locale: "Mar", "March" or "March 2026". */
+export function formatMonth(month: string, style: 'short' | 'long' | 'longYear' = 'longYear'): string {
+  const [year, number] = month.split('-').map(Number)
+  if (!year || !number) return month
+  return new Intl.DateTimeFormat(activeLocale(), MONTH_STYLE[style]).format(new Date(year, number - 1, 1))
+}

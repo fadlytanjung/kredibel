@@ -2408,6 +2408,7 @@ components:
       required: [period, kpis, months]
       properties:
         period: { type: string }
+        periodMonths: { type: array, items: { $ref: "#/components/schemas/YearMonth" }, description: "The months the period covers, oldest first" }
         kpis: { type: array, items: { $ref: "#/components/schemas/Kpi" } }
         months: { type: array, items: { $ref: "#/components/schemas/MonthSummary" } }
         alerts: { type: array, maxItems: 5, items: { $ref: "#/components/schemas/Alert" } }

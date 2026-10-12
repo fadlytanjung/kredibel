@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import i18n from '../i18n/setup'
-import { formatDate } from './formatDate'
+import { formatDate, formatMonth } from './formatDate'
 import { formatAmount, formatMoney } from './formatMoney'
 
 const ORIGINAL_TZ = process.env.TZ
@@ -82,5 +82,14 @@ describe('formatAmount', () => {
     expect(formatAmount('41100000.00', { currency: 'IDR' })).toBe('41,100,000')
     expect(formatAmount('12345678901234567.89', { currency: 'USD' })).toBe('12,345,678,901,234,567.89')
     expect(formatAmount('not money', { currency: 'MYR' })).toBe('')
+  })
+})
+
+describe('formatMonth', () => {
+  it('names a calendar month the same in every time zone', () => {
+    expect(formatMonth('2026-03', 'short')).toBe('Mar')
+    expect(formatMonth('2026-03', 'long')).toBe('March')
+    expect(formatMonth('2026-03')).toBe('March 2026')
+    expect(formatMonth('not a month')).toBe('not a month')
   })
 })

@@ -102,7 +102,7 @@ async def test_the_dashboard_shows_the_period_figures_months_and_top_flows():
         lines = await _books(client, deps)
         board = (await client.get("/api/dashboard", headers=AUTH)).json()
 
-    assert board["period"] == "recent"
+    assert (board["period"], board["periodMonths"]) == ("recent", ["2026-03"])
     kpis = {k["id"]: k for k in board["kpis"]}
     money_in, money_out = _cash(lines)
     assert D(kpis["MONEY_IN"]["value"]["amount"]) == money_in

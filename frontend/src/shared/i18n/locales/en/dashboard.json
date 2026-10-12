@@ -1,0 +1,58 @@
+{
+  "periods": {
+    "label": "Period",
+    "recent": "Last 3 months",
+    "year": "{{year}}",
+    "all": "All months"
+  },
+  "periodRange": "{{first}} to {{last}}",
+  "greeting": "{{name}}, {{range}}",
+  "reconciled_one": "{{done}} of {{count}} month is reconciled.",
+  "reconciled_other": "{{done}} of {{count}} months are reconciled.",
+  "openFindings_one": "{{count}} finding is open.",
+  "openFindings_other": "{{count}} findings are open.",
+  "nothingOpen": "No findings are open.",
+  "seeMonth": "See {{month}}",
+  "allFindings": "All findings",
+  "figuresAria": "Figures for {{range}}",
+  "kpi": {
+    "MONEY_IN": "Money in",
+    "MONEY_OUT": "Money out",
+    "NET": "Net",
+    "AUTO_MATCH_RATE": "Matched by Kredibel",
+    "DOCUMENTS_WAITING": "Waiting for you"
+  },
+  "previous": "Previous period: {{value}}",
+  "noPrevious": "No earlier period to compare",
+  "kept": "Kept in the accounts",
+  "taken": "Taken from the balances",
+  "documentsWaiting_one": "{{count}} document to decide on",
+  "documentsWaiting_other": "{{count}} documents to decide on",
+  "nothingWaiting": "No document waits for you",
+  "risk": "Risk",
+  "noAlerts": "No open findings in your books.",
+  "flowTitle": "Where the money went",
+  "flowIn": "Most money came from",
+  "flowOut": "Most money went to",
+  "noFlow": "No money in or out in this period yet.",
+  "monthsTitle": "Months",
+  "reconciliation": "Reconciliation",
+  "states": {
+    "COLLECTING": "Collecting",
+    "RECONCILING": "Reconciling",
+    "NEEDS_REVIEW": "Needs review",
+    "RECONCILED": "Reconciled",
+    "SIGNED_OFF": "Signed off"
+  },
+  "matchedShare": "matched by Kredibel",
+  "statements": "{{present}} of {{expected}} statements",
+  "noRisk": "No risk found",
+  "riskLevel": {
+    "LOW": "Low",
+    "MEDIUM": "Medium",
+    "HIGH": "High",
+    "CRITICAL": "Critical"
+  },
+  "loading": "Loading your books…",
+  "loadFailed": "The dashboard could not be loaded."
+}

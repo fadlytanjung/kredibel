@@ -7,6 +7,7 @@ from app.core.clock import Clock
 from app.domain.plans import PlanCatalog
 from app.ports.finding_repository import FindingRepository
 from app.services.bank_line_service import BankLineService
+from app.services.decision_service import DecisionService
 from app.services.document_service import DocumentService
 from app.services.entitlement_service import EntitlementService
 from app.services.month_service import MonthService
@@ -45,6 +46,9 @@ class ServiceProvider(Protocol):
 
     @property
     def findings(self) -> FindingRepository: ...
+
+    @property
+    def decision_service(self) -> DecisionService: ...
 
 
 def org_of(principal: Principal) -> str:

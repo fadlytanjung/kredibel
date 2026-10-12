@@ -687,6 +687,57 @@ paths:
             text/csv:
               schema: { type: string }
 
+  # ------------------------------------------------------------------ decisions (ADR-025)
+  /api/decisions:
+    get:
+      tags: [months]
+      operationId: listDecisions
+      description: A person's audited decisions about documents and bank lines, newest first.
+      parameters:
+        - { name: kind, in: query, schema: { $ref: "#/components/schemas/DecisionKind" } }
+        - { name: docId, in: query, schema: { type: string } }
+        - { name: recordId, in: query, schema: { type: string }, description: "invoiceId, receiptId or txId" }
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Decisions
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DecisionPage" }
+    post:
+      tags: [months]
+      operationId: createDecision
+      description: >
+        Record a decision: approve a document, confirm a payment without bank evidence, agree to use
+        a document's amounts unchanged in the workspace currency, or mark a bank line's support as
+        not required. None of them creates bank cash or a match; the months concerned re-reconcile.
+        Approval, currency agreement and not-required are one per subject (posting again returns the
+        existing decision); payment confirmations can be several (partial payments).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DecisionCreate" }
+      responses:
+        "201":
+          description: Recorded
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Decision" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/decisions/{decisionId}:
+    parameters:
+      - { name: decisionId, in: path, required: true, schema: { type: string, pattern: "^dec_[0-9A-Za-z]{16,26}$" } }
+    delete:
+      tags: [months]
+      operationId: withdrawDecision
+      description: The decision is withdrawn, not deleted; its history stays in the audit trail.
+      responses:
+        "204": { description: Withdrawn }
+        "404": { $ref: "#/components/responses/Problem" }
+
   # ------------------------------------------------------------------ review
   /api/review-items:
     get:
@@ -1470,7 +1521,68 @@ components:
       type: string
       enum: [BANK_SALES_INVOICE, BANK_PURCHASE_INVOICE, BANK_RECEIPT, BANK_LEDGER, DOCUMENT_LEDGER]
     MatchStatus: { type: string, enum: [CONFIRMED, PROPOSED, REJECTED] }
-    MatchReason: { type: string, enum: [AMOUNT_EXACT, NET_OF_TAX, PARTY_MATCH, REFERENCE_IN_TEXT, DATE_NEAR, SPLIT] }
+    MatchReason: { type: string, enum: [AMOUNT_EXACT, NET_OF_TAX, PARTY_MATCH, REFERENCE_IN_TEXT, DATE_NEAR, SPLIT, GROUPED] }
+    PaymentEvidence:
+      type: string
+      description: ADR-025; never the same thing as integrity or a person's approval.
+      enum: [CURRENCY_TO_CONFIRM, PAID_BANK, PARTIAL_BANK, PROPOSED, CONFIRMED_BY_YOU, PAID_CASH,
+             WAITING_FOR_STATEMENT, NO_BANK_MATCH, NOT_DUE, UNPAID]
+    BankSupport:
+      type: string
+      description: "ADR-025: NO_SUPPORT is informational (Bank recorded · No supporting document); the line is bank cash either way."
+      enum: [EXCLUDED, MATCHED, PROPOSED, NOT_REQUIRED, NO_SUPPORT]
+    DocumentEvidence:
+      type: object
+      required: [payment, covered, bankPaid, confirmedPaid, outstanding]
+      properties:
+        payment: { $ref: "#/components/schemas/PaymentEvidence" }
+        covered: { type: boolean, description: "Statements cover the payment window of every account" }
+        bankPaid: { $ref: "#/components/schemas/Money" }
+        confirmedPaid: { $ref: "#/components/schemas/Money", description: "Confirmed by a person, without bank evidence; never bank cash" }
+        outstanding: { $ref: "#/components/schemas/Money" }
+        printedCurrency: { type: [string, "null"], description: "As printed; kept after a currency agreement" }
+        approved: { type: boolean }
+        matchIds: { type: array, items: { type: string } }
+    DecisionKind: { type: string, enum: [DOCUMENT_APPROVAL, PAYMENT_CONFIRMATION, CURRENCY_AGREEMENT, SUPPORT_NOT_REQUIRED] }
+    DecisionCreate:
+      type: object
+      required: [kind]
+      properties:
+        kind: { $ref: "#/components/schemas/DecisionKind" }
+        docId: { type: string, description: "DOCUMENT_APPROVAL, CURRENCY_AGREEMENT" }
+        invoiceId: { type: string, description: "PAYMENT_CONFIRMATION of an invoice" }
+        receiptId: { type: string, description: "PAYMENT_CONFIRMATION of a receipt" }
+        txId: { type: string, description: "SUPPORT_NOT_REQUIRED" }
+        amount: { $ref: "#/components/schemas/Money", description: "PAYMENT_CONFIRMATION; in the workspace currency, no conversion" }
+        paidOn: { type: string, format: date, description: "PAYMENT_CONFIRMATION" }
+        method: { type: string, enum: [CASH, CARD, TRANSFER, CHEQUE, OTHER], description: "PAYMENT_CONFIRMATION" }
+        reason: { type: string, minLength: 3, maxLength: 500, description: "Required for PAYMENT_CONFIRMATION and SUPPORT_NOT_REQUIRED" }
+    Decision:
+      type: object
+      required: [decisionId, kind, status, decidedBy, decidedAt]
+      properties:
+        decisionId: { type: string }
+        kind: { $ref: "#/components/schemas/DecisionKind" }
+        status: { type: string, enum: [ACTIVE, WITHDRAWN] }
+        docId: { type: [string, "null"] }
+        invoiceId: { type: [string, "null"] }
+        receiptId: { type: [string, "null"] }
+        txId: { type: [string, "null"] }
+        amount: { oneOf: [{ $ref: "#/components/schemas/Money" }, { type: "null" }] }
+        paidOn: { type: [string, "null"], format: date }
+        method: { type: [string, "null"] }
+        reason: { type: [string, "null"] }
+        printedCurrency: { type: [string, "null"], description: "CURRENCY_AGREEMENT: the currency the document prints" }
+        months: { type: array, items: { $ref: "#/components/schemas/YearMonth" }, description: "Months that re-reconcile" }
+        decidedBy: { type: string }
+        decidedAt: { type: string, format: date-time }
+        withdrawnBy: { type: [string, "null"] }
+        withdrawnAt: { type: [string, "null"], format: date-time }
+    DecisionPage:
+      type: object
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/Decision" } }
     PaymentState: { type: string, enum: [UNPAID, PAID, PARTIAL, NOT_DUE, WAITING_FOR_STATEMENT] }
     MonthState: { type: string, enum: [COLLECTING, RECONCILING, NEEDS_REVIEW, RECONCILED, SIGNED_OFF] }
     ReviewItemKind:
@@ -1902,6 +2014,7 @@ components:
           description: Per field (date, description, amount, balance)
           additionalProperties: { $ref: "#/components/schemas/ValueReading" }
         match: { $ref: "#/components/schemas/MatchRef" }
+        support: { $ref: "#/components/schemas/BankSupport" }
         heldAsDuplicate: { type: boolean }
         corrected: { type: boolean }
         source: { type: string, enum: [AI, WITNESS], description: "WITNESS: a row only the page's words have (ADR-023)" }
@@ -1959,6 +2072,7 @@ components:
         lines: { type: array, items: { $ref: "#/components/schemas/InvoiceLine" } }
         counterpartyId: { type: [string, "null"] }
         payment: { $ref: "#/components/schemas/PaymentRef" }
+        evidence: { oneOf: [{ $ref: "#/components/schemas/DocumentEvidence" }, { type: "null" }], description: "Null until a month run derived it (ADR-025)" }
         readings: { type: object, additionalProperties: { $ref: "#/components/schemas/ValueReading" } }
         heldAsDuplicate: { type: boolean }
     InvoicePage:
@@ -1993,6 +2107,7 @@ components:
         notes: { type: array, items: { type: string } }
         paymentMethod: { type: string, enum: [CASH, CARD, TRANSFER, UNKNOWN] }
         payment: { $ref: "#/components/schemas/PaymentRef" }
+        evidence: { oneOf: [{ $ref: "#/components/schemas/DocumentEvidence" }, { type: "null" }], description: "Null until a month run derived it (ADR-025)" }
         readings: { type: object, additionalProperties: { $ref: "#/components/schemas/ValueReading" } }
         heldAsDuplicate: { type: boolean }
     ReceiptPage:

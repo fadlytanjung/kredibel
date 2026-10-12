@@ -213,6 +213,14 @@ row. Gemini proposes; the user confirms once per layout.
 | `score`, `reasons[]` | | `AMOUNT_EXACT`, `NET_OF_TAX`, `PARTY_MATCH`, `REFERENCE_IN_TEXT`, `DATE_NEAR`, `SPLIT` |
 | `createdBy` (`system` or uid), `createdAt`, `runId` | | |
 
+### 3.10a Evidence and support fields (ADR-025)
+
+Invoices and receipts carry `evidence` {`payment` (`PaymentEvidence`), `covered`, `bankPaidMinor`,
+`confirmedPaidMinor`, `outstandingMinor`, `printedCurrency`, `approved`, `matchIds[]`}; bank lines
+carry `support` (`EXCLUDED`, `MATCHED`, `PROPOSED`, `NOT_REQUIRED`, `NO_SUPPORT`). Both are derived
+by the month run from matches, statement coverage and decisions ([`08`](08-risk-engine.md) §6) and
+are optional until it has run (no migration: new optional fields).
+
 ### 3.11 `orgs/{orgId}/reviewItems/{itemId}`
 
 | Field | Type | Notes |
@@ -231,6 +239,22 @@ row. Gemini proposes; the user confirms once per layout.
 As [`08`](08-risk-engine.md) §1 (`code`, `category`, `scope`, `docId?`, `month?`, `severity`,
 `title`, `facts`, `explanation`, `nextSteps[]`, `evidence[]`, `detectedBy`, `status`, `dismissal?`
 {`reason`, `by`, `at`}, `lastSeenRunId`).
+
+### 3.12a `orgs/{orgId}/decisions/{decisionId}` (ADR-025)
+
+A person's audited decisions; none creates bank cash or a match. Written with a `DECISION_RECORDED`
+or `DECISION_WITHDRAWN` event in the same batch; never deleted.
+
+| Field | Type | Notes |
+|---|---|---|
+| `kind` | `DOCUMENT_APPROVAL` \| `PAYMENT_CONFIRMATION` \| `CURRENCY_AGREEMENT` \| `SUPPORT_NOT_REQUIRED` | |
+| `docId?`, `invoiceId?`, `receiptId?`, `txId?`, `recordId?` | string | Subject; `recordId` is the invoice, receipt or bank line, for one-field queries |
+| `amountMinor?`, `currency?`, `paidOn?`, `method?` | | Payment confirmation, in the workspace currency (no conversion); several per document for partial payments |
+| `printedCurrency?` | string | Currency agreement: what the document prints, kept unchanged |
+| `reason?` | string | Required for payment confirmation and support not required |
+| `months[]` | string | Months that re-reconcile |
+| `status` | `ACTIVE` \| `WITHDRAWN` | Approval, agreement and not-required: one active per subject (deterministic ID) |
+| `decidedBy`, `decidedAt`, `withdrawnBy?`, `withdrawnAt?` | | |
 
 ### 3.13 `orgs/{orgId}/counterparties/{counterpartyId}`
 

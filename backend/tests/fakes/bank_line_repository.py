@@ -29,3 +29,6 @@ class FakeBankLineRepository(BankLineRepository):
 
     async def set_held(self, org_id: str, doc_id: str, held: bool) -> None:
         (self.held.add if held else self.held.discard)((org_id, doc_id))
+
+    async def get_line(self, org_id: str, tx_id: str) -> BankLine | None:
+        return self.lines.get((org_id, tx_id))

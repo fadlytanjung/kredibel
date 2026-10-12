@@ -66,6 +66,7 @@
 | `PATCH /api/bank-lines/{txId}` | Change the category (`categorizedBy: USER`); same as correcting its `CATEGORY` label (§2.10); marks the month dirty | P0 |
 | `GET /api/invoices?docId=&kind=&month=&paymentState=&counterpartyId=` · `GET /api/invoices/{invoiceId}` | Sales and purchase invoices with payment state, matches and each value's readings; `docId` gives the invoices read from one document (a PDF can hold several) | P0 |
 | `GET /api/receipts?docId=&month=&paymentState=` · `GET /api/receipts/{receiptId}` | Receipts with each value's readings; `docId` gives one document's | P0 |
+| `GET /api/decisions?kind=&docId=&recordId=` · `POST /api/decisions` · `DELETE /api/decisions/{decisionId}` | A person's audited decisions (ADR-025): document approval, payment confirmation without bank evidence (amount in the workspace currency, date, method, reason; several for partial payments), agreement to use a document's amounts unchanged in the workspace currency, bank line support not required. None creates bank cash or a match; the months concerned re-reconcile; withdrawing keeps the history | P0 |
 | `GET /api/ledger-entries?month=&isBankCash=&matchState=&accountCode=` | Imported ledger entries | P0 |
 
 ### 2.4 Months and reconciliation

@@ -20,6 +20,9 @@ class FakeRecords[T](DocumentRecords[T]):
         for record in records:
             self.records[(org_id, self._id(record))] = record
 
+    async def get_record(self, org_id: str, record_id: str) -> T | None:
+        return self.records.get((org_id, record_id))
+
     async def list_records(
         self, org_id: str, *, doc_id: str | None = None, month: str | None = None, limit: int = 200
     ) -> list[T]:

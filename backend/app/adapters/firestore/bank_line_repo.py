@@ -103,6 +103,10 @@ class FirestoreBankLineRepository(BankLineRepository):
                 batch.update(ref, {"heldAsDuplicate": held})
             await batch.commit()
 
+    async def get_line(self, org_id: str, tx_id: str) -> BankLine | None:
+        snap = await self._col(org_id).document(tx_id).get()
+        return _to_domain(BankLineDoc.model_validate(snap.to_dict())) if snap.exists else None
+
     async def list_lines(
         self, org_id: str, *, doc_id: str | None = None, month: str | None = None, limit: int = 500
     ) -> list[BankLine]:

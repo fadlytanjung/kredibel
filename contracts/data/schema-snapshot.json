@@ -52,6 +52,31 @@
     "file": "bank_line.py",
     "schemaVersion": null
   },
+  "DecisionDoc": {
+    "fields": {
+      "amount_minor": "int | None",
+      "currency": "str | None",
+      "decided_at": "datetime",
+      "decided_by": "str",
+      "decision_id": "str",
+      "doc_id": "str | None",
+      "invoice_id": "str | None",
+      "kind": "str",
+      "method": "str | None",
+      "months": "list[str]",
+      "paid_on": "str | None",
+      "printed_currency": "str | None",
+      "reason": "str | None",
+      "receipt_id": "str | None",
+      "record_id": "str | None",
+      "status": "str",
+      "tx_id": "str | None",
+      "withdrawn_at": "datetime | None",
+      "withdrawn_by": "str | None"
+    },
+    "file": "decision.py",
+    "schemaVersion": null
+  },
   "DocumentDocV2": {
     "fields": {
       "doc_type": "str",

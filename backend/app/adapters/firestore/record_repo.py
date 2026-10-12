@@ -156,6 +156,10 @@ class FirestoreRecordRepository[T, D: FirestoreModel](DocumentRecords[T]):
                 batch.update(ref, {"heldAsDuplicate": held})
             await batch.commit()
 
+    async def get_record(self, org_id: str, record_id: str) -> T | None:
+        snap = await self._col(org_id).document(record_id).get()
+        return self._from_doc(self._model.model_validate(snap.to_dict())) if snap.exists else None
+
     async def list_records(
         self, org_id: str, *, doc_id: str | None = None, month: str | None = None, limit: int = 200
     ) -> list[T]:

@@ -12,6 +12,7 @@ from google.cloud.firestore import AsyncClient
 from app.adapters.cloud_tasks import CloudTasksQueue, InlineTaskQueue
 from app.adapters.firebase_identity import FirebaseIdentityAdmin
 from app.adapters.firestore.bank_line_repo import FirestoreBankLineRepository
+from app.adapters.firestore.decision_repo import FirestoreDecisionRepository
 from app.adapters.firestore.document_repo import FirestoreDocumentRepository
 from app.adapters.firestore.finding_repo import FirestoreFindingRepository
 from app.adapters.firestore.month_repo import FirestoreMonthRepository
@@ -32,6 +33,7 @@ from app.agents.workflows.document_workflow import build_document_workflow
 from app.agents.workflows.month_workflow import build_month_workflow
 from app.api.bank_accounts import create_bank_accounts_router
 from app.api.bank_lines import create_bank_lines_router
+from app.api.decisions import create_decisions_router
 from app.api.documents import create_documents_router
 from app.api.findings import create_findings_router
 from app.api.health import create_health_router
@@ -64,6 +66,7 @@ from app.domain.models.invoice import Invoice, Receipt
 from app.domain.plans import PlanCatalog
 from app.observability.tracing import setup_tracing
 from app.ports.bank_line_repository import BankLineRepository
+from app.ports.decision_repository import DecisionRepository
 from app.ports.document_reader import DocumentReader
 from app.ports.document_repository import DocumentRepository
 from app.ports.document_storage import DocumentStorage
@@ -79,6 +82,7 @@ from app.ports.spreadsheet_reader import SpreadsheetReader
 from app.ports.task_queue import TaskQueue
 from app.ports.workspace_repository import UsageRepository, WorkspaceRepository
 from app.services.bank_line_service import BankLineService
+from app.services.decision_service import DecisionService
 from app.services.document_service import DocumentService
 from app.services.entitlement_service import EntitlementService
 from app.services.month_service import MonthService
@@ -120,6 +124,7 @@ class AppDeps:
         invoices: DocumentRecords[Invoice] | None = None,
         receipts: DocumentRecords[Receipt] | None = None,
         findings: FindingRepository | None = None,
+        decisions: DecisionRepository | None = None,
     ) -> None:
         self.settings = settings
         self._plans = plans
@@ -143,6 +148,7 @@ class AppDeps:
         self._invoices = invoices
         self._receipts = receipts
         self._findings = findings
+        self._decisions = decisions
         self._built: dict[str, Any] = {}
 
     def _once(self, name: str, build: Callable[[], T]) -> T:
@@ -328,6 +334,30 @@ class AppDeps:
     def findings(self) -> FindingRepository:
         return self._once(
             "findings", lambda: self._findings or FirestoreFindingRepository(self.firestore)
+        )
+
+    @property
+    def decisions(self) -> DecisionRepository:
+        return self._once(
+            "decisions", lambda: self._decisions or FirestoreDecisionRepository(self.firestore)
+        )
+
+    @property
+    def decision_service(self) -> DecisionService:
+        return self._once(
+            "decision_service",
+            lambda: DecisionService(
+                decisions=self.decisions,
+                doc_repo=self.doc_repo,
+                invoices=self.invoices,
+                receipts=self.receipts,
+                bank_lines=self.bank_lines,
+                workspaces=self.workspace_repo,
+                month_repo=self.month_repo,
+                task_queue=self.task_queue,
+                clock=self.clock,
+                month_run_delay_seconds=self.settings.month_run_delay_seconds,
+            ),
         )
 
     @property
@@ -545,6 +575,7 @@ def create_app(
         app.include_router(create_bank_lines_router(deps, workspace_dep))
         app.include_router(create_records_router(deps, workspace_dep))
         app.include_router(create_findings_router(deps, workspace_dep))
+        app.include_router(create_decisions_router(deps, workspace_dep))
 
     # 3. Worker role endpoints
     if active_settings.app_role in ("worker", "all"):

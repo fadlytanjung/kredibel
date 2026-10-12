@@ -4,7 +4,7 @@
 > a component. Statuses: **Specified** → **In progress** → **Built** (tests green) → **Deployed**
 > (running on Cloud Run) · **Cut** (deliberately dropped, with reason).
 
-_Last updated: 12 Oct 2026 — Specs 001, 003, 004 and 013 (P0) built; tracing and the ADK dev UI built, Cloud Trace check waits for the next deploy._
+_Last updated: 12 Oct 2026 — Specs 001, 003, 004 and 013 (P0) built; spec 005 reads statements, invoices and receipts with grounding (ledger import, OCR for scans and escalation still open); production configuration from the `kredibel-env` secret (ADR-024)._
 
 ## Foundation & platform
 
@@ -45,10 +45,10 @@ _Last updated: 12 Oct 2026 — Specs 001, 003, 004 and 013 (P0) built; tracing a
 
 | Component | Spec | Status | Notes |
 |---|---|---|---|
-| Classifier (Flash-Lite) + `CONFIRM_TYPE` | 005 | Specified | |
-| Gemini page and receipt readers (image only) | 005 | Specified | Depends on spike S1 |
-| Witness: text layer + Document AI OCR | 005 | Specified | ADR-010; spike S3 |
-| Normalization + verifier + provenance | 005 | Specified | |
+| Classifier (Flash-Lite) + `CONFIRM_TYPE` | 005 | In progress | `classify_document` on `MODEL_LITE` from page 1's image and chunks; below 0.6 → `NEEDS_INPUT` with `E03_UNCERTAIN_TYPE`. The `CONFIRM_TYPE` review item comes with spec 009 |
+| Gemini page readers: statements, invoices, receipts | 005 | Built | Image plus numbered layout chunks with citations (ADR-023), `thinking_level=low`, timeout and one retry, cached per page image + model + prompt. Real RHB statement: 13 pages, 178 lines, 718/718 values grounded; real MY/ID invoices and receipts 90–100 % |
+| Witness: text layer + Document AI OCR | 005 | In progress | Text layer → layout chunks built (`parse_pages`); Enterprise OCR for scans and photos waits for spike S3, so a scan's values are `SINGLE_SOURCE` |
+| Normalization + verifier + provenance | 005 | Built | `normalize.py` (EN/EU and dot-grouped amounts, `Rp.`/`RM`, English, Malay and Indonesian months), `layout.py` chunks, `verify.py` grounding, records with per-value `consensus` (status, page, box, raw readings); the document page lights each value on its page |
 | Ledger import (mapper proposes, user confirms, code parses) | 005 | Specified | |
 | Escalation to Form/Invoice Parser, thorough mode | 005 | Specified (P1) | |
 | Content duplicates `D02`–`D06` (held) | 006 | Specified | |

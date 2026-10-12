@@ -353,7 +353,7 @@ still prints "released rules … to cloud.firestore"; the release that actually 
 | 5 `push` | docker | push to Artifact Registry |
 | 5a `indexes` | `node:22-slim` + firebase CLI | `firebase deploy --only firestore:indexes,firestore:rules`; wait until every index is `READY` |
 | 5a′ `knowledge` (P1) | `python:3.12-slim` + uv | `tools/knowledge/build.py`: embed changed policy and help passages into `knowledgeChunks` |
-| 5b `migrate` | cloud-sdk | update the `kredibel-migrate` job to the new image; dry run; if pending migrations exist, export to the backups bucket and run them; stop the build on `FAILED` or `failed > 0` ([`22`](22-data-migrations.md) §7) |
+| 5b `migrate` | cloud-sdk | update the `kredibel-migrate` job to the new image; dry run; run, where the job itself exports to the backups bucket first when migrations are pending (`MIGRATION_EXPORT_BEFORE_RUN=true`, its own service account); stop the build on `FAILED` or `failed > 0` ([`22`](22-data-migrations.md) §7) |
 | 6 `deploy-worker` | `gcr.io/google.com/cloudsdktool/cloud-sdk` | `gcloud run deploy kredibel-worker …` with `kredibel-env` mounted at `/secrets/.env` |
 | 7 `deploy-web` | cloud-sdk | read `WORKER_URL`; `gcloud run deploy kredibel-web …` |
 | 7a `hosting` | docker + `node:22-slim` | copy `/app/static` out of the new image; `firebase deploy --only hosting` (ADR-018) |

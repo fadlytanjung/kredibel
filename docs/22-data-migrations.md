@@ -191,7 +191,7 @@ new version (a "read-ready" release), and the next release starts writing it.
 |---|---|---|
 | Point-in-time recovery | Enabled on `(default)`, 7-day window | Read or export the database as of a minute before a bad migration |
 | Scheduled backups | Daily, 7-day retention | Restore the whole database to a new database ID, then copy back what is needed |
-| Managed export before a migration | `gs://<PROJECT_ID>-kredibel-backups/<yyyymmdd>-<migrationId>/` | Precise, per-migration restore point; lifecycle deletes exports after 30 days |
+| Managed export before a migration | `gs://<PROJECT_ID>-kredibel-backups/<yyyymmdd-hhmmss>-<migrationIds>/`, taken by the runner itself (`MIGRATION_EXPORT_BEFORE_RUN=true`) before a real run with pending migrations; recorded as `backupUri` | Precise, per-migration restore point; lifecycle deletes exports after 30 days |
 | GCS object versioning | On for the documents bucket, noncurrent versions kept 7 days | Undo a bad Cloud Storage layout migration |
 
 **Recovery runbook:** stop writes for the affected org (`RUNS_ENABLED=false`, or `SIGNUP_MODE=closed`

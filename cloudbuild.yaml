@@ -111,7 +111,8 @@ steps:
         done
         echo "Firestore indexes not READY after 15 minutes"; exit 1
 
-  # 5b. Migrations (docs/22 §7): dry run, export, run; a FAILED migration stops the release.
+  # 5b. Migrations (docs/22 §7): dry run, then run; a real run with pending migrations exports the
+  #     database first under the job's own service account. A FAILED migration stops the release.
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     id: 'migrate'
     entrypoint: 'bash'
@@ -123,12 +124,11 @@ steps:
           --image="asia-southeast1-docker.pkg.dev/$PROJECT_ID/kredibel/app:$_COMMIT_SHA" \
           --region=asia-southeast1 \
           --service-account="kredibel-migrate@$PROJECT_ID.iam.gserviceaccount.com" \
-          --set-env-vars=APP_ROLE=migrate,GOOGLE_CLOUD_PROJECT=$PROJECT_ID,FIRESTORE_DATABASE=kredibel,BACKUPS_BUCKET=$PROJECT_ID-kredibel-backups \
+          --set-env-vars=APP_ROLE=migrate,GOOGLE_CLOUD_PROJECT=$PROJECT_ID,FIRESTORE_DATABASE=kredibel,BACKUPS_BUCKET=$PROJECT_ID-kredibel-backups,MIGRATION_EXPORT_BEFORE_RUN=true \
           --command=python --args=-m,migrations,run \
           --tasks=1 --max-retries=1 --task-timeout=3600s --cpu=1 --memory=1Gi \
           --labels=app=kredibel,component=migrate
         gcloud run jobs execute kredibel-migrate --args=-m,migrations,run,--dry-run --region=asia-southeast1 --wait
-        gcloud firestore export "gs://$PROJECT_ID-kredibel-backups/pre-release/$_COMMIT_SHA" --database=kredibel
         gcloud run jobs execute kredibel-migrate --args=-m,migrations,run --region=asia-southeast1 --wait
 
   # 6. Deploy worker service (IAM authenticated only)

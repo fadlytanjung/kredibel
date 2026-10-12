@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -21,6 +22,31 @@ class LockHeldError(Exception):
     """Raised when another runner currently holds system/migrationLock."""
 
 
+# Takes the pending migration IDs, exports the database, returns the export's URI (docs/22 §8).
+Exporter = Callable[[list[str]], str]
+
+
+def managed_export(project: str, database: str, bucket: str) -> Exporter:
+    """A managed Firestore export to the backups bucket, run as the migrate job's own service
+    account (roles/datastore.importExportAdmin, docs/22 §6); it blocks until the export is done."""
+
+    def export(migration_ids: list[str]) -> str:
+        from google.cloud import firestore_admin_v1
+
+        stamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
+        uri = f"gs://{bucket}/{stamp}-{'-'.join(migration_ids)[:120]}"
+        operation = firestore_admin_v1.FirestoreAdminClient().export_documents(
+            request={
+                "name": f"projects/{project}/databases/{database}",
+                "output_uri_prefix": uri,
+            }
+        )
+        operation.result(timeout=3000)
+        return uri
+
+    return export
+
+
 class MigrationRunner:
     """Manages forward-only migrations against Cloud Firestore."""
 
@@ -28,6 +54,7 @@ class MigrationRunner:
         self,
         db: firestore.Client | None = None,
         operator: str = "kredibel-operator",
+        exporter: Exporter | None = None,
     ) -> None:
         if db is not None:
             self.db = db
@@ -36,6 +63,8 @@ class MigrationRunner:
             database = os.environ.get("FIRESTORE_DATABASE", "(default)")
             self.db = firestore.Client(project=project_id, database=database)
         self.operator = operator
+        self.exporter = exporter
+        self.backup_uri: str | None = None
 
     @property
     def lock_ref(self) -> firestore.DocumentReference:
@@ -127,6 +156,7 @@ class MigrationRunner:
                     "startedAt": started_at,
                     "dryRun": dry_run,
                     "operator": self.operator,
+                    "backupUri": self.backup_uri,
                 },
                 merge=True,
             )
@@ -226,10 +256,15 @@ class MigrationRunner:
         limit: int | None = None,
         only_id: str | None = None,
     ) -> list[dict[str, Any]]:
-        """Run all discovered migrations sequentially under lock."""
+        """Run all discovered migrations sequentially under lock. A real run with pending migrations
+        takes the export first, so a bad migration has a precise restore point (docs/22 §7)."""
         self.acquire_lock()
         results: list[dict[str, Any]] = []
         try:
+            pending = self.pending(only_id)
+            if pending and not dry_run and self.exporter is not None:
+                self.backup_uri = self.exporter([m.id for m in pending])
+                print(f"Exported the database to {self.backup_uri}")
             migrations = discover_migrations()
             for m in migrations:
                 if only_id and m.id != only_id:
@@ -241,6 +276,17 @@ class MigrationRunner:
         finally:
             self.release_lock()
         return results
+
+    def pending(self, only_id: str | None = None) -> list[Migration]:
+        """Migrations not yet DONE, in order."""
+        out: list[Migration] = []
+        for m in discover_migrations():
+            if only_id and m.id != only_id:
+                continue
+            doc = self.migration_ref(m.id).get()
+            if not (doc.exists and (doc.to_dict() or {}).get("status") == "DONE"):
+                out.append(m)
+        return out
 
     def get_status(self) -> list[dict[str, Any]]:
         """Return status of all registered migrations."""
@@ -290,7 +336,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--env", type=str, default="local", help="Environment (local, prod, etc.)")
     args = parser.parse_args(argv)
 
-    runner = MigrationRunner()
+    exporter = None
+    if os.environ.get("MIGRATION_EXPORT_BEFORE_RUN", "").lower() == "true":
+        exporter = managed_export(
+            os.environ.get("GOOGLE_CLOUD_PROJECT", "cloud-hack2skill"),
+            os.environ.get("FIRESTORE_DATABASE", "(default)"),
+            os.environ["BACKUPS_BUCKET"],
+        )
+    runner = MigrationRunner(exporter=exporter)
 
     if args.command == "status" or args.status:
         statuses = runner.get_status()

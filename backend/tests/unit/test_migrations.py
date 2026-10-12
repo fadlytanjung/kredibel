@@ -141,3 +141,44 @@ def test_ac001_22_cli_dry_run(firestore_db, capsys):
     captured = capsys.readouterr()
     assert "Starting migrations" in captured.out
     assert "dry_run=True" in captured.out
+
+
+def _exports(firestore_db, monkeypatch, migrations):
+    calls: list[list[str]] = []
+
+    def exporter(ids: list[str]) -> str:
+        calls.append(ids)
+        return "gs://backups/20261012-" + "-".join(ids)
+
+    monkeypatch.setattr("migrations.runner.discover_migrations", lambda: migrations)
+    return MigrationRunner(db=firestore_db, operator="test-runner", exporter=exporter), calls
+
+
+def _noop(test_id: str) -> Migration:
+    return Migration(
+        id=test_id,
+        description="test",
+        kind="backfill",
+        collection_group="noSuchGroup",
+        from_version=1,
+        to_version=2,
+        transform=lambda doc: doc,
+    )
+
+
+def test_a_real_run_with_pending_migrations_exports_first(firestore_db, monkeypatch):
+    runner, calls = _exports(firestore_db, monkeypatch, [_noop("0000_example_test")])
+    [result] = runner.run_all()
+    assert calls == [["0000_example_test"]]
+    assert result["status"] == "DONE"
+    record = runner.migration_ref("0000_example_test").get().to_dict() or {}
+    assert record["backupUri"] == "gs://backups/20261012-0000_example_test"
+
+
+def test_no_export_for_a_dry_run_or_when_nothing_is_pending(firestore_db, monkeypatch):
+    runner, calls = _exports(firestore_db, monkeypatch, [_noop("0000_example_test")])
+    runner.run_all(dry_run=True)
+    assert calls == []
+    runner.run_all()
+    runner.run_all()  # now DONE: nothing pending
+    assert calls == [["0000_example_test"]]

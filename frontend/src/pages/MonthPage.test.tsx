@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { apiClient } from '../shared/api/client'
 import { MonthPage } from './MonthPage'
@@ -86,9 +86,24 @@ const MATCHES = [
   { matchId: 'mat_manual', month: '2026-03', kind: 'BANK_PURCHASE_INVOICE', method: 'MANUAL', status: 'CONFIRMED', reasons: [], amount: { amount: '320.00', currency: 'MYR' } },
 ]
 
+const INVOICES = [
+  { invoiceId: 'inv_1', docId: 'doc_inv1', kind: 'SALES', number: 'INV/SCR/2026/03/0009', buyerName: 'Daybreak Café', issueDate: '2026-03-12', month: '2026-03', total: { amount: '1500.00', currency: 'MYR' }, evidence: { payment: 'PAID_BANK' } },
+  { invoiceId: 'inv_2', docId: 'doc_inv2', kind: 'PURCHASE', number: 'BW-0042', issuerName: 'Bluewater Trading Co.', issueDate: '2026-03-04', month: '2026-03', total: { amount: '800.00', currency: 'MYR' }, evidence: { payment: 'UNPAID' } },
+]
+const RECEIPTS = [
+  { receiptId: 'rcp_1', docId: 'doc_rcp1', merchantName: 'Cendana Fuel', date: '2026-03-18', month: '2026-03', total: { amount: '65.00', currency: 'MYR' }, evidence: { payment: 'PAID_CASH' } },
+]
+const FINDINGS = [
+  { findingId: 'fnd_1', code: 'R02_SUPPLIER_INVOICE_UNKNOWN_PARTY', severity: 'MEDIUM', title: 'Invoice from a supplier never paid before', status: 'OPEN', month: '2026-03', facts: {}, evidence: [], nextSteps: ['Check who sent it.'] },
+  { findingId: 'fnd_2', code: 'B01_GAMBLING_INDICATORS', severity: 'LOW', title: 'Old finding', status: 'RESOLVED', month: '2026-03', facts: {}, evidence: [] },
+]
+
 function serve(month: Record<string, unknown> = MONTH, lines = LINES) {
   vi.mocked(apiClient).mockImplementation((url: string, opts?: RequestInit) => {
     if (opts?.method === 'DELETE') return Promise.resolve({})
+    if (url.startsWith('/api/invoices?month=2026-03')) return Promise.resolve({ items: INVOICES })
+    if (url.startsWith('/api/receipts?month=2026-03')) return Promise.resolve({ items: RECEIPTS })
+    if (url.startsWith('/api/findings?month=2026-03')) return Promise.resolve({ items: FINDINGS })
     if (url.startsWith('/api/months/2026-03')) return Promise.resolve(month)
     if (url.startsWith('/api/bank-lines?month=2026-03')) return Promise.resolve({ items: lines, nextCursor: null })
     if (url.startsWith('/api/matches?month=2026-03')) return Promise.resolve({ items: MATCHES })
@@ -105,12 +120,18 @@ describe('MonthPage', () => {
     vi.clearAllMocks()
   })
 
-  function renderPage(month = '2026-03') {
+  function Where() {
+    const location = useLocation()
+    return <span data-testid="where">{location.pathname + location.search}</span>
+  }
+
+  function renderPage(month = '2026-03', search = '') {
     return render(
-      <MemoryRouter initialEntries={[`/months/${month}`]}>
+      <MemoryRouter initialEntries={[`/months/${month}${search}`]}>
         <QueryClientProvider client={queryClient}>
           <Routes>
-            <Route path="/months/:month" element={<MonthPage />} />
+            <Route path="/months/:month" element={<><MonthPage /><Where /></>} />
+            <Route path="/documents/:docId" element={<Where />} />
           </Routes>
         </QueryClientProvider>
       </MemoryRouter>,
@@ -196,5 +217,41 @@ describe('MonthPage', () => {
     fireEvent.change(search, { target: { value: 'rent' } })
     expect(screen.getByText('STANDING ORDER RENT')).toBeInTheDocument()
     expect(screen.queryByText('TRANSFER IN DAYBREAK CAFE')).not.toBeInTheDocument()
+  })
+
+  it("has the mock's tabs with counts, kept in the address (AC-007-12)", async () => {
+    serve()
+    renderPage()
+
+    const tab = (name: RegExp) => screen.getByRole('tab', { name })
+    await waitFor(() => expect(tab(/Documents/)).toHaveTextContent('3'))
+    expect(tab(/Bank lines/)).toHaveAttribute('aria-selected', 'true')
+    expect(tab(/Bank lines/)).toHaveTextContent('6')
+    expect(tab(/Findings/)).toHaveTextContent('1')
+    expect(tab(/Findings/).querySelector('.count')).toHaveClass('is-attn')
+
+    fireEvent.click(tab(/Findings/))
+    expect(screen.getByTestId('where')).toHaveTextContent('/months/2026-03?tab=findings')
+    expect(screen.getByRole('link', { name: /Invoice from a supplier never paid before/ })).toHaveAttribute('href', '/risk/fnd_1')
+    expect(screen.queryByText('Old finding')).not.toBeInTheDocument()
+
+    fireEvent.click(tab(/Ledger/))
+    expect(screen.getByText(/Upload a general-ledger export/)).toBeInTheDocument()
+  })
+
+  it("lists the month's documents with their payment evidence, each opening its document", async () => {
+    serve()
+    renderPage('2026-03', '?tab=documents')
+
+    await waitFor(() => expect(screen.getByText('Invoice INV/SCR/2026/03/0009')).toBeInTheDocument())
+    const chip = (label: string) => screen.getByText(label).closest('.match-chip')
+    expect(chip('Paid through the bank')).toHaveClass('auto')
+    expect(chip('Unpaid after its due date')).toHaveClass('overdue')
+    expect(chip('Paid in cash')).toHaveClass('cleared')
+    expect(screen.getByText('Sales, to Daybreak Café')).toBeInTheDocument()
+    expect(screen.getByText('Purchase, from Bluewater Trading Co.')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByText('Receipt'))
+    expect(screen.getByTestId('where')).toHaveTextContent('/documents/doc_rcp1')
   })
 })

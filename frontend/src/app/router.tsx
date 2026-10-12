@@ -17,6 +17,7 @@ import { NotFoundPage } from '../pages/NotFoundPage'
 import { OnboardingPage } from '../pages/OnboardingPage'
 import { MonthPage } from '../pages/MonthPage'
 import { MonthsPage } from '../pages/MonthsPage'
+import { CurrentMonthRedirect } from '../pages/CurrentMonthRedirect'
 import {
   AssistantPage,
   CounterpartiesPage,
@@ -109,7 +110,8 @@ const PROTECTED_ROUTES: { path: string; element: ReactNode }[] = [
   { path: '/', element: <DashboardPage /> },
   { path: '/documents', element: <DocumentsPage /> },
   { path: '/documents/:docId', element: <DocumentPage /> },
-  { path: '/months', element: <MonthsPage /> },
+  { path: '/months', element: <CurrentMonthRedirect /> },
+  { path: '/months/all', element: <MonthsPage /> },
   { path: '/months/:month', element: <MonthPage /> },
   { path: '/review', element: <ReviewPage /> },
   { path: '/review/:itemId', element: <ReviewPage /> },

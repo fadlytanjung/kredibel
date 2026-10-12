@@ -53,3 +53,8 @@ export function formatMonth(month: string, style: 'short' | 'long' | 'longYear' 
   if (!year || !number) return month
   return new Intl.DateTimeFormat(activeLocale(), MONTH_STYLE[style]).format(new Date(year, number - 1, 1))
 }
+
+/** The calendar month of today in this browser (yyyy-mm): reconciliation opens on it. */
+export function currentMonth(today: Date = new Date()): string {
+  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`
+}

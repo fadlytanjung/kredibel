@@ -127,8 +127,9 @@ put):
 | `/` | Dashboard | Period picker in the top bar (default: the months with data) |
 | `/documents` | Documents | Filters by type and state; `?upload=1` opens the upload tray focused |
 | `/documents/:docId` | Document | Page viewer, read values, its findings, matches and events |
-| `/months` | Months | One row per month with state, matched share and risk level |
-| `/months/:month` | Month | `yyyy-mm`. Tabs: `lines` (default), `documents`, `ledger`, `findings` |
+| `/months` | — | Opens the current calendar month (`/months/<this month>`): reconciliation is monthly |
+| `/months/all` | Months | One row per month with state, matched share and risk level |
+| `/months/:month` | Month | `yyyy-mm`. Tabs (`?tab=`): `lines` (default), `documents`, `ledger`, `findings` |
 | `/review` | Review | Queue; filters by kind and month |
 | `/review/:itemId` | Review | Same page with the item open (split view from 980 px of container, full page below) |
 | `/risk` | Risk | Findings grouped by month and severity |
@@ -455,7 +456,12 @@ stateDiagram-v2
   numbered list, and the by-line "Written by Gemini. Every figure checked by Kredibel." If the
   grounding guard failed, the template text is shown and the by-line says "Written from a template".
 - **Match meter:** matched by Kredibel, matched by you, open.
-- **Tabs:** Bank lines (default), Documents, Ledger (with the difference count), Findings.
+- **Opens on the current month** from the navigation; previous and next move a month; **All months**
+  lists them.
+- **Tabs:** Bank lines (default), Documents, Ledger (with the difference count), Findings, each with
+  its count. Documents: the month's invoices and receipts with their payment evidence, each opening
+  its document. Ledger: the difference with the ledger (until ledger import, T005-04, it says none
+  is imported). Findings: the month's open findings, each opening its evidence.
 - **Bank lines:** date and description, amount (signed, reading mark), **Matched with** as a chip
   (auto, manual, proposed, no match) and the reason in plain words ("Paid 2% below the total:
   withholding tax"). A line tied to a finding is tinted and shows **Evidence**.

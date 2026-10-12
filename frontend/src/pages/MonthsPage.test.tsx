@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { apiClient } from '../shared/api/client'
@@ -51,38 +51,30 @@ describe('MonthsPage', () => {
     })
   })
 
-  it('switches between ADR-025 tabs: bank evidence, documents first and currency check', async () => {
+  it('lists every month, newest first, each opening its page, and shows no sample rows', async () => {
     vi.mocked(apiClient).mockImplementation((url: string) => {
       if (url.includes('/api/months')) {
         return Promise.resolve({
-          items: [{ month: '2026-03', state: 'RECONCILED', statements: ['doc_1'] }],
+          items: [
+            { month: '2026-01', state: 'RECONCILED', statements: [{ docId: 'd1' }], figures: {} },
+            { month: '2026-03', state: 'NEEDS_REVIEW', statements: [{ docId: 'd3' }], figures: {} },
+          ],
         })
       }
-      if (url.includes('/api/workspace')) {
-        return Promise.resolve({ orgId: 'org_1', currency: 'MYR' })
-      }
+      if (url.includes('/api/workspace')) return Promise.resolve({ orgId: 'org_1', currency: 'IDR' })
       return Promise.resolve({})
     })
 
     renderPage()
 
-    await waitFor(() => {
-      expect(screen.getByText('2026-03')).toBeInTheDocument()
-    })
-
-    // Click Bank evidence tab
-    fireEvent.click(screen.getByRole('button', { name: 'Bank evidence' }))
-    expect(screen.getByText('4 bank transactions, 3 supporting invoices')).toBeInTheDocument()
-    expect(screen.getByText('Daybreak Café')).toBeInTheDocument()
-
-    // Click Documents first tab
-    fireEvent.click(screen.getByRole('button', { name: 'Documents first' }))
-    expect(screen.getByText('Your documents are ready for the statement')).toBeInTheDocument()
-    expect(screen.getByText('Primepack Packaging')).toBeInTheDocument()
-
-    // Click Currency check tab
-    fireEvent.click(screen.getByRole('button', { name: 'Currency check' }))
-    expect(screen.getByText('Confirm document currency')).toBeInTheDocument()
-    expect(screen.getByText('Use amounts as MYR')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByText('March 2026')).toBeInTheDocument())
+    const rows = screen.getAllByRole('row').slice(1)
+    expect(rows[0]).toHaveTextContent('March 2026')
+    expect(rows[0]).toHaveTextContent('Needs review')
+    expect(rows[1]).toHaveTextContent('January 2026')
+    expect(rows[1]).toHaveTextContent('Reconciled')
+    expect(screen.getAllByRole('link', { name: /View/ })[0]).toHaveAttribute('href', '/months/2026-03')
+    expect(screen.queryByText('Daybreak Café')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Bank evidence' })).not.toBeInTheDocument()
   })
 })

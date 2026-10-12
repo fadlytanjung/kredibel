@@ -8,8 +8,9 @@
 
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { type BankLine, isIncoming, useMonthBankLines } from '../entities/bank-line'
+import { useFindings } from '../entities/finding'
 import { type Match, useCreateMatch, useMatches, useUnmatch } from '../entities/match'
 import { useMonth, useReconcileMonth } from '../entities/month'
 import { useWorkspace } from '../entities/workspace'
@@ -17,6 +18,10 @@ import { formatDate } from '../shared/lib/formatDate'
 import { formatAmount } from '../shared/lib/formatMoney'
 import { Badge, Button, DataTable, type DataTableColumn, type DataTableFilter, Icon } from '../shared/ui'
 import type { IconName } from '../shared/ui/Icon'
+import { MonthDocuments, MonthFindings, useMonthDocuments } from '../widgets/month'
+
+type Tab = 'lines' | 'documents' | 'ledger' | 'findings'
+const TABS: Tab[] = ['lines', 'documents', 'ledger', 'findings']
 
 type Support = 'AUTO' | 'MANUAL' | 'PROPOSED' | 'NOT_REQUIRED' | 'EXCLUDED' | 'NO_SUPPORT' | 'NOT_RUN'
 type Figures = Record<string, { value?: string } | undefined> | undefined
@@ -92,6 +97,12 @@ export function MonthPage() {
   const { t } = useTranslation(['months', 'common'])
   const { month = '' } = useParams<{ month: string }>()
   const { data: monthData } = useMonth(month)
+  const [params, setParams] = useSearchParams()
+  const asked = params.get('tab') as Tab | null
+  const tab: Tab = asked && TABS.includes(asked) ? asked : 'lines'
+  const { rows: monthDocuments } = useMonthDocuments(month)
+  const { data: findingsData } = useFindings({ month })
+  const openFindings = (findingsData?.items ?? []).filter((f) => f.status === 'OPEN' || f.status === 'ACKNOWLEDGED')
   const { data: linesData, isLoading: linesLoading } = useMonthBankLines(month)
   const { data: matchesData } = useMatches(month)
   const { data: ws } = useWorkspace(true)
@@ -321,6 +332,9 @@ export function MonthPage() {
             </Link>
           </span>
           <h1 className="type-title">{monthLabel}</h1>
+          <Link className="link small" to="/months/all">
+            {t('months:monthDetail.allMonths')}
+          </Link>
           {monthData?.state && (
             <Badge variant={STATE_BADGE[monthData.state]}>{t(`months:monthDetail.states.${monthData.state}`)}</Badge>
           )}
@@ -437,49 +451,87 @@ export function MonthPage() {
           </section>
         )}
 
-        <DataTable
-          data={lines}
-          columns={columns}
-          getRowKey={(line) => line.txId}
-          filters={filters}
-          filterGroupAriaLabel={t('months:monthDetail.filterBankLines')}
-          searchable={true}
-          searchPlaceholder={t('months:monthDetail.searchPlaceholder')}
-          searchPredicate={(line, q) =>
-            [line.description, line.counterpartyName, categoryLabel(line), line.date, line.amount?.amount]
-              .filter(Boolean)
-              .some((text) => String(text).toLowerCase().includes(q))
-          }
-          isLoading={linesLoading}
-          loadingMessage={<p>{t('months:monthDetail.loadingBankLines')}</p>}
-          emptyMessage={<p className="muted">{t('months:monthDetail.noBankLinesFilter')}</p>}
-          headerActions={
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={reconcileMutation.isPending}
-              onClick={() => reconcileMutation.mutate(month)}
-            >
-              {reconcileMutation.isPending ? t('months:monthDetail.reconciling') : t('months:monthDetail.reReconcile')}
-            </Button>
-          }
-          footer={
-            <p className="reading-legend">
-              <span>
-                <span className="reading reading-agreed">{t('months:monthDetail.legendSample')}</span>{' '}
-                {t('months:monthDetail.legendAgreed')}
-              </span>
-              <span>
-                <span className="reading reading-single">{t('months:monthDetail.legendSample')}</span>{' '}
-                {t('months:monthDetail.legendSingle')}
-              </span>
-              <span>
-                <span className="reading reading-conflict">{t('months:monthDetail.legendSample')}</span>{' '}
-                {t('months:monthDetail.legendConflict')}
-              </span>
-            </p>
-          }
-        />
+        <nav className="tabs" role="tablist" aria-label={t('months:monthDetail.sectionsAria', { month: monthLabel })}>
+          {TABS.map((key) => {
+            const count =
+              key === 'lines' ? lines.length : key === 'documents' ? monthDocuments.length : key === 'findings' ? openFindings.length : undefined
+            return (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                id={`month-tab-${key}`}
+                aria-controls="month-tabpanel"
+                aria-selected={tab === key}
+                className="tab"
+                onClick={() => setParams(key === 'lines' ? {} : { tab: key }, { replace: true })}
+              >
+                {t(`months:monthDetail.tabs.${key}`)}
+                {count !== undefined && (
+                  <span className={`count${key === 'findings' && count > 0 ? ' is-attn' : ''}`}>{count}</span>
+                )}
+              </button>
+            )
+          })}
+        </nav>
+
+        <div role="tabpanel" id="month-tabpanel" aria-labelledby={`month-tab-${tab}`}>
+          {tab === 'lines' && (
+          <DataTable
+            data={lines}
+            columns={columns}
+            getRowKey={(line) => line.txId}
+            filters={filters}
+            filterGroupAriaLabel={t('months:monthDetail.filterBankLines')}
+            searchable={true}
+            searchPlaceholder={t('months:monthDetail.searchPlaceholder')}
+            searchPredicate={(line, q) =>
+              [line.description, line.counterpartyName, categoryLabel(line), line.date, line.amount?.amount]
+                .filter(Boolean)
+                .some((text) => String(text).toLowerCase().includes(q))
+            }
+            isLoading={linesLoading}
+            loadingMessage={<p>{t('months:monthDetail.loadingBankLines')}</p>}
+            emptyMessage={<p className="muted">{t('months:monthDetail.noBankLinesFilter')}</p>}
+            headerActions={
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={reconcileMutation.isPending}
+                onClick={() => reconcileMutation.mutate(month)}
+              >
+                {reconcileMutation.isPending ? t('months:monthDetail.reconciling') : t('months:monthDetail.reReconcile')}
+              </Button>
+            }
+            footer={
+              <p className="reading-legend">
+                <span>
+                  <span className="reading reading-agreed">{t('months:monthDetail.legendSample')}</span>{' '}
+                  {t('months:monthDetail.legendAgreed')}
+                </span>
+                <span>
+                  <span className="reading reading-single">{t('months:monthDetail.legendSample')}</span>{' '}
+                  {t('months:monthDetail.legendSingle')}
+                </span>
+                <span>
+                  <span className="reading reading-conflict">{t('months:monthDetail.legendSample')}</span>{' '}
+                  {t('months:monthDetail.legendConflict')}
+                </span>
+              </p>
+            }
+          />
+          )}
+          {tab === 'documents' && <MonthDocuments month={month} currency={currency} />}
+          {tab === 'ledger' && (
+            <div className="stack gap-3">
+              <p className="muted">{t('months:monthDetail.ledger.none')}</p>
+              <Link className="button button-secondary button-sm self-start" to="/documents?upload=1">
+                {t('months:monthDetail.ledger.upload')}
+              </Link>
+            </div>
+          )}
+          {tab === 'findings' && <MonthFindings findings={openFindings} />}
+        </div>
       </div>
     </div>
   )

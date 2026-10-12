@@ -227,4 +227,6 @@ Logs never contain document text, names or account numbers ([`17`](17-observabil
 | `Input should be a valid dictionary … input_value='run'` | An old node signature typed as `dict`; nodes take `Any` and call `node_input_dict()` (fixed in `stages.py`) |
 | Traces tab shows the invocation with "0us" and nothing under it | Spans without `gcp.vertex.agent.invocation_id`; `stage()` sets it, so this means a node bypasses `stage()` |
 | No trace in Cloud Trace for a production run | `TRACE_EXPORT` not `cloud` on that service, or the service account lacks `roles/cloudtrace.agent` (bootstrap step 4) |
+| A task's trace holds only its three request spans; the worker logs `Failed to export span batch code: 400` | The resource lacks `gcp.project_id` (`Resource is missing required attribute "gcp.project_id"`); `setup_tracing` merges ADK's `get_gcp_resource` (fixed) |
+| A local run has no trace | Local runs keep spans in the process unless `.env` sets `TRACE_EXPORT=cloud`; with real data `AI_CONTENT_CAPTURE` stays `off`, so the trace shows nodes, models, tokens and durations, never prompts |
 | A run has no `traceId` | It ran before tracing was configured, or outside `run_workflow` |

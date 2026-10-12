@@ -10,7 +10,7 @@ dev UI keeps its own in-memory trace view).
 import os
 
 import structlog
-from google.adk.telemetry.google_cloud import get_gcp_exporters
+from google.adk.telemetry.google_cloud import get_gcp_exporters, get_gcp_resource
 from google.adk.telemetry.setup import maybe_set_otel_providers
 from opentelemetry.sdk.resources import Resource
 
@@ -31,8 +31,12 @@ def setup_tracing(settings: Settings) -> None:
     if _configured or settings.trace_export != "cloud":
         return
     hooks = get_gcp_exporters(enable_cloud_tracing=True)
-    resource = Resource.create(
-        {"service.name": settings.service_name, "service.version": settings.app_version}
+    # ADK's resource names the project (gcp.project_id) and the Cloud Run service; without it
+    # telemetry.googleapis.com refuses every batch with 400 and no span reaches Cloud Trace.
+    resource = get_gcp_resource(settings.google_cloud_project).merge(
+        Resource.create(
+            {"service.name": settings.service_name, "service.version": settings.app_version}
+        )
     )
     maybe_set_otel_providers(otel_hooks_to_setup=[hooks], otel_resource=resource)
     _configured = True

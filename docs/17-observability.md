@@ -42,8 +42,10 @@ the run (`runs.traceId`) and each stage keeps its `traceSpanId`.
 
 **Export to Cloud Trace** (`backend/app/observability/tracing.py`, called once by `create_app`):
 with `TRACE_EXPORT=cloud` (both Cloud Run services) it installs ADK's exporter,
-`get_gcp_exporters(enable_cloud_tracing=True)` through `maybe_set_otel_providers`, with the service
-name and version as the resource. `TRACE_EXPORT=none` (the default) keeps spans in the process: tests,
+`get_gcp_exporters(enable_cloud_tracing=True)` through `maybe_set_otel_providers`, with ADK's
+`get_gcp_resource(GOOGLE_CLOUD_PROJECT)` merged with the service name and version as the resource.
+The Telemetry API (`telemetry.googleapis.com`) refuses a batch whose resource lacks `gcp.project_id`
+with 400, so the resource is not optional. `TRACE_EXPORT=none` (the default) keeps spans in the process: tests,
 local runs, and the dev UI, which has its own in-memory trace view. `app/agents/runtime.run_workflow`
 opens the `workflow:<name>` root span, stores its trace ID on the run and binds the trace field to every
 log line of the run; `stage()` tags `node:` spans with the ADK invocation ID so the dev UI groups them.

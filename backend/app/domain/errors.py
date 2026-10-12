@@ -272,3 +272,14 @@ class RunsDisabledError(DomainError):
             title="Runs disabled",
             detail=detail,
         )
+
+
+class QueueUnavailableError(DomainError):
+    """A task could not be queued (503): the work is not silently dropped (docs/10 §3)."""
+
+    def __init__(
+        self, detail: str = "The reading task could not be queued. Try again shortly."
+    ) -> None:
+        super().__init__(
+            code="QUEUE_UNAVAILABLE", status=503, title="Queue unavailable", detail=detail
+        )

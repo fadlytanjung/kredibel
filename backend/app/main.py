@@ -229,6 +229,7 @@ class AppDeps:
                         document_queue=self.settings.tasks_queue_documents,
                         month_queue=self.settings.tasks_queue_months,
                         invoker_service_account=self.settings.tasks_invoker_sa,
+                        worker_base_url=self.settings.worker_url,
                     )
                     if self.settings.task_queue_mode == "cloud"
                     else self._inline_queue()

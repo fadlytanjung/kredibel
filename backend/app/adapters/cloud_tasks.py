@@ -10,9 +10,11 @@ from collections.abc import Awaitable, Callable, Coroutine
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from google.api_core.exceptions import AlreadyExists, GoogleAPICallError
 from google.cloud import tasks_v2
 from google.protobuf import timestamp_pb2
 
+from app.domain.errors import QueueUnavailableError
 from app.ports.task_queue import TaskQueue
 
 logger = logging.getLogger(__name__)
@@ -132,14 +134,17 @@ class CloudTasksQueue(TaskQueue):
         document_queue: str,
         month_queue: str,
         invoker_service_account: str,
-        worker_base_url: str = "",
+        worker_base_url: str,
     ) -> None:
         self._project_id = project_id
         self._location = location
         self._document_queue = document_queue
         self._month_queue = month_queue
         self._invoker_sa = invoker_service_account
-        self._worker_base_url = worker_base_url
+        if not worker_base_url.startswith("https://"):
+            # Cloud Tasks sends an OIDC token only to an absolute https URL (WORKER_URL, docs/16 §6)
+            raise ValueError(f"WORKER_URL must be the worker's https URL, got {worker_base_url!r}")
+        self._worker_base_url = worker_base_url.rstrip("/")
         self._client: tasks_v2.CloudTasksClient | None = None
 
     def _get_client(self) -> tasks_v2.CloudTasksClient:
@@ -152,11 +157,7 @@ class CloudTasksQueue(TaskQueue):
     ) -> str:
         client = self._get_client()
         parent = client.queue_path(self._project_id, self._location, self._document_queue)
-        url = (
-            f"{self._worker_base_url}/tasks/process-document"
-            if self._worker_base_url
-            else "/tasks/process-document"
-        )
+        url = f"{self._worker_base_url}/tasks/process-document"
         payload = json.dumps(
             {"orgId": org_id, "docId": doc_id, "runId": run_id, "attempt": attempt}
         ).encode()
@@ -173,7 +174,7 @@ class CloudTasksQueue(TaskQueue):
                 body=payload,
                 oidc_token=tasks_v2.OidcToken(
                     service_account_email=self._invoker_sa,
-                    audience=self._worker_base_url or url,
+                    audience=self._worker_base_url,
                 )
                 if self._invoker_sa
                 else None,
@@ -182,20 +183,18 @@ class CloudTasksQueue(TaskQueue):
         try:
             created = client.create_task(parent=parent, task=task)
             return str(created.name) if created.name else task_id
-        except Exception as e:
-            logger.warning("Document task create encountered %s, returning task_id %s", e, task_id)
-            return task_id
+        except AlreadyExists:
+            return task_id  # the same task, already queued: tasks are named per document attempt
+        except GoogleAPICallError as e:
+            logger.error("Document task %s could not be created: %s", task_id, e)
+            raise QueueUnavailableError() from e
 
     async def enqueue_month_task(
         self, org_id: str, month: str, generation: int, delay_seconds: int = 20
     ) -> str:
         client = self._get_client()
         parent = client.queue_path(self._project_id, self._location, self._month_queue)
-        url = (
-            f"{self._worker_base_url}/tasks/reconcile-month"
-            if self._worker_base_url
-            else "/tasks/reconcile-month"
-        )
+        url = f"{self._worker_base_url}/tasks/reconcile-month"
         payload = self.month_task_body(org_id, month, generation)
         task_id = month_task_id(org_id, month, generation)
         task_name = f"{parent}/tasks/{task_id}"
@@ -213,7 +212,7 @@ class CloudTasksQueue(TaskQueue):
                 body=payload,
                 oidc_token=tasks_v2.OidcToken(
                     service_account_email=self._invoker_sa,
-                    audience=self._worker_base_url or url,
+                    audience=self._worker_base_url,
                 )
                 if self._invoker_sa
                 else None,
@@ -222,6 +221,8 @@ class CloudTasksQueue(TaskQueue):
         try:
             created = client.create_task(parent=parent, task=task)
             return str(created.name) if created.name else task_id
-        except Exception as e:
-            logger.warning("Month task create encountered %s, returning task_id %s", e, task_id)
-            return task_id
+        except AlreadyExists:
+            return task_id  # this month generation is already queued (debounce, AC-004-4)
+        except GoogleAPICallError as e:
+            logger.error("Month task %s could not be created: %s", task_id, e)
+            raise QueueUnavailableError() from e

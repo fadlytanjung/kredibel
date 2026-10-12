@@ -97,3 +97,56 @@ async def test_cloud_tasks_queue_enqueues_month_task_with_delay():
         "generation": 3,
         "runId": "month-org_1-2026-03-3",
     }
+
+
+def _queue(url: str = "https://worker.kredibel.internal") -> CloudTasksQueue:
+    return CloudTasksQueue(
+        project_id="p",
+        location="asia-southeast1",
+        document_queue="d",
+        month_queue="m",
+        invoker_service_account="invoker@p.iam.gserviceaccount.com",
+        worker_base_url=url,
+    )
+
+
+def test_the_cloud_queue_refuses_a_worker_url_cloud_tasks_cannot_call():
+    # A relative URL made every production task fail with 400 (url must start with https://).
+    for bad in ("", "/tasks", "http://localhost:8000"):
+        with pytest.raises(ValueError, match="WORKER_URL"):
+            _queue(bad)
+
+
+@pytest.mark.asyncio
+async def test_an_already_queued_task_is_fine_any_other_failure_is_raised():
+    from google.api_core.exceptions import AlreadyExists, InvalidArgument
+
+    from app.domain.errors import QueueUnavailableError
+
+    queue = _queue()
+    client = MagicMock()
+    client.queue_path.return_value = "projects/p/locations/asia-southeast1/queues/d"
+    with patch.object(queue, "_get_client", return_value=client):
+        client.create_task.side_effect = AlreadyExists("exists")
+        assert await queue.enqueue_document_task("org_1", "doc_1", "run_1") == "doc-doc_1-1"
+        client.create_task.side_effect = InvalidArgument("url must start with https://")
+        with pytest.raises(QueueUnavailableError):
+            await queue.enqueue_document_task("org_1", "doc_1", "run_1")
+
+
+def test_the_composition_root_gives_the_cloud_queue_the_worker_url():
+    from pathlib import Path
+
+    from app.adapters.policy_files import load_plans
+    from app.core.settings import Settings
+    from app.main import AppDeps
+
+    plans = load_plans(Path(__file__).resolve().parents[3] / "contracts" / "plans.v1.yaml")
+    settings = Settings(
+        _env_file=None,  # type: ignore[call-arg]
+        task_queue_mode="cloud",
+        worker_url="https://kredibel-worker.example.run.app",
+    )  # type: ignore[call-arg]
+    queue = AppDeps(settings, plans).task_queue
+    assert isinstance(queue, CloudTasksQueue)
+    assert queue._worker_base_url == "https://kredibel-worker.example.run.app"

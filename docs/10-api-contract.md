@@ -190,6 +190,7 @@ All errors use **RFC 9457** `application/problem+json`:
 | `MONTH_LOCKED` | 409 | A change to a signed-off month (P1) |
 | `RUN_QUOTA_EXCEEDED` | 429 | `monthRunsPerDay` or the per-user rate limit reached (`retryAfterSeconds` included) |
 | `RUNS_DISABLED` | 503 | New reading and runs switched off by `RUNS_ENABLED`; existing data stays readable |
+| `QUEUE_UNAVAILABLE` | 503 | The reading task could not be queued; the document is stored and can be read again with a re-run |
 | `LAST_OWNER` | 409 | Removing or demoting the last owner (P1) |
 | `BANK_ACCOUNT_EXISTS` | 409 | Adding a bank account the workspace already has (same bank and number; `accountId` included) |
 | `LABEL_VALUE_INVALID` | 422 | A label correction whose value is not in the task's vocabulary (`allowedValues` included) |

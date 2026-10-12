@@ -3,8 +3,10 @@
 TDD test suite for tasks T003-03 and T003-04.
 """
 
+import asyncio
+import hashlib
 import io
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -14,6 +16,7 @@ from app.domain.errors import (
     DocumentTooLargeError,
     EncryptedDocumentError,
     NotFoundError,
+    PlanLimitReachedError,
     TooManyPagesError,
     TooManyRowsError,
     TrialExpiredError,
@@ -526,3 +529,80 @@ async def test_delete_document_duplicate_preserves_original(
     original = await service.get_document(principal, doc1.doc_id)
     assert original.doc_id == doc1.doc_id
     assert len(storage.originals) == 1
+
+
+# ---------------------------------------------------------------------------- simultaneous uploads
+# Two uploads of a 13-page statement 3 ms apart both became originals and both counted against the
+# limits: the SHA-256 lookup and the document write were not one transaction (spec 003 plan).
+
+
+async def _no_wait(_seconds: float) -> None:
+    await asyncio.sleep(0)
+
+
+async def test_two_simultaneous_uploads_make_one_original_and_one_duplicate(fake_repos, principal):
+    service, doc_repo, _storage, task_queue, usage_repo = fake_repos
+    service._sleep = _no_wait
+    pdf = _create_minimal_pdf_bytes(page_count=2)
+
+    first, second = await asyncio.gather(
+        service.upload(principal=principal, file_bytes=pdf, filename="RHB.pdf"),
+        service.upload(principal=principal, file_bytes=pdf, filename="RHB.pdf"),
+    )
+
+    statuses = sorted([first.status, second.status])
+    assert statuses == sorted([DocStatus.UPLOADED, DocStatus.DUPLICATE])
+    original, copy = (first, second) if first.status == DocStatus.UPLOADED else (second, first)
+    assert copy.duplicate is not None and copy.duplicate.of_doc_id == original.doc_id
+    assert copy.counts_against_limits is False
+    assert usage_repo.months[("org_test", "2026-03")].documents_uploaded == 1
+    assert len(task_queue.enqueued_tasks) == 1
+
+
+async def test_a_failed_upload_releases_the_content(fake_repos, principal):
+    service, doc_repo, _storage, _queue, usage_repo = fake_repos
+    pdf = _create_minimal_pdf_bytes()
+    usage_repo.months[("org_test", "2026-03")] = UsageMonth(month="2026-03", documents_uploaded=10)
+
+    with pytest.raises(PlanLimitReachedError):
+        await service.upload(principal=principal, file_bytes=pdf, filename="a.pdf")
+    assert doc_repo.claims == {}
+
+    usage_repo.months[("org_test", "2026-03")] = UsageMonth(month="2026-03")
+    again = await service.upload(principal=principal, file_bytes=pdf, filename="a.pdf")
+    assert again.status == DocStatus.UPLOADED
+
+
+async def test_a_document_from_before_the_registry_is_still_the_original(fake_repos, principal):
+    service, doc_repo, _storage, _queue, _usage = fake_repos
+    pdf = _create_minimal_pdf_bytes()
+    legacy = await service.upload(principal=principal, file_bytes=pdf, filename="old.pdf")
+    doc_repo.claims.clear()  # as if uploaded before fileHashes existed
+
+    again = await service.upload(principal=principal, file_bytes=pdf, filename="old (1).pdf")
+
+    assert again.status == DocStatus.DUPLICATE
+    assert again.duplicate is not None and again.duplicate.of_doc_id == legacy.doc_id
+
+
+async def test_deleting_the_original_frees_the_content(fake_repos, principal):
+    service, doc_repo, _storage, _queue, _usage = fake_repos
+    pdf = _create_minimal_pdf_bytes()
+    first = await service.upload(principal=principal, file_bytes=pdf, filename="a.pdf")
+    await doc_repo.delete_document("org_test", first.doc_id)
+
+    again = await service.upload(principal=principal, file_bytes=pdf, filename="a.pdf")
+    assert again.status == DocStatus.UPLOADED and again.doc_id != first.doc_id
+
+
+async def test_a_stale_claim_whose_document_never_appeared_is_taken_over(
+    fake_repos, principal, clock
+):
+    service, doc_repo, _storage, _queue, _usage = fake_repos
+    pdf = _create_minimal_pdf_bytes()
+    sha = hashlib.sha256(pdf).hexdigest()
+    doc_repo.claims[("org_test", sha)] = ("doc_crashed", clock.now() - timedelta(minutes=11))
+
+    doc = await service.upload(principal=principal, file_bytes=pdf, filename="a.pdf")
+    assert doc.status == DocStatus.UPLOADED
+    assert doc_repo.claims[("org_test", sha)][0] == doc.doc_id

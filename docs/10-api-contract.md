@@ -176,6 +176,7 @@ All errors use **RFC 9457** `application/problem+json`:
 | `NOT_FOUND` | 404 | Not found **or not in the caller's workspace** |
 | `VALIDATION_ERROR` | 422 | Body or query invalid (`errors[]` lists fields) |
 | `UNSUPPORTED_MEDIA_TYPE` | 415 | Not PDF, PNG, JPEG, CSV or XLSX by content |
+| `UPLOAD_IN_PROGRESS` | 409 | The same file is still being stored by another upload that has not finished within two minutes; try again |
 | `DOCUMENT_TOO_LARGE` | 413 | Larger than `fileSizeMb` |
 | `TOO_MANY_PAGES` | 422 | More pages than `pagesPerDocument` (`maxPages`, `splitAvailable` included) |
 | `TOO_MANY_ROWS` | 422 | A ledger file with more rows than `ledgerRowsPerFile` |

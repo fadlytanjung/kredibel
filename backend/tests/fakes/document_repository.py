@@ -1,5 +1,8 @@
 """In-memory fake document repository for tests."""
 
+import asyncio
+from datetime import datetime, timedelta
+
 from app.domain.models.document import Document
 from app.domain.models.events import AuditEvent
 from app.ports.document_repository import DocumentRepository
@@ -10,12 +13,38 @@ class FakeDocumentRepository(DocumentRepository):
         self.documents: dict[tuple[str, str], Document] = {}
         self.events: list[tuple[str, AuditEvent]] = []
         self.dirty_months: dict[tuple[str, str], int] = {}
+        # (orgId, sha256) -> (docId, claimedAt): orgs/{orgId}/fileHashes (docs/09 §3.18)
+        self.claims: dict[tuple[str, str], tuple[str, datetime]] = {}
+        self._lock = asyncio.Lock()
 
     async def find_original_by_sha256(self, org_id: str, sha256: str) -> Document | None:
         for (doc_org, _), doc in self.documents.items():
             if doc_org == org_id and doc.sha256 == sha256 and not doc.duplicate:
                 return doc
         return None
+
+    async def claim_original(
+        self, org_id: str, sha256: str, doc_id: str, now: datetime
+    ) -> str | None:
+        async with self._lock:
+            holder = self.claims.get((org_id, sha256))
+            saved = holder is not None and (org_id, holder[0]) in self.documents
+            fresh = holder is not None and now - holder[1] < timedelta(minutes=10)
+            if holder is not None and holder[0] != doc_id and (saved or fresh):
+                return holder[0]
+            if holder is None:
+                legacy = await self.find_original_by_sha256(org_id, sha256)
+                if legacy is not None:
+                    self.claims[(org_id, sha256)] = (legacy.doc_id, now)
+                    return legacy.doc_id
+            self.claims[(org_id, sha256)] = (doc_id, now)
+            return None
+
+    async def release_original(self, org_id: str, sha256: str, doc_id: str) -> None:
+        async with self._lock:
+            holder = self.claims.get((org_id, sha256))
+            if holder is not None and holder[0] == doc_id:
+                del self.claims[(org_id, sha256)]
 
     async def get_document(self, org_id: str, doc_id: str) -> Document | None:
         return self.documents.get((org_id, doc_id))
@@ -69,6 +98,9 @@ class FakeDocumentRepository(DocumentRepository):
         target = self.documents.get((org_id, doc_id))
         if target is None:
             return False
+        holder = self.claims.get((org_id, target.sha256))
+        if not target.duplicate and holder is not None and holder[0] == doc_id:
+            del self.claims[(org_id, target.sha256)]
 
         # Cascade: delete any duplicate records that point to this doc as original (AC-003-10)
         duplicates_to_delete = [

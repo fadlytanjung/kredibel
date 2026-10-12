@@ -3,6 +3,7 @@
 Normative references: docs/22 §3 and docs/specs/001-foundation/tasks.md T001-30.
 """
 
+from datetime import datetime
 from typing import ClassVar
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -39,3 +40,10 @@ class DocumentDocV2(FirestoreModel):
     held_as_duplicate: bool = False
     file_name: str | None = None
     sha256: str | None = None
+
+
+class FileHashDoc(FirestoreModel):
+    """orgs/{orgId}/fileHashes/{sha256}: the document holding this exact content (docs/09 §3.18)."""
+
+    doc_id: str
+    claimed_at: datetime

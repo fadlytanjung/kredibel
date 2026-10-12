@@ -229,6 +229,18 @@ class UnsupportedMediaTypeError(DomainError):
         )
 
 
+class UploadInProgressError(DomainError):
+    """The same content is still being stored by another upload (409, docs/10 §3)."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            code="UPLOAD_IN_PROGRESS",
+            status=409,
+            title="Upload in progress",
+            detail="This file is still being uploaded. Try again in a minute.",
+        )
+
+
 class EncryptedDocumentError(DomainError):
     """Raised when a PDF is password protected / encrypted (422, AC-003-3)."""
 

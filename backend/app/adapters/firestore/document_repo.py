@@ -3,12 +3,14 @@
 Normative references: docs/09 §3.5, docs/10 §2.2, ADR-011, ADR-013.
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Any
 
-from google.cloud.firestore import AsyncClient, FieldFilter
+from google.cloud.firestore import AsyncClient, AsyncTransaction, FieldFilter, async_transactional
 
+from app.adapters.firestore.models.document import FileHashDoc
+from app.adapters.firestore.txn import dump, with_backoff
 from app.adapters.firestore.upcast import upcast
 from app.domain.models.document import (
     DocStatus,
@@ -24,6 +26,10 @@ from app.domain.models.document import (
 )
 from app.domain.models.events import AuditEvent
 from app.ports.document_repository import DocumentRepository
+
+# An upload holds its claim while it renders and stores pages; one that never saved its document
+# (a crashed process) stops blocking the content after this long (docs/09 §3.18).
+CLAIM_STALE_AFTER = timedelta(minutes=10)
 
 
 def _parse_datetime(val: Any) -> datetime:
@@ -178,6 +184,50 @@ class FirestoreDocumentRepository(DocumentRepository):
                 return _to_domain(data)
         return None
 
+    async def claim_original(
+        self, org_id: str, sha256: str, doc_id: str, now: datetime
+    ) -> str | None:
+        org_ref = self._db.collection("orgs").document(org_id)
+        claim_ref = org_ref.collection("fileHashes").document(sha256)
+        documents = org_ref.collection("documents")
+
+        @async_transactional
+        async def run(txn: AsyncTransaction) -> str | None:
+            snap = await claim_ref.get(transaction=txn)
+            if snap.exists:
+                claim = FileHashDoc.model_validate(snap.to_dict())
+                if claim.doc_id == doc_id:
+                    return None
+                holder = await documents.document(claim.doc_id).get(transaction=txn)
+                fresh = now - claim.claimed_at < CLAIM_STALE_AFTER
+                if holder.exists or fresh:
+                    return claim.doc_id
+            else:
+                # Documents uploaded before the registry existed are registered on first sight.
+                legacy = documents.where(filter=FieldFilter("sha256", "==", sha256))
+                for found in await legacy.get(transaction=txn):
+                    data = found.to_dict() or {}
+                    if not data.get("duplicate"):
+                        txn.set(claim_ref, dump(FileHashDoc(doc_id=found.id, claimed_at=now)))
+                        return found.id
+            txn.set(claim_ref, dump(FileHashDoc(doc_id=doc_id, claimed_at=now)))
+            return None
+
+        return await with_backoff(lambda: run(self._db.transaction()))
+
+    async def release_original(self, org_id: str, sha256: str, doc_id: str) -> None:
+        claim_ref = (
+            self._db.collection("orgs").document(org_id).collection("fileHashes").document(sha256)
+        )
+
+        @async_transactional
+        async def run(txn: AsyncTransaction) -> None:
+            snap = await claim_ref.get(transaction=txn)
+            if snap.exists and (snap.to_dict() or {}).get("docId") == doc_id:
+                txn.delete(claim_ref)
+
+        await with_backoff(lambda: run(self._db.transaction()))
+
     async def get_document(self, org_id: str, doc_id: str) -> Document | None:
         doc_ref = (
             self._db.collection("orgs").document(org_id).collection("documents").document(doc_id)
@@ -267,6 +317,11 @@ class FirestoreDocumentRepository(DocumentRepository):
         doc_data = snap.to_dict() or {}
         batch = self._db.batch()
         batch.delete(doc_ref)
+        if doc_data.get("sha256") and not doc_data.get("duplicate"):
+            claim_ref = org_ref.collection("fileHashes").document(str(doc_data["sha256"]))
+            claim = await claim_ref.get()
+            if claim.exists and (claim.to_dict() or {}).get("docId") == doc_id:
+                batch.delete(claim_ref)
 
         # Cascade: delete any duplicate records that point to this original (AC-003-10)
         dups_query = org_ref.collection("documents").where(

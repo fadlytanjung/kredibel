@@ -286,6 +286,7 @@ catalog and help pages, `source` (file path), `text`, `embedding_v1`. Rebuilt at
 | `orgPrivate/{orgId}/counterpartyAccounts/{id}` | Hashes of supplier and client accounts seen (for `X08`) |
 | `system/signup` | `{workspacesCreated}`; enforces `MAX_WORKSPACES` |
 | `system/signup/users/{uid}` | `{orgId, role, createdAt}`: the user's one workspace, written in the creating transaction. A second create before the token carries the claim (double submit) finds it and gets `409 ALREADY_IN_WORKSPACE`; the server re-sets the claims from it if they were lost |
+| `orgs/{orgId}/fileHashes/{sha256}` | `{docId, claimedAt}`: which document holds this exact content. Created in one transaction with the lookup before any work on an upload, so two simultaneous uploads of the same file cannot both become originals (spec 003 plan); released if the upload fails, deleted with the original; a claim older than 10 minutes whose document never appeared is taken over. Documents uploaded before the registry are found by `sha256` and registered on first sight |
 | `knowledgeChunks/{chunkId}` (P1) | Shared help and policy passages for the assistant (§3.17) |
 | `system/migrations/{migrationId}`, `system/migrationLock` | Migration registry and lease ([`22`](22-data-migrations.md) §5) |
 

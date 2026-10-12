@@ -3,6 +3,7 @@
 Normative references: docs/09 §3.5, docs/10 §2.2, ADR-011.
 """
 
+from datetime import datetime
 from typing import Protocol
 
 from app.domain.models.document import Document
@@ -12,6 +13,17 @@ from app.domain.models.events import AuditEvent
 class DocumentRepository(Protocol):
     async def find_original_by_sha256(self, org_id: str, sha256: str) -> Document | None:
         """Find an existing non-duplicate document in the workspace with matching SHA-256."""
+        ...
+
+    async def claim_original(
+        self, org_id: str, sha256: str, doc_id: str, now: datetime
+    ) -> str | None:
+        """Make `doc_id` the holder of this exact content, in one transaction with the lookup
+        (spec 003 plan). Returns the ID of the document that already holds it, or None."""
+        ...
+
+    async def release_original(self, org_id: str, sha256: str, doc_id: str) -> None:
+        """Give up a claim taken by an upload that did not complete."""
         ...
 
     async def get_document(self, org_id: str, doc_id: str) -> Document | None:

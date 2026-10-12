@@ -4,7 +4,11 @@ Handles validation, file type sniffing, duplicate checks, plan limits & reservat
 GCS storage, page rendering & triage, task enqueueing, and audit events.
 """
 
+import asyncio
 import hashlib
+from collections.abc import Awaitable, Callable
+from datetime import datetime
+from typing import Any
 
 from app.core.auth import Principal
 from app.core.clock import Clock
@@ -12,6 +16,7 @@ from app.core.ids import new_id
 from app.domain.errors import (
     NotFoundError,
     RunsDisabledError,
+    UploadInProgressError,
     ValidationProblem,
     WorkspaceRequiredError,
 )
@@ -35,6 +40,11 @@ from app.ports.spreadsheet_reader import SpreadsheetReader
 from app.ports.task_queue import TaskQueue
 from app.services.entitlement_service import EntitlementService
 
+# A simultaneous upload of the same file renders and stores pages before its document exists;
+# its twin waits up to two minutes for it (docs/10 §3 UPLOAD_IN_PROGRESS).
+_HOLDER_WAIT_SECONDS = 0.5
+_HOLDER_WAIT_STEPS = 240
+
 
 class DocumentService:
     def __init__(
@@ -48,6 +58,7 @@ class DocumentService:
         clock: Clock,
         spreadsheet_reader: SpreadsheetReader | None = None,
         runs_enabled: bool = True,
+        sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
     ) -> None:
         self._doc_repo = doc_repo
         self._storage = storage
@@ -57,6 +68,7 @@ class DocumentService:
         self._clock = clock
         self._spreadsheet_reader = spreadsheet_reader
         self._runs_enabled = runs_enabled
+        self._sleep = sleep
 
     async def upload(
         self,
@@ -84,10 +96,11 @@ class DocumentService:
         file_hash = hashlib.sha256(file_bytes).hexdigest()
         now = self._clock.now()
 
-        # 3. Check for exact duplicate in workspace (AC-003-5)
-        original = await self._doc_repo.find_original_by_sha256(org_id, file_hash)
+        # 3. Claim this exact content, or find the document that holds it (AC-003-5). The claim and
+        #    the lookup are one transaction, so simultaneous uploads cannot both become originals.
+        doc_id = new_id("doc")
+        original = await self._holder_of(org_id, file_hash, doc_id, now)
         if original is not None:
-            doc_id = new_id("doc")
             dup_info = DuplicateInfo(
                 kind=DuplicateKind.EXACT,
                 code="D01_EXACT_FILE_DUPLICATE",
@@ -121,11 +134,57 @@ class DocumentService:
             await self._doc_repo.save_document(org_id, duplicate_doc, event)
             return duplicate_doc
 
+        try:
+            return await self._store_original(
+                principal,
+                org_id,
+                actor_role,
+                doc_id,
+                file_bytes,
+                filename,
+                info,
+                file_hash,
+                now,
+                doc_type_hint,
+            )
+        except BaseException:
+            await self._doc_repo.release_original(org_id, file_hash, doc_id)
+            raise
+
+    async def _holder_of(
+        self, org_id: str, file_hash: str, doc_id: str, now: datetime
+    ) -> Document | None:
+        """The document already holding this content, or None once `doc_id` holds the claim.
+
+        A simultaneous upload of the same file may still be rendering: wait for its document,
+        whose page count and storage path the duplicate record points at."""
+        for _ in range(_HOLDER_WAIT_STEPS):
+            holder_id = await self._doc_repo.claim_original(org_id, file_hash, doc_id, now)
+            if holder_id is None:
+                return None
+            holder = await self._doc_repo.get_document(org_id, holder_id)
+            if holder is not None:
+                return holder
+            await self._sleep(_HOLDER_WAIT_SECONDS)
+        raise UploadInProgressError()
+
+    async def _store_original(
+        self,
+        principal: Principal,
+        org_id: str,
+        actor_role: str,
+        doc_id: str,
+        file_bytes: bytes,
+        filename: str,
+        info: Any,
+        file_hash: str,
+        now: datetime,
+        doc_type_hint: DocType | None,
+    ) -> Document:
         # 4. Preflight check: trial status, document limit, and file size before rendering
         await self._entitlements.check_upload_preflight(org_id, len(file_bytes))
 
         # 5. New document path: render pages, count rows, check limits
-        doc_id = new_id("doc")
 
         ledger_rows = (
             self._spreadsheet_reader.count_rows(file_bytes, info.media_type)

@@ -63,6 +63,14 @@
     "file": "workspace.py",
     "schemaVersion": null
   },
+  "FileHashDoc": {
+    "fields": {
+      "claimed_at": "datetime",
+      "doc_id": "str"
+    },
+    "file": "document.py",
+    "schemaVersion": null
+  },
   "FirestoreModel": {
     "fields": {
       "schema_version": "int"

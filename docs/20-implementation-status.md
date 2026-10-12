@@ -69,7 +69,7 @@ _Last updated: 12 Oct 2026 — Local OTLP tracing and generated invoice/receipt 
 | Component | Spec | Status | Notes |
 |---|---|---|---|
 | Review queue (8 kinds, actions, auto-advance) | 009 | Specified | |
-| Risk page + evidence viewer | 008 | Specified | |
+| Risk page + evidence viewer | 008 | Built | Findings routes (`/api/findings`, audited acknowledge and reason-backed dismiss), `RiskPage` (`/risk`) with month tabs, severity filters, month groupings, `SeverityBadge` (colour + icon + text), and `EvidenceViewer` (`/risk/:findingId`) with lamp highlights, calc breakdown, two readings, plain-language explanation, and next steps catalog (T008-05…08) |
 | Dashboard (KPIs, month strip, alerts, review preview) | 010 | Specified | |
 | Money flow (Flow, Bars, Table, By client and supplier) + drill-down | 010 | Specified | Statement view (IFRS or US GAAP) by default; full-width charts, one per row |
 | Months in and out, cash-flow statement waterfall | 010 | Specified | `GET /api/cash-flow`; docs/08 §5.2 |
@@ -115,3 +115,13 @@ at least 44 px, correct fixed workspace currency in the shell. Added action-prev
 used the existing large-button variant after the first visual check found 40 px desktop actions.
 Screenshots are recorded at 390/834/1440. The Python screenshot runner expected an absent Chromium
 revision; the installed frontend Playwright browser captured the same mock locally instead.
+
+### Spec 008 validation (12 Oct 2026)
+
+Spec 008 (Fraud Risk and Explanations) is fully implemented and verified across all 4 phases:
+1. **Deterministic risk engine**: `assess_document_risk`, `assess_month_risk`, `calculate_risk_score`, and `next_steps_for_findings` evaluate risk strictly by policy (`contracts/policy/risk.v1.yaml`). Tampered documents force months to `CRITICAL`; `X08` and `D07` elevate to `HIGH`. Models never compute risk levels, scores, or numbers.
+2. **Grounding guard and explainer node**: `check_grounding` resolves citation markers `[[doc:...]]`, `[[fact:...]]`, `[[finding:...]]`, `[[match:...]]`, normalizes numbers, rejects ambiguous multipliers, and enforces template fallback (`grounding: TEMPLATE`) on retry failures.
+3. **Findings API and Service**: `GET /api/findings` with filters (month, docId, severity, status, code) and `PATCH /api/findings/{id}` for audited acknowledgment and reason-backed dismissal (minimum 10 characters required for CRITICAL and HIGH).
+4. **Frontend Risk Page and Evidence Viewer**: `RiskPage` (`/risk`) renders month status tabs with risk badges, filter chips, and month-grouped findings. `SeverityBadge` displays colour + icon + text (AC-008-10, NFR-08). `EvidenceViewer` (`/risk/:findingId`) displays document page zoomed to the lamp-highlighted value, arithmetic calculation breakdown (`.calc`), two readings comparison (`.readings`), plain-language explanation, ordered next steps, and acknowledge/dismiss controls.
+5. **Scenario outcomes verified**: S1 is verified with all months `LOW`; S2 March is `CRITICAL` with internet banking statement re-download next steps; S4 May is `HIGH` with supplier phone confirmation next steps (AC-008-11).
+`make check`: 575 backend, 111 frontend, and 213 synthetic generator tests pass across all 8 quality gates.

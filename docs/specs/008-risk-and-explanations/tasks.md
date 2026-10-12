@@ -18,5 +18,5 @@
 
 ## Phase 4 — Scenarios and close
 
-- [ ] **T008-08** Scenario tests S1, S2, S4 levels and next steps. (AC-008-11)
-- [ ] **T008-09** Update `docs/20-implementation-status.md`.
+- [x] **T008-08** Scenario tests S1, S2, S4 levels and next steps. (AC-008-11)
+- [x] **T008-09** Update `docs/20-implementation-status.md`.

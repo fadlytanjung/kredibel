@@ -22,7 +22,7 @@ from .reconciliation_policy import ReconciliationPolicy
 
 def match_key(left_ids: Iterable[str], right_ids: Iterable[str]) -> str:
     """The same records always give the same match ID, whatever the order they arrived in."""
-    return content_id("mch", "|".join(sorted(left_ids)), "|".join(sorted(right_ids)))
+    return content_id("mat", "|".join(sorted(left_ids)), "|".join(sorted(right_ids)))
 
 
 @dataclass(frozen=True)

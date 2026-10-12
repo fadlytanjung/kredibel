@@ -338,6 +338,18 @@ Neither creates a bank row. Payment confirmation records amount, currency, date,
 partial confirmation stays partial. Later bank evidence links the same payment without counting it
 twice. T007-06a owns the versioned contract before these decisions can be persisted.
 
+**Payment evidence** of an invoice or receipt is derived each run (`domain/evidence.py`), first
+match wins: `CURRENCY_TO_CONFIRM` (printed currency differs or is unknown and no agreement yet),
+`PAID_BANK` (confirmed matches cover the total within tolerance; a grouped payment pays each invoice
+its own total; a confirmed net-of-tax adjustment counts as full), `PARTIAL_BANK`, `PROPOSED`,
+`CONFIRMED_BY_YOU` (a person's confirmation, shown apart, never bank cash), `PAID_CASH` (cash
+receipts), `WAITING_FOR_STATEMENT`, `NO_BANK_MATCH` (receipts), `NOT_DUE`, `UNPAID`. **Coverage**:
+every account that has statements covers every day from the issue date to the earlier of the
+payment window's end (`due + graceDays`, or `+ receiptDays`) and the evaluation date; payments before
+the issue date are not required to be covered. **Bank support** of a line: `EXCLUDED` (non-cash),
+`MATCHED`, `PROPOSED`, `NOT_REQUIRED` (a person said so, with a reason) or `NO_SUPPORT`
+(informational: "Bank recorded · No supporting document").
+
 ### 6.1 Order independence
 
 `reconcile_month(month, data)` is a pure function of **all** current data for the month and its

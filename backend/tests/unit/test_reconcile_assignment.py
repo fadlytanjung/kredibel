@@ -57,7 +57,7 @@ def test_a_unique_strong_candidate_is_confirmed_automatically_with_reasons(polic
     )
     assert (m.status, m.method, m.left_ids, m.right_ids) == ("CONFIRMED", "AUTO", ("b1",), ("i1",))
     assert m.reasons == ("AMOUNT_EXACT", "PARTY_MATCH", "REFERENCE_IN_TEXT", "DATE_NEAR")
-    assert m.match_id == match_key(("b1",), ("i1",)) and m.match_id.startswith("mch_")
+    assert m.match_id == match_key(("b1",), ("i1",)) and m.match_id.startswith("mat_")
 
 
 def test_two_equal_invoices_are_only_proposed_with_both_candidates(policy):

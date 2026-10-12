@@ -31,6 +31,8 @@
   Bank-only rows are informational unless another rule creates a blocker. Include printed/effective
   currency, audited agreement to use unchanged amounts in workspace currency and pending exclusion.
   (AC-007-14…16, AC-007-19)
+  Done: pure derivation of payment evidence, coverage and bank support (`domain/evidence.py`).
+  Open: contract, decisions persistence and endpoints.
 - [ ] **T007-07** **TDD** month checks `X01`, `X02`, `X08`, `X09`, `R01`, `R02`, `B01`, `B04`, `C02`, `D07`. (AC-007-10, AC-007-11)
   `domain/checks/month.py`: all but `X09` done and tested; `X09` needs ledger import (T005-04/09).
 - [ ] **T007-08** Month nodes and `finalize_month`; scenario tests S1 (≥ 85%, 0 wrong), S4, S5 = S1. (AC-007-8, AC-007-11)

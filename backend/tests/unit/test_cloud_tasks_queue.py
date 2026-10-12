@@ -90,4 +90,10 @@ async def test_cloud_tasks_queue_enqueues_month_task_with_delay():
     assert task_arg.http_request.url == "https://worker.kredibel.internal/tasks/reconcile-month"
     assert task_arg.schedule_time is not None
     payload = json.loads(task_arg.http_request.body.decode())
-    assert payload == {"orgId": "org_1", "month": "2026-03", "generation": 3}
+    # /tasks/reconcile-month requires runId; it is the task ID (AC-004-4)
+    assert payload == {
+        "orgId": "org_1",
+        "month": "2026-03",
+        "generation": 3,
+        "runId": "month-org_1-2026-03-3",
+    }

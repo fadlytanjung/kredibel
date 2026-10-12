@@ -171,6 +171,24 @@ class AppDeps:
             ),
         )
 
+    def _inline_queue(self) -> InlineTaskQueue:
+        """Local development: the worker runs in-process (docs/13 §7). A web-only process just
+        records tasks, as nothing in it serves /tasks."""
+        if self.settings.app_role not in ("all", "worker"):
+            return InlineTaskQueue()
+
+        async def on_document(org_id: str, doc_id: str, run_id: str, attempt: int) -> None:
+            await self.run_service.process_document_task(
+                org_id=org_id, doc_id=doc_id, run_id=run_id, attempt=attempt
+            )
+
+        async def on_month(org_id: str, month: str, generation: int, run_id: str) -> None:
+            await self.run_service.reconcile_month_task(
+                org_id=org_id, month=month, generation=generation, run_id=run_id
+            )
+
+        return InlineTaskQueue(on_document=on_document, on_month=on_month)
+
     @property
     def task_queue(self) -> TaskQueue:
         return self._once(
@@ -186,7 +204,7 @@ class AppDeps:
                         invoker_service_account=self.settings.tasks_invoker_sa,
                     )
                     if self.settings.task_queue_mode == "cloud"
-                    else InlineTaskQueue()
+                    else self._inline_queue()
                 )
             ),
         )

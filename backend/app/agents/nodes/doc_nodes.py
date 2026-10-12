@@ -53,6 +53,7 @@ from app.domain.reading import (
     TransactionItem,
     build_statement,
 )
+from app.domain.risk import assess_document_risk
 from app.domain.verdict import integrity_verdict
 
 
@@ -552,10 +553,26 @@ def check_document(deps: PipelineDeps):
         )
         live = [f for f in stored if f.status in ("OPEN", "ACKNOWLEDGED")]
         verdict = integrity_verdict(live, deps.forensics)
+        doc_risk = (
+            assess_document_risk(verdict, stored, deps.risk_policy)
+            if deps.risk_policy is not None
+            else None
+        )
+        risk_dict = (
+            {
+                "level": doc_risk.level,
+                "score": doc_risk.score,
+                "reasons": list(doc_risk.reasons),
+            }
+            if doc_risk is not None
+            else None
+        )
         await deps.doc_repo.save_document(
             org_id,
             replace(
-                doc, integrity={"verdict": verdict, "findingIds": [f.finding_id for f in live]}
+                doc,
+                integrity={"verdict": verdict, "findingIds": [f.finding_id for f in live]},
+                risk=risk_dict,
             ),
         )
         codes = sorted({f.code for f in fresh})

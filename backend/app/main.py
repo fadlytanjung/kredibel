@@ -30,6 +30,7 @@ from app.adapters.policy_files import (
     load_forensics,
     load_plans,
     load_reconciliation_policy,
+    load_risk_policy,
 )
 from app.adapters.spreadsheet_reader import DefaultSpreadsheetReader
 from app.adapters.text_layer import PdfTextLayer
@@ -72,6 +73,7 @@ from app.domain.checks.policy import ForensicsPolicy
 from app.domain.models.invoice import Invoice, Receipt
 from app.domain.plans import PlanCatalog
 from app.domain.reconciliation_policy import ReconciliationPolicy
+from app.domain.risk import RiskPolicy
 from app.observability.tracing import setup_tracing
 from app.ports.bank_line_repository import BankLineRepository
 from app.ports.decision_repository import DecisionRepository
@@ -370,6 +372,13 @@ class AppDeps:
         )
 
     @property
+    def risk_policy(self) -> RiskPolicy:
+        return self._once(
+            "risk_policy",
+            lambda: load_risk_policy(self.settings.contract_path(self.settings.policy_dir)),
+        )
+
+    @property
     def decision_service(self) -> DecisionService:
         return self._once(
             "decision_service",
@@ -404,7 +413,6 @@ class AppDeps:
                 month_run_delay_seconds=self.settings.month_run_delay_seconds,
             ),
         )
-
 
     @property
     def forensics(self) -> ForensicsPolicy:
@@ -477,6 +485,7 @@ class AppDeps:
                 forensics=self.forensics,
                 findings=self.findings,
                 categories=self.categories,
+                risk_policy=self.risk_policy,
             )
             await run_workflow(
                 build_document_workflow(pipeline_deps),
@@ -511,6 +520,7 @@ class AppDeps:
                 matches=self.matches,
                 decisions=self.decisions,
                 reconciliation=self.reconciliation,
+                risk_policy=self.risk_policy,
             )
             return await run_workflow(
                 build_month_workflow(pipeline_deps),

@@ -120,11 +120,9 @@ async def test_stage_inside_adk_workflow_execution(test_deps):
     async def adk_parent(ctx: Context, data: dict | None = None) -> dict:
         return await ctx.run_node(child_node, {"orgId": "org_1", "runId": "run_3", "count": 10})
 
-
     wf = Workflow(name="test_wf", edges=[("START", adk_parent)])
     sessions = InMemorySessionService()
     runner = Runner(agent=cast(Any, wf), app_name="kredibel", session_service=sessions)
-
 
     await sessions.create_session(app_name="kredibel", user_id="u1", session_id="s1")
     async for _ in runner.run_async(user_id="u1", session_id="s1"):

@@ -309,4 +309,3 @@ class ToleranceExceededError(DomainError):
             detail=f"Amount difference {difference} exceeds the allowed tolerance {max_tolerance}.",
             extras={"difference": str(difference), "maxTolerance": str(max_tolerance)},
         )
-

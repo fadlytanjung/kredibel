@@ -1,6 +1,7 @@
 """Unit tests for month_workflow orchestrator (T004-07, AC-004-5, AC-004-7)."""
 
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any, cast
 
 import pytest
@@ -9,6 +10,7 @@ from google.adk.sessions import InMemorySessionService
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
 
+from app.adapters.policy_files import load_risk_policy
 from app.agents.deps import PipelineDeps
 from app.agents.workflows.month_workflow import build_month_workflow
 from app.core.settings import Settings
@@ -17,11 +19,13 @@ from app.domain.models.month import Month, MonthState
 from app.domain.models.run import Run, RunKind, RunStatus
 from tests.fakes.clock import FixedClock
 from tests.fakes.document_repository import FakeDocumentRepository
+from tests.fakes.finding_repository import FakeFindingRepository
 from tests.fakes.month_repository import FakeMonthRepository
 from tests.fakes.run_repository import FakeRunRepository
 from tests.fakes.task_queue import FakeTaskQueue
 
 NOW = datetime(2026, 3, 15, 10, 0, tzinfo=UTC)
+POLICY_DIR = Path(__file__).resolve().parents[3] / "contracts" / "policy"
 trace.set_tracer_provider(TracerProvider())
 
 
@@ -31,14 +35,18 @@ def workflow_deps():
     run_repo = FakeRunRepository()
     doc_repo = FakeDocumentRepository()
     month_repo = FakeMonthRepository()
+    findings_repo = FakeFindingRepository()
     task_queue = FakeTaskQueue()
     clock = FixedClock(NOW)
+    risk_policy = load_risk_policy(POLICY_DIR)
 
     deps = PipelineDeps(
         settings=settings,
         run_repo=run_repo,
         doc_repo=doc_repo,
         month_repo=month_repo,
+        findings=findings_repo,
+        risk_policy=risk_policy,
         task_queue=task_queue,
         clock=clock,
     )
@@ -265,3 +273,58 @@ async def test_ac007_14_statement_presence_does_not_claim_reconciliation(workflo
     ]
     for expected_stage in expected_order:
         assert expected_stage in stage_nodes
+
+
+@pytest.mark.asyncio
+async def test_ac008_1_score_risk_inherits_and_persists_risk(workflow_deps):
+    """score_risk inherits document risk and persists month risk on finalize_month (AC-008-1)."""
+    deps, run_repo, month_repo, doc_repo = workflow_deps
+    org_id = "org_demo"
+    month_str = "2026-03"
+    gen = 1
+    run_id = f"month-{org_id}-{month_str}-{gen}"
+
+    # Document in the month with CRITICAL risk (e.g. TAMPERED)
+    stmt = Document(
+        doc_id="stmt_1",
+        file_name="statement.pdf",
+        content_type="application/pdf",
+        size_bytes=1000,
+        page_count=2,
+        sha256="sha_stmt",
+        gcs_path=f"docs/{org_id}/stmt_1.pdf",
+        uploaded_by="user_1",
+        uploaded_at=NOW,
+        doc_type=DocType.BANK_STATEMENT,
+        status=DocStatus.DONE,
+        months=[month_str],
+        risk={"level": "CRITICAL", "score": 40, "reasons": ["f_tampered_1"]},
+    )
+    await doc_repo.save_document(org_id, stmt)
+
+    wf = build_month_workflow(deps)
+    sessions = InMemorySessionService()
+    runner = Runner(agent=cast(Any, wf), app_name="kredibel", session_service=sessions)
+
+    await sessions.create_session(
+        app_name="kredibel",
+        user_id="user_1",
+        session_id=run_id,
+        state={
+            "node_input": {
+                "orgId": org_id,
+                "month": month_str,
+                "generation": gen,
+                "runId": run_id,
+            }
+        },
+    )
+
+    async for _ in runner.run_async(user_id="user_1", session_id=run_id):
+        pass
+
+    saved_month = await month_repo.get(org_id, month_str)
+    assert saved_month is not None
+    assert saved_month.risk["level"] == "CRITICAL"
+    assert "f_tampered_1" in saved_month.risk["reasons"]
+    assert saved_month.risk["score"] >= 40

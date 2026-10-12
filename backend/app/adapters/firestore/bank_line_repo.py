@@ -135,7 +135,10 @@ class FirestoreBankLineRepository(BankLineRepository):
             },
         )
         batch.set(
-            self._db.collection("orgs").document(org_id).collection("events").document(event.event_id),
+            self._db.collection("orgs")
+            .document(org_id)
+            .collection("events")
+            .document(event.event_id),
             dump(EventDoc(org_id=org_id, **event.model_dump())),
         )
         await batch.commit()

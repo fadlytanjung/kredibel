@@ -8,6 +8,7 @@ from app.domain.categorize import CategoryPolicy
 from app.domain.checks.policy import ForensicsPolicy
 from app.domain.models.invoice import Invoice, Receipt
 from app.domain.reconciliation_policy import ReconciliationPolicy
+from app.domain.risk import RiskPolicy
 from app.ports.bank_line_repository import BankLineRepository
 from app.ports.decision_repository import DecisionRepository
 from app.ports.document_reader import DocumentReader
@@ -52,3 +53,5 @@ class PipelineDeps:
     matches: MatchRepository | None = None
     decisions: DecisionRepository | None = None
     reconciliation: ReconciliationPolicy | None = None
+    # Risk policy (spec 008).
+    risk_policy: RiskPolicy | None = None

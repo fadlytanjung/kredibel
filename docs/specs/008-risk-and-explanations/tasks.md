@@ -2,8 +2,8 @@
 
 ## Phase 1 — Levels
 
-- [ ] **T008-01** **TDD** `risk.py`: each rule of `risk.v1.yaml`; dismissed vs acknowledged; reasons list. (AC-008-1…3)
-- [ ] **T008-02** `score_risk` node; documents' `risk` and months' `risk`. (AC-008-1)
+- [x] **T008-01** **TDD** `risk.py`: each rule of `risk.v1.yaml`; dismissed vs acknowledged; reasons list. (AC-008-1…3)
+- [x] **T008-02** `score_risk` node; documents' `risk` and months' `risk`. (AC-008-1)
 
 ## Phase 2 — Explanations
 

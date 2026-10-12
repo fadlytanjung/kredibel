@@ -11,12 +11,19 @@ from app.domain.categorize import CategoryPolicy, parse_category_policy
 from app.domain.checks.policy import ForensicsPolicy, parse_forensics
 from app.domain.plans import PlanCatalog, parse_plans
 from app.domain.reconciliation_policy import ReconciliationPolicy
+from app.domain.risk import RiskPolicy, parse_risk_policy
 
 
 def load_plans(path: Path) -> PlanCatalog:
     """Load and validate contracts/plans.v1.yaml; any problem raises and stops start-up."""
     with path.open(encoding="utf-8") as handle:
         return parse_plans(yaml.safe_load(handle))
+
+
+def load_risk_policy(policy_dir: Path) -> RiskPolicy:
+    """risk.v1.yaml with fraud risk levels, weights and next steps (spec 008, docs/08 §8)."""
+    with (policy_dir / "risk.v1.yaml").open(encoding="utf-8") as handle:
+        return parse_risk_policy(yaml.safe_load(handle) or {})
 
 
 def load_forensics(policy_dir: Path) -> ForensicsPolicy:

@@ -69,9 +69,7 @@ def create_months_router(
         if month_doc is None:
             raise NotFoundError(f"Month '{month}' not found")
 
-        run = await provider.run_service.start_month_run(
-            org_id, month, is_user_request=True
-        )
+        run = await provider.run_service.start_month_run(org_id, month, is_user_request=True)
         return {"runId": run.run_id}
 
     return router

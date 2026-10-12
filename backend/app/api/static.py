@@ -50,4 +50,3 @@ def mount_static_spa(app: FastAPI, static_dir: str = "/app/static") -> None:
         if index_html.is_file():
             return FileResponse(index_html, headers={"Cache-Control": _NO_CACHE})
         raise NotFoundError()
-

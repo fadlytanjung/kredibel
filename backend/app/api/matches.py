@@ -91,4 +91,3 @@ def create_matches_router(provider: ServiceProvider, workspace_dep: Any) -> APIR
         await provider.match_service.unmatch(principal, match_id)
 
     return router
-

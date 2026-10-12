@@ -106,7 +106,10 @@ class FirestoreMatchRepository(MatchRepository):
         batch = self._db.batch()
         batch.set(self._col(org_id).document(match.match_id), dump(_to_doc(match)))
         batch.set(
-            self._db.collection("orgs").document(org_id).collection("events").document(event.event_id),
+            self._db.collection("orgs")
+            .document(org_id)
+            .collection("events")
+            .document(event.event_id),
             dump(EventDoc(org_id=org_id, **event.model_dump())),
         )
         await batch.commit()

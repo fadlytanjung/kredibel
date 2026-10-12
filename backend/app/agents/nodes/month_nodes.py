@@ -29,6 +29,7 @@ from app.domain.models.match import StoredMatch
 from app.domain.models.month import Month, MonthState
 from app.domain.models.run import RunStatus
 from app.domain.reconcile import assign_matches
+from app.domain.risk import RiskAssessment, assess_document_risk, assess_month_risk
 
 
 def load_month(deps: PipelineDeps):
@@ -283,7 +284,43 @@ def suggest_profile(deps: PipelineDeps):
 def score_risk(deps: PipelineDeps):
     @stage(deps, "score_risk")
     async def _node(ctx: Context, node_input: dict[str, Any]) -> dict[str, Any]:
-        return {**node_input, "summary": "Skipped: month risk scoring is not implemented"}
+        org_id = str(node_input.get("orgId") or node_input.get("org_id") or "")
+        month_str = str(node_input.get("month") or "")
+
+        if deps.risk_policy is None or deps.findings is None:
+            return {**node_input, "summary": "Skipped: risk policy or findings repo not configured"}
+
+        docs, _ = await deps.doc_repo.list_documents(org_id, limit=500)
+        month_docs = [d for d in docs if month_str in d.months and d.status != DocStatus.FAILED]
+
+        doc_assessments: list[RiskAssessment] = []
+        for d in month_docs:
+            if d.risk and "level" in d.risk:
+                doc_assessments.append(
+                    RiskAssessment(
+                        level=d.risk["level"],
+                        score=int(d.risk.get("score", 0)),
+                        reasons=tuple(d.risk.get("reasons", ())),
+                    )
+                )
+            elif d.integrity:
+                d_findings = await deps.findings.list_findings(org_id, doc_id=d.doc_id)
+                v = d.integrity.get("verdict")
+                doc_assessments.append(assess_document_risk(v, d_findings, deps.risk_policy))
+
+        month_findings = await deps.findings.list_findings(org_id, month=month_str)
+        m_risk = assess_month_risk(doc_assessments, month_findings, deps.risk_policy)
+
+        risk_data = {
+            "level": m_risk.level,
+            "score": m_risk.score,
+            "reasons": list(m_risk.reasons),
+        }
+        return {
+            **node_input,
+            "risk": risk_data,
+            "summary": f"Month risk: {m_risk.level} ({m_risk.score})",
+        }
 
     return _node
 
@@ -352,6 +389,9 @@ def finalize_month(deps: PipelineDeps, pending: PendingMonths):
         if node_input.get("computed"):
             current_month.figures = node_input.get("figures") or {}
             current_month.statements = node_input.get("statements") or []
+        risk_val = node_input.get("risk")
+        if isinstance(risk_val, dict):
+            current_month.risk = risk_val
         current_month.dirty = False
         current_month.last_run_id = run_id
         await deps.month_repo.save(org_id, current_month)

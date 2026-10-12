@@ -93,13 +93,17 @@ async def test_superseded_run_does_not_rewrite_matches_support_evidence_or_findi
     async with _client(deps) as client:
         await _upload(client, deps, STATEMENT, "march.pdf")
         await _upload(client, deps, PDF.read_bytes(), "invoice.pdf")
+
     async def snapshot():
-        return deepcopy((
-            await deps.matches.list_matches("org_1"),
-            await deps.bank_lines.list_lines("org_1"),
-            await deps.invoices.list_records("org_1"),
-            await deps.findings.list_findings("org_1"),
-        ))
+        return deepcopy(
+            (
+                await deps.matches.list_matches("org_1"),
+                await deps.bank_lines.list_lines("org_1"),
+                await deps.invoices.list_records("org_1"),
+                await deps.findings.list_findings("org_1"),
+            )
+        )
+
     before = await snapshot()
     generation, _ = await deps.month_repo.bump_generation("org_1", "2026-03")
     result = await deps.month_workflow_runner("org_1", "2026-03", generation - 1, "stale_run")

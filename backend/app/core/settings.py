@@ -86,6 +86,7 @@ class Settings(BaseSettings):
     reader_thinking_level: Literal["low", "high"] = "low"
     reader_timeout_seconds: float = 60.0
     reader_attempts: int = 2
+    reader_rate_limit_retries: int = 6  # waits on 429/5xx, about 90 s in all (docs/07 §9)
     page_concurrency: int = 6
     extraction_cache: Literal["on", "ocr_only", "off"] = "on"
     prefill_on_upload: Literal["off", "on"] = "off"

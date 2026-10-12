@@ -528,6 +528,7 @@ and cache hits do not count against the plan's `extractedPagesPerMonth`. `EXTRAC
 
 | Failure | Detection | Behaviour |
 |---|---|---|
+| Vertex AI rate limit (`429 RESOURCE_EXHAUSTED`) or a transient `5xx` | API error code | the call waits 2, 4, 8, 16, 30 … s (plus up to 25 % jitter, so parallel pages spread out) and retries, up to `READER_RATE_LIMIT_RETRIES` (6, about 90 s) without using up one of the two attempts; pages are read at most `PAGE_CONCURRENCY` (6) at a time. Other API errors (bad request, no access) fail at once |
 | Gemini output fails schema twice on a page | validation error | page is `WITNESS_ONLY`: rows built from the witness by the coverage method; all values `SINGLE_SOURCE`; `E01` (MEDIUM) |
 | OCR fails after retries on a scanned page | exception | page is `AI_ONLY`: values `SINGLE_SOURCE`, no boxes; `E01` |
 | Both fail on a page | — | page `FAILED`; if any page of a statement fails, the document is `FAILED` with `E02_EXTRACTION_FAILED` (HIGH); its months still reconcile with the other data |

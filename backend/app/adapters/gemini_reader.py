@@ -2,10 +2,13 @@
 chunks are separate content parts; the document never sits inside the instruction (docs/06 §6)."""
 
 import asyncio
+import random
 import time
+from collections.abc import Awaitable, Callable
 from typing import Any
 
 from google import genai
+from google.genai import errors as genai_errors
 from google.genai import types
 from pydantic import BaseModel
 
@@ -31,10 +34,27 @@ class ReaderFailed(Exception):
     pass
 
 
+# 429 is Vertex AI's rate limit (RESOURCE_EXHAUSTED); 5xx are transient on its side.
+_TRANSIENT = {429, 500, 502, 503, 504}
+
+
+def _backoff(retry: int) -> float:
+    """2, 4, 8, 16, 30 … seconds plus up to 25 % jitter, so parallel pages do not retry at once."""
+    base = min(30.0, 2.0**retry)
+    return base * (1 + random.random() * 0.25)
+
+
 class GeminiDocumentReader(DocumentReader):
-    def __init__(self, settings: Settings) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        *,
+        client: genai.Client | None = None,
+        sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
+    ) -> None:
         self._settings = settings
-        self._client: genai.Client | None = None
+        self._client = client
+        self._sleep = sleep
 
     def _genai(self) -> genai.Client:
         if self._client is None:
@@ -69,7 +89,10 @@ class GeminiDocumentReader(DocumentReader):
             response_schema=schema,
         )
         last: Exception | None = None
-        for _ in range(max(1, self._settings.reader_attempts)):
+        attempts = max(1, self._settings.reader_attempts)
+        throttled = 0
+        attempt = 0
+        while attempt < attempts:
             started = time.monotonic()
             try:
                 response = await asyncio.wait_for(
@@ -89,11 +112,21 @@ class GeminiDocumentReader(DocumentReader):
                     tokens_out=(usage.candidates_token_count or 0) if usage else 0,
                     seconds=time.monotonic() - started,
                 )
-            except (
-                TimeoutError,
-                ValueError,
-            ) as exc:  # a slow call, or output that fails the schema
+            except genai_errors.APIError as exc:
+                # Rate limits and transient server errors wait and retry without using up an
+                # attempt; anything else (a bad request, no access) fails at once.
+                if (
+                    exc.code not in _TRANSIENT
+                    or throttled >= self._settings.reader_rate_limit_retries
+                ):
+                    raise ReaderFailed(f"{prompt.ref}: {exc.code} {exc.status}") from exc
+                throttled += 1
                 last = exc
+                await self._sleep(_backoff(throttled))
+                continue
+            except (TimeoutError, ValueError) as exc:  # a slow call, or output failing the schema
+                last = exc
+            attempt += 1
         raise ReaderFailed(
             f"{prompt.ref} failed after {self._settings.reader_attempts} attempts"
         ) from last

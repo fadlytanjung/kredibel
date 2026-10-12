@@ -11,6 +11,7 @@ from app.services.bank_line_service import BankLineService
 from app.services.decision_service import DecisionService
 from app.services.document_service import DocumentService
 from app.services.entitlement_service import EntitlementService
+from app.services.match_service import MatchService
 from app.services.month_service import MonthService
 from app.services.record_service import RecordService
 from app.services.runs import RunService
@@ -53,6 +54,9 @@ class ServiceProvider(Protocol):
 
     @property
     def decision_service(self) -> DecisionService: ...
+
+    @property
+    def match_service(self) -> MatchService: ...
 
 
 def org_of(principal: Principal) -> str:

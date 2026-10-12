@@ -94,6 +94,7 @@ from app.services.bank_line_service import BankLineService
 from app.services.decision_service import DecisionService
 from app.services.document_service import DocumentService
 from app.services.entitlement_service import EntitlementService
+from app.services.match_service import MatchService
 from app.services.month_service import MonthService
 from app.services.record_service import RecordService
 from app.services.runs import DocumentWorkflowRunner, MonthWorkflowRunner, RunService
@@ -385,6 +386,25 @@ class AppDeps:
                 month_run_delay_seconds=self.settings.month_run_delay_seconds,
             ),
         )
+
+    @property
+    def match_service(self) -> MatchService:
+        return self._once(
+            "match_service",
+            lambda: MatchService(
+                matches=self.matches,
+                bank_lines=self.bank_lines,
+                invoices=self.invoices,
+                receipts=self.receipts,
+                workspaces=self.workspace_repo,
+                month_repo=self.month_repo,
+                task_queue=self.task_queue,
+                reconciliation=self.reconciliation,
+                clock=self.clock,
+                month_run_delay_seconds=self.settings.month_run_delay_seconds,
+            ),
+        )
+
 
     @property
     def forensics(self) -> ForensicsPolicy:

@@ -3,6 +3,8 @@
 from typing import Any
 
 from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel, ConfigDict, Field
+from pydantic.alias_generators import to_camel
 
 from app.api.deps import ServiceProvider, org_of
 from app.core.auth import Principal
@@ -33,6 +35,16 @@ def match_body(match: StoredMatch, currency: str) -> dict[str, Any]:
     return body
 
 
+class MatchCreateBody(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    bank_line_ids: list[str] = Field(default_factory=list, max_length=3)
+    invoice_ids: list[str] = Field(default_factory=list, max_length=5)
+    receipt_ids: list[str] = Field(default_factory=list, max_length=5)
+    ledger_entry_ids: list[str] = Field(default_factory=list, max_length=5)
+    note: str | None = Field(default=None, max_length=500)
+
+
 def create_matches_router(provider: ServiceProvider, workspace_dep: Any) -> APIRouter:
     router = APIRouter(prefix="/api/matches", tags=["months"])
 
@@ -55,4 +67,28 @@ def create_matches_router(provider: ServiceProvider, workspace_dep: Any) -> APIR
         currency = await provider.record_service.currency(org_id)
         return {"items": [match_body(m, currency) for m in selected[:limit]], "nextCursor": None}
 
+    @router.post("", status_code=201)
+    async def create_match(
+        payload: MatchCreateBody,
+        principal: Principal = Depends(workspace_dep),
+    ) -> dict[str, Any]:
+        match = await provider.match_service.create_manual_match(
+            principal,
+            bank_line_ids=payload.bank_line_ids,
+            invoice_ids=payload.invoice_ids,
+            receipt_ids=payload.receipt_ids,
+            ledger_entry_ids=payload.ledger_entry_ids,
+            note=payload.note,
+        )
+        currency = await provider.record_service.currency(org_of(principal))
+        return match_body(match, currency)
+
+    @router.delete("/{match_id}", status_code=204)
+    async def unmatch(
+        match_id: str,
+        principal: Principal = Depends(workspace_dep),
+    ) -> None:
+        await provider.match_service.unmatch(principal, match_id)
+
     return router
+

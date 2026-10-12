@@ -15,11 +15,12 @@ import { DocumentsPage } from '../pages/DocumentsPage'
 import { LoginPage } from '../pages/LoginPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
 import { OnboardingPage } from '../pages/OnboardingPage'
+import { MonthPage } from '../pages/MonthPage'
+import { MonthsPage } from '../pages/MonthsPage'
 import {
   AssistantPage,
   CounterpartiesPage,
   LabelsPage,
-  MonthsPage,
   ReviewPage,
   RiskPage,
   RunsPage,
@@ -109,7 +110,7 @@ const PROTECTED_ROUTES: { path: string; element: ReactNode }[] = [
   { path: '/documents', element: <DocumentsPage /> },
   { path: '/documents/:docId', element: <DocumentPage /> },
   { path: '/months', element: <MonthsPage /> },
-  { path: '/months/:month', element: <MonthsPage /> },
+  { path: '/months/:month', element: <MonthPage /> },
   { path: '/review', element: <ReviewPage /> },
   { path: '/review/:itemId', element: <ReviewPage /> },
   { path: '/risk', element: <RiskPage /> },

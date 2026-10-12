@@ -283,3 +283,30 @@ class QueueUnavailableError(DomainError):
         super().__init__(
             code="QUEUE_UNAVAILABLE", status=503, title="Queue unavailable", detail=detail
         )
+
+
+class AlreadyMatchedError(DomainError):
+    """Raised when a bank line or document is already matched in an active match (409)."""
+
+    def __init__(self, record_id: str, match_id: str) -> None:
+        super().__init__(
+            code="ALREADY_MATCHED",
+            status=409,
+            title="Already matched",
+            detail=f"Record {record_id} is already matched in {match_id}.",
+            extras={"recordId": record_id, "matchId": match_id},
+        )
+
+
+class ToleranceExceededError(DomainError):
+    """Raised when the difference between amounts exceeds the reconciliation tolerance (422)."""
+
+    def __init__(self, difference: Decimal, max_tolerance: Decimal) -> None:
+        super().__init__(
+            code="TOLERANCE_EXCEEDED",
+            status=422,
+            title="Difference exceeds tolerance",
+            detail=f"Amount difference {difference} exceeds the allowed tolerance {max_tolerance}.",
+            extras={"difference": str(difference), "maxTolerance": str(max_tolerance)},
+        )
+

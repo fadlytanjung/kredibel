@@ -15,3 +15,13 @@ export function useBankLines(docId: string | undefined) {
     enabled: Boolean(docId),
   })
 }
+
+/** All bank lines of a given month (docs/10 §2.4). */
+export function useMonthBankLines(month: string | undefined) {
+  return useQuery({
+    queryKey: ['bank-lines', { month }],
+    queryFn: () => apiClient<BankLinePage>(`/api/bank-lines?month=${encodeURIComponent(month ?? '')}`),
+    enabled: Boolean(month),
+  })
+}
+

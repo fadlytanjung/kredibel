@@ -259,7 +259,9 @@ A rejected value is never suggested again (deterministic suggestion ID).
 ## 5. Month figures and money flows
 
 All `Decimal`. A month's figures use bank lines of the workspace's accounts dated in that month,
-excluding `NON_CASH` and lines of held (possible duplicate) statements.
+excluding `NON_CASH` and lines of held (possible duplicate), failed or quarantined statements and of
+documents whose printed currency was not accepted (ADR-025). Each eligible line counts once in bank
+cash whether or not a document supports it; a person's payment confirmation never adds bank cash.
 
 | Fact (`fact:<yyyy-mm>:<name>`) | Formula |
 |---|---|
@@ -268,8 +270,10 @@ excluding `NON_CASH` and lines of held (possible duplicate) statements.
 | `operating_in`, `operating_out` | by class `OPERATING` |
 | `opening`, `closing` | per account from statements; Σ over accounts |
 | `negative_days` | days with end-of-day balance < 0 |
-| `bank_lines`, `auto_matched`, `manually_matched`, `unmatched`, `excluded` | counts of bank lines by match state |
-| `auto_match_rate` | `auto_matched / (bank_lines − excluded)` |
+| `bank_lines`, `auto_matched`, `manually_matched`, `proposed`, `unmatched`, `excluded` | counts of bank lines by match state; `unmatched` lines are **Bank recorded · No supporting document**, still in cash; `excluded` are `NON_CASH` |
+| `auto_match_rate` | `auto_matched / (bank_lines − excluded)`, four decimals |
+| `uncategorized` | lines still `UNKNOWN` |
+| `category:<id>`, `line:<statement line>` | signed totals per category and per statement line (feeds §5.1) |
 | `invoiced_sales`, `invoiced_purchases`, `receipts_total` | Σ document totals dated in the month |
 | `ledger_cash_movement` | Σ ledger entries on mapped bank accounts |
 | `open_review_items` | count |

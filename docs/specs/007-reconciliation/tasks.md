@@ -24,7 +24,7 @@
   `domain/reconcile.py`: allocations only; payment and support states from allocations plus
   statement coverage are derived in T007-06a.
 - [x] **T007-05** **TDD** order independence property test. (AC-007-7)
-- [ ] **T007-06** `figures.py` facts. (AC-007-9)
+- [x] **T007-06** `figures.py` facts. (AC-007-9)
 - [ ] **T007-06a** **TDD** versioned evidence/support states and manual attestations: OpenAPI first,
   schema versions/upcasters/migration/snapshot, audited approval and payment confirmation endpoints,
   partial payments, statement coverage by account/date, later bank evidence without double counting.

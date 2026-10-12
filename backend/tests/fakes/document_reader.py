@@ -1,6 +1,7 @@
 """A recorded reader for tests: no model, fixed answers (docs/15 §2 recorded fixtures)."""
 
 from collections.abc import Callable
+from typing import Any
 
 from app.domain.reading import (
     CategorizeResult,
@@ -22,6 +23,7 @@ class FakeDocumentReader(DocumentReader):
         invoice_pages: Callable[[int], InvoicePageReading] | None = None,
         receipt_pages: Callable[[int], ReceiptPageReading] | None = None,
         categories: Callable[[TransactionItem], tuple[str, float]] | None = None,
+        month_explanation: Any | None = None,
     ) -> None:
         self.classification = classification or DocClassification(
             doc_type="BANK_STATEMENT", confidence=0.97
@@ -30,6 +32,7 @@ class FakeDocumentReader(DocumentReader):
         self.invoice_pages = invoice_pages or (lambda page: InvoicePageReading(page=page))
         self.receipt_pages = receipt_pages or (lambda page: ReceiptPageReading(page=page))
         self.categories = categories or (lambda item: ("UNKNOWN", 0.0))
+        self.month_explanation = month_explanation
         self.calls: list[tuple[str, int]] = []
 
     def version(self, task: str) -> tuple[str, str]:
@@ -68,3 +71,25 @@ class FakeDocumentReader(DocumentReader):
             for cat, conf in [self.categories(item)]
         ]
         return ReaderCall(CategorizeResult(items=choices), "fake-lite", "categorize@test", 500, 200)
+
+    async def explain_month(
+        self,
+        level: str,
+        findings_facts: str,
+        figures_summary: str,
+        catalog_steps: list[str],
+        retry_problems: list[str] | None = None,
+    ) -> ReaderCall[Any]:
+        self.calls.append(("explain_month", len(catalog_steps)))
+        if self.month_explanation is None:
+            from app.domain.risk import MonthExplanation
+
+            res = MonthExplanation(
+                summary="Standard explanation for the month.",
+                next_steps=catalog_steps,
+            )
+        elif callable(self.month_explanation):
+            res = self.month_explanation(level, retry_problems)
+        else:
+            res = self.month_explanation
+        return ReaderCall(res, "fake-model", "explain_month@test", 400, 150)

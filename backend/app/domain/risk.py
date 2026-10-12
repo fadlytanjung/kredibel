@@ -4,7 +4,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.domain.findings import Finding
 
@@ -248,3 +248,14 @@ def assess_month_risk(
         score=total_score,
         reasons=tuple(deduped_reasons),
     )
+
+
+class FindingExplanation(BaseModel):
+    finding_id: str
+    explanation: str
+
+
+class MonthExplanation(BaseModel):
+    summary: str
+    next_steps: list[str] = Field(default_factory=list)
+    finding_explanations: list[FindingExplanation] = Field(default_factory=list)

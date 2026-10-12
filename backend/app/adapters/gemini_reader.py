@@ -219,6 +219,29 @@ class GeminiDocumentReader(DocumentReader):
         ]
         return await self._call(load_prompt("categorize_transactions"), parts, CategorizeResult)
 
+    async def explain_month(
+        self,
+        level: str,
+        findings_facts: str,
+        figures_summary: str,
+        catalog_steps: list[str],
+        retry_problems: list[str] | None = None,
+    ) -> ReaderCall[Any]:
+        from app.domain.risk import MonthExplanation
+
+        parts: list[Any] = [
+            f"MONTH FRAUD RISK LEVEL:\n{level}",
+            f"FINDINGS AND FACTS:\n{findings_facts}",
+            f"FIGURES:\n{figures_summary}",
+            "RECOMMENDED CATALOG NEXT STEPS:\n" + "\n".join(f"- {s}" for s in catalog_steps),
+        ]
+        if retry_problems:
+            parts.append(
+                "PREVIOUS ATTEMPT GROUNDING PROBLEMS TO FIX:\n"
+                + "\n".join(f"- {p}" for p in retry_problems)
+            )
+        return await self._call(load_prompt("explain_month"), parts, MonthExplanation)
+
 
 def _page_parts(image_png: bytes, chunks: str, page: int) -> list[Any]:
     return [

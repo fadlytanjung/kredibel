@@ -7,8 +7,8 @@
 
 ## Phase 2 — Explanations
 
-- [ ] **T008-03** **TDD** `grounding.py` with the cases of docs/15 §4. (AC-008-5)
-- [ ] **T008-04** Explainer prompt, schema and node with hash skip, retry and template fallback. (AC-008-4…6)
+- [x] **T008-03** **TDD** `grounding.py` with the cases of docs/15 §4. (AC-008-5)
+- [x] **T008-04** Explainer prompt, schema and node with hash skip, retry and template fallback. (AC-008-4…6)
 
 ## Phase 3 — UI and API
 

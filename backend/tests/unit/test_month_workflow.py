@@ -14,10 +14,13 @@ from app.adapters.policy_files import load_risk_policy
 from app.agents.deps import PipelineDeps
 from app.agents.workflows.month_workflow import build_month_workflow
 from app.core.settings import Settings
+from app.domain.findings import Finding
 from app.domain.models.document import DocStatus, DocType, Document
 from app.domain.models.month import Month, MonthState
 from app.domain.models.run import Run, RunKind, RunStatus
+from app.domain.risk import FindingExplanation, MonthExplanation
 from tests.fakes.clock import FixedClock
+from tests.fakes.document_reader import FakeDocumentReader
 from tests.fakes.document_repository import FakeDocumentRepository
 from tests.fakes.finding_repository import FakeFindingRepository
 from tests.fakes.month_repository import FakeMonthRepository
@@ -328,3 +331,254 @@ async def test_ac008_1_score_risk_inherits_and_persists_risk(workflow_deps):
     assert saved_month.risk["level"] == "CRITICAL"
     assert "f_tampered_1" in saved_month.risk["reasons"]
     assert saved_month.risk["score"] >= 40
+
+
+@pytest.mark.asyncio
+async def test_ac008_4_explain_month_verified_and_persisted(workflow_deps):
+    """AC-008-4, AC-008-5: Verified explanation is saved with next steps and grounded summary."""
+    deps, run_repo, month_repo, doc_repo = workflow_deps
+    org_id = "org_exp_1"
+    month_str = "2026-03"
+    gen = 1
+    run_id = f"month-{org_id}-{month_str}-{gen}"
+
+    month = Month(
+        month=month_str,
+        state=MonthState.COLLECTING,
+        dirty=True,
+        generation=gen,
+        figures={"closing": {"value": "60400000"}},
+    )
+    await month_repo.save(org_id, month)
+    await run_repo.create(
+        org_id,
+        Run(
+            run_id=run_id,
+            kind=RunKind.MONTH,
+            target=month_str,
+            generation=gen,
+            status=RunStatus.RUNNING,
+        ),
+    )
+
+    finding = Finding(
+        finding_id="f_x08",
+        code="X08_SUPPLIER_ACCOUNT_CHANGED",
+        category="RECONCILIATION",
+        severity="HIGH",
+        title="Supplier account changed",
+        facts={"new_account": "123456"},
+        evidence=[],
+        scope="MONTH",
+        month=month_str,
+    )
+    await deps.findings.replace_month_findings(org_id, month_str, [finding], run_id=run_id)
+
+    fake_reader = FakeDocumentReader(
+        month_explanation=MonthExplanation(
+            summary=(
+                "Supplier account changed [[finding:f_x08]]. "
+                "Closing balance reached [[fact:2026-03:closing]]."
+            ),
+            next_steps=["Confirm the new account with the supplier"],
+            finding_explanations=[
+                FindingExplanation(
+                    finding_id="f_x08",
+                    explanation="Roastline was paid to a new account [[finding:f_x08]].",
+                )
+            ],
+        )
+    )
+    deps.reader = fake_reader
+
+    wf = build_month_workflow(deps)
+    sessions = InMemorySessionService()
+    runner = Runner(agent=cast(Any, wf), app_name="kredibel", session_service=sessions)
+
+    await sessions.create_session(
+        app_name="kredibel",
+        user_id="user_1",
+        session_id=run_id,
+        state={
+            "node_input": {
+                "orgId": org_id,
+                "month": month_str,
+                "generation": gen,
+                "runId": run_id,
+            }
+        },
+    )
+
+    async for _ in runner.run_async(user_id="user_1", session_id=run_id):
+        pass
+
+    saved_month = await month_repo.get(org_id, month_str)
+    assert saved_month is not None
+    assert saved_month.risk["grounding"] == "VERIFIED"
+    assert "Supplier account changed" in saved_month.risk["summary"]
+    assert "Confirm the new account with the supplier" in saved_month.risk["nextSteps"][0]
+    assert saved_month.risk["hash"] != ""
+
+
+@pytest.mark.asyncio
+async def test_ac008_5_explain_month_ungrounded_falls_back_to_template(workflow_deps):
+    """AC-008-5: Hallucinated/ungrounded figures fall back to template text."""
+    deps, run_repo, month_repo, doc_repo = workflow_deps
+    org_id = "org_exp_2"
+    month_str = "2026-03"
+    gen = 1
+    run_id = f"month-{org_id}-{month_str}-{gen}"
+
+    month = Month(month=month_str, state=MonthState.COLLECTING, dirty=True, generation=gen)
+    await month_repo.save(org_id, month)
+    await run_repo.create(
+        org_id,
+        Run(
+            run_id=run_id,
+            kind=RunKind.MONTH,
+            target=month_str,
+            generation=gen,
+            status=RunStatus.RUNNING,
+        ),
+    )
+
+    finding = Finding(
+        finding_id="f_x08",
+        code="X08_SUPPLIER_ACCOUNT_CHANGED",
+        category="RECONCILIATION",
+        severity="HIGH",
+        title="Supplier account changed",
+        facts={},
+        evidence=[],
+        scope="MONTH",
+        month=month_str,
+    )
+    await deps.findings.replace_month_findings(org_id, month_str, [finding], run_id=run_id)
+
+    # Reader returns ungrounded number not cited in any fact or finding
+    fake_reader = FakeDocumentReader(
+        month_explanation=MonthExplanation(
+            summary="We made up an arbitrary profit of IDR 999,999,999 without any facts.",
+            next_steps=["Check books"],
+        )
+    )
+    deps.reader = fake_reader
+
+    wf = build_month_workflow(deps)
+    sessions = InMemorySessionService()
+    runner = Runner(agent=cast(Any, wf), app_name="kredibel", session_service=sessions)
+
+    await sessions.create_session(
+        app_name="kredibel",
+        user_id="user_1",
+        session_id=run_id,
+        state={
+            "node_input": {
+                "orgId": org_id,
+                "month": month_str,
+                "generation": gen,
+                "runId": run_id,
+            }
+        },
+    )
+
+    async for _ in runner.run_async(user_id="user_1", session_id=run_id):
+        pass
+
+    saved_month = await month_repo.get(org_id, month_str)
+    assert saved_month is not None
+    assert saved_month.risk["grounding"] == "TEMPLATE"
+    assert "High fraud risk detected" in saved_month.risk["summary"]
+
+
+@pytest.mark.asyncio
+async def test_ac008_6_explain_month_skips_when_hash_unchanged(workflow_deps):
+    """AC-008-6: explain_month is skipped when facts and findings hash is unchanged."""
+    deps, run_repo, month_repo, doc_repo = workflow_deps
+    org_id = "org_exp_3"
+    month_str = "2026-03"
+    gen = 1
+    run_id = f"month-{org_id}-{month_str}-{gen}"
+
+    month = Month(month=month_str, state=MonthState.COLLECTING, dirty=True, generation=gen)
+    await month_repo.save(org_id, month)
+    await run_repo.create(
+        org_id,
+        Run(
+            run_id=run_id,
+            kind=RunKind.MONTH,
+            target=month_str,
+            generation=gen,
+            status=RunStatus.RUNNING,
+        ),
+    )
+
+    fake_reader = FakeDocumentReader(
+        month_explanation=MonthExplanation(
+            summary="Clean month summary.",
+            next_steps=[],
+        )
+    )
+    deps.reader = fake_reader
+
+    wf = build_month_workflow(deps)
+    sessions = InMemorySessionService()
+    runner = Runner(agent=cast(Any, wf), app_name="kredibel", session_service=sessions)
+
+    await sessions.create_session(
+        app_name="kredibel",
+        user_id="user_1",
+        session_id=run_id,
+        state={
+            "node_input": {
+                "orgId": org_id,
+                "month": month_str,
+                "generation": gen,
+                "runId": run_id,
+            }
+        },
+    )
+
+    async for _ in runner.run_async(user_id="user_1", session_id=run_id):
+        pass
+
+    calls_first_run = len([c for c in fake_reader.calls if c[0] == "explain_month"])
+    assert calls_first_run == 1
+
+    # Second run with same data
+    run_id_2 = f"month-{org_id}-{month_str}-2"
+    await run_repo.create(
+        org_id,
+        Run(
+            run_id=run_id_2,
+            kind=RunKind.MONTH,
+            target=month_str,
+            generation=2,
+            status=RunStatus.RUNNING,
+        ),
+    )
+    month_2 = await month_repo.get(org_id, month_str)
+    assert month_2 is not None
+    month_2.generation = 2
+    month_2.dirty = True
+    await month_repo.save(org_id, month_2)
+
+    await sessions.create_session(
+        app_name="kredibel",
+        user_id="user_1",
+        session_id=run_id_2,
+        state={
+            "node_input": {
+                "orgId": org_id,
+                "month": month_str,
+                "generation": 2,
+                "runId": run_id_2,
+            }
+        },
+    )
+
+    async for _ in runner.run_async(user_id="user_1", session_id=run_id_2):
+        pass
+
+    calls_second_run = len([c for c in fake_reader.calls if c[0] == "explain_month"])
+    assert calls_second_run == 1  # Not called again because hash was unchanged!

@@ -1,5 +1,6 @@
 """Month workflow node factories with stubs for specs 004-008 (docs/06 §3, §4)."""
 
+import hashlib
 from decimal import Decimal
 from typing import Any
 
@@ -23,11 +24,13 @@ from app.agents.stages import stage
 from app.domain.checks.month import MonthContext, run_month_checks
 from app.domain.evidence import document_evidence, line_support
 from app.domain.figures import month_figures
-from app.domain.findings import merge_findings
+from app.domain.findings import Finding, merge_findings
+from app.domain.grounding import GroundingContext, check_grounding
 from app.domain.models.document import DocStatus, DocType
 from app.domain.models.match import StoredMatch
 from app.domain.models.month import Month, MonthState
 from app.domain.models.run import RunStatus
+from app.domain.next_steps import next_steps_for_findings
 from app.domain.reconcile import assign_matches
 from app.domain.risk import RiskAssessment, assess_document_risk, assess_month_risk
 
@@ -325,10 +328,178 @@ def score_risk(deps: PipelineDeps):
     return _node
 
 
+def _compute_explanation_hash(level: str, findings: list[Finding], figures: dict[str, Any]) -> str:
+    components = [
+        level,
+        ",".join(sorted(f"{f.finding_id}:{f.status}" for f in findings)),
+        ",".join(
+            sorted(f"{k}:{v}" for k, v in figures.items() if isinstance(v, (str, int, float)))
+        ),
+    ]
+    return hashlib.sha256("|".join(components).encode("utf-8")).hexdigest()
+
+
 def explain_month(deps: PipelineDeps):
     @stage(deps, "explain_month")
     async def _node(ctx: Context, node_input: dict[str, Any]) -> dict[str, Any]:
-        return {**node_input, "summary": "Skipped: month explanations are not implemented"}
+        org_id = str(node_input.get("orgId") or node_input.get("org_id") or "")
+        month_str = str(node_input.get("month") or "")
+        risk_data = node_input.get("risk") or {}
+        level = risk_data.get("level", "LOW")
+
+        if deps.findings is None:
+            return {**node_input, "summary": "Skipped: findings repo not configured"}
+
+        # 1. Gather all findings (month scoped + document scoped for documents in month)
+        month_findings = await deps.findings.list_findings(org_id, month=month_str)
+        docs, _ = await deps.doc_repo.list_documents(org_id, limit=500)
+        month_docs = [d for d in docs if month_str in d.months and d.status != DocStatus.FAILED]
+        all_findings_list: list[Finding] = list(month_findings)
+        for doc in month_docs:
+            d_findings = await deps.findings.list_findings(org_id, doc_id=doc.doc_id)
+            all_findings_list.extend(d_findings)
+
+        unique_findings_map = {f.finding_id: f for f in all_findings_list}
+        unique_findings = list(unique_findings_map.values())
+        live_findings = [f for f in unique_findings if f.status in ("OPEN", "ACKNOWLEDGED")]
+
+        # 2. Extract facts and figures
+        current_month = await deps.month_repo.get(org_id, month_str)
+        figures = (
+            node_input.get("figures") or (current_month.figures if current_month else {}) or {}
+        )
+
+        # 3. Check hash skip (AC-008-6)
+        exp_hash = _compute_explanation_hash(level, unique_findings, figures)
+        if current_month and current_month.risk and current_month.risk.get("hash") == exp_hash:
+            return {
+                **node_input,
+                "summary": "Explanation unchanged (hash skip)",
+            }
+
+        # 4. Determine catalog next steps (AC-008-4)
+        catalog_steps = (
+            next_steps_for_findings(live_findings, deps.risk_policy) if deps.risk_policy else []
+        )
+
+        # 5. Build grounding context
+        facts_dict: dict[str, Any] = {}
+        for k, v in figures.items():
+            if isinstance(v, dict) and "value" in v:
+                facts_dict[f"{month_str}:{k}"] = v["value"]
+                facts_dict[k] = v["value"]
+            elif isinstance(v, (str, int, float, Decimal)):
+                facts_dict[f"{month_str}:{k}"] = v
+                facts_dict[k] = v
+
+        grounding_ctx = GroundingContext(
+            facts=facts_dict,
+            findings=unique_findings_map,
+            documents={d.doc_id for d in month_docs},
+        )
+
+        # 6. Call reader / explainer if reader available
+        summary: str = ""
+        ordered_steps: list[str] = list(catalog_steps)
+        finding_explanations: dict[str, str] = {}
+        grounding = "TEMPLATE"
+
+        if deps.reader:
+            try:
+                findings_text = "\n".join(
+                    f"- {f.finding_id} ({f.code}, {f.severity}): {f.title}. Facts: {f.facts}"
+                    for f in live_findings
+                )
+                figures_text = "\n".join(f"- {k}: {v}" for k, v in facts_dict.items())
+
+                res = await deps.reader.explain_month(
+                    level=level,
+                    findings_facts=findings_text,
+                    figures_summary=figures_text,
+                    catalog_steps=catalog_steps,
+                )
+                explanation_val = res.value
+                g_res = check_grounding(explanation_val.summary, grounding_ctx)
+
+                if g_res.valid:
+                    grounding = "VERIFIED"
+                    summary = explanation_val.summary
+                    ordered_steps = explanation_val.next_steps or catalog_steps
+                    finding_explanations = {
+                        fe.finding_id: fe.explanation for fe in explanation_val.finding_explanations
+                    }
+                else:
+                    # Retry once with problems appended (AC-008-5)
+                    retry_res = await deps.reader.explain_month(
+                        level=level,
+                        findings_facts=findings_text,
+                        figures_summary=figures_text,
+                        catalog_steps=catalog_steps,
+                        retry_problems=g_res.problems,
+                    )
+                    retry_val = retry_res.value
+                    retry_g_res = check_grounding(retry_val.summary, grounding_ctx)
+                    if retry_g_res.valid:
+                        grounding = "VERIFIED"
+                        summary = retry_val.summary
+                        ordered_steps = retry_val.next_steps or catalog_steps
+                        finding_explanations = {
+                            fe.finding_id: fe.explanation for fe in retry_val.finding_explanations
+                        }
+            except Exception:
+                grounding = "TEMPLATE"
+
+        # 7. Template fallback if not verified
+        if grounding == "TEMPLATE" or not summary:
+            grounding = "TEMPLATE"
+            if level == "CRITICAL":
+                summary = (
+                    "Critical fraud risk detected for this month based on document integrity "
+                    "and arithmetic findings."
+                )
+            elif level == "HIGH":
+                summary = (
+                    "High fraud risk detected for this month requiring verification "
+                    "before sign-off."
+                )
+            elif level == "MEDIUM":
+                summary = (
+                    "Medium risk items or held possible duplicates require review before closing."
+                )
+            else:
+                summary = "No high-risk findings detected for this month."
+            ordered_steps = catalog_steps
+            finding_explanations = {
+                f.finding_id: f.title for f in live_findings if f.severity in ("HIGH", "CRITICAL")
+            }
+
+        # 8. Update month findings in finding_repo with their explanation if present
+        if finding_explanations and month_findings:
+            updated_month_findings = []
+            for f in month_findings:
+                if f.finding_id in finding_explanations:
+                    f.explanation = finding_explanations[f.finding_id]
+                updated_month_findings.append(f)
+            run_id = str(node_input.get("runId") or node_input.get("run_id") or "")
+            await deps.findings.replace_month_findings(
+                org_id, month_str, updated_month_findings, run_id=run_id
+            )
+
+        # 9. Store in risk_data
+        updated_risk = {
+            **risk_data,
+            "summary": summary,
+            "nextSteps": ordered_steps,
+            "findingExplanations": finding_explanations,
+            "grounding": grounding,
+            "hash": exp_hash,
+        }
+
+        return {
+            **node_input,
+            "risk": updated_risk,
+            "summary": f"Month explanation generated ({grounding})",
+        }
 
     return _node
 

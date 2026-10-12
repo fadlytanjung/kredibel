@@ -2,7 +2,7 @@
 plus its layout chunks. Implemented with Gemini; tests use a recorded fake."""
 
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Any, Protocol
 
 from app.domain.reading import (
     CategorizeResult,
@@ -55,4 +55,15 @@ class DocumentReader(Protocol):
         self, items: list[TransactionItem], vocabulary: str
     ) -> ReaderCall[CategorizeResult]:
         """Categories for up to 100 bank lines the keyword rules left (docs/08 §4.1)."""
+        ...
+
+    async def explain_month(
+        self,
+        level: str,
+        findings_facts: str,
+        figures_summary: str,
+        catalog_steps: list[str],
+        retry_problems: list[str] | None = None,
+    ) -> ReaderCall[Any]:
+        """Gemini explanation for the month's fraud risk level (spec 008, AC-008-4)."""
         ...

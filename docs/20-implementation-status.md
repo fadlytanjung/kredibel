@@ -62,7 +62,7 @@ _Last updated: 12 Oct 2026 — Local OTLP tracing and generated invoice/receipt 
 | Months page, manual match and unmatch | 007 | Built | `MonthsPage` (`/months`), `MonthPage` (`/months/:month`), `MatchService`, `POST /api/matches` and `DELETE /api/matches/{matchId}` built and tested. Includes facts bar, Gemini explanation card, match breakdown meter, filter chips, bank lines table, and manual Match/Unmatch UI controls |
 | Counterparties (accounts seen) + profile suggestions | 014 | Specified | |
 | Risk levels + next-step catalog | 008 | Built | Pure deterministic rules, score calculation, next steps catalog and month/doc workflow scoring nodes implemented (T008-01, T008-02) |
-| Explainer + grounding guard | 008 | Specified | |
+| Explainer + grounding guard | 008 | Built | Pure grounding guard (marker resolution, number normalization, ungrounded rejection), explain_month prompt, retry, hash skip, and template fallback (T008-03, T008-04) |
 
 ## Review, risk and insight
 

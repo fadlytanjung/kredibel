@@ -367,23 +367,26 @@ def reconciliation() -> str:
 # ------------------------------------------------------------------------------------------------
 
 def month() -> str:
+    # Categories are badges coloured by cash-flow class (operating, investing, financing, not cash,
+    # not categorized); support is a chip per state (ADR-025), so different states never look alike.
     lines = [
-        ("10 Mar", "VAT PAYMENT FEB", "−4,860,000", "out", "Tax", ("auto", "link", "Ledger entry, 10 Mar"), "Same amount and date in the ledger", False),
-        ("11 Mar", "TRANSFER IN DAYBREAK CAFE", "+6,420,000", "in", "Sales", ("auto", "link", "Invoice 0007"), "Same amount, same client, paid 5 days after issue", False),
-        ("12 Mar", "TRANSFER OUT GREEN VALLEY FARMS 0912", "−9,850,000", "out", "Supplier", ("auto", "link", "Invoice GVF-2026-0311"), "Same amount, same supplier, same account as before", False),
-        ("12 Mar", "CASH DEPOSIT", "+2,240,000", "in", "Cash deposit", ("auto", "link", "Ledger entry, 12 Mar"), "Same amount and date in the ledger", False),
-        ("14 Mar", "TRANSFER IN HARBORVIEW HOTEL GROUP", "+7,250,000", "in", "Sales", ("none", "unlink", "No match"), "Your ledger and invoice 0009 say IDR 1,250,000", True),
-        ("15 Mar", "TRANSFER OUT PRIMEPACK PACKAGING", "−3,180,000", "out", "Supplier", ("manual", "hand", "Invoice PP/26/0312"), "Matched by Maya on 12 Jul", False),
-        ("17 Mar", "INSTANT TRANSFER IN HIGHLAND RESORT &amp; SPA", "+8,900,000", "in", "Sales", ("auto", "link", "Invoice 0010, net of tax"), "Paid 2% below the total: withholding tax", False),
-        ("18 Mar", "DEBIT CARD CENDANA FUEL STATION", "−650,000", "out", "Operating cost", ("auto", "link", "Receipt, 18 Mar"), "Same amount, merchant and date", False),
+        ("10 Mar", "VAT PAYMENT FEB", "−4,860,000", "out", ("Tax", "brand"), ("auto", "link", "Ledger entry, 10 Mar"), "Same amount and date in the ledger", False),
+        ("11 Mar", "TRANSFER IN DAYBREAK CAFE", "+6,420,000", "in", ("Sales receipts", "brand"), ("auto", "link", "Invoice 0007"), "Same amount, same client, paid 5 days after issue", False),
+        ("12 Mar", "TRANSFER OUT GREEN VALLEY FARMS 0912", "−9,850,000", "out", ("Purchases for sale or production", "brand"), ("proposed", "eye", "Proposed: invoice GVF-2026-0311"), "Same amount and supplier; check it before it counts", False),
+        ("12 Mar", "TRANSFER TO OWN SAVINGS ••7710", "−2,000,000", "out", ("Between own accounts", "outline"), ("excluded", "refresh", "Not counted"), "Between your own accounts, so not money in or out", False),
+        ("14 Mar", "TRANSFER IN HARBORVIEW HOTEL GROUP", "+7,250,000", "in", ("Sales receipts", "brand"), ("none", "unlink", "No match"), "Your ledger and invoice 0009 say IDR 1,250,000", True),
+        ("15 Mar", "TRANSFER OUT PRIMEPACK PACKAGING", "−3,180,000", "out", ("Other suppliers and services", "brand"), ("manual", "hand", "Invoice PP/26/0312"), "Matched by Maya on 12 Jul", False),
+        ("16 Mar", "MONTHLY ACCOUNT FEE", "−35,000", "out", ("Bank fees", "brand"), ("cleared", "check", "No document needed"), "Maya: the bank's own fee, no invoice", False),
+        ("17 Mar", "PURCHASE ESPRESSO MACHINE", "−18,400,000", "out", ("Equipment bought", "low"), ("none", "file-text", "No document yet"), "Bank cash is recorded; upload its invoice", False),
+        ("18 Mar", "DEBIT CARD CENDANA FUEL STATION", "−650,000", "out", ("Not categorized yet", "medium"), ("auto", "link", "Receipt, 18 Mar"), "Same amount, merchant and date", False),
     ]
     trs = []
-    for d, desc, amt, direction, cat, (mk, mi, ml), reason, flagged in lines:
+    for d, desc, amt, direction, (cat, cat_cls), (mk, mi, ml), reason, flagged in lines:
         amt_cls = "amt-in" if direction == "in" else "amt-out"
         amt_html = f'<span class="reading reading-agreed">{amt}</span>'
         ev = f' <a class="citation" href="evidence-viewer.html">{icon("eye")}Evidence</a>' if flagged else ""
         trs.append(f"""<tr{' class="is-flagged"' if flagged else ''}>
-  <td data-cell="wide"><strong>{desc}</strong><div class="reason">{d}, {cat}</div></td>
+  <td data-cell="wide"><strong>{desc}</strong><div class="reason">{d}</div><span class="badge badge-{cat_cls}">{cat}</span></td>
   <td class="r"><span class="{amt_cls}">{amt_html}</span></td>
   <td data-cell="wide"><span class="match-chip {mk}">{icon(mi)}<span>{ml}</span></span><div class="reason">{reason}{ev}</div></td>
 </tr>""")

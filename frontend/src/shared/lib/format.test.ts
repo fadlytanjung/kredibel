@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import i18n from '../i18n/setup'
 import { formatDate } from './formatDate'
-import { formatMoney } from './formatMoney'
+import { formatAmount, formatMoney } from './formatMoney'
 
 const ORIGINAL_TZ = process.env.TZ
 
@@ -72,5 +72,15 @@ describe('formatDate (AC-001-14)', () => {
   it('uses the active i18n locale', async () => {
     await i18n.changeLanguage('de')
     expect(formatDate('2026-10-11')).toContain('Okt')
+  })
+})
+
+describe('formatAmount', () => {
+  it('prints the amount once, without its currency, in the currency’s own digits', () => {
+    expect(formatAmount('2502.33', { currency: 'MYR' })).toBe('2,502.33')
+    expect(formatAmount('-5831.45', { currency: 'MYR' })).toBe('-5,831.45')
+    expect(formatAmount('41100000.00', { currency: 'IDR' })).toBe('41,100,000')
+    expect(formatAmount('12345678901234567.89', { currency: 'USD' })).toBe('12,345,678,901,234,567.89')
+    expect(formatAmount('not money', { currency: 'MYR' })).toBe('')
   })
 })

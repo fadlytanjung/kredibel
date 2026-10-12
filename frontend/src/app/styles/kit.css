@@ -362,19 +362,22 @@ a:hover { color: var(--k-color-brand-hover); }
 }
 
 .ledger { container: ledger / inline-size; }
-.ledger-figures { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); background: var(--k-color-bg-surface); border: 1px solid var(--k-color-border-default); border-radius: var(--k-radius-md); overflow: hidden; }
-.ledger-figures > div { padding: var(--k-space-4); display: flex; flex-direction: column; gap: 4px; border-top: 1px solid var(--k-color-border-default); min-width: 0; }
-.ledger-figures > div:nth-child(-n+2) { border-top: 0; }
-.ledger-figures > div:nth-child(2n) { border-left: 1px solid var(--k-color-border-default); }
-@container ledger (width >= 900px) {
-  .ledger-figures { grid-template-columns: repeat(6, minmax(0, 1fr)); }
-  .ledger-figures > div { border-top: 0; border-left: 1px solid var(--k-color-border-default); padding: var(--k-space-5); }
-  .ledger-figures > div:first-child { border-left: 0; }
+/* The cells sit on a 1px gap over the border colour, so any column count draws its own rules. Six
+   figures go 2, 3, then 6 across; four go 2, then 4. Values never spill into the next cell. */
+.ledger-figures { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: var(--k-color-border-default); border: 1px solid var(--k-color-border-default); border-radius: var(--k-radius-md); overflow: hidden; }
+.ledger-figures > div { padding: var(--k-space-4); display: flex; flex-direction: column; gap: 4px; min-width: 0; background: var(--k-color-bg-surface); }
+@container ledger (width >= 640px) {
+  .ledger-figures:has(> :nth-child(5)) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .ledger-figures:not(:has(> :nth-child(5))) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .ledger-figures > div { padding: var(--k-space-5); }
 }
+@container ledger (width >= 1280px) { .ledger-figures:has(> :nth-child(5)) { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
 .ledger-figures dt { font-size: 13px; line-height: 18px; color: var(--k-color-text-muted); display: flex; align-items: center; gap: 6px; }
-.ledger-figures dd.v { font-size: 22px; line-height: 28px; font-weight: 640; font-stretch: 108%; letter-spacing: -0.005em; font-variant-numeric: tabular-nums lining-nums; white-space: nowrap; }
+.ledger-figures dd.v { font-size: 22px; line-height: 28px; font-weight: 640; font-stretch: 108%; letter-spacing: -0.005em; font-variant-numeric: tabular-nums lining-nums; overflow-wrap: anywhere; }
 .ledger-figures dd.v small { font-size: 13px; font-weight: 560; color: var(--k-color-text-muted); margin-right: 3px; letter-spacing: 0; }
 @container ledger (width >= 900px) { .ledger-figures dd.v { font-size: 26px; line-height: 32px; } }
+/* Narrow grids: the code above the number and a smaller number, so a long amount stays whole. */
+@container ledger (width < 480px) { .ledger-figures dd.v { font-size: 17px; line-height: 23px; } .ledger-figures dd.v small { display: block; margin: 0 0 2px; } }
 .ledger-figures dd.n { font-size: 12.5px; line-height: 17px; color: var(--k-color-text-muted); }
 .ledger-figures dd.n.up { color: var(--k-color-verdict-clean-fg); }
 .ledger-figures .is-attn dd.v { color: var(--k-color-severity-high-fg); }
@@ -526,6 +529,8 @@ a:hover { color: var(--k-color-brand-hover); }
 .match-chip.manual { background: var(--k-color-severity-low-bg); color: var(--k-color-severity-low-fg); }
 .match-chip.proposed { background: var(--k-color-severity-medium-bg); color: var(--k-color-severity-medium-fg); }
 .match-chip.none { background: var(--k-color-bg-sunken); color: var(--k-color-text-muted); }
+.match-chip.cleared { background: var(--k-color-verdict-clean-bg); color: var(--k-color-verdict-clean-fg); }
+.match-chip.excluded { background: transparent; box-shadow: inset 0 0 0 1px var(--k-color-border-strong); color: var(--k-color-text-muted); }
 .reason { font-size: 12.5px; line-height: 17px; color: var(--k-color-text-muted); margin-top: 3px; }
 
 /* Responsive table: rows become list items in narrow containers */

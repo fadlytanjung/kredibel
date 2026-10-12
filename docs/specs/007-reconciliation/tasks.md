@@ -58,6 +58,13 @@
 - [x] **T007-10a** Reusable `DataTable<T>` (search, filter chips with counts, 25 a page, sortable
   columns, keyboard rows, empty state) for the month's bank lines and a statement's transactions.
   (AC-007-12)
+- [x] **T007-10b** Month figures only from the month run's facts (currency printed once, no value
+  spilling into the next cell at 360–1600 px, the real automatic match rate, "—" with a note when a
+  fact does not exist, the meter from the match counts, the explanation from `risk.summary`); support
+  and categories labelled per state with distinct colours (ADR-025). (AC-007-12)
+- [ ] **T007-10c** Months page tabs Bank evidence, Documents first and Currency on the workspace's
+  own data (bank lines by support, invoices and receipts by payment evidence, documents waiting for
+  a currency agreement); they show fixed sample rows today. (AC-007-14…19)
 
 ## Phase 4 — Close
 

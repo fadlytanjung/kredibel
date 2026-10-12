@@ -41,3 +41,19 @@ export function formatMoney(amount: string, options: FormatMoneyOptions = {}): s
   })
   return formatter.format(amount as Intl.StringNumericLiteral)
 }
+
+/**
+ * The amount alone, with the currency's own minor digits (ADR-020): for places that print the
+ * currency once beside it, such as a figure with its code in small type.
+ */
+export function formatAmount(amount: string, options: Omit<FormatMoneyOptions, 'code' | 'compact'> = {}): string {
+  const { currency = 'IDR', fractionDigits } = options
+  if (!DECIMAL.test(amount)) {
+    return ''
+  }
+  const digits = fractionDigits ?? (WHOLE_UNITS.has(currency) ? 0 : 2)
+  return new Intl.NumberFormat(activeLocale(), {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  }).format(amount as Intl.StringNumericLiteral)
+}

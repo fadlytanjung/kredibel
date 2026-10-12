@@ -1,32 +1,96 @@
 /**
- * MonthPage: Month reconciliation workbench (spec 007, AC-007-12..19).
+ * MonthPage: one month's reconciliation workbench (spec 007, AC-007-12…19; mock month.html).
  *
- * Displays figures, Gemini explanation, breakdown meter, filter chips,
- * and the bank lines list with match chips, plus manual Match/Unmatch controls.
+ * Every figure is a fact of the month run (docs/08 §5): when a fact does not exist the page says
+ * so instead of showing a number. Support and categories are labelled by their own state, so a
+ * line matched by Kredibel, one waiting for a document and one between own accounts look different.
  */
 
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
-import { type BankLine, useMonthBankLines } from '../entities/bank-line'
-import { useCreateMatch, useMatches, useUnmatch } from '../entities/match'
+import { type BankLine, isIncoming, useMonthBankLines } from '../entities/bank-line'
+import { type Match, useCreateMatch, useMatches, useUnmatch } from '../entities/match'
 import { useMonth, useReconcileMonth } from '../entities/month'
 import { useWorkspace } from '../entities/workspace'
-import { formatMoney } from '../shared/lib/formatMoney'
+import { formatDate } from '../shared/lib/formatDate'
+import { formatAmount } from '../shared/lib/formatMoney'
 import { Badge, Button, DataTable, type DataTableColumn, type DataTableFilter, Icon } from '../shared/ui'
+import type { IconName } from '../shared/ui/Icon'
 
+type Support = 'AUTO' | 'MANUAL' | 'PROPOSED' | 'NOT_REQUIRED' | 'EXCLUDED' | 'NO_SUPPORT' | 'NOT_RUN'
+type Figures = Record<string, { value?: string } | undefined> | undefined
 
-function factValue(fact: { value?: unknown } | undefined, fallback = '0.00'): string {
-  if (!fact || fact.value === undefined || fact.value === null) return fallback
-  if (typeof fact.value === 'object' && 'amount' in fact.value) {
-    return String((fact.value as { amount: string }).amount)
+const SUPPORT_CHIP: Record<Support, { chip: string; icon: IconName }> = {
+  AUTO: { chip: 'auto', icon: 'link' },
+  MANUAL: { chip: 'manual', icon: 'hand' },
+  PROPOSED: { chip: 'proposed', icon: 'eye' },
+  NOT_REQUIRED: { chip: 'cleared', icon: 'check' },
+  EXCLUDED: { chip: 'excluded', icon: 'refresh' },
+  NO_SUPPORT: { chip: 'none', icon: 'file-text' },
+  NOT_RUN: { chip: 'none', icon: 'clock' },
+}
+const CASHFLOW_BADGE = {
+  OPERATING: 'brand',
+  INVESTING: 'low',
+  FINANCING: 'evidence',
+  NON_CASH: 'outline',
+  UNCLASSIFIED: 'medium',
+} as const
+const STATE_BADGE = {
+  COLLECTING: 'outline',
+  RECONCILING: 'low',
+  NEEDS_REVIEW: 'medium',
+  RECONCILED: 'clean',
+  SIGNED_OFF: 'clean',
+} as const
+const MARK = {
+  AGREED: 'reading-agreed',
+  SINGLE_SOURCE: 'reading-single',
+  CONFLICT: 'reading-conflict',
+  MISSING: 'reading-conflict',
+} as const
+
+/** What supports a bank line (ADR-025), from the month run's state and the match's method. */
+function supportOf(line: BankLine, match: Match | undefined): Support {
+  switch (line.support) {
+    case 'MATCHED':
+      return match?.method === 'MANUAL' || line.match?.state === 'MANUAL' ? 'MANUAL' : 'AUTO'
+    case 'PROPOSED':
+    case 'NOT_REQUIRED':
+    case 'EXCLUDED':
+    case 'NO_SUPPORT':
+      return line.support
+    default:
+      return 'NOT_RUN'
   }
-  return String(fact.value)
+}
+
+function value(figures: Figures, name: string): string | undefined {
+  return figures?.[name]?.value ?? undefined
+}
+
+function count(figures: Figures, name: string): number {
+  return Number(value(figures, name) ?? 0)
+}
+
+function monthAround(month: string) {
+  const [year, number] = month.split('-').map((part) => parseInt(part, 10))
+  const shift = (by: number) => {
+    const d = new Date(Date.UTC(year || 2026, (number || 1) - 1 + by, 1))
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`
+  }
+  const label = new Date(Date.UTC(year || 2026, (number || 1) - 1, 1)).toLocaleDateString('en-US', {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  })
+  return { previous: shift(-1), next: shift(1), label }
 }
 
 export function MonthPage() {
   const { t } = useTranslation(['months', 'common'])
-  const { month = '2026-03' } = useParams<{ month: string }>()
+  const { month = '' } = useParams<{ month: string }>()
   const { data: monthData } = useMonth(month)
   const { data: linesData, isLoading: linesLoading } = useMonthBankLines(month)
   const { data: matchesData } = useMatches(month)
@@ -39,37 +103,36 @@ export function MonthPage() {
   const [matchCandidateId, setMatchCandidateId] = useState<string>('')
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
 
-  const activeMonth = monthData
   const lines = linesData?.items ?? []
   const matches = matchesData?.items ?? []
-  const currency = ws?.currency ?? 'IDR'
+  const currency = ws?.currency ?? lines[0]?.amount?.currency ?? ''
+  const figures = monthData?.figures as Figures
+  const risk = monthData?.risk
+  const { previous, next, label: monthLabel } = monthAround(month)
+  const matchOf = (line: BankLine) => matches.find((m) => m.matchId === line.match?.matchIds?.[0])
+  const support = (line: BankLine) => supportOf(line, matchOf(line))
 
-  // Month navigation calculation
-  const parts = month.split('-')
-  const year = parseInt(parts[0], 10) || 2026
-  const mon = parseInt(parts[1], 10) || 3
-  const prevDate = new Date(Date.UTC(year, mon - 2, 1))
-  const nextDate = new Date(Date.UTC(year, mon, 1))
-  const prevStr = `${prevDate.getUTCFullYear()}-${String(prevDate.getUTCMonth() + 1).padStart(2, '0')}`
-  const nextStr = `${nextDate.getUTCFullYear()}-${String(nextDate.getUTCMonth() + 1).padStart(2, '0')}`
-  const monthDate = new Date(Date.UTC(year, mon - 1, 1))
-  const monthLabel = monthDate.toLocaleDateString('en-US', {
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'UTC',
-  })
-
-  const isReconciled = activeMonth?.state === 'RECONCILED'
-  const isNeedsReview = activeMonth?.state === 'NEEDS_REVIEW'
-  const state = activeMonth?.state ?? 'RECONCILED'
-  const isCritical = activeMonth?.risk?.level === 'CRITICAL'
-
-  const openingVal = factValue(activeMonth?.figures?.opening ?? activeMonth?.figures?.opening_balance, '0.00')
-  const moneyInVal = factValue(activeMonth?.figures?.money_in ?? activeMonth?.figures?.moneyIn, '0.00')
-  const moneyOutVal = factValue(activeMonth?.figures?.money_out ?? activeMonth?.figures?.moneyOut, '0.00')
-  const closingVal = factValue(activeMonth?.figures?.closing ?? activeMonth?.figures?.closing_balance, '0.00')
-  const matchRateVal = factValue(activeMonth?.figures?.auto_match_rate ?? activeMonth?.figures?.match_rate, '86%')
-  const ledgerDiffVal = factValue(activeMonth?.figures?.ledger_difference ?? activeMonth?.figures?.ledgerDifference, '0.00')
+  const amount = (name: string, absolute = false) => {
+    const v = value(figures, name)
+    if (v === undefined) return undefined
+    return formatAmount(absolute ? v.replace(/^-/, '') : v, { currency })
+  }
+  const opening = amount('opening')
+  const closing = amount('closing')
+  const moneyIn = amount('moneyIn')
+  const moneyOut = amount('moneyOut', true)
+  const ledgerDifference = amount('ledgerDifference')
+  const autoRate = value(figures, 'autoMatchRate')
+  const autoPercent = autoRate === undefined ? undefined : Math.round(Number(autoRate) * 100)
+  const inScope = count(figures, 'bankLines') - count(figures, 'excluded')
+  const meter = {
+    auto: count(figures, 'autoMatched'),
+    manual: count(figures, 'manuallyMatched'),
+    open: count(figures, 'proposed') + count(figures, 'unmatched'),
+  }
+  const meterTotal = meter.auto + meter.manual + meter.open
+  const share = (n: number) => `${((n / meterTotal) * 100).toFixed(1)}%`
+  const credits = lines.filter(isIncoming).length
 
   const handleManualMatch = async (txId: string) => {
     if (!matchCandidateId.trim()) return
@@ -77,218 +140,198 @@ export function MonthPage() {
       await createMatchMutation.mutateAsync({
         bankLineIds: [txId],
         invoiceIds: [matchCandidateId.trim()],
-        note: 'Manual match created by user',
       })
-      setStatusMessage(`Matched ${txId} with ${matchCandidateId.trim()}`)
+      setStatusMessage(t('months:monthDetail.matchedStatus', { id: matchCandidateId.trim() }))
       setMatchingTxId(null)
       setMatchCandidateId('')
     } catch {
-      setStatusMessage('Failed to create match')
+      setStatusMessage(t('months:monthDetail.matchFailed'))
     }
   }
 
   const handleUnmatch = async (matchId: string) => {
     try {
       await unmatchMutation.mutateAsync(matchId)
-      setStatusMessage(`Unmatched ${matchId}`)
+      setStatusMessage(t('months:monthDetail.unmatchedStatus'))
     } catch {
-      setStatusMessage('Failed to unmatch')
+      setStatusMessage(t('months:monthDetail.unmatchFailed'))
     }
   }
 
-  const filters: DataTableFilter<BankLine>[] = useMemo(
-    () => [
-      {
-        key: 'all',
-        label: t('months:monthDetail.filterAll'),
-        predicate: () => true,
-        count: lines.length,
-      },
-      {
-        key: 'open',
-        label: t('months:monthDetail.filterOpen'),
-        predicate: (l) => !l.match?.matchIds?.length,
-        count: lines.filter((l) => !l.match?.matchIds?.length).length,
-      },
-      {
-        key: 'in',
-        label: t('months:monthDetail.filterIn'),
-        predicate: (l) => Number(l.amount?.amount ?? 0) > 0,
-        count: lines.filter((l) => Number(l.amount?.amount ?? 0) > 0).length,
-      },
-      {
-        key: 'out',
-        label: t('months:monthDetail.filterOut'),
-        predicate: (l) => Number(l.amount?.amount ?? 0) < 0,
-        count: lines.filter((l) => Number(l.amount?.amount ?? 0) < 0).length,
-      },
-    ],
-    [lines, t],
-  )
+  const isOpen = (line: BankLine) => ['PROPOSED', 'NO_SUPPORT', 'NOT_RUN'].includes(support(line))
+  const filters: DataTableFilter<BankLine>[] = [
+    { key: 'all', label: t('months:monthDetail.filterAll'), predicate: () => true, count: lines.length },
+    { key: 'open', label: t('months:monthDetail.filterOpen'), predicate: isOpen, count: lines.filter(isOpen).length },
+    { key: 'in', label: t('months:monthDetail.filterIn'), predicate: isIncoming, count: credits },
+    {
+      key: 'out',
+      label: t('months:monthDetail.filterOut'),
+      predicate: (line) => !isIncoming(line),
+      count: lines.length - credits,
+    },
+  ]
 
-  const columns: DataTableColumn<BankLine>[] = useMemo(
-    () => [
-      {
-        key: 'bankLine',
-        header: t('months:monthDetail.colBankLine'),
-        wideOnMobile: true,
-        sortable: true,
-        sortValue: (line) => line.description,
-        render: (line) => (
-          <div>
-            <strong>{line.description}</strong>
-            <div className="reason">
-              {line.date}, {line.category}
+  const categoryLabel = (line: BankLine) => t(`months:categories.${line.category ?? 'UNKNOWN'}`)
+
+  const columns: DataTableColumn<BankLine>[] = [
+    {
+      key: 'bankLine',
+      header: t('months:monthDetail.colBankLine'),
+      wideOnMobile: true,
+      sortable: true,
+      sortValue: (line) => line.date,
+      render: (line) => {
+        const cashflow = line.cashflowClass ?? 'UNCLASSIFIED'
+        const [first] = line.description.split('\n')
+        return (
+          <div className="stack gap-1">
+            <strong>{line.counterpartyName || first}</strong>
+            <div className="reason">{formatDate(line.date)}</div>
+            <div className="row gap-2 items-center flex-wrap">
+              <Badge
+                variant={CASHFLOW_BADGE[cashflow]}
+                aria-label={t('months:monthDetail.categoryAria', {
+                  category: categoryLabel(line),
+                  cashflow: t(`months:cashflow.${cashflow}`),
+                })}
+              >
+                {categoryLabel(line)}
+              </Badge>
+              {line.categorizedBy === 'USER' && (
+                <span className="reason">{t('months:monthDetail.categoryByYou')}</span>
+              )}
             </div>
           </div>
-        ),
+        )
       },
-      {
-        key: 'amount',
-        header: t('months:monthDetail.colAmount', { currency }),
-        align: 'right',
-        sortable: true,
-        sortValue: (line) => Number(line.amount?.amount ?? 0),
-        render: (line) => {
-          const isCredit = Number(line.amount?.amount ?? 0) > 0
-          return (
-            <span className={isCredit ? 'amt-in' : 'amt-out'}>
-              <span className="reading reading-agreed">
-                {isCredit ? '+' : ''}
-                {formatMoney(line.amount?.amount ?? '0.00', { currency })}
-              </span>
+    },
+    {
+      key: 'amount',
+      header: t('months:monthDetail.colAmount', { currency }),
+      align: 'right',
+      sortable: true,
+      sortValue: (line) => Number(line.amount?.amount ?? 0),
+      render: (line) => {
+        const incoming = isIncoming(line)
+        const status = line.readings?.amount?.status ?? 'AGREED'
+        return (
+          <span className={incoming ? 'amt-in' : 'amt-out'}>
+            <span className={`reading ${MARK[status]}`}>
+              {incoming ? '+' : ''}
+              {formatAmount(line.amount?.amount ?? '0', { currency })}
             </span>
-          )
-        },
+          </span>
+        )
       },
-      {
-        key: 'matchedWith',
-        header: t('months:monthDetail.colMatchedWith'),
-        wideOnMobile: true,
-        render: (line) => {
-          const matchId = line.match?.matchIds?.[0]
-          const matchObj = matches.find((m) => m.matchId === matchId)
-          const isManual = matchObj?.method === 'MANUAL'
-          const hasMatch = Boolean(matchId)
-
-          if (hasMatch) {
-            return (
-              <div>
-                <span className={`match-chip ${isManual ? 'manual' : 'auto'}`}>
-                  <Icon name="link" size="sm" />
-                  <span>
-                    {isManual
-                      ? t('months:monthDetail.matchedByYou')
-                      : t('months:monthDetail.matchedToDocument')}
-                  </span>
-                </span>
-                <div className="reason">
-                  {matchObj?.reasons?.join(', ') || t('months:monthDetail.matchedByKredibelDefault')}
-                </div>
-              </div>
-            )
-          }
-
-          return (
-            <div>
-              <span className="match-chip none">
-                <Icon name="file-text" size="sm" />
-                <span>{t('months:monthDetail.noSupportingDocument')}</span>
-              </span>
-              <div className="reason">
-                {line.support || t('months:monthDetail.bankRecordedNoDoc')}
-              </div>
-            </div>
-          )
-        },
+    },
+    {
+      key: 'matchedWith',
+      header: t('months:monthDetail.colMatchedWith'),
+      wideOnMobile: true,
+      render: (line) => {
+        const kind = support(line)
+        const reasons = matchOf(line)?.reasons ?? []
+        const reason =
+          (kind === 'AUTO' || kind === 'MANUAL') && reasons.length
+            ? reasons.map((r) => t(`months:monthDetail.matchReasons.${r}`, { defaultValue: r })).join(', ')
+            : kind === 'AUTO' || kind === 'MANUAL'
+              ? ''
+              : t(`months:monthDetail.supportReason.${kind}`)
+        return (
+          <div>
+            <span className={`match-chip ${SUPPORT_CHIP[kind].chip}`}>
+              <Icon name={SUPPORT_CHIP[kind].icon} size="sm" />
+              <span>{t(`months:monthDetail.support.${kind}`)}</span>
+            </span>
+            {reason && <div className="reason">{reason}</div>}
+          </div>
+        )
       },
-      {
-        key: 'actions',
-        header: t('months:monthDetail.colActions'),
-        align: 'right',
-        render: (line) => {
-          const matchId = line.match?.matchIds?.[0]
-          const hasMatch = Boolean(matchId)
-
-          if (hasMatch) {
-            return (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => handleUnmatch(matchId!)}
-              >
-                {t('months:monthDetail.unmatch')}
-              </Button>
-            )
-          }
-
-          if (matchingTxId === line.txId) {
-            return (
-              <div className="row gap-2 items-center">
-                <input
-                  className="input input-sm"
-                  placeholder={t('months:monthDetail.invoiceIdPlaceholder')}
-                  value={matchCandidateId}
-                  onChange={(e) => setMatchCandidateId(e.target.value)}
-                />
-                <Button size="sm" onClick={() => handleManualMatch(line.txId)}>
-                  {t('months:monthDetail.link')}
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setMatchingTxId(null)}
-                >
-                  {t('months:monthDetail.cancel')}
-                </Button>
-              </div>
-            )
-          }
-
+    },
+    {
+      key: 'actions',
+      header: t('months:monthDetail.colActions'),
+      align: 'right',
+      render: (line) => {
+        const kind = support(line)
+        const matchId = line.match?.matchIds?.[0]
+        if (kind === 'EXCLUDED' || kind === 'NOT_RUN') return null
+        if ((kind === 'AUTO' || kind === 'MANUAL') && matchId) {
           return (
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-                setMatchingTxId(line.txId)
-                setMatchCandidateId('')
-              }}
-            >
-              {t('months:monthDetail.match')}
+            <Button variant="secondary" size="sm" onClick={() => void handleUnmatch(matchId)}>
+              {t('months:monthDetail.unmatch')}
             </Button>
           )
-        },
+        }
+        if (matchingTxId === line.txId) {
+          return (
+            <div className="row gap-2 items-center">
+              <input
+                className="input input-sm"
+                placeholder={t('months:monthDetail.invoiceIdPlaceholder')}
+                value={matchCandidateId}
+                onChange={(e) => setMatchCandidateId(e.target.value)}
+              />
+              <Button size="sm" onClick={() => void handleManualMatch(line.txId)}>
+                {t('months:monthDetail.link')}
+              </Button>
+              <Button variant="secondary" size="sm" onClick={() => setMatchingTxId(null)}>
+                {t('months:monthDetail.cancel')}
+              </Button>
+            </div>
+          )
+        }
+        return (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              setMatchingTxId(line.txId)
+              setMatchCandidateId('')
+            }}
+          >
+            {t('months:monthDetail.match')}
+          </Button>
+        )
       },
-    ],
-    [currency, matches, matchingTxId, matchCandidateId, t],
-  )
+    },
+  ]
+
+  const noValue = t('months:monthDetail.noValue')
+  const figure = (shown: string | undefined) =>
+    shown === undefined ? (
+      noValue
+    ) : (
+      <>
+        <small>{currency}</small>
+        {shown}
+      </>
+    )
 
   return (
     <div className="page">
       <div className="month-head">
         <div className="row">
           <span className="month-switch">
-            <Link to={`/months/${prevStr}`} aria-label={t('months:monthDetail.previousMonth')}>
+            <Link to={`/months/${previous}`} aria-label={t('months:monthDetail.previousMonth')}>
               <Icon name="chevron-left" />
             </Link>
-            <Link to={`/months/${nextStr}`} aria-label={t('months:monthDetail.nextMonth')}>
+            <Link to={`/months/${next}`} aria-label={t('months:monthDetail.nextMonth')}>
               <Icon name="chevron-right" />
             </Link>
           </span>
           <h1 className="type-title">{monthLabel}</h1>
-          <Badge variant={isReconciled ? 'clean' : isNeedsReview ? 'medium' : 'default'}>
-            {state}
-          </Badge>
-          {isCritical && (
+          {monthData?.state && (
+            <Badge variant={STATE_BADGE[monthData.state]}>{t(`months:monthDetail.states.${monthData.state}`)}</Badge>
+          )}
+          {risk?.level === 'CRITICAL' && (
             <Badge variant="critical">
               <Icon name="shield-alert" size="sm" />
               {t('months:monthDetail.critical')}
             </Badge>
           )}
         </div>
-        <p className="muted">
-          {t('months:monthDetail.subtitle')}
-        </p>
+        <p className="muted">{monthData?.note || t('months:monthDetail.subtitle')}</p>
       </div>
 
       {statusMessage && (
@@ -298,86 +341,70 @@ export function MonthPage() {
       )}
 
       <div className="stack gap-6 mt-6">
-        {/* Figures summary */}
         <section className="ledger" aria-label={t('months:monthDetail.figuresAria', { month: monthLabel })}>
           <dl className="ledger-figures">
             <div>
               <dt>{t('months:monthDetail.openingBalance')}</dt>
-              <dd className="v">
-                <small>{currency}</small>
-                <span className="reading reading-agreed">
-                  {formatMoney(openingVal, { currency })}
-                </span>
+              <dd className="v">{figure(opening)}</dd>
+              <dd className="n">
+                {opening === undefined ? t('months:monthDetail.noBalances') : t('months:monthDetail.fromPreviousClosing')}
               </dd>
-              <dd className="n">{t('months:monthDetail.fromPreviousClosing')}</dd>
             </div>
             <div>
               <dt>{t('months:monthDetail.moneyIn')}</dt>
-              <dd className="v">
-                <small>{currency}</small>
-                <span className="reading reading-agreed">
-                  {formatMoney(moneyInVal, { currency })}
-                </span>
-              </dd>
-              <dd className="n">{t('months:monthDetail.creditsRecorded')}</dd>
+              <dd className="v">{figure(moneyIn)}</dd>
+              <dd className="n">{t('months:monthDetail.creditsRecorded', { count: credits })}</dd>
             </div>
             <div>
               <dt>{t('months:monthDetail.moneyOut')}</dt>
-              <dd className="v">
-                <small>{currency}</small>
-                <span className="reading reading-agreed">
-                  {formatMoney(moneyOutVal, { currency })}
-                </span>
-              </dd>
-              <dd className="n">{t('months:monthDetail.debitsRecorded')}</dd>
+              <dd className="v">{figure(moneyOut)}</dd>
+              <dd className="n">{t('months:monthDetail.debitsRecorded', { count: lines.length - credits })}</dd>
             </div>
             <div>
               <dt>{t('months:monthDetail.closingBalance')}</dt>
-              <dd className="v">
-                <small>{currency}</small>
-                <span className="reading reading-agreed">
-                  {formatMoney(closingVal, { currency })}
-                </span>
+              <dd className="v">{figure(closing)}</dd>
+              <dd className="n">
+                {closing === undefined ? t('months:monthDetail.noBalances') : t('months:monthDetail.asPrintedOnStatement')}
               </dd>
-              <dd className="n">{t('months:monthDetail.asPrintedOnStatement')}</dd>
             </div>
             <div>
               <dt>{t('months:monthDetail.matchedByKredibel')}</dt>
-              <dd className="v">{matchRateVal}</dd>
-              <dd className="n">{t('months:monthDetail.allocatedToDocs')}</dd>
-              <dd className="mini">
-                <i style={{ width: matchRateVal.endsWith('%') ? matchRateVal : `${matchRateVal}%` }} /* allow-raw-style: computed width */ />
+              <dd className="v">{autoPercent === undefined ? noValue : `${autoPercent}%`}</dd>
+              <dd className="n">
+                {t('months:monthDetail.allocatedToDocs', { matched: count(figures, 'autoMatched'), total: Math.max(inScope, 0) })}
               </dd>
+              {autoPercent !== undefined && (
+                <dd className="mini">
+                  <i style={{ width: `${autoPercent}%` }} /* allow-raw-style: the month's automatic match rate */ />
+                </dd>
+              )}
             </div>
             <div>
               <dt>{t('months:monthDetail.ledgerDifference')}</dt>
-              <dd className="v">
-                <small>{currency}</small>
-                {ledgerDiffVal}
+              <dd className="v">{figure(ledgerDifference)}</dd>
+              <dd className="n">
+                {ledgerDifference === undefined ? t('months:monthDetail.noLedger') : t('months:monthDetail.differenceWithLedger')}
               </dd>
-              <dd className="n">{t('months:monthDetail.differenceWithLedger')}</dd>
             </div>
           </dl>
         </section>
 
-        {/* Gemini explanation when Critical */}
-        {isCritical && (
+        {risk?.summary && (
           <section className="explain" aria-labelledby="ex-h">
             <h2 className="explain-head" id="ex-h">
               <Icon name="shield-alert" />
-              {t('months:monthDetail.criticalExplainHead')}
+              {t(`months:monthDetail.explainHead.${risk.level}`)}
             </h2>
             <div className="explain-body">
-              <p className="lead">
-                {t('months:monthDetail.criticalExplainLead')}
-              </p>
-              <div className="stack gap-2">
-                <h3 className="type-h3">{t('months:monthDetail.whatNext')}</h3>
-                <ol className="steps">
-                  <li>{t('months:monthDetail.step1')}</li>
-                  <li>{t('months:monthDetail.step2')}</li>
-                </ol>
-              </div>
+              <p className="lead">{risk.summary.replace(/\s*\[\[[^\]]*\]\]/g, '')}</p>
+              {(risk.nextSteps?.length ?? 0) > 0 && (
+                <div className="stack gap-2">
+                  <h3 className="type-h3">{t('months:monthDetail.whatNext')}</h3>
+                  <ol className="steps">
+                    {risk.nextSteps?.map((step) => <li key={step}>{step}</li>)}
+                  </ol>
+                </div>
+              )}
               <span className="by-line">
                 <Icon name="sparkles" size="sm" />
                 {t('months:monthDetail.byline')}
@@ -386,27 +413,30 @@ export function MonthPage() {
           </section>
         )}
 
-        {/* Meter */}
-        <section className="recon-meter" aria-label={t('months:monthDetail.meterAria')}>
-          <div className="bar">
-            <i className="auto" style={{ width: '85%' }} /* allow-raw-style: computed meter bar */ />
-            <i className="manual" style={{ width: '10%' }} /* allow-raw-style: computed meter bar */ />
-            <i className="open" style={{ width: '5%' }} /* allow-raw-style: computed meter bar */ />
-          </div>
-          <p className="key">
-            <span>
-              <i className="auto"></i>{t('months:monthDetail.matchedByKredibel')}
-            </span>
-            <span>
-              <i className="manual"></i>{t('months:monthDetail.matchedByYou')}
-            </span>
-            <span>
-              <i className="open"></i>{t('months:monthDetail.open')}
-            </span>
-          </p>
-        </section>
+        {meterTotal > 0 && (
+          <section className="recon-meter" aria-label={t('months:monthDetail.meterAria')}>
+            <div className="bar">
+              <i className="auto" style={{ width: share(meter.auto) }} /* allow-raw-style: share of the month's lines */ />
+              <i className="manual" style={{ width: share(meter.manual) }} /* allow-raw-style: share of the month's lines */ />
+              <i className="open" style={{ width: share(meter.open) }} /* allow-raw-style: share of the month's lines */ />
+            </div>
+            <p className="key">
+              <span>
+                <i className="auto"></i>
+                {t('months:monthDetail.matchedByKredibel')} <b>{meter.auto}</b>
+              </span>
+              <span>
+                <i className="manual"></i>
+                {t('months:monthDetail.matchedByYou')} <b>{meter.manual}</b>
+              </span>
+              <span>
+                <i className="open"></i>
+                {t('months:monthDetail.open')} <b>{meter.open}</b>
+              </span>
+            </p>
+          </section>
+        )}
 
-        {/* Bank lines list & controls */}
         <DataTable
           data={lines}
           columns={columns}
@@ -414,15 +444,12 @@ export function MonthPage() {
           filters={filters}
           filterGroupAriaLabel={t('months:monthDetail.filterBankLines')}
           searchable={true}
-          searchPlaceholder={t('common:table.searchPlaceholder', { defaultValue: 'Search bank lines...' })}
-          searchPredicate={(line, q) => {
-            if (line.description?.toLowerCase().includes(q)) return true
-            if (line.category?.toLowerCase().includes(q)) return true
-            if (line.date?.includes(q)) return true
-            if (line.amount?.amount?.includes(q)) return true
-            if (line.support?.toLowerCase().includes(q)) return true
-            return false
-          }}
+          searchPlaceholder={t('months:monthDetail.searchPlaceholder')}
+          searchPredicate={(line, q) =>
+            [line.description, line.counterpartyName, categoryLabel(line), line.date, line.amount?.amount]
+              .filter(Boolean)
+              .some((text) => String(text).toLowerCase().includes(q))
+          }
           isLoading={linesLoading}
           loadingMessage={<p>{t('months:monthDetail.loadingBankLines')}</p>}
           emptyMessage={<p className="muted">{t('months:monthDetail.noBankLinesFilter')}</p>}
@@ -434,21 +461,22 @@ export function MonthPage() {
               disabled={reconcileMutation.isPending}
               onClick={() => reconcileMutation.mutate(month)}
             >
-              {reconcileMutation.isPending
-                ? t('months:monthDetail.reconciling')
-                : t('months:monthDetail.reReconcile')}
+              {reconcileMutation.isPending ? t('months:monthDetail.reconciling') : t('months:monthDetail.reReconcile')}
             </Button>
           }
           footer={
             <p className="reading-legend">
               <span>
-                <span className="reading reading-agreed">7,250,000</span> {t('months:monthDetail.legendAgreed')}
+                <span className="reading reading-agreed">{t('months:monthDetail.legendSample')}</span>{' '}
+                {t('months:monthDetail.legendAgreed')}
               </span>
               <span>
-                <span className="reading reading-single">7,250,000</span> {t('months:monthDetail.legendSingle')}
+                <span className="reading reading-single">{t('months:monthDetail.legendSample')}</span>{' '}
+                {t('months:monthDetail.legendSingle')}
               </span>
               <span>
-                <span className="reading reading-conflict">7,250,000</span> {t('months:monthDetail.legendConflict')}
+                <span className="reading reading-conflict">{t('months:monthDetail.legendSample')}</span>{' '}
+                {t('months:monthDetail.legendConflict')}
               </span>
             </p>
           }
@@ -457,4 +485,3 @@ export function MonthPage() {
     </div>
   )
 }
-

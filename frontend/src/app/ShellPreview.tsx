@@ -6,6 +6,7 @@
 import { useParams } from 'react-router-dom'
 import { DashboardPage } from '../pages/DashboardPage'
 import { DocumentPage } from '../pages/DocumentPage'
+import { MonthPage } from '../pages/MonthPage'
 import { SettingsPage } from '../pages/SettingsPage'
 import { AppShell } from '../shared/ui'
 
@@ -40,6 +41,15 @@ export function DocumentPreview() {
   return (
     <AppShell {...PREVIEW_PROPS} activePath="/documents" onUpload={() => undefined}>
       <DocumentPage />
+    </AppShell>
+  )
+}
+
+/** One month inside the shell; the caller serves its API data (screenshots). */
+export function MonthPreview() {
+  return (
+    <AppShell {...PREVIEW_PROPS} activePath="/months" onUpload={() => undefined}>
+      <MonthPage />
     </AppShell>
   )
 }

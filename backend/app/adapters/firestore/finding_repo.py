@@ -32,6 +32,18 @@ def _to_doc(f: Finding) -> FindingDoc:
     )
 
 
+def _evidence_to_domain(e: EvidenceDoc) -> Evidence:
+    return Evidence(
+        doc_id=e.doc_id,
+        page=e.page,
+        bbox=e.bbox,
+        tx_id=e.tx_id,
+        invoice_id=e.invoice_id,
+        receipt_id=e.receipt_id,
+        label=e.label,
+    )
+
+
 def _to_domain(d: FindingDoc) -> Finding:
     return Finding(
         finding_id=d.finding_id,
@@ -40,7 +52,7 @@ def _to_domain(d: FindingDoc) -> Finding:
         severity=d.severity,  # type: ignore[arg-type]
         title=d.title,
         facts=d.facts,
-        evidence=[Evidence(**e.model_dump()) for e in d.evidence],
+        evidence=[_evidence_to_domain(e) for e in d.evidence],
         scope=d.scope,  # type: ignore[arg-type]
         doc_id=d.doc_id,
         month=d.month,

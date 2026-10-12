@@ -33,8 +33,7 @@ frontend/storybook-static/
 
 # Generated
 frontend/src/shared/api/schema.d.ts
-tools/synthetic/out/*
-!tools/synthetic/out/demo/
+tools/synthetic/out/
 backend/evals/reports/*.json
 
 # Firebase / gcloud local state

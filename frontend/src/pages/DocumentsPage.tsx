@@ -7,10 +7,11 @@
  * - tools/design/mocks/screens.py documents()
  */
 
-import { useState } from 'react'
+import { useContext, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { useDocuments, type DocType, type Document } from '../entities/document'
+import { useDocuments, useDocumentsLive, type DocType, type Document } from '../entities/document'
+import { AuthContext } from '../entities/session'
 import { UploadSheet } from '../features/upload'
 import { formatDate } from '../shared/lib/formatDate'
 import { Badge, Icon, type IconName } from '../shared/ui'
@@ -37,18 +38,27 @@ function _docSubtitle(doc: Document, t: (key: string, opts?: Record<string, unkn
 
 export function DocumentsPage() {
   const { t } = useTranslation(['documents', 'common'])
+  const auth = useContext(AuthContext)
   const [activeFilter, setActiveFilter] = useState<FilterKey>('ALL')
 
-  let filterArg: { type?: DocType; duplicate?: boolean } | undefined
-  if (activeFilter === 'STATEMENTS') filterArg = { type: 'BANK_STATEMENT' }
-  else if (activeFilter === 'SALES') filterArg = { type: 'SALES_INVOICE' }
-  else if (activeFilter === 'PURCHASE') filterArg = { type: 'PURCHASE_INVOICE' }
-  else if (activeFilter === 'RECEIPTS') filterArg = { type: 'RECEIPT' }
-  else if (activeFilter === 'LEDGER') filterArg = { type: 'LEDGER_EXPORT' }
-  else if (activeFilter === 'DUPLICATES') filterArg = { duplicate: true }
+  const filterArg = useMemo(() => {
+    if (activeFilter === 'STATEMENTS') return { type: 'BANK_STATEMENT' as DocType }
+    if (activeFilter === 'SALES') return { type: 'SALES_INVOICE' as DocType }
+    if (activeFilter === 'PURCHASE') return { type: 'PURCHASE_INVOICE' as DocType }
+    if (activeFilter === 'RECEIPTS') return { type: 'RECEIPT' as DocType }
+    if (activeFilter === 'LEDGER') return { type: 'LEDGER_EXPORT' as DocType }
+    if (activeFilter === 'DUPLICATES') return { duplicate: true }
+    return undefined
+  }, [activeFilter])
 
-  const { data, isLoading } = useDocuments(filterArg)
-  const documents = data?.items || []
+  const { data, isLoading: isRestLoading } = useDocuments(filterArg)
+  const live = useDocumentsLive(auth?.me?.orgId, filterArg)
+
+  const documents =
+    auth?.me?.orgId && (live.documents.length > 0 || !isRestLoading && live.documents.length === 0 && !data?.items?.length)
+      ? live.documents
+      : (data?.items || [])
+  const isLoading = (live.loading && isRestLoading && documents.length === 0)
 
   const chips: { key: FilterKey; label: string }[] = [
     { key: 'ALL', label: t('documents:filters.all') },

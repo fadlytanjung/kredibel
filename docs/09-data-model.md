@@ -190,7 +190,7 @@ row. Gemini proposes; the user confirms once per layout.
 | Field | Type | Notes |
 |---|---|---|
 | `month` | string | |
-| `state` | `COLLECTING` \| `RECONCILING` \| `NEEDS_REVIEW` \| `RECONCILED` \| `SIGNED_OFF` (P1) | `COLLECTING` = no statement yet. **Realtime channel.** |
+| `state` | `COLLECTING` \| `RECONCILING` \| `NEEDS_REVIEW` \| `RECONCILED` \| `SIGNED_OFF` (P1) | `COLLECTING` = awaiting statement coverage or computation. While the workflow is a skeleton, `note` explains that reconciliation is unavailable (ADR-025). **Realtime channel.** |
 | `dirty` | bool | Set by any change to the month's data; cleared by the month run |
 | `generation` | int | Incremented with every change; only the month run started for the latest generation writes ([`06`](06-agent-design.md) §3) |
 | `signedOff?` | map | `by`, `at` (P1); reopening records `reopened {by, at, reason}` |

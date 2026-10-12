@@ -41,7 +41,7 @@ def load_month(deps: PipelineDeps):
 def reconcile(deps: PipelineDeps):
     @stage(deps, "reconcile")
     async def _node(ctx: Context, node_input: dict[str, Any]) -> dict[str, Any]:
-        return {**node_input, "summary": "Reconciliation completed"}
+        return {**node_input, "summary": "Reconciliation is not available yet"}
 
     return _node
 
@@ -121,11 +121,14 @@ def finalize_month(deps: PipelineDeps):
             }
 
         has_statement = bool(node_input.get("has_statement", False))
-        target_state = MonthState.RECONCILED if has_statement else MonthState.COLLECTING
+        # T007-08 will derive this from real results, coverage and blockers. Statement presence
+        # alone is not reconciliation; the skeleton must not claim that the books are settled.
+        target_state = MonthState.COLLECTING
 
         if current_month is None:
             current_month = Month(month=month_str, generation=run_gen)
         current_month.state = target_state
+        current_month.note = "Reconciliation is not available yet." if has_statement else None
         current_month.dirty = False
         current_month.last_run_id = run_id
         await deps.month_repo.save(org_id, current_month)

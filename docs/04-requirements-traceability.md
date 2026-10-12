@@ -24,11 +24,14 @@
 | FR-023 | Integrity checks with evidence and verdicts | 006 | AC-006-7…12 | `tests/unit/checks/*`, `tests/scenarios/test_s2_tampered.py` |
 | FR-024 | Categorization with precedence | 007 | AC-007-1, AC-007-2 | `tests/unit/test_categorize.py` |
 | FR-030 | Months reconcile on every change, order-independent | 004, 007 | AC-004-4…7, AC-007-3, AC-007-7 | `tests/unit/test_reconcile_order.py` (hypothesis), `tests/scenarios/test_s5_reverse.py` |
-| FR-031 | Deterministic, explainable matching; automatic only when unique | 007 | AC-007-5, AC-007-8 | `tests/unit/test_reconcile.py` |
+| FR-031 | Deterministic, explainable matching; automatic only when unique | 007 | AC-007-5, AC-007-8, AC-007-17 | `tests/unit/test_reconcile_scoring.py`, `tests/unit/test_reconcile.py` |
 | FR-032 | Exact, split, multi-invoice, net-of-tax, ledger matches | 007 | AC-007-4, AC-007-6 | `test_reconcile.py` |
 | FR-033 | Exceptions become review items | 009 | AC-009-1…3 | `tests/unit/test_review_items.py` |
 | FR-034 | Resolve by match, correction, duplicate decision or ignore; audited; month re-runs | 009, 007 | AC-009-4…7, AC-007-13 | `tests/unit/test_review_service.py`, `tests/integration/test_review_api.py` |
 | FR-035 | Month summary (figures, auto-match rate, items, risk) | 007 | AC-007-9, AC-007-12 | `tests/unit/test_figures.py`, `pages/MonthPage.test.tsx` |
+| FR-036 | Bank cash evidence separate from document support; honest month completion | 007 | AC-007-14, AC-007-15, AC-007-18 | `tests/unit/test_month_workflow.py`, `design/mocks/reconciliation.html`; state/figure tests in T007-04…08 |
+| FR-037 | Separate document approval and payment confirmation without bank evidence | 007 | AC-007-16 | `design/mocks/reconciliation.html`; audited API and migration tests in T007-06a |
+| FR-038 | Fixed workspace currency; explicit agreement for differently printed currency, no FX | 007 | AC-007-19 | `tests/unit/test_reconcile_scoring.py`; persistence and UI in T007-06a/T007-10 |
 | FR-040 | Cross-document and month checks | 007 | AC-007-10, AC-007-11 | `tests/unit/checks/test_month_checks.py`, `tests/scenarios/test_s4_diversion.py` |
 | FR-041 | Risk level per document and month from policy | 008 | AC-008-1…3, AC-008-11 | `tests/unit/test_risk.py` |
 | FR-042 | Explanation and next steps, grounded or template | 008 | AC-008-4…6 | `tests/unit/test_grounding.py`, `tests/scenarios/test_explanations.py` |

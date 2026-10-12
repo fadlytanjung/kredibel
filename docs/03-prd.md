@@ -173,12 +173,24 @@ several entities · real customer data (P8).
 - **FR-032** Supported matches: one bank line to one document; one to many (split payments, several
   invoices paid at once); net of withholding tax; bank line to ledger cash entry; document to ledger
   entry.
-- **FR-033** Unmatched bank lines, unmatched or unpaid documents, ledger-bank differences, low
-  confidence values and possible duplicates become **review items**.
+- **FR-033** Ambiguous matches, unpaid documents whose payment windows are covered, ledger-bank
+  differences, low-confidence values and possible duplicates become **review items**. Missing bank
+  support alone is informational; documents without covering statements wait (ADR-025).
 - **FR-034** A review item is resolved by a manual match, a value correction, a duplicate decision or
   "ignore" with a reason; the resolution is audited and the month re-reconciles.
 - **FR-035** A month's summary shows money in and out, opening and closing balance, auto-match rate,
   open review items and risk level.
+- **FR-036** Bank cash totals use statement transactions once, independently of document support.
+  Show bank evidence, support, processing and integrity separately. One statement's presence never
+  proves month reconciliation; account/date coverage and actual computed results are required.
+- **FR-037** A person can separately approve a document or confirm payment without a bank match,
+  with an audited reason; payment confirmation includes amount, currency, date and method. It never
+  invents bank cash or bank evidence. Later statement matching preserves history without counting
+  payment twice; partial payments remain partial.
+- **FR-038** A workspace uses the fixed currency selected at onboarding, with no FX conversion.
+  A different or missing printed currency requires agreement to use the unchanged numbers as the
+  workspace currency; preserve the printed currency and decision. Exclude pending documents from
+  totals/matching. All tolerances use the workspace currency.
 
 ### 7.5 Fraud risk
 

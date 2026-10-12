@@ -5,9 +5,20 @@ version: 1
 id: reconciliation.v1
 
 amountTolerance:
-  minMinor: 100000                  # IDR 1,000
+  minMinor: 100000                  # legacy IDR-only synthetic generator; not a runtime fallback
+  minimumByCurrency:               # major units; no FX conversion or default currency
+    IDR: "1000"
+    MYR: "0.01"
+    SGD: "0.01"
+    JPY: "1"
+    USD: "0.01"
   share: "0.005"                    # 0.5% of the amount, whichever is larger
 maxWithholding: "0.02"              # net-of-tax payments up to 2% below the total
+netOfTaxAmountScore: "0.8"          # proposal only until a person confirms the adjustment
+
+reasonThresholds:
+  party: "0.80"
+  date: "0.90"
 
 windows:
   invoiceBeforeIssueDays: 3         # a payment may arrive up to 3 days before the invoice date
@@ -36,3 +47,4 @@ ledger:
 
 reviewItems:
   waitForStatement: true            # no UNMATCHED_DOCUMENT items for a month without a statement
+  unsupportedBankLine: informational # support absence alone does not create a blocking item

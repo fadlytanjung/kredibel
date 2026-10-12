@@ -2,11 +2,11 @@
 
 | | |
 |---|---|
-| **Status** | Ready |
+| **Status** | In progress |
 | **Priority** | P0 · P1 (`R03`, `B03`, `X07`) |
 | **Owner role** | B: Risk engine (+ A for the categorizer) |
 | **Depends on** | 004, 005, 006 |
-| **Requirements** | FR-024, FR-030, FR-031, FR-032, FR-035, FR-040, NFR-05, NFR-09, P0-08, P0-09 |
+| **Requirements** | FR-024, FR-030, FR-031, FR-032, FR-035, FR-036, FR-037, FR-038, FR-040, NFR-05, NFR-09, P0-08, P0-09 |
 | **Design** | [`docs/08`](../../08-risk-engine.md) §2.6–§2.7, §4.1, §5, §6; `contracts/policy/reconciliation.v1.yaml`, `categorization-rules.v1.yaml` |
 
 ## Summary
@@ -16,6 +16,12 @@ all its data**: bank lines are matched to invoices, receipts and ledger cash ent
 matched to ledger entries; only unique, high-scoring candidates are confirmed automatically, and every
 match records why. Month figures and cross-document checks follow. Same data in any order, same
 result.
+
+Bank statements anchor **bank cash movement**, independently of document support. An invoice
+without a statement waits; a statement row without an invoice is **Bank recorded · No supporting
+document**. A person may approve a document or confirm payment without bank evidence as separate
+audited actions. Neither creates bank cash. See [ADR-025](../../adr/ADR-025-bank-evidence-and-document-support.md).
+This extends P0 with manual attestations and clarifies the existing bank-first design.
 
 ## User stories
 
@@ -64,6 +70,44 @@ result.
 - **AC-007-13** From a bank line I can open its match (both sides with reasons) and **unmatch**
   (`DELETE /api/matches/{id}`) or **match manually** (`POST /api/matches`) with a picker of candidates
   that shows amounts and the remaining difference; the month re-reconciles.
+
+### US-007-5: Understand what the evidence proves
+
+- **AC-007-14** Given an eligible statement row without supporting documents, when the month is
+  computed, then it contributes once to bank cash and reads **Bank recorded · No supporting
+  document**. Missing support alone is informational; integrity, coverage and ledger issues are
+  separate. Statement presence alone never produces `RECONCILED`.
+- **AC-007-15** Given an invoice/receipt whose payment window is not covered by statements, when
+  it is read, then it waits without an unpaid accusation. When covering statements arrive, matching
+  reruns automatically, including cross-month payments and gaps in account/date coverage.
+- **AC-007-16** Given a document without a bank match, when a person approves the document or
+  confirms payment, then these are distinct audited decisions. Approval never implies payment;
+  payment confirmation records amount, currency, date, method and reason, shows **No bank evidence**,
+  preserves partial payment and never changes bank totals. Later evidence preserves the history
+  without double counting. This action is available even without an open review item.
+- **AC-007-17** Given candidate matches, when scoring, then currency and direction must agree,
+  each date is within the policy window, and tolerance is currency-specific. Amount, party,
+  reference and date contributions are inspectable. Amount alone cannot auto-confirm; tax-like
+  shortfalls require review unless an explicit adjustment is confirmed. Cash/unknown-method receipts
+  do not automatically match bank debits. The fixed workspace currency selects the tolerance.
+- **AC-007-18** Given a grouped payment, when displayed, then each invoice/allocation, the bank
+  total, remaining difference and reasons are visible. One-to-many and many-to-one compete against
+  single matches before any assignment. No record is silently consumed twice within a match kind.
+  Extraction, integrity, bank evidence, support and manual approval are separate labels in the mock
+  and future page, at mobile, tablet and desktop widths.
+- **AC-007-19** Given a workspace fixed to MYR and a document printed in IDR (or missing currency),
+  when read, then ask for agreement before using its amounts as MYR **without conversion**. Until
+  accepted it is excluded from totals/matching. Acceptance preserves numeric values and printed
+  currency, records an audited override and uses MYR tolerances. No exchange rates or FX totals.
+
+## Delivery boundaries
+
+Pure scoring is independently implementable against in-memory inputs while remaining reading and
+duplicate-review work is unfinished; this does not complete specs 005/006 or enable live matching.
+The category correction endpoint previously bundled into T007-02 moves to T007-09 with the books
+API. Ledger mappings, cross-month data loading, persistence and complete scenario gates are required
+before the month workflow may report actual reconciliation. Until then it stays `COLLECTING` with
+an explicit availability note, including when a statement is present.
 
 ## Out of scope
 

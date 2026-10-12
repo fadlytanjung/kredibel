@@ -441,6 +441,36 @@ stateDiagram-v2
   withholding tax"). A line tied to a finding is tinted and shows **Evidence**.
 - P1: **Sign off** when the month is reconciled; **Reopen** with a reason.
 
+#### Bank evidence and document support (ADR-025, spec 007)
+
+Ordinary-flow prototype: [Reconciliation](../design/mocks/reconciliation.html). The March mock above
+remains the integrity investigation example. Processing **Done** means extraction finished, never
+that payment is verified. Show independent labels for bank evidence, document support and integrity.
+
+| Evidence | Label and action |
+|---|---|
+| Bank row, no invoice/receipt | **Bank recorded** and **No supporting document**; attach documents or record why none is required; neutral, not a fraud alert |
+| One row pays several invoices | **Matched to 2 documents**; expand each allocation, bank amount, difference, party/reference/date reasons |
+| Several transfers pay one invoice | **Paid in 2 transfers**; show both bank dates/amounts and remaining invoice balance |
+| Document before covering statements | **Waiting for statement**; upload statement or confirm payment manually; never accuse it of being unpaid yet |
+| User approves document | **Document approved**; payment state is unchanged |
+| User confirms payment without bank match | **Payment confirmed by you** with **No bank evidence**; actor/date/reason, payment date/method/amount, partial balance; excluded from bank cash totals |
+
+**Approve document** and **Confirm payment manually** are distinct actions, available from document
+detail even without a review item. The latter asks for payment date, method, amount/currency and a
+reason. The confirmation explains that it does not create bank evidence. Later matches preserve the
+audit record. Details/allocations stack on phones, with ordinary 44 px action buttons. Every panel
+needs loading, empty, error and populated states when implemented in T007-10; the static mock is
+design work, not a claim these actions already exist in the application.
+
+The workspace currency is fixed at onboarding. A mismatching or unknown printed currency opens
+**Confirm document currency**: “This document says IDR. Use its amounts as MYR without conversion?”
+Actions: **Use amounts as MYR** or **Replace document**. Until agreed, show **Currency needs
+confirmation** and exclude the document from totals/matching. Keep its printed currency visible
+after acceptance; the confirmation is audited. No exchange-rate fields, conversions or FX totals.
+
+<p><img src="assets/mocks/reconciliation-desktop.png" alt="Bank evidence, support, grouped payments and documents awaiting statements" width="66%"> <img src="assets/mocks/reconciliation-mobile.png" alt="Reconciliation evidence on a phone" width="26%"></p>
+
 ### 6.5 Review
 
 <p><img src="assets/mocks/review-desktop.png" alt="Review at 1440 px: queue grouped by month beside the fix panel for a bank line that fits two invoices" width="66%"> <img src="assets/mocks/review-mobile.png" alt="Review on a phone: the item as a full page with candidates and a sticky Match button" width="26%"></p>

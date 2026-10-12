@@ -323,6 +323,17 @@ is incomplete, and the chart says so instead of drawing a balance that does not 
 
 Policy: `contracts/policy/reconciliation.v1.yaml` (tolerances, windows, weights, thresholds).
 
+Bank statements anchor bank cash; document support is a separate dimension (ADR-025). An eligible
+bank row without support is **Bank recorded · No supporting document**, included once in cash
+totals. This is neither an authenticity guarantee nor an unsupported-expense accusation. Preserve
+integrity warnings. Documents without account/date coverage for their payment window wait for the
+statement, even if some other statement exists in that calendar month.
+
+Document approval and payment confirmation without bank evidence are separate audited inputs.
+Neither creates a bank row. Payment confirmation records amount, currency, date, method and reason;
+partial confirmation stays partial. Later bank evidence links the same payment without counting it
+twice. T007-06a owns the versioned contract before these decisions can be persisted.
+
 ### 6.1 Order independence
 
 `reconcile_month(month, data)` is a pure function of **all** current data for the month and its
@@ -346,26 +357,46 @@ is paid when its total is fully covered by bank lines (net-of-tax counts as full
 
 ### 6.3 Scoring and assignment
 
+Candidate eligibility requires amounts accepted in the fixed workspace currency, valid positive document totals, matching
+cash direction and no held inputs. Bank-to-ledger candidates additionally require the same confirmed
+bank-account mapping. Cash or unknown-method receipts cannot automatically be treated as bank
+debits. Different or missing printed currency requires an explicit audited agreement to treat the
+unchanged numbers as the workspace currency; no FX conversion. Without agreement, no candidate or
+contribution to totals. Missing required amount/date means no candidate; conflicting readings permit a
+proposal but never automation. Document-to-ledger links establish a booking, not proof of payment.
+
 For each left item, candidates within the window (`[issue − 3 days, due + graceDays]` for invoices,
 `±3 days` for receipts and ledger entries) are scored:
 
-- `amount_score` = 1.0 if within tol (max(IDR 1,000, 0.5%)); 0.8 if net of withholding
-  (`T·(1 − maxWithholding) ≤ c < T`); else 0.
+- `amount_score` = 1.0 if within tol (max(currency floor, 0.5%)); 0.8 for a possible withholding
+  shortfall on a bank-to-invoice pair (`T·(1 − maxWithholding) ≤ c < T`); else no candidate.
+  Floors are policy values in major units: IDR 1,000; MYR/SGD/USD 0.01; JPY 1. Unknown currencies
+  use the **workspace** currency, never the printed foreign currency. Unsupported workspace
+  currencies have no fallback. Net-of-tax candidates require review until an explicit adjustment is confirmed;
+  amount proximity alone does not establish a tax treatment. Receipts and ledger amounts do not
+  receive this withholding exception.
 - `party_score` = `token_set_ratio(party, counterparty or description) / 100`, both upper-cased with
   accents and punctuation removed (`Daybreak Café` = `DAYBREAK CAFE`).
-- `reference_score` = 1.0 if the invoice number or ledger reference appears in the description, else 0.
+- `reference_score` = 1.0 if the whole invoice number or ledger reference appears in the description,
+  case/punctuation normalized, else 0 (`INV-12` must not match `INV-123`).
 - `date_score` = `1 − min(1, distance / window)`. For invoices the distance is the days **after the
   due date** (0 for a payment from `issue − 3 days` to the due date) and the window is `graceDays`; for
   receipts and ledger entries it is the days between the two dates and the window is `receiptDays` or
   `ledgerDays`.
 - `score = 0.45·amount + 0.25·party + 0.15·reference + 0.15·date`.
 
+Missing due dates use `defaultTermsDays`. Document-to-ledger uses `ledgerDays` around the issue/receipt
+date. Every scorer returns the four contributions, signed cash direction eligibility, reason codes
+and whether human review is required, without assigning a match. Amount + date alone scores 0.60:
+it may be proposed, but cannot auto-confirm. Reason cutoffs and the net-of-tax component score also
+live in the policy; code supplies no fallback thresholds.
+
 Assignment is greedy by score, then date, then ID (deterministic); an item is used at most once except
 in split or multi-invoice matches (subset sums of up to 3 items within tol, same party ≥ 0.8).
 
 | Result | Rule | Status |
 |---|---|---|
-| **Auto-confirmed** | Best score ≥ `autoConfirmScore` (0.85) **and** the runner-up < best − `ambiguityMargin` (0.10) **and** no value used is `CONFLICT` | `CONFIRMED`, method `AUTO` |
+| **Auto-confirmed** | Best score ≥ `autoConfirmScore` (0.85) **and** the runner-up < best − `ambiguityMargin` (0.10) **and** no conflicting value or unconfirmed adjustment is used | `CONFIRMED`, method `AUTO` |
 | **Proposed** | Best score ≥ `proposeScore` (0.60) but not auto-confirmable | `PROPOSED`; becomes a review item with the candidates |
 | **None** | Otherwise | Left item stays unmatched |
 
@@ -381,7 +412,7 @@ Created and closed by `reconcile_month` and the document workflow; never by a mo
 
 | Kind | Created when | Resolutions |
 |---|---|---|
-| `UNMATCHED_BANK_LINE` | A bank line of a month with a statement has no match after reconciliation | Match manually · categorize and mark "no document needed" · ignore with reason |
+| `UNMATCHED_BANK_LINE` | A bank line has a specific unresolved evidence/support requirement; missing support alone is informational (ADR-025) | Match manually · categorize and mark "no document needed" · ignore with reason |
 | `UNMATCHED_DOCUMENT` | An invoice or receipt is unpaid while statements cover its window, or a ledger cash entry has no bank line | Match manually · mark as not yet paid · ignore with reason |
 | `PROPOSED_MATCH` | A match is proposed (§6.3) | Confirm · choose another candidate · reject |
 | `POSSIBLE_DUPLICATE` | `D02`, `D03`, `D05`, `D06`, `D07` | Confirm duplicate · not a duplicate |
@@ -412,8 +443,10 @@ and (c) these month rules:
 |---|---|
 | Any `X08_SUPPLIER_ACCOUNT_CHANGED` open | `HIGH` |
 | `D07_DOUBLE_PAYMENT` open | `HIGH` |
-| `auto_match_rate < 0.5` with a statement present | `MEDIUM` |
 | `X09` month difference > 5% | `HIGH` |
+
+Support coverage and auto-match rate are progress measures, not fraud findings by themselves
+(ADR-025). Bank-only rows therefore do not raise the month risk solely for lacking an invoice.
 
 A **risk score** 0–100 is stored for sorting only: `min(100, 40·critical + 20·high + 8·medium +
 2·low)` over open findings. The level, not the score, is shown.

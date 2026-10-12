@@ -267,6 +267,101 @@ def documents() -> str:
 
 
 # ------------------------------------------------------------------------------------------------
+# Reconciliation evidence states (a separate synthetic MYR workspace preview)
+# ------------------------------------------------------------------------------------------------
+
+def reconciliation() -> str:
+    bank_rows = [
+        ("6 Jul", "Daybreak Café", "+1,500.00", "Matched to 2 invoices", "auto", "link",
+         "INV-101: MYR 600.00; INV-102: MYR 900.00. Remaining difference: MYR 0.00.",
+         "Same client; both invoice references in the transfer; paid within both date windows."),
+        ("8 and 10 Jul", "Harborview Hotel Group", "+800.00", "Paid in 2 transfers", "auto", "link",
+         "INV-103: MYR 800.00. Bank payments: MYR 300.00 on 8 Jul and MYR 500.00 on 10 Jul.",
+         "Same client and invoice reference; both dates eligible. Invoice balance: MYR 0.00."),
+        ("11 Jul", "Monthly bank fee", "−8.00", "No supporting document", "none", "file-text",
+         "Recorded in your bank cash totals. No invoice or receipt attached.",
+         "Missing support alone does not mean this transaction is wrong."),
+    ]
+    rows = "".join(f"""<tr>
+      <td><strong>{party}</strong><div class="reason">{day}</div><span class="badge badge-outline">{icon("bank")}Bank recorded</span></td>
+      <td class="r num">{amount}</td>
+      <td data-cell="wide"><span class="match-chip {tone}">{icon(symbol)}<span>{label}</span></span>
+        <p class="reason">{allocation}</p><p class="reason">{reason}</p></td>
+    </tr>""" for day, party, amount, label, tone, symbol, allocation, reason in bank_rows)
+    content = f"""
+<div class="page stack gap-6">
+  <header class="stack gap-2">
+    <h1 class="type-title">July reconciliation</h1>
+    <p class="muted">Bank cash comes from your statement. Supporting documents explain each payment.</p>
+    <p class="muted">Workspace currency: MYR. Synthetic preview.</p>
+  </header>
+  {seg("recon", [("bank", "Bank evidence"), ("documents", "Documents first"), ("currency", "Currency check")], "bank", "Reconciliation examples")}
+  <section class="stack gap-4" data-show-group="recon" data-show-value="bank" aria-labelledby="bank-evidence-h">
+    <h2 class="type-h2" id="bank-evidence-h">4 bank transactions, 3 supporting invoices</h2>
+    <p>These examples include one payment for two invoices and one invoice paid in two transfers.
+      Bank recorded means the transaction appears in the uploaded statement; integrity checks remain separate.</p>
+    <div class="table-panel rt-wrap"><table class="data-table rt">
+      <thead><tr><th>Bank evidence</th><th class="r">Amount, MYR</th><th>Document support</th></tr></thead>
+      <tbody>{rows}</tbody>
+    </table></div>
+    <details class="disclosure">
+      <summary>Explain a transaction without supporting documents {icon("chevron-down")}</summary>
+      <div class="stack gap-3">
+        <p>Monthly bank fee: MYR 8.00. It already counts in money out.</p>
+        <label class="field">Reason<textarea class="input" rows="2">Bank fee charged directly by the bank.</textarea></label>
+        <button class="button button-secondary" type="button" data-demo="Support note saved in this preview">No document needed</button>
+      </div>
+    </details>
+    <p class="muted">A completed extraction is not a reconciled month. Statement coverage, matches and open issues are checked separately.</p>
+    <a class="button button-secondary" href="month.html">See an integrity investigation</a>
+  </section>
+  <section class="stack gap-4" data-show-group="recon" data-show-value="documents" hidden aria-labelledby="documents-first-h">
+    <h2 class="type-h2" id="documents-first-h">Your documents are ready for the statement</h2>
+    <p>Add the statement when it arrives, including at month end. Kredibel will check these documents against its transactions.</p>
+    <div class="table-panel rt-wrap"><table class="data-table rt">
+      <thead><tr><th>Document</th><th class="r">Amount, MYR</th><th>Payment evidence</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Primepack Packaging</strong><div class="reason">Invoice PP-201, 12 Jul</div></td><td class="r num">450.00</td>
+          <td data-cell="wide"><span class="match-chip none">{icon("clock")}<span>Waiting for statement</span></span><p class="reason">Payment has not been confirmed. No bank cash recorded.</p></td></tr>
+        <tr><td><strong>Green Valley Farms</strong><div class="reason">Receipt GV-202, 13 Jul</div></td><td class="r num">75.00</td>
+          <td data-cell="wide"><span class="match-chip manual">{icon("hand")}<span>Payment confirmed by you</span></span><p class="reason">No bank evidence. Maya confirmed MYR 75.00 cash on 13 Jul: paid at the farm. Excluded from bank totals.</p></td></tr>
+        <tr><td><strong>Cendana Supplies</strong><div class="reason">Invoice CS-203, 14 Jul</div></td><td class="r num">120.00</td>
+          <td data-cell="wide"><span class="match-chip manual">{icon("hand")}<span>Document approved</span></span><p class="reason">Waiting for statement. Approval does not confirm payment.</p></td></tr>
+      </tbody>
+    </table></div>
+    <div class="stack gap-3">
+      <h3 class="type-h3">Invoice PP-201: choose what you can confirm</h3>
+      <p>Approving this invoice confirms the document is valid. Confirming payment records how much was paid and when.</p>
+      <div class="row"><button type="button" class="button button-secondary" data-demo="Document approval preview: payment remains unconfirmed">Approve document</button>
+        <a class="button button-secondary" href="documents.html">Upload statement</a></div>
+      <details class="disclosure" open>
+        <summary>Confirm payment manually {icon("chevron-down")}</summary>
+        <form class="stack gap-3" onsubmit="event.preventDefault()">
+          <label class="field">Amount paid, MYR<input class="input" type="number" value="450.00" min="0.01" max="450" step="0.01" required/></label>
+          <label class="field">Payment date<input class="input" type="date" value="2026-07-15" required/></label>
+          <label class="field">Payment method<select class="select"><option>Bank transfer</option><option>Cash</option><option>Card</option></select></label>
+          <label class="field">Reason<textarea class="input" rows="2" required>Paid the supplier; waiting for July's statement.</textarea></label>
+          <p class="muted">This records your confirmation, with no bank evidence. It does not change bank cash totals. A smaller amount leaves a partial payment.</p>
+          <button type="submit" class="button button-primary" data-demo="Manual payment confirmation preview; no bank cash created">Confirm payment manually</button>
+        </form>
+      </details>
+    </div>
+  </section>
+  <section class="stack gap-4" data-show-group="recon" data-show-value="currency" hidden aria-labelledby="currency-check-h">
+    <h2 class="type-h2" id="currency-check-h">Confirm document currency</h2>
+    <p>Your workspace uses MYR, fixed at onboarding. Invoice DEMO-204 says IDR.</p>
+    <span class="badge badge-medium">{icon("circle-alert")}Currency needs confirmation</span>
+    <p>The document says IDR 1,500.00. Use its amounts as MYR 1,500.00 without conversion?</p>
+    <p class="muted">The numbers will stay the same. We keep the printed currency and your confirmation.
+      Until you agree, this document stays out of totals and matching.</p>
+    <div class="row"><button type="button" class="button button-primary" data-demo="Currency agreement preview: numeric amounts unchanged">Use amounts as MYR</button>
+      <a class="button button-secondary" href="documents.html">Replace document</a></div>
+  </section>
+</div>"""
+    return shell("months", topbar("Reconciliation", ("Reconciliation",)), content, fab=False)
+
+
+# ------------------------------------------------------------------------------------------------
 # Month (reconciliation of March)
 # ------------------------------------------------------------------------------------------------
 
@@ -691,6 +786,7 @@ SCREENS = {
     "dashboard": ("Dashboard", dashboard),
     "documents": ("Documents", documents),
     "month": ("Month reconciliation", month),
+    "reconciliation": ("Bank evidence and document support", reconciliation),
     "review": ("Review queue", review),
     "evidence-viewer": ("Evidence viewer", evidence_viewer),
     "assistant": ("Finance Assistant", assistant),
@@ -702,6 +798,7 @@ NOTES = {
     "dashboard": "One sentence says where the books stand, then what needs you and the open risks. Below, full-width charts grouped by IFRS or US GAAP: money flow (flow, bars, table or by client and supplier), money in and out by month, and the cash-flow statement.",
     "documents": "Upload anything in any order. Exact copies are recognised at once; possible copies wait for you; ledgers ask for their columns once.",
     "month": "One month's reconciliation: figures with their provenance marks, the explained risk with next steps, and every bank line with its match and reason.",
+    "reconciliation": "A separate synthetic MYR workspace preview: grouped and split payments, bank-only rows, documents before statements, separate approval/payment confirmation and currency agreement without conversion.",
     "review": "One queue for everything AI could not settle. Each item shows the evidence, the candidates and only the fixes that make sense.",
     "evidence-viewer": "The lamp on the printed value, the calculation, and both readings side by side. Phones open zoomed to the evidence.",
     "assistant": "Questions about your books, answered from tools with citations and a small chart; only preferences are remembered.",

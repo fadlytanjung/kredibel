@@ -123,6 +123,12 @@ def build_month_workflow(deps: PipelineDeps) -> Workflow:
 otherwise the run is `SUPERSEDED` and the newer run wins. A burst of uploads therefore produces at most
 one useful run per month (a 20-second debounce on enqueue merges them).
 
+**Interim implementation (T007-00a):** while reconciliation/check/review nodes are skeletons,
+`finalize_month` keeps the state `COLLECTING`, with `note` saying reconciliation is not available
+yet when a statement exists. A workflow run may finish without producing matches; statement
+presence must never be reported as `RECONCILED`. T007-08 replaces this guard with computed results,
+account/date coverage and blocker checks (ADR-025).
+
 ---
 
 ## 4. Node catalog

@@ -177,8 +177,8 @@ async def test_ac004_7_month_workflow_without_statement_ends_collecting(workflow
 
 
 @pytest.mark.asyncio
-async def test_ac004_7_month_workflow_with_statement_ends_reconciled(workflow_deps):
-    """A month with a bank statement ends in RECONCILED (or NEEDS_REVIEW) state."""
+async def test_ac007_14_statement_presence_does_not_claim_reconciliation(workflow_deps):
+    """The skeleton cannot report reconciliation without computed matches/coverage/checks."""
     deps, run_repo, month_repo, doc_repo = workflow_deps
     org_id = "org_demo"
     month_str = "2026-03"
@@ -241,10 +241,11 @@ async def test_ac004_7_month_workflow_with_statement_ends_reconciled(workflow_de
     assert run is not None
     assert run.status == RunStatus.DONE
 
-    # Month ended in RECONCILED and dirty=False
+    # Processing ran, but actual reconciliation is not implemented yet.
     saved_month = await month_repo.get(org_id, month_str)
     assert saved_month is not None
-    assert saved_month.state == MonthState.RECONCILED
+    assert saved_month.state == MonthState.COLLECTING
+    assert saved_month.note == "Reconciliation is not available yet."
     assert saved_month.dirty is False
     assert saved_month.last_run_id == run_id
 

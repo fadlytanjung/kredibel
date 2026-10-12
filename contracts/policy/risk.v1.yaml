@@ -24,7 +24,7 @@ month:
     - { code: X08_SUPPLIER_ACCOUNT_CHANGED, level: HIGH }
     - { code: D07_DOUBLE_PAYMENT, level: HIGH }
     - { code: X09_LEDGER_BANK_MISMATCH, severity: HIGH, level: HIGH }
-    - { fact: auto_match_rate, below: "0.5", requiresStatement: true, level: MEDIUM }
+    # ADR-025: document-support coverage is progress, not fraud evidence on its own.
 
 score:                              # for sorting only; the level is what users see
   weights: { CRITICAL: 40, HIGH: 20, MEDIUM: 8, LOW: 2, INFO: 0 }

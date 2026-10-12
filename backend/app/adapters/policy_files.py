@@ -10,6 +10,7 @@ import yaml
 from app.domain.categorize import CategoryPolicy, parse_category_policy
 from app.domain.checks.policy import ForensicsPolicy, parse_forensics
 from app.domain.plans import PlanCatalog, parse_plans
+from app.domain.reconciliation_policy import ReconciliationPolicy
 
 
 def load_plans(path: Path) -> PlanCatalog:
@@ -34,3 +35,9 @@ def load_category_policy(categories_file: Path, policy_dir: Path) -> CategoryPol
     with (policy_dir / "categorization-rules.v1.yaml").open(encoding="utf-8") as handle:
         rules = yaml.safe_load(handle)
     return parse_category_policy(categories, rules)
+
+
+def load_reconciliation_policy(policy_dir: Path) -> ReconciliationPolicy:
+    """Validate all scoring thresholds from reconciliation.v1.yaml (AC-007-17)."""
+    with (policy_dir / "reconciliation.v1.yaml").open(encoding="utf-8") as handle:
+        return ReconciliationPolicy.model_validate(yaml.safe_load(handle))

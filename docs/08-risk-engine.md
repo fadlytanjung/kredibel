@@ -304,6 +304,33 @@ account, in both views. Internal transfers between own accounts are drawn as acc
 only when the user chooses "show transfers" (off by default). Switching the framework moves interest
 (and dividends, when present) between activities; nothing else changes, and the totals never do.
 
+Rules the code follows (`domain/money_flow.py`, T010-01; wording and groups from `categories.v1.yaml`):
+
+- **Sources.** A credit whose category rolls up to `REVENUE` counts for its client (the counterparty
+  read from the line); the five largest clients of the period get a node each and the rest go to
+  "Other clients". Revenue credits tagged `CASH_DEPOSIT`, or without a counterparty, go to "Cash
+  sales deposited". Every other credit goes to the node of its statement line in the framework's
+  wording; uncategorized credits to "Not categorized yet".
+- **Balance per account.** An account that paid out more than came in gets "Taken from balance" for
+  the difference; one that kept money sends it to "Kept" ("Kept in the account" in the counterparty
+  view). So Σ in = Σ out + kept holds per account by construction.
+- **Activity and line.** Debits go to their cash-flow class under the framework, then to their
+  statement line; lines marked `split` (operating expenses, loans and owner) show one node per
+  category. Uncategorized debits go to "Not categorized yet" in both columns.
+- **Who was paid.** The counterparty view groups debits by each category's `use` (suppliers, payroll,
+  rent and utilities, tax, loan payments, owner drawings, other spending).
+- **Transfers.** Lines in a `NON_CASH` category (between own accounts, reversals) are left out by
+  default. With "show transfers" they appear as "From own accounts" (a source) and "To own accounts"
+  (an activity or use), not as links between two account nodes, so the flow stays drawable (a
+  Sankey has no cycles) and each account still balances.
+- **Held lines** of possible duplicates are left out and their total returned as `excludedHeld`.
+- **IDs.** Node IDs are stable (`src:client:<hash of the name>`, `acc:<hash of the account>`,
+  `act:OPERATING`, `line:OPERATING_EXPENSES:RENT`, `use:SUPPLIERS`); a link's ID is
+  `<source>><target>`. `flow=<linkId>` on `/api/bank-lines` rebuilds the period's flow and returns
+  that link's lines, so links never store line IDs.
+- **Note.** When interest paid or received is in the period, `note` is the framework's sentence
+  from `frameworkNotes`.
+
 The same data gives the dashboard's **Bars** (statement lines grouped by activity) and **Table** views,
 so a person who cannot read a Sankey sees the same numbers.
 

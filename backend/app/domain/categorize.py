@@ -20,8 +20,24 @@ class Category:
     label: str
     ifrs: str
     us_gaap: str
+    use: str | None = None  # who was paid, for the money flow's counterparty view
 
     def cashflow_class(self, framework: Framework) -> str:
+        return self.ifrs if framework == "IFRS" else self.us_gaap
+
+
+@dataclass(frozen=True)
+class StatementLine:
+    """A cash-basis statement line, worded per framework; `split` lines show one chart node per
+    category (docs/08 §5.1)."""
+
+    id: str
+    order: int
+    ifrs: str
+    us_gaap: str
+    split: bool = False
+
+    def label(self, framework: Framework) -> str:
         return self.ifrs if framework == "IFRS" else self.us_gaap
 
 
@@ -39,6 +55,10 @@ class CategoryPolicy:
     categories: dict[str, Category]
     rules: tuple[Rule, ...]
     min_model_confidence: Decimal = Decimal("0.5")
+    lines: dict[str, StatementLine] = field(default_factory=dict)
+    uses: dict[str, str] = field(default_factory=dict)
+    flow_labels: dict[str, str] = field(default_factory=dict)
+    framework_notes: dict[str, str] = field(default_factory=dict)
 
     def allowed(self, amount: Decimal) -> list[str]:
         """What the model may choose for a line of this direction."""
@@ -48,8 +68,16 @@ class CategoryPolicy:
 
 def parse_category_policy(categories: dict[str, Any], rules: dict[str, Any]) -> CategoryPolicy:
     cats = {
-        c["id"]: Category(c["id"], c["direction"], c["line"], c["label"], c["ifrs"], c["usGaap"])
+        c["id"]: Category(
+            c["id"], c["direction"], c["line"], c["label"], c["ifrs"], c["usGaap"], c.get("use")
+        )
         for c in categories["categories"]
+    }
+    lines = {
+        line_id: StatementLine(
+            line_id, int(v["order"]), v["ifrs"], v["usGaap"], bool(v.get("split", False))
+        )
+        for line_id, v in (categories.get("lines") or {}).items()
     }
     parsed = tuple(
         Rule(
@@ -64,7 +92,17 @@ def parse_category_policy(categories: dict[str, Any], rules: dict[str, Any]) -> 
     for r in parsed:
         if r.category is not None and r.category not in cats:
             raise ValueError(f"rule {r.id} names unknown category {r.category}")
-    return CategoryPolicy(cats, parsed)
+    for c in cats.values():
+        if lines and c.line not in lines:
+            raise ValueError(f"category {c.id} names unknown statement line {c.line}")
+    return CategoryPolicy(
+        cats,
+        parsed,
+        lines=lines,
+        uses=dict(categories.get("uses") or {}),
+        flow_labels=dict(categories.get("flowLabels") or {}),
+        framework_notes=dict(categories.get("frameworkNotes") or {}),
+    )
 
 
 @dataclass

@@ -2,7 +2,7 @@
 
 ## Phase 1 — Data
 
-- [ ] **T010-01** **TDD** `money_flow.py`: both views, framework classes and wording from `categories.v1.yaml`, balance per account, kept vs taken from balance, held lines excluded, top-5 grouping, transfers option, stable link IDs. (AC-010-5, AC-010-12)
+- [x] **T010-01** **TDD** `money_flow.py`: both views, framework classes and wording from `categories.v1.yaml`, balance per account, kept vs taken from balance, held lines excluded, top-5 grouping, transfers option, stable link IDs. (AC-010-5, AC-010-12)
 - [ ] **T010-01b** **TDD** `cash_flow.py`: months series, by activity, by line, the opening-to-closing check. (AC-010-13, AC-010-14)
 - [ ] **T010-02** `build_flows` node; period aggregation; `InsightService`; routes; `flow=` filter. (AC-010-1, AC-010-5, AC-010-6)
 - [ ] **T010-03** Latency test on S1 data in the emulator. (AC-010-10)

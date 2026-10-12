@@ -130,3 +130,13 @@ class FirestoreFindingRepository(FindingRepository):
             async for s in query.limit(limit).stream()
         ]
         return sorted(found, key=lambda f: (f.severity_rank, f.code, f.finding_id))
+
+    async def get_finding(self, org_id: str, finding_id: str) -> Finding | None:
+        snap = await self._col(org_id).document(finding_id).get()
+        if not snap.exists:
+            return None
+        return _to_domain(FindingDoc.model_validate(snap.to_dict()))
+
+    async def save_finding(self, org_id: str, finding: Finding) -> None:
+        await self._col(org_id).document(finding.finding_id).set(dump(_to_doc(finding)))
+

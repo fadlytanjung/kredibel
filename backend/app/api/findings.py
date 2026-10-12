@@ -3,11 +3,12 @@
 from dataclasses import asdict
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Path, Query
 
 from app.api.deps import ServiceProvider, org_of
 from app.core.auth import Principal
 from app.domain.findings import Finding
+from app.services.finding_service import FindingUpdateRequest
 
 _MONTH = r"^\d{4}-(0[1-9]|1[0-2])$"
 _CAMEL = {"doc_id": "docId", "tx_id": "txId", "invoice_id": "invoiceId", "receipt_id": "receiptId"}
@@ -54,4 +55,22 @@ def create_findings_router(provider: ServiceProvider, workspace_dep: Any) -> API
         )
         return {"items": [finding_body(f) for f in found], "nextCursor": None}
 
+    @router.get("/{finding_id}")
+    async def get_finding(
+        finding_id: str = Path(pattern=r"^fnd_[0-9a-f]{16}$"),
+        principal: Principal = Depends(workspace_dep),
+    ) -> dict[str, Any]:
+        finding = await provider.finding_service.get_finding(principal, finding_id)
+        return finding_body(finding)
+
+    @router.patch("/{finding_id}")
+    async def update_finding(
+        body: FindingUpdateRequest,
+        finding_id: str = Path(pattern=r"^fnd_[0-9a-f]{16}$"),
+        principal: Principal = Depends(workspace_dep),
+    ) -> dict[str, Any]:
+        updated = await provider.finding_service.update_finding(principal, finding_id, body)
+        return finding_body(updated)
+
     return router
+

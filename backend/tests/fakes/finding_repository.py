@@ -62,3 +62,10 @@ class FakeFindingRepository(FindingRepository):
             and (status is None or f.status == status)
         ]
         return sorted(found, key=lambda f: (f.severity_rank, f.code, f.finding_id))[:limit]
+
+    async def get_finding(self, org_id: str, finding_id: str) -> Finding | None:
+        return self.findings.get((org_id, finding_id))
+
+    async def save_finding(self, org_id: str, finding: Finding) -> None:
+        self.findings[(org_id, finding.finding_id)] = finding
+

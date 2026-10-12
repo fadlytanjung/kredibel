@@ -21,6 +21,16 @@
     var b = e.target.closest("[data-group][data-value]");
     if (b) { e.preventDefault(); select(b.dataset.group, b.dataset.value); return; }
 
+    // Explicit previews acknowledge actions without implying a live write.
+    var preview = e.target.closest("[data-demo]");
+    if (preview) {
+      e.preventDefault();
+      if (preview.form && !preview.form.reportValidity()) return;
+      var status = document.querySelector("[data-demo-status]");
+      if (status) { status.textContent = preview.dataset.demo; status.hidden = false; }
+      return;
+    }
+
     // Radio cards (review candidates): pick one, rename the primary action.
     var c = e.target.closest(".candidate");
     if (c) {

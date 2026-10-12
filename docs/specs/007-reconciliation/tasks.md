@@ -31,6 +31,8 @@
   (AC-007-14…16, AC-007-19)
 - [ ] **T007-07** **TDD** month checks `X01`, `X02`, `X08`, `X09`, `R01`, `R02`, `B01`, `B04`, `C02`, `D07`. (AC-007-10, AC-007-11)
 - [ ] **T007-08** Month nodes and `finalize_month`; scenario tests S1 (≥ 85%, 0 wrong), S4, S5 = S1. (AC-007-8, AC-007-11)
+  Align generator expectations for tax shortfalls with explicit adjustment decisions (ADR-025);
+  the legacy generator scorer alone is not proof of runtime assignment quality.
 
 ## Phase 3 — API and UI
 

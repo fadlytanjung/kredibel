@@ -370,7 +370,7 @@ For each left item, candidates within the window (`[issue − 3 days, due + grac
 
 - `amount_score` = 1.0 if within tol (max(currency floor, 0.5%)); 0.8 for a possible withholding
   shortfall on a bank-to-invoice pair (`T·(1 − maxWithholding) ≤ c < T`); else no candidate.
-  Floors are policy values in major units: IDR 1,000; MYR/SGD/USD 0.01; JPY 1. Unknown currencies
+  Floors are policy values in major units: IDR 1,000; MYR/SGD/USD 0.01; JPY 1. Always
   use the **workspace** currency, never the printed foreign currency. Unsupported workspace
   currencies have no fallback. Net-of-tax candidates require review until an explicit adjustment is confirmed;
   amount proximity alone does not establish a tax treatment. Receipts and ledger amounts do not

@@ -1019,6 +1019,7 @@ a:hover { color: var(--k-color-brand-hover); }
 .seg button[aria-pressed="true"] { background: var(--k-color-bg-surface); color: var(--k-color-text-default); box-shadow: var(--k-shadow-raised); }
 .seg button:focus-visible { outline: 2px solid var(--k-color-focus-ring); outline-offset: 2px; }
 @container app (width < 600px) { .seg button { min-height: 40px; padding: 6px 10px; } }
+.seg.seg-touch button { min-height: var(--k-layout-touch-target); }
 
 .more-sheet { display: none; position: fixed; inset: 0; z-index: var(--k-z-sheet); }
 .more-sheet:target { display: block; }

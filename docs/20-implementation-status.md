@@ -4,7 +4,7 @@
 > a component. Statuses: **Specified** → **In progress** → **Built** (tests green) → **Deployed**
 > (running on Cloud Run) · **Cut** (deliberately dropped, with reason).
 
-_Last updated: 12 Oct 2026 — Specs 001, 003, 004 and 013 (P0) built; spec 005 reads statements, invoices and receipts with grounding (ledger import, OCR for scans and escalation still open); production configuration from the `kredibel-env` secret (ADR-024)._
+_Last updated: 12 Oct 2026 — Spec 007 candidate scoring and honest skeleton month state built; bank evidence/support and fixed-workspace-currency agreement specified in ADR-025 and mocked. Assignment, persistence, currency-confirmation UI and live reconciliation remain open. Specs 001, 003, 004 and 013 (P0) built; remaining reading work is listed below._
 
 ## Foundation & platform
 
@@ -55,7 +55,9 @@ _Last updated: 12 Oct 2026 — Specs 001, 003, 004 and 013 (P0) built; spec 005 
 | Integrity checks `A01`, `A02`, `A04`, `M01`–`M04`, `M06`, `E01`, `E02`, `E05`, `X05`, `X06`; verdict; findings API and document page | 006 | Built | `inspect_file` (pikepdf metadata, saves excluding linearization, what each later save changed, fonts of values) and `check_document` (policy-enabled checks, upsert by ID with the re-run rules, verdict). S2's edited March statement → `TAMPERED` with all six expected codes; S1 → `CLEAN`. `M04` is measured per page, not per column (docs/08 §2.4) |
 | Integrity checks `A01`, `A02`, `A04`, `M01`–`M04`, `M06`, `E0x`, `X05`, `X06` + verdict | 006 | Specified | |
 | Categorization | 007 | In progress | `categorize_bank_lines`: keyword rules first (`categorization-rules.v1.yaml`), then `MODEL_LITE` in cached batches of 100 with only the categories allowed for the line's direction; confidence < 0.5 → `UNKNOWN`; cash-flow class from the workspace's framework; risk tags; the model also cleans counterparty names. Match-decided and user categories come with matching and the month page |
-| `reconcile_month` (order-independent) + figures | 007 | Specified | |
+| Candidate scoring and eligibility | 007 | Built | T007-03: Decimal amount/date/party/reference contributions, currency floors selected by fixed workspace currency, explicit agreement for printed-currency mismatches without conversion, direction/account/receipt-method gates and review-only tax shortfalls; 59 synthetic unit tests. Pure scorer only; not wired into production matching |
+| `reconcile_month` (order-independent) + figures | 007 | In progress | Candidate scoring built; assignment, grouped/split matching, coverage, figures and integration remain T007-04…08. T007-00a keeps the skeleton `COLLECTING` with an availability note rather than inferring `RECONCILED` from a statement |
+| Bank evidence, supporting documents and manual attestations | 007 | Specified | ADR-025 / FR-036…038: bank-only rows are informational, document approval and payment confirmation are separate, no fabricated cash; fixed currency with audited agreement before interpreting differently printed amounts. Responsive prototype `reconciliation.html`; persistence/API/migration and real UI remain T007-06a/T007-10 |
 | Month checks `X01`, `X02`, `X08`, `X09`, `R01`, `R02`, `B01`, `B04`, `C02`, `D07` | 007 | Specified | |
 | Months page, manual match and unmatch | 007 | Specified | |
 | Counterparties (accounts seen) + profile suggestions | 014 | Specified | |
@@ -102,3 +104,14 @@ _Record every deliberate deviation here with the reason and the doc that was upd
 |---|---|---|---|
 | 11 Oct 2026 | Firebase Hosting serves the SPA and rewrites `/api/**` to `kredibel-web` (ADR-008 had Cloud Run only) | Stable demo URL and edge-served assets; same origin kept | [ADR-018](adr/ADR-018-firebase-hosting-in-front-of-cloud-run.md); `14` §8, `16` §5 and §8, `21`, `05` §3, ADR-008 status. **Open:** `diagrams/gcp-architecture.drawio.svg` still shows Cloud Run only; update it with the draw.io extension. |
 | 11 Oct 2026 | CI `frontend-check` runs ESLint, tsc, Vitest, `tokens-check` and `no_raw_styles`; the Playwright visual tests and Storybook axe checks of docs/16 §8 run locally only; `backend-check` skips the Firestore emulator tests | Visual baselines are recorded on macOS (`-darwin.png`), the Storybook test runner was never installed (T001-29), and the Cloud Build step has no emulator | **Open:** record `-linux.png` baselines in the Playwright Docker image, add the Storybook Vitest a11y runner, and run `backend-check` in the `google-cloud-cli:emulators` image; then enforce all three. Locally `make docker-up` + `make check` runs everything. |
+| 12 Oct 2026 | Spec 007 P0 distinguishes bank evidence from support and adds manual attestations and currency agreement (no FX); low auto-match rate alone no longer implies fraud risk | Product-owner clarification; statement-only rows are valid bank cash evidence | ADR-025, PRD, docs/06, 08, 09, 11, spec 007 and policies. Actual decision endpoints and risk/review integration are still open. |
+
+### Spec 007 validation (12 Oct 2026)
+
+`make check`: 473 backend, 95 frontend and 213 synthetic tests pass, including emulator integration.
+The new ordinary-flow mock uses existing kit classes; no React screen is shipped by this task.
+Checked its three states at 360/390/834/1440/1600 px: no horizontal page overflow, action targets
+at least 44 px, correct fixed workspace currency in the shell. Added action-preview feedback and
+used the existing large-button variant after the first visual check found 40 px desktop actions.
+Screenshots are recorded at 390/834/1440. The Python screenshot runner expected an absent Chromium
+revision; the installed frontend Playwright browser captured the same mock locally instead.

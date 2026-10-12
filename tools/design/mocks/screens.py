@@ -60,11 +60,11 @@ def todo_list(n=5) -> str:
     return f'<ul class="todo-list">{items}</ul>'
 
 
-def seg(group: str, options: list[tuple[str, str]], active: str, label: str) -> str:
+def seg(group: str, options: list[tuple[str, str]], active: str, label: str, touch: bool = False) -> str:
     """Segmented control; proto.js switches the panels with the same group."""
     btns = "".join(f'<button type="button" data-group="{group}" data-value="{v}" aria-pressed="{str(v == active).lower()}">{t}</button>'
                    for v, t in options)
-    return f'<div class="seg" role="group" aria-label="{label}">{btns}</div>'
+    return f'<div class="seg{" seg-touch" if touch else ""}" role="group" aria-label="{label}">{btns}</div>'
 
 
 def tiers(wide: str, medium: str, compact: str) -> str:
@@ -295,7 +295,8 @@ def reconciliation() -> str:
     <p class="muted">Bank cash comes from your statement. Supporting documents explain each payment.</p>
     <p class="muted">Workspace currency: MYR. Synthetic preview.</p>
   </header>
-  {seg("recon", [("bank", "Bank evidence"), ("documents", "Documents first"), ("currency", "Currency check")], "bank", "Reconciliation examples")}
+  {seg("recon", [("bank", "Bank evidence"), ("documents", "Documents first"), ("currency", "Currency check")], "bank", "Reconciliation examples", touch=True)}
+  <p class="muted" role="status" data-demo-status hidden></p>
   <section class="stack gap-4" data-show-group="recon" data-show-value="bank" aria-labelledby="bank-evidence-h">
     <h2 class="type-h2" id="bank-evidence-h">4 bank transactions, 3 supporting invoices</h2>
     <p>These examples include one payment for two invoices and one invoice paid in two transfers.
@@ -309,11 +310,11 @@ def reconciliation() -> str:
       <div class="stack gap-3">
         <p>Monthly bank fee: MYR 8.00. It already counts in money out.</p>
         <label class="field">Reason<textarea class="input" rows="2">Bank fee charged directly by the bank.</textarea></label>
-        <button class="button button-secondary" type="button" data-demo="Support note saved in this preview">No document needed</button>
+        <button class="button button-secondary button-lg" type="button" data-demo="Support note saved in this preview">No document needed</button>
       </div>
     </details>
     <p class="muted">A completed extraction is not a reconciled month. Statement coverage, matches and open issues are checked separately.</p>
-    <a class="button button-secondary" href="month.html">See an integrity investigation</a>
+    <a class="button button-secondary button-lg" href="month.html">See an integrity investigation</a>
   </section>
   <section class="stack gap-4" data-show-group="recon" data-show-value="documents" hidden aria-labelledby="documents-first-h">
     <h2 class="type-h2" id="documents-first-h">Your documents are ready for the statement</h2>
@@ -332,8 +333,8 @@ def reconciliation() -> str:
     <div class="stack gap-3">
       <h3 class="type-h3">Invoice PP-201: choose what you can confirm</h3>
       <p>Approving this invoice confirms the document is valid. Confirming payment records how much was paid and when.</p>
-      <div class="row"><button type="button" class="button button-secondary" data-demo="Document approval preview: payment remains unconfirmed">Approve document</button>
-        <a class="button button-secondary" href="documents.html">Upload statement</a></div>
+      <div class="row"><button type="button" class="button button-secondary button-lg" data-demo="Document approval preview: payment remains unconfirmed">Approve document</button>
+        <a class="button button-secondary button-lg" href="documents.html">Upload statement</a></div>
       <details class="disclosure" open>
         <summary>Confirm payment manually {icon("chevron-down")}</summary>
         <form class="stack gap-3" onsubmit="event.preventDefault()">
@@ -342,7 +343,7 @@ def reconciliation() -> str:
           <label class="field">Payment method<select class="select"><option>Bank transfer</option><option>Cash</option><option>Card</option></select></label>
           <label class="field">Reason<textarea class="input" rows="2" required>Paid the supplier; waiting for July's statement.</textarea></label>
           <p class="muted">This records your confirmation, with no bank evidence. It does not change bank cash totals. A smaller amount leaves a partial payment.</p>
-          <button type="submit" class="button button-primary" data-demo="Manual payment confirmation preview; no bank cash created">Confirm payment manually</button>
+          <button type="submit" class="button button-primary button-lg" data-demo="Manual payment confirmation preview; no bank cash created">Confirm payment manually</button>
         </form>
       </details>
     </div>
@@ -354,11 +355,11 @@ def reconciliation() -> str:
     <p>The document says IDR 1,500.00. Use its amounts as MYR 1,500.00 without conversion?</p>
     <p class="muted">The numbers will stay the same. We keep the printed currency and your confirmation.
       Until you agree, this document stays out of totals and matching.</p>
-    <div class="row"><button type="button" class="button button-primary" data-demo="Currency agreement preview: numeric amounts unchanged">Use amounts as MYR</button>
-      <a class="button button-secondary" href="documents.html">Replace document</a></div>
+    <div class="row"><button type="button" class="button button-primary button-lg" data-demo="Currency agreement preview: numeric amounts unchanged">Use amounts as MYR</button>
+      <a class="button button-secondary button-lg" href="documents.html">Replace document</a></div>
   </section>
 </div>"""
-    return shell("months", topbar("Reconciliation", ("Reconciliation",)), content, fab=False)
+    return shell("months", topbar("Reconciliation", ("Reconciliation",)), content, fab=False, currency="MYR")
 
 
 # ------------------------------------------------------------------------------------------------

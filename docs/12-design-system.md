@@ -141,6 +141,11 @@ from lucide; the text is always present. Fraud risk levels of months and documen
 Match chips: **auto** (brand soft, link icon), **manual** (low soft, hand icon, "Matched by Maya on
 12 Jul"), **proposed** (medium soft, "Choose a match"), **no match** (sunken, unlink icon).
 
+Reconciliation evidence (ADR-025): **Bank recorded** is a neutral outline badge; **No supporting
+document** and **Waiting for statement** use neutral chips. User approval/payment confirmation uses
+the hand icon and always states whether bank evidence exists. Use `.seg-touch` for the evidence
+view switcher (token touch-target height at every width); decision actions use `.button-lg`.
+
 ### 2.3 Charts
 
 - **Money flow** (§6.4): bands in `chart.flow-in` (`#7DB9A2` at 55%) and `chart.flow-out` (`#B9C2CA`

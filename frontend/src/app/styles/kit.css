@@ -547,6 +547,16 @@ a:hover { color: var(--k-color-brand-hover); }
 .only-rt { display: none !important; }
 @container rt (width < 760px) { .only-rt { display: flex !important; flex-wrap: wrap; align-items: center; gap: 6px; } .hide-rt { display: none !important; } }
 
+/* Table toolbar & search */
+.table-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--k-space-3); }
+.table-search { position: relative; display: flex; align-items: center; min-width: 200px; max-width: 320px; flex: 1 1 200px; }
+.table-search-icon { position: absolute; left: 10px; pointer-events: none; color: var(--k-color-text-muted); width: 14px; height: 14px; }
+.table-search input { padding-left: 32px; padding-right: 30px; min-height: 34px; height: 34px; font-size: 13.5px; }
+.table-search-clear { position: absolute; right: 6px; background: transparent; border: none; cursor: pointer; color: var(--k-color-text-muted); display: flex; align-items: center; justify-content: center; padding: 4px; border-radius: var(--k-radius-xs); }
+.table-search-clear:hover { color: var(--k-color-text-default); }
+.table-actions { display: flex; align-items: center; gap: var(--k-space-2); margin-left: auto; }
+@container app (width < 600px) { .table-search { max-width: 100%; width: 100%; } }
+
 /* ------------------------------------------------------------------------------------------ */
 /* Documents: upload tray                                                                       */
 /* ------------------------------------------------------------------------------------------ */

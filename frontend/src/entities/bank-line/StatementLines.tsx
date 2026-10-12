@@ -1,20 +1,18 @@
 /**
- * One statement's lines as read: filtered, a page at a time, each amount marked with how it was
+ * One statement's lines as read: filtered, searchable, a page at a time, each amount marked with how it was
  * found (spec 005, T005-11; mock design/mocks/document.html).
  */
 
-import { useState } from 'react'
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { formatDate } from '../../shared/lib/formatDate'
 import { formatMoney } from '../../shared/lib/formatMoney'
-import { Button } from '../../shared/ui'
+import { DataTable, type DataTableColumn, type DataTableFilter } from '../../shared/ui'
 import type { BankLine } from './api'
 import { isIncoming, lineStatus, needsCheck } from './lines'
 
 type Filter = 'all' | 'in' | 'out' | 'check'
 
-const PAGE_SIZE = 25
-const FILTERS: Filter[] = ['all', 'in', 'out', 'check']
 const MARK = {
   AGREED: 'reading-agreed',
   SINGLE_SOURCE: 'reading-single',
@@ -36,117 +34,114 @@ interface StatementLinesProps {
 }
 
 export function StatementLines({ lines, selectedTxId, onSelect }: StatementLinesProps) {
-  const { t } = useTranslation('documents')
-  const [filter, setFilter] = useState<Filter>('all')
-  const [start, setStart] = useState(0)
-  const shown = lines.filter(KEEP[filter])
-  const page = shown.slice(start, start + PAGE_SIZE)
-  const choose = (next: Filter) => {
-    setFilter(next)
-    setStart(0)
+  const { t } = useTranslation(['documents', 'common'])
+
+  const filters: DataTableFilter<BankLine>[] = useMemo(
+    () => [
+      { key: 'all', label: t('documents:detail.lines.all'), predicate: KEEP.all },
+      { key: 'in', label: t('documents:detail.lines.in'), predicate: KEEP.in },
+      { key: 'out', label: t('documents:detail.lines.out'), predicate: KEEP.out },
+      { key: 'check', label: t('documents:detail.lines.check'), predicate: KEEP.check },
+    ],
+    [t],
+  )
+
+  const columns: DataTableColumn<BankLine>[] = useMemo(
+    () => [
+      {
+        key: 'transaction',
+        header: t('documents:detail.columns.transaction'),
+        wideOnMobile: true,
+        sortable: true,
+        sortValue: (line) => line.counterpartyName || line.description,
+        render: (line) => {
+          const status = lineStatus(line)
+          const [first, ...rest] = line.description.split('\n')
+          const detail = line.counterpartyName ? line.description.replace(/\n/g, ' · ') : rest.join(' · ')
+          const where = t('documents:detail.lines.where', { date: formatDate(line.date), page: line.page })
+          const check =
+            line.source === 'WITNESS'
+              ? t('documents:detail.witnessRow')
+              : status !== 'AGREED'
+                ? t(`documents:detail.readingStatus.${status}`)
+                : ''
+          return (
+            <div>
+              <strong className="block">{line.counterpartyName || first}</strong>
+              {detail && <div className="reason">{detail}</div>}
+              <div className="reason">{check ? `${where} · ${check}` : where}</div>
+            </div>
+          )
+        },
+      },
+      {
+        key: 'amount',
+        header: t('documents:detail.columns.amount'),
+        align: 'right',
+        sortable: true,
+        sortValue: (line) => Number(line.amount.amount),
+        render: (line) => {
+          const status = lineStatus(line)
+          const amountStatus = line.readings?.amount?.status ?? status
+          const incoming = isIncoming(line)
+          return (
+            <>
+              <span className={incoming ? 'amt-in' : 'amt-out'}>
+                <span className={`reading ${line.source === 'WITNESS' ? MARK.SINGLE_SOURCE : MARK[amountStatus]}`}>
+                  {incoming ? '+' : ''}
+                  {formatMoney(line.amount.amount, { currency: line.amount.currency })}
+                </span>
+              </span>
+              <span className="sr-only">{t(`documents:detail.readingStatus.${amountStatus}`)}</span>
+            </>
+          )
+        },
+      },
+    ],
+    [t],
+  )
+
+  const searchPredicate = (line: BankLine, q: string) => {
+    if (line.counterpartyName && line.counterpartyName.toLowerCase().includes(q)) return true
+    if (line.description && line.description.toLowerCase().includes(q)) return true
+    if (line.date && line.date.includes(q)) return true
+    if (line.amount?.amount && line.amount.amount.includes(q)) return true
+    return false
   }
 
   return (
-    <div className="stack gap-3">
-      <div className="chips" role="group" aria-label={t('detail.lines.filter')}>
-        {FILTERS.map((key) => (
-          <button key={key} type="button" className="chip" aria-pressed={filter === key} onClick={() => choose(key)}>
-            {t(`detail.lines.${key}`)} <span className="n">{lines.filter(KEEP[key]).length}</span>
-          </button>
-        ))}
-      </div>
-
-      {page.length === 0 ? (
-        <p className="muted small">{t('detail.lines.none')}</p>
-      ) : (
-        <div className="table-panel rt-wrap">
-          <table className="data-table rt">
-            <thead>
-              <tr>
-                <th>{t('detail.columns.transaction')}</th>
-                <th className="r">{t('detail.columns.amount')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {page.map((line) => {
-                const status = lineStatus(line)
-                const amountStatus = line.readings?.amount?.status ?? status
-                const incoming = isIncoming(line)
-                const [first, ...rest] = line.description.split('\n')
-                const detail = line.counterpartyName ? line.description.replace(/\n/g, ' · ') : rest.join(' · ')
-                const where = t('detail.lines.where', { date: formatDate(line.date), page: line.page })
-                const check =
-                  line.source === 'WITNESS' ? t('detail.witnessRow') : status !== 'AGREED' ? t(`detail.readingStatus.${status}`) : ''
-                return (
-                  <tr
-                    key={line.txId}
-                    className={`is-clickable ${line.txId === selectedTxId ? 'is-selected' : ''}`}
-                    aria-selected={line.txId === selectedTxId}
-                    tabIndex={0}
-                    onClick={() => onSelect(line)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault()
-                        onSelect(line)
-                      }
-                    }}
-                  >
-                    <td>
-                      <strong className="block">{line.counterpartyName || first}</strong>
-                      {detail && <div className="reason">{detail}</div>}
-                      <div className="reason">{check ? `${where} · ${check}` : where}</div>
-                    </td>
-                    <td className="r">
-                      <span className={incoming ? 'amt-in' : 'amt-out'}>
-                        <span className={`reading ${line.source === 'WITNESS' ? MARK.SINGLE_SOURCE : MARK[amountStatus]}`}>
-                          {incoming ? '+' : ''}
-                          {formatMoney(line.amount.amount, { currency: line.amount.currency })}
-                        </span>
-                      </span>
-                      <span className="sr-only">{t(`detail.readingStatus.${amountStatus}`)}</span>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {shown.length > 0 && (
-        <div className="pager-line">
+    <DataTable
+      data={lines}
+      columns={columns}
+      getRowKey={(line) => line.txId}
+      filters={filters}
+      filterGroupAriaLabel={t('documents:detail.lines.filter')}
+      searchable={true}
+      searchPlaceholder={t('common:table.searchPlaceholder', { defaultValue: 'Search transactions...' })}
+      searchPredicate={searchPredicate}
+      pageSize={25}
+      rangeLabel={(from, to, total) =>
+        t('documents:detail.lines.range', { from, to, total })
+      }
+      emptyMessage={<p className="muted small">{t('documents:detail.lines.none')}</p>}
+      selectedRowKey={selectedTxId}
+      onRowClick={onSelect}
+      footer={
+        <p className="reading-legend">
           <span>
-            {t('detail.lines.range', { from: start + 1, to: Math.min(start + PAGE_SIZE, shown.length), total: shown.length })}
+            <span className="reading reading-agreed">{t('documents:detail.legend.sample')}</span>{' '}
+            {t('documents:detail.legend.agreed')}
           </span>
-          {shown.length > PAGE_SIZE && (
-            <span className="row">
-              <Button variant="secondary" size="sm" disabled={start === 0} onClick={() => setStart(start - PAGE_SIZE)}>
-                {t('detail.lines.previous')}
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={start + PAGE_SIZE >= shown.length}
-                onClick={() => setStart(start + PAGE_SIZE)}
-              >
-                {t('detail.lines.next')}
-              </Button>
-            </span>
-          )}
-        </div>
-      )}
-
-      <p className="reading-legend">
-        <span>
-          <span className="reading reading-agreed">{t('detail.legend.sample')}</span> {t('detail.legend.agreed')}
-        </span>
-        <span>
-          <span className="reading reading-single">{t('detail.legend.sample')}</span> {t('detail.legend.single')}
-        </span>
-        <span>
-          <span className="reading reading-conflict">{t('detail.legend.sample')}</span> {t('detail.legend.conflict')}
-        </span>
-      </p>
-    </div>
+          <span>
+            <span className="reading reading-single">{t('documents:detail.legend.sample')}</span>{' '}
+            {t('documents:detail.legend.single')}
+          </span>
+          <span>
+            <span className="reading reading-conflict">{t('documents:detail.legend.sample')}</span>{' '}
+            {t('documents:detail.legend.conflict')}
+          </span>
+        </p>
+      }
+    />
   )
 }

@@ -55,6 +55,9 @@
 - [x] **T007-10** `MonthsPage`, `MonthPage`, `MatchPicker`, approval and payment confirmation;
   all evidence/support states, currency agreement and grouped allocations; visual tests at three
   widths. (AC-007-12…19)
+- [x] **T007-10a** Reusable `DataTable<T>` (search, filter chips with counts, 25 a page, sortable
+  columns, keyboard rows, empty state) for the month's bank lines and a statement's transactions.
+  (AC-007-12)
 
 ## Phase 4 — Close
 

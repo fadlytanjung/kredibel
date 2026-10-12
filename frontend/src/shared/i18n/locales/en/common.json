@@ -156,6 +156,19 @@
     "cancel": "Cancel",
     "back": "Back"
   },
+  "table": {
+    "searchPlaceholder": "Search...",
+    "searchAria": "Search items",
+    "clearSearch": "Clear search",
+    "showingRange": "{{from}} to {{to}} of {{total}}",
+    "previous": "Previous",
+    "next": "Next",
+    "page": "Page {{current}} of {{total}}",
+    "filter": "Filter items",
+    "noResults": "No items match your search or filter.",
+    "clearFilters": "Clear filters",
+    "empty": "No items to display."
+  },
   "progress": {
     "label": "Progress",
     "readingPage": "Reading page {{current}} of {{total}}",

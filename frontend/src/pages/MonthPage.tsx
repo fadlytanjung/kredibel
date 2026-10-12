@@ -5,17 +5,16 @@
  * and the bank lines list with match chips, plus manual Match/Unmatch controls.
  */
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
-import { useMonthBankLines } from '../entities/bank-line'
+import { type BankLine, useMonthBankLines } from '../entities/bank-line'
 import { useCreateMatch, useMatches, useUnmatch } from '../entities/match'
 import { useMonth, useReconcileMonth } from '../entities/month'
 import { useWorkspace } from '../entities/workspace'
 import { formatMoney } from '../shared/lib/formatMoney'
-import { Badge, Button, Icon } from '../shared/ui'
+import { Badge, Button, DataTable, type DataTableColumn, type DataTableFilter, Icon } from '../shared/ui'
 
-type LineFilter = 'all' | 'open' | 'in' | 'out'
 
 function factValue(fact: { value?: unknown } | undefined, fallback = '0.00'): string {
   if (!fact || fact.value === undefined || fact.value === null) return fallback
@@ -36,7 +35,6 @@ export function MonthPage() {
   const createMatchMutation = useCreateMatch()
   const unmatchMutation = useUnmatch()
 
-  const [filter, setFilter] = useState<LineFilter>('all')
   const [matchingTxId, setMatchingTxId] = useState<string | null>(null)
   const [matchCandidateId, setMatchCandidateId] = useState<string>('')
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
@@ -59,16 +57,6 @@ export function MonthPage() {
     month: 'long',
     year: 'numeric',
     timeZone: 'UTC',
-  })
-
-  // Filter lines
-  const filteredLines = lines.filter((l) => {
-    if (filter === 'all') return true
-    if (filter === 'open') return !l.match?.matchIds?.length
-    const num = Number(l.amount?.amount ?? 0)
-    if (filter === 'in') return num > 0
-    if (filter === 'out') return num < 0
-    return true
   })
 
   const isReconciled = activeMonth?.state === 'RECONCILED'
@@ -107,6 +95,173 @@ export function MonthPage() {
       setStatusMessage('Failed to unmatch')
     }
   }
+
+  const filters: DataTableFilter<BankLine>[] = useMemo(
+    () => [
+      {
+        key: 'all',
+        label: t('months:monthDetail.filterAll'),
+        predicate: () => true,
+        count: lines.length,
+      },
+      {
+        key: 'open',
+        label: t('months:monthDetail.filterOpen'),
+        predicate: (l) => !l.match?.matchIds?.length,
+        count: lines.filter((l) => !l.match?.matchIds?.length).length,
+      },
+      {
+        key: 'in',
+        label: t('months:monthDetail.filterIn'),
+        predicate: (l) => Number(l.amount?.amount ?? 0) > 0,
+        count: lines.filter((l) => Number(l.amount?.amount ?? 0) > 0).length,
+      },
+      {
+        key: 'out',
+        label: t('months:monthDetail.filterOut'),
+        predicate: (l) => Number(l.amount?.amount ?? 0) < 0,
+        count: lines.filter((l) => Number(l.amount?.amount ?? 0) < 0).length,
+      },
+    ],
+    [lines, t],
+  )
+
+  const columns: DataTableColumn<BankLine>[] = useMemo(
+    () => [
+      {
+        key: 'bankLine',
+        header: t('months:monthDetail.colBankLine'),
+        wideOnMobile: true,
+        sortable: true,
+        sortValue: (line) => line.description,
+        render: (line) => (
+          <div>
+            <strong>{line.description}</strong>
+            <div className="reason">
+              {line.date}, {line.category}
+            </div>
+          </div>
+        ),
+      },
+      {
+        key: 'amount',
+        header: t('months:monthDetail.colAmount', { currency }),
+        align: 'right',
+        sortable: true,
+        sortValue: (line) => Number(line.amount?.amount ?? 0),
+        render: (line) => {
+          const isCredit = Number(line.amount?.amount ?? 0) > 0
+          return (
+            <span className={isCredit ? 'amt-in' : 'amt-out'}>
+              <span className="reading reading-agreed">
+                {isCredit ? '+' : ''}
+                {formatMoney(line.amount?.amount ?? '0.00', { currency })}
+              </span>
+            </span>
+          )
+        },
+      },
+      {
+        key: 'matchedWith',
+        header: t('months:monthDetail.colMatchedWith'),
+        wideOnMobile: true,
+        render: (line) => {
+          const matchId = line.match?.matchIds?.[0]
+          const matchObj = matches.find((m) => m.matchId === matchId)
+          const isManual = matchObj?.method === 'MANUAL'
+          const hasMatch = Boolean(matchId)
+
+          if (hasMatch) {
+            return (
+              <div>
+                <span className={`match-chip ${isManual ? 'manual' : 'auto'}`}>
+                  <Icon name="link" size="sm" />
+                  <span>
+                    {isManual
+                      ? t('months:monthDetail.matchedByYou')
+                      : t('months:monthDetail.matchedToDocument')}
+                  </span>
+                </span>
+                <div className="reason">
+                  {matchObj?.reasons?.join(', ') || t('months:monthDetail.matchedByKredibelDefault')}
+                </div>
+              </div>
+            )
+          }
+
+          return (
+            <div>
+              <span className="match-chip none">
+                <Icon name="file-text" size="sm" />
+                <span>{t('months:monthDetail.noSupportingDocument')}</span>
+              </span>
+              <div className="reason">
+                {line.support || t('months:monthDetail.bankRecordedNoDoc')}
+              </div>
+            </div>
+          )
+        },
+      },
+      {
+        key: 'actions',
+        header: t('months:monthDetail.colActions'),
+        align: 'right',
+        render: (line) => {
+          const matchId = line.match?.matchIds?.[0]
+          const hasMatch = Boolean(matchId)
+
+          if (hasMatch) {
+            return (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => handleUnmatch(matchId!)}
+              >
+                {t('months:monthDetail.unmatch')}
+              </Button>
+            )
+          }
+
+          if (matchingTxId === line.txId) {
+            return (
+              <div className="row gap-2 items-center">
+                <input
+                  className="input input-sm"
+                  placeholder={t('months:monthDetail.invoiceIdPlaceholder')}
+                  value={matchCandidateId}
+                  onChange={(e) => setMatchCandidateId(e.target.value)}
+                />
+                <Button size="sm" onClick={() => handleManualMatch(line.txId)}>
+                  {t('months:monthDetail.link')}
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setMatchingTxId(null)}
+                >
+                  {t('months:monthDetail.cancel')}
+                </Button>
+              </div>
+            )
+          }
+
+          return (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setMatchingTxId(line.txId)
+                setMatchCandidateId('')
+              }}
+            >
+              {t('months:monthDetail.match')}
+            </Button>
+          )
+        },
+      },
+    ],
+    [currency, matches, matchingTxId, matchCandidateId, t],
+  )
 
   return (
     <div className="page">
@@ -252,185 +407,54 @@ export function MonthPage() {
         </section>
 
         {/* Bank lines list & controls */}
-        <div className="stack gap-3">
-          <div className="row justify-between items-center">
-            <div className="chips" role="group" aria-label={t('months:monthDetail.filterBankLines')}>
-              <button
-                type="button"
-                className="chip"
-                aria-pressed={filter === 'all'}
-                onClick={() => setFilter('all')}
-              >
-                {t('months:monthDetail.filterAll')} <span className="n">{lines.length}</span>
-              </button>
-              <button
-                type="button"
-                className="chip"
-                aria-pressed={filter === 'open'}
-                onClick={() => setFilter('open')}
-              >
-                {t('months:monthDetail.filterOpen')}
-              </button>
-              <button
-                type="button"
-                className="chip"
-                aria-pressed={filter === 'in'}
-                onClick={() => setFilter('in')}
-              >
-                {t('months:monthDetail.filterIn')}
-              </button>
-              <button
-                type="button"
-                className="chip"
-                aria-pressed={filter === 'out'}
-                onClick={() => setFilter('out')}
-              >
-                {t('months:monthDetail.filterOut')}
-              </button>
-            </div>
-
+        <DataTable
+          data={lines}
+          columns={columns}
+          getRowKey={(line) => line.txId}
+          filters={filters}
+          filterGroupAriaLabel={t('months:monthDetail.filterBankLines')}
+          searchable={true}
+          searchPlaceholder={t('common:table.searchPlaceholder', { defaultValue: 'Search bank lines...' })}
+          searchPredicate={(line, q) => {
+            if (line.description?.toLowerCase().includes(q)) return true
+            if (line.category?.toLowerCase().includes(q)) return true
+            if (line.date?.includes(q)) return true
+            if (line.amount?.amount?.includes(q)) return true
+            if (line.support?.toLowerCase().includes(q)) return true
+            return false
+          }}
+          isLoading={linesLoading}
+          loadingMessage={<p>{t('months:monthDetail.loadingBankLines')}</p>}
+          emptyMessage={<p className="muted">{t('months:monthDetail.noBankLinesFilter')}</p>}
+          pageSize={25}
+          headerActions={
             <Button
               variant="secondary"
               size="sm"
               disabled={reconcileMutation.isPending}
               onClick={() => reconcileMutation.mutate(month)}
             >
-              {reconcileMutation.isPending ? t('months:monthDetail.reconciling') : t('months:monthDetail.reReconcile')}
+              {reconcileMutation.isPending
+                ? t('months:monthDetail.reconciling')
+                : t('months:monthDetail.reReconcile')}
             </Button>
-          </div>
-
-          <div className="table-panel rt-wrap">
-            <table className="data-table rt">
-              <thead>
-                <tr>
-                  <th>{t('months:monthDetail.colBankLine')}</th>
-                  <th className="r">{t('months:monthDetail.colAmount', { currency })}</th>
-                  <th>{t('months:monthDetail.colMatchedWith')}</th>
-                  <th className="r">{t('months:monthDetail.colActions')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {linesLoading ? (
-                  <tr>
-                    <td colSpan={4} className="muted">
-                      {t('months:monthDetail.loadingBankLines')}
-                    </td>
-                  </tr>
-                ) : filteredLines.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="muted">
-                      {t('months:monthDetail.noBankLinesFilter')}
-                    </td>
-                  </tr>
-                ) : (
-                  filteredLines.map((line) => {
-                    const isCredit = Number(line.amount?.amount ?? 0) > 0
-                    const matchId = line.match?.matchIds?.[0]
-                    const matchObj = matches.find((m) => m.matchId === matchId)
-                    const isManual = matchObj?.method === 'MANUAL'
-                    const hasMatch = Boolean(matchId)
-
-                    return (
-                      <tr key={line.txId}>
-                        <td data-cell="wide">
-                          <strong>{line.description}</strong>
-                          <div className="reason">
-                            {line.date}, {line.category}
-                          </div>
-                        </td>
-                        <td className="r">
-                          <span className={isCredit ? 'amt-in' : 'amt-out'}>
-                            <span className="reading reading-agreed">
-                              {isCredit ? '+' : ''}
-                              {formatMoney(line.amount?.amount ?? '0.00', { currency })}
-                            </span>
-                          </span>
-                        </td>
-                        <td data-cell="wide">
-                          {hasMatch ? (
-                            <>
-                              <span className={`match-chip ${isManual ? 'manual' : 'auto'}`}>
-                                <Icon name="link" size="sm" />
-                                <span>{isManual ? t('months:monthDetail.matchedByYou') : t('months:monthDetail.matchedToDocument')}</span>
-                              </span>
-                              <div className="reason">
-                                {matchObj?.reasons?.join(', ') || t('months:monthDetail.matchedByKredibelDefault')}
-                              </div>
-                            </>
-                          ) : (
-                            <>
-                              <span className="match-chip none">
-                                <Icon name="file-text" size="sm" />
-                                <span>{t('months:monthDetail.noSupportingDocument')}</span>
-                              </span>
-                              <div className="reason">
-                                {line.support || t('months:monthDetail.bankRecordedNoDoc')}
-                              </div>
-                            </>
-                          )}
-                        </td>
-                        <td className="r">
-                          {hasMatch ? (
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              onClick={() => handleUnmatch(matchId!)}
-                            >
-                              {t('months:monthDetail.unmatch')}
-                            </Button>
-                          ) : matchingTxId === line.txId ? (
-                            <div className="row gap-2 items-center">
-                              <input
-                                className="input input-sm"
-                                placeholder={t('months:monthDetail.invoiceIdPlaceholder')}
-                                value={matchCandidateId}
-                                onChange={(e) => setMatchCandidateId(e.target.value)}
-                              />
-                              <Button size="sm" onClick={() => handleManualMatch(line.txId)}>
-                                {t('months:monthDetail.link')}
-                              </Button>
-                              <Button
-                                variant="secondary"
-                                size="sm"
-                                onClick={() => setMatchingTxId(null)}
-                              >
-                                {t('months:monthDetail.cancel')}
-                              </Button>
-                            </div>
-                          ) : (
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              onClick={() => {
-                                setMatchingTxId(line.txId)
-                                setMatchCandidateId('')
-                              }}
-                            >
-                              {t('months:monthDetail.match')}
-                            </Button>
-                          )}
-                        </td>
-                      </tr>
-                    )
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          <p className="reading-legend">
-            <span>
-              <span className="reading reading-agreed">7,250,000</span> {t('months:monthDetail.legendAgreed')}
-            </span>
-            <span>
-              <span className="reading reading-single">7,250,000</span> {t('months:monthDetail.legendSingle')}
-            </span>
-            <span>
-              <span className="reading reading-conflict">7,250,000</span> {t('months:monthDetail.legendConflict')}
-            </span>
-          </p>
-        </div>
+          }
+          footer={
+            <p className="reading-legend">
+              <span>
+                <span className="reading reading-agreed">7,250,000</span> {t('months:monthDetail.legendAgreed')}
+              </span>
+              <span>
+                <span className="reading reading-single">7,250,000</span> {t('months:monthDetail.legendSingle')}
+              </span>
+              <span>
+                <span className="reading reading-conflict">7,250,000</span> {t('months:monthDetail.legendConflict')}
+              </span>
+            </p>
+          }
+        />
       </div>
     </div>
   )
 }
+

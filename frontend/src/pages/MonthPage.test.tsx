@@ -171,4 +171,57 @@ describe('MonthPage', () => {
       )
     })
   })
+
+  it('supports searching bank lines in DataTable', async () => {
+    vi.mocked(apiClient).mockImplementation((url: string) => {
+      if (url.includes('/api/months/2026-03')) {
+        return Promise.resolve({ month: '2026-03', state: 'RECONCILED' })
+      }
+      if (url.includes('/api/bank-lines?month=2026-03')) {
+        return Promise.resolve({
+          items: [
+            {
+              txId: 'tx_1',
+              date: '2026-03-11',
+              description: 'TRANSFER IN DAYBREAK CAFE',
+              amount: { amount: '6420000.00', currency: 'IDR' },
+              category: 'Sales',
+              match: { state: 'CONFIRMED', matchIds: ['mat_1'] },
+            },
+            {
+              txId: 'tx_2',
+              date: '2026-03-12',
+              description: 'TRANSFER OUT GREEN VALLEY FARMS',
+              amount: { amount: '-9850000.00', currency: 'IDR' },
+              category: 'Supplier',
+              match: { state: 'UNMATCHED', matchIds: [] },
+              support: 'Bank recorded · No supporting document',
+            },
+          ],
+          nextCursor: null,
+        })
+      }
+      if (url.includes('/api/matches?month=2026-03')) {
+        return Promise.resolve({ items: [] })
+      }
+      if (url.includes('/api/workspace')) {
+        return Promise.resolve({ orgId: 'org_1', currency: 'IDR' })
+      }
+      return Promise.resolve({})
+    })
+
+    renderPage()
+
+    await waitFor(() => {
+      expect(screen.getByText('TRANSFER IN DAYBREAK CAFE')).toBeInTheDocument()
+      expect(screen.getByText('TRANSFER OUT GREEN VALLEY FARMS')).toBeInTheDocument()
+    })
+
+    // Search for DAYBREAK
+    const searchInput = screen.getByRole('textbox', { name: /Search/i })
+    fireEvent.change(searchInput, { target: { value: 'DAYBREAK' } })
+
+    expect(screen.getByText('TRANSFER IN DAYBREAK CAFE')).toBeInTheDocument()
+    expect(screen.queryByText('TRANSFER OUT GREEN VALLEY FARMS')).not.toBeInTheDocument()
+  })
 })

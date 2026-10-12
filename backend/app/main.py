@@ -44,6 +44,7 @@ from app.api.decisions import create_decisions_router
 from app.api.documents import create_documents_router
 from app.api.findings import create_findings_router
 from app.api.health import create_health_router
+from app.api.insights import create_insights_router
 from app.api.matches import create_matches_router
 from app.api.me import create_me_router
 from app.api.months import create_months_router
@@ -97,6 +98,7 @@ from app.services.decision_service import DecisionService
 from app.services.document_service import DocumentService
 from app.services.entitlement_service import EntitlementService
 from app.services.finding_service import FindingService
+from app.services.insight_service import InsightService
 from app.services.match_service import MatchService
 from app.services.month_service import MonthService
 from app.services.record_service import RecordService
@@ -578,6 +580,21 @@ class AppDeps:
         )
 
     @property
+    def insight_service(self) -> InsightService:
+        return self._once(
+            "insight_service",
+            lambda: InsightService(
+                workspaces=self.workspace_repo,
+                doc_repo=self.doc_repo,
+                bank_lines=self.bank_lines,
+                months=self.month_repo,
+                findings=self.findings,
+                decisions=self.decisions,
+                categories=self.categories,
+            ),
+        )
+
+    @property
     def bank_line_service(self) -> BankLineService:
         return self._once(
             "bank_line_service",
@@ -659,6 +676,7 @@ def create_app(
         app.include_router(create_runs_router(deps, workspace_dep))
         app.include_router(create_months_router(deps, workspace_dep))
         app.include_router(create_bank_lines_router(deps, workspace_dep))
+        app.include_router(create_insights_router(deps, workspace_dep))
         app.include_router(create_records_router(deps, workspace_dep))
         app.include_router(create_findings_router(deps, workspace_dep))
         app.include_router(create_decisions_router(deps, workspace_dep))

@@ -12,6 +12,7 @@ from app.services.decision_service import DecisionService
 from app.services.document_service import DocumentService
 from app.services.entitlement_service import EntitlementService
 from app.services.finding_service import FindingService
+from app.services.insight_service import InsightService
 from app.services.match_service import MatchService
 from app.services.month_service import MonthService
 from app.services.record_service import RecordService
@@ -43,6 +44,9 @@ class ServiceProvider(Protocol):
 
     @property
     def bank_line_service(self) -> BankLineService: ...
+
+    @property
+    def insight_service(self) -> InsightService: ...
 
     @property
     def record_service(self) -> RecordService: ...

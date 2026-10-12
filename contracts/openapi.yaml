@@ -427,7 +427,11 @@ paths:
         - { name: matchState, in: query, schema: { $ref: "#/components/schemas/MatchState" } }
         - { name: category, in: query, schema: { $ref: "#/components/schemas/Category" } }
         - { name: counterpartyId, in: query, schema: { type: string } }
-        - { name: flow, in: query, schema: { type: string }, description: "A money-flow link ID (Sankey drill-down)" }
+        - { name: flow, in: query, schema: { type: string }, description: "A money-flow link ID (Sankey drill-down); the flow is rebuilt with period, view, framework and showTransfers below, as the chart asked for it (docs/08 §5.1)" }
+        - $ref: "#/components/parameters/Period"
+        - { name: view, in: query, schema: { $ref: "#/components/schemas/MoneyFlowView" }, description: "With flow" }
+        - $ref: "#/components/parameters/Framework"
+        - { name: showTransfers, in: query, schema: { type: boolean, default: false }, description: "With flow" }
         - { name: q, in: query, schema: { type: string, maxLength: 100 }, description: "Text in the description" }
         - $ref: "#/components/parameters/Limit"
         - $ref: "#/components/parameters/Cursor"
@@ -1346,11 +1350,11 @@ components:
     Period:
       name: period
       in: query
-      description: "A month (2026-03), quarter (2026-Q1), year (2026), range (2026-01..2026-06) or all"
+      description: "A month (2026-03), quarter (2026-Q1), year (2026), range (2026-01..2026-06), recent (the last 3 months with data, the dashboard's default) or all"
       schema:
         type: string
         default: all
-        pattern: "^(all|\\d{4}|\\d{4}-Q[1-4]|\\d{4}-(0[1-9]|1[0-2])|\\d{4}-(0[1-9]|1[0-2])\\.\\.\\d{4}-(0[1-9]|1[0-2]))$"
+        pattern: "^(all|recent|\\d{4}|\\d{4}-Q[1-4]|\\d{4}-(0[1-9]|1[0-2])|\\d{4}-(0[1-9]|1[0-2])\\.\\.\\d{4}-(0[1-9]|1[0-2]))$"
     Limit:
       name: limit
       in: query

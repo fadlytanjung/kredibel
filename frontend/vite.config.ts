@@ -19,6 +19,15 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: './src/test-setup.ts',
+    // A fixed placeholder config: tests never depend on a developer's .env (Firebase refuses an
+    // empty API key at import) and never reach a real project.
+    env: {
+      VITE_FIREBASE_API_KEY: 'test-api-key',
+      VITE_FIREBASE_AUTH_DOMAIN: 'demo-kredibel.firebaseapp.com',
+      VITE_FIREBASE_PROJECT_ID: 'demo-kredibel',
+      VITE_FIREBASE_APP_ID: '1:000000000000:web:0000000000000000',
+      VITE_FIRESTORE_DATABASE: '(default)',
+    },
     include: ['src/**/*.test.{ts,tsx}'],
   },
 })

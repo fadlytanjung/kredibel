@@ -144,6 +144,18 @@ describe('CreateWorkspaceForm (AC-013-2)', () => {
     expect(currency.value).toBe('USD')
   })
 
+  it('keeps a picked currency even when it is the one first suggested', async () => {
+    const { user } = renderForm()
+    const currency = screen.getByLabelText('Currency') as HTMLSelectElement
+    const first = currency.value // suggested from the machine's time zone
+
+    await user.selectOptions(screen.getByLabelText('Time zone'), first === 'JPY' ? 'Asia/Singapore' : 'Asia/Tokyo')
+    await user.selectOptions(currency, first)
+    await user.selectOptions(screen.getByLabelText('Time zone'), first === 'MYR' ? 'Asia/Singapore' : 'Asia/Kuala_Lumpur')
+
+    expect(currency.value).toBe(first)
+  })
+
   it('checks the bank account before sending it', async () => {
     const { user } = renderForm()
 

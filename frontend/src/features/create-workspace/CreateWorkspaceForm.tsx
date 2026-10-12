@@ -4,7 +4,7 @@
  */
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect, useMemo, useState, type KeyboardEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
@@ -68,11 +68,13 @@ export function CreateWorkspaceForm({ retryDelayMs }: { retryDelayMs?: number })
     if (create.phase === 'done') navigate('/', { replace: true })
   }, [create.phase, navigate])
 
-  // The currency follows the time zone until the person picks one themselves (ADR-020).
+  // The currency follows the time zone until the person picks one themselves (ADR-020). A pick
+  // is remembered as such: picking the suggested currency is still a choice, which isDirty misses.
+  const currencyPicked = useRef(false)
   const timezone = useWatch({ control, name: 'timezone' })
   useEffect(() => {
-    if (!form.getFieldState('currency').isDirty) setValue('currency', suggestCurrency(timezone))
-  }, [timezone, form, setValue])
+    if (!currencyPicked.current) setValue('currency', suggestCurrency(timezone))
+  }, [timezone, setValue])
 
   const onSubmit = form.handleSubmit(async (values) => {
     setServerError(null)
@@ -195,7 +197,13 @@ export function CreateWorkspaceForm({ retryDelayMs }: { retryDelayMs?: number })
             </Select>
           </Field>
           <Field id="currency" label={t('currency')} hint={t('currencyHint')} error={errorOf('currency')}>
-            <Select {...bind.currency}>
+            <Select
+              {...bind.currency}
+              onChange={(event: ChangeEvent<HTMLSelectElement>) => {
+                currencyPicked.current = true
+                void bind.currency.onChange(event)
+              }}
+            >
               {CURRENCIES.map((code) => (
                 <option key={code} value={code}>
                   {currencyLabel(code)}

@@ -19,7 +19,8 @@ describe('formatMoney (AC-001-14)', () => {
   })
 
   it('formats compact amounts', () => {
-    expect(formatMoney('1250000', { currency: 'IDR', compact: true })).toMatch(/1\.25.*M/)
+    // CLDR 48 writes the British million as "m" (IDR 1.25m); earlier data wrote "M".
+    expect(formatMoney('1250000', { currency: 'IDR', compact: true })).toMatch(/1\.25\s*[mM]$/)
   })
 
   it('keeps every digit of a decimal string (money is never a float)', () => {

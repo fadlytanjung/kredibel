@@ -14,6 +14,8 @@
 
 - [x] **T008-05** Findings routes; acknowledge and dismiss with reasons. (AC-008-9)
 - [x] **T008-06** `RiskPage` and `SeverityBadge`. (AC-008-7, AC-008-10)
+- [x] **T008-06a** The Risk page's findings are one `DataTable`: chips by severity and possible copies with
+  counts, search, 10 a page, most severe first, a row opening the evidence viewer. (AC-008-7)
 - [x] **T008-07** `EvidenceViewer` (desktop and phone variants) and `Explanation`; visual tests. (AC-008-8)
 
 ## Phase 4 — Scenarios and close

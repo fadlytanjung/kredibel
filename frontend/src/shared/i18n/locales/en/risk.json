@@ -22,13 +22,18 @@
   "table": {
     "finding": "Finding",
     "where": "Where",
-    "status": "Status"
+    "status": "Status",
+    "month": "Month",
+    "document": "In a document",
+    "documentPage": "In a document, page {{page}}",
+    "wholeMonth": "Across the month"
   },
   "status": {
     "open": "Open",
     "held": "Held",
     "acknowledged": "Acknowledged",
-    "dismissed": "Dismissed"
+    "dismissed": "Dismissed",
+    "resolved": "Resolved"
   },
   "severity": {
     "CRITICAL": "Critical",
@@ -89,5 +94,6 @@
       "nextPrev": "next, previous",
       "close": "close"
     }
-  }
+  },
+  "search": "Search findings"
 }

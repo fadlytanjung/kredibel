@@ -2,7 +2,6 @@
 
 from decimal import Decimal
 
-from tests.integration.test_document_first_reconciliation import decide
 from tests.integration.test_invoice_workflow import AUTH, _client
 from tests.integration.test_month_workflow_reconcile import _upload
 from tests.support.reconciliation_demo import DOCUMENTS, FIXTURES, demo_deps
@@ -25,10 +24,8 @@ async def replay(*, statement_first: bool):
             stored = (await client.get(f"/api/documents/{doc_id}", headers=AUTH)).json()
             assert stored["status"] == "DONE", stored.get("statusDetail")
             assert not stored.get("heldAsDuplicate"), (document["file"], stored.get("duplicate"))
-            if document["docType"] == "RECEIPT":
-                # Neither till roll prints a currency. The user agrees to the fixed workspace
-                # currency, keeping the amounts unchanged; nothing infers or converts it.
-                await decide(client, deps, kind="CURRENCY_AGREEMENT", docId=doc_id)
+            # Neither till roll prints a currency: both are read in the workspace currency
+            # without asking (ADR-025, T007-12), and still match.
         invoices = (await client.get("/api/invoices", headers=AUTH)).json()["items"]
         receipts = (await client.get("/api/receipts", headers=AUTH)).json()["items"]
         month = (await client.get("/api/months/2026-03", headers=AUTH)).json()

@@ -8,6 +8,9 @@ four copies of everything. Uploads go through the same services the API calls, w
 the queue the settings configure (Gemini on Vertex AI), four documents at a time; then every month
 is reconciled again. Prints counts only. The workspace must keep its books in IDR.
 
+Run it again after an interruption: it uploads only what is missing and finishes half-read
+documents.
+
 Usage (from backend/; keep the machine awake: a sleeping laptop freezes open network calls):
   caffeinate -i uv run python -m scripts.upload_demo_books --email owner@example.com
   uv run python -m scripts.upload_demo_books --email owner@example.com --dry-run
@@ -32,12 +35,17 @@ def _order(folder: Path) -> list[str]:
     return [x if isinstance(x, str) else x["file"] for x in truth["uploadOrder"]]
 
 
-def upload_plan(demo_dir: Path, scenarios: tuple[str, ...] = SCENARIOS) -> list[tuple[str, Path]]:
+def upload_plan(
+    demo_dir: Path,
+    scenarios: tuple[str, ...] = SCENARIOS,
+    already: set[tuple[str, str]] | None = None,
+) -> list[tuple[str, Path]]:
     """Every file of the first scenario, then each later scenario's files whose name and content
     were not uploaded before. A file with new content keeps its place in its scenario's order; a
-    second name for the same bytes (an intended exact copy) is uploaded."""
+    second name for the same bytes (an intended exact copy) is uploaded. `already` holds the
+    (name, sha256) of the workspace's documents, so a run that stopped half way resumes."""
     plan: list[tuple[str, Path]] = []
-    sent: set[tuple[str, str]] = set()
+    sent: set[tuple[str, str]] = set(already or ())
     for scenario in scenarios:
         folder = demo_dir / scenario / "seed-1"
         for name in _order(folder):
@@ -61,16 +69,11 @@ async def _run(email: str, demo_dir: Path, dry_run: bool) -> int:
     from app.adapters.cloud_tasks import InlineTaskQueue, month_task_id
     from app.core.auth import Principal
     from app.core.settings import Settings
+    from app.domain.models.document import DocStatus
+    from app.domain.models.run import RunStatus
     from app.domain.models.workspace import BankAccountCreate, WorkspaceUpdate
     from app.main import AppDeps, load_plans
     from app.observability.tracing import setup_tracing
-
-    plan = upload_plan(demo_dir)
-    _log(f"{len(plan)} files:", dict(Counter(scenario for scenario, _ in plan)))
-    if dry_run:
-        for scenario, path in plan:
-            print(f"  {scenario} {path.name}")
-        return 0
 
     settings = Settings()
     if not firebase_admin._apps:
@@ -86,10 +89,32 @@ async def _run(email: str, demo_dir: Path, dry_run: bool) -> int:
     )
     setup_tracing(settings)
     deps = AppDeps(settings, load_plans(settings.contract_path(settings.plans_file)))
+    FINAL = {DocStatus.DONE, DocStatus.DUPLICATE, DocStatus.NEEDS_INPUT, DocStatus.FAILED}
+    FINAL |= {DocStatus.QUARANTINED}
     workspace = await deps.workspace_repo.get_workspace(org_id)
     if workspace is None or workspace.currency != "IDR":
         print("The synthetic books are in IDR; this workspace is not.", file=sys.stderr)
         return 1
+
+    # Resume: skip what the workspace already holds; finish documents a stopped run left half read.
+    held, _ = await deps.doc_repo.list_documents(org_id, limit=500)
+    plan = upload_plan(demo_dir, already={(d.file_name, d.sha256) for d in held})
+    _log(
+        f"{len(plan)} files to upload, {len(held)} already there:",
+        dict(Counter(s for s, _ in plan)),
+    )
+    if dry_run:
+        for scenario, path in plan:
+            print(f"  {scenario} {path.name}")
+        return 0
+    unfinished = [d for d in held if d.status not in FINAL]
+    for doc in unfinished:
+        runs = await deps.run_repo.list_by_target(org_id, doc.doc_id)
+        stuck = next((r for r in runs if r.status == RunStatus.RUNNING), None)
+        if stuck is not None:
+            await deps.run_service.process_document_task(org_id, doc.doc_id, stuck.run_id, 2)
+    if unfinished:
+        _log(f"{len(unfinished)} half-read document(s) finished")
 
     # The books belong to the synthetic business: its legal name and its declared bank account.
     truth = json.loads((demo_dir / "S1" / "seed-1" / "truth.json").read_text(encoding="utf-8"))

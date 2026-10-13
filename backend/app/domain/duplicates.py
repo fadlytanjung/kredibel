@@ -87,6 +87,7 @@ class InvoiceKey:
     number: str | None
     issue_date: date | None
     total: Decimal | None
+    pay_to: str | None = None  # the masked account printed for payment
 
 
 def _number(text: str | None) -> str:
@@ -96,8 +97,9 @@ def _number(text: str | None) -> str:
 def invoice_duplicate(
     new: InvoiceKey, others: list[InvoiceKey], policy: Duplicates
 ) -> Match | None:
-    """D03 the same invoice again (issuer and number, or issuer, date and total); D04 the same
-    issuer and number on a different invoice (another total or date)."""
+    """D03 the same invoice again (issuer and number, or issuer, date and total), HIGH when the copy
+    asks to be paid into another account than the original (T006-11); D04 the same issuer and
+    number on a different invoice (another total or date)."""
     for old in sorted(others, key=lambda o: o.uploaded_at):
         if old.doc_id == new.doc_id or old.uploaded_at > new.uploaded_at:
             continue
@@ -115,7 +117,13 @@ def invoice_duplicate(
         if same_number and not same_content:
             return Match("D04_INVOICE_NUMBER_REUSED", old.doc_id, "HIGH", facts, hold=False)
         if same_number or (same_content and new.total is not None and new.issue_date is not None):
-            return Match("D03_INVOICE_DUPLICATE", old.doc_id, "MEDIUM", facts, hold=True)
+            # A copy that changes where to pay is how a payment is diverted; X08 cannot see it
+            # while the copy is held, so the duplicate says it.
+            elsewhere = bool(new.pay_to and old.pay_to) and new.pay_to != old.pay_to
+            if elsewhere:
+                facts |= {"payTo": new.pay_to or "", "otherPayTo": old.pay_to or ""}
+            severity: Severity = "HIGH" if elsewhere else "MEDIUM"
+            return Match("D03_INVOICE_DUPLICATE", old.doc_id, severity, facts, hold=True)
     return None
 
 

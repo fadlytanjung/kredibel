@@ -72,8 +72,9 @@ def _inv(
     total: str,
     when=LATER,
     issuer="Sunrise Coffee Roasters",
+    pay_to: str | None = None,
 ):
-    return InvoiceKey(doc, when, issuer, number, day, Decimal(total))
+    return InvoiceKey(doc, when, issuer, number, day, Decimal(total), pay_to)
 
 
 def test_the_same_invoice_again_is_held_a_reused_number_keeps_both():
@@ -100,6 +101,51 @@ def test_the_same_invoice_again_is_held_a_reused_number_keeps_both():
         "doc_b", "INV/SCR/2026/03/0009", date(2026, 3, 12), "19597050.00", issuer="Daybreak Café"
     )
     assert invoice_duplicate(other_issuer, [old], POLICY) is None
+
+
+def test_a_copy_that_asks_to_be_paid_elsewhere_is_high():
+    """The same invoice with another pay-to account: a payment diversion signal (T006-11)."""
+    old = _inv(
+        "doc_a", "RL-2026-0503", date(2026, 5, 6), "8250000.00", EARLIER, "Roastline", "••••3318"
+    )
+    diverted = invoice_duplicate(
+        _inv(
+            "doc_b",
+            "RL-2026-0503",
+            date(2026, 5, 6),
+            "8250000.00",
+            issuer="Roastline",
+            pay_to="••••3108",
+        ),
+        [old],
+        POLICY,
+    )
+    assert diverted is not None
+    assert (diverted.code, diverted.severity, diverted.hold) == (
+        "D03_INVOICE_DUPLICATE",
+        "HIGH",
+        True,
+    )
+    assert (diverted.facts["payTo"], diverted.facts["otherPayTo"]) == ("••••3108", "••••3318")
+    same_account = invoice_duplicate(
+        _inv(
+            "doc_b",
+            "RL-2026-0503",
+            date(2026, 5, 6),
+            "8250000.00",
+            issuer="Roastline",
+            pay_to="••••3318",
+        ),
+        [old],
+        POLICY,
+    )
+    assert same_account is not None and same_account.severity == "MEDIUM"
+    unread = invoice_duplicate(
+        _inv("doc_b", "RL-2026-0503", date(2026, 5, 6), "8250000.00", issuer="Roastline"),
+        [old],
+        POLICY,
+    )
+    assert unread is not None and unread.severity == "MEDIUM"  # no account read: no claim
 
 
 def _rc(doc: str, total: str, when=LATER, p_hash: str | None = None) -> ReceiptKey:

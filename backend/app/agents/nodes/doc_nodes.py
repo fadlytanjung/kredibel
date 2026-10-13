@@ -687,7 +687,15 @@ async def _find_duplicate(
     if doc.doc_type in (DocType.SALES_INVOICE, DocType.PURCHASE_INVOICE) and deps.invoices:
         everything = await deps.invoices.list_records(org_id, limit=1000)
         keys = [
-            InvoiceKey(i.doc_id, uploaded[i.doc_id], i.issuer_name, i.number, i.issue_date, i.total)
+            InvoiceKey(
+                i.doc_id,
+                uploaded[i.doc_id],
+                i.issuer_name,
+                i.number,
+                i.issue_date,
+                i.total,
+                i.pay_to_masked,
+            )
             for i in everything
             if i.doc_id in uploaded
         ]
@@ -735,13 +743,17 @@ _DUPLICATE_TITLES = {
 }
 
 
+_PAID_ELSEWHERE = "This invoice was already uploaded, with another account to pay into"
+
+
 def _duplicate_finding(doc: Any, match: Match) -> Finding:
+    elsewhere = match.code == "D03_INVOICE_DUPLICATE" and "payTo" in match.facts
     return Finding(
         finding_id=finding_id(match.code, f"{doc.doc_id}|{match.of_doc_id}"),
         code=match.code,
         category="DUPLICATE",
         severity=match.severity,
-        title=_DUPLICATE_TITLES[match.code],
+        title=_PAID_ELSEWHERE if elsewhere else _DUPLICATE_TITLES[match.code],
         facts={
             **match.facts,
             "otherDocument": match.of_doc_id,

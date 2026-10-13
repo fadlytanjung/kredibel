@@ -71,6 +71,12 @@
 - [x] **T007-10e** The months list and the month's findings are `DataTable`s: filters with counts (state;
   severity), search, 10 a page, a row opening the month or the finding's evidence. (AC-007-12)
 
+- [ ] **T007-12** Decision needed: a document that prints no currency. ADR-025 treats an unknown
+  currency like a foreign one (`CURRENCY_TO_CONFIRM`), so none of the synthetic receipts (they print
+  "TOTAL 467,976.00") can match until a person agrees, one by one. Options: keep it; read a document
+  without any printed currency in the workspace currency with a note; or agree once per merchant.
+  (AC-007-19)
+
 ## Phase 4 — Close
 
 - [x] **T007-11** Update `docs/20-implementation-status.md`.

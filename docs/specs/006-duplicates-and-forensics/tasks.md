@@ -22,4 +22,8 @@
 
 ## Phase 4 — Close
 
+- [ ] **T006-11** Decision needed: a copy of an invoice whose bank account changed is a payment
+  diversion signal. In the synthetic end-to-end run (13 Oct 2026, S1 then S4) the diverted Roastline
+  invoice is held as `D03` (same number as the original) and `X08` never sees it. Proposed: `D03` on a
+  pair whose pay-to account differs is `HIGH` and names both accounts. (AC-006-5)
 - [ ] **T006-10** Update `docs/20-implementation-status.md`.

@@ -187,6 +187,19 @@ statement), May `HIGH` (changed supplier account), February and June `MEDIUM` (p
 12 May, receipt of 17 Jun), the proposed match of 9 Feb, the ledger difference of 14 Mar, two unpaid
 Bluewater Trading Co. invoices and the unmatched cash deposit of 21 Jun.
 
+**End-to-end run, 13 Oct 2026** (S1 to S4 seed 1, 290 uploads through the services with Gemini, into
+a fresh company workspace): 78 documents read, 210 exact copies recorded, 6 held as possible copies;
+March `CRITICAL` with `A01`, `A02`, `M03`, `M04`, `M01`, `M02`; `D02`, `D03`, `D05` on the copies; two
+`R02` for Bluewater. The run found and fixed: invoice documents keeping the classifier's type
+(6dbc5d0), quantities read in the wrong number style (af703f6), month checks blind to other months'
+payments (20317ab) and to proposed ones (5b39863). Still different from the expectations above:
+- every other month `MEDIUM`, not `LOW`: the receipt photos have no OCR witness (`E01`, T005-05);
+- most bank lines unmatched: two thirds of the expected matches are ledger matches (T005-04);
+- receipts wait for a currency agreement because they print none (decision, T007-12);
+- May is not `HIGH`: the diverted invoice is held as a copy of the original (decision, T006-11);
+- the net-of-tax payment of invoice 0010 is proposed, not automatic, as the policy says (T007-08
+  aligns the generator's expectation).
+
 ---
 
 ## 6. `truth.json`

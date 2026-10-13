@@ -21,6 +21,7 @@ from app.domain.models.document import DocStatus, DocType, Document, DuplicateKi
 from app.domain.models.month import Month
 from app.domain.money_flow import FlowNode, MoneyFlow, View, build_money_flow
 from app.domain.period import Period, resolve_period
+from app.domain.reconcile_scoring import in_workspace_currency
 from app.ports.bank_line_repository import BankLineRepository
 from app.ports.decision_repository import DecisionRepository
 from app.ports.document_repository import DocumentRepository
@@ -131,7 +132,7 @@ class InsightService:
             and d.status == DocStatus.DONE
             and not (d.duplicate is not None and d.duplicate.kind == DuplicateKind.EXACT)
             and (
-                (d.statement_meta or {}).get("currency") in (None, workspace.currency)
+                in_workspace_currency((d.statement_meta or {}).get("currency"), workspace.currency)
                 or d.doc_id in agreed
             )
         ]

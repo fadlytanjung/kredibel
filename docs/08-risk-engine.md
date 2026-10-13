@@ -383,7 +383,8 @@ partial confirmation stays partial. Later bank evidence links the same payment w
 twice. T007-06a owns the versioned contract before these decisions can be persisted.
 
 **Payment evidence** of an invoice or receipt is derived each run (`domain/evidence.py`), first
-match wins: `CURRENCY_TO_CONFIRM` (printed currency differs or is unknown and no agreement yet),
+match wins: `CURRENCY_TO_CONFIRM` (the printed currency differs and no agreement yet; a document
+that prints no currency is in the workspace currency, ADR-025),
 `PAID_BANK` (confirmed matches cover the total within tolerance; a grouped payment pays each invoice
 its own total; a confirmed net-of-tax adjustment counts as full), `PARTIAL_BANK`, `PROPOSED`,
 `CONFIRMED_BY_YOU` (a person's confirmation, shown apart, never bank cash), `PAID_CASH` (cash

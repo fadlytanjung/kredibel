@@ -127,7 +127,16 @@ def test_ac007_17_tolerance_uses_workspace_currency(
     assert (result is not None) is eligible
 
 
-@pytest.mark.parametrize("currency", ["IDR", None, "EUR"])
+def test_ac007_19_a_document_printing_no_currency_is_in_the_workspace_currency(
+    policy, bank, invoice
+):
+    unprinted = replace(invoice, currency=None)
+    result = score_pair(bank, unprinted, policy, workspace_currency="MYR")
+    assert result is not None and result.score == D(1)
+    assert unprinted.currency is None  # what the document prints is kept as it is
+
+
+@pytest.mark.parametrize("currency", ["IDR", "EUR"])
 def test_ac007_19_currency_override_needs_explicit_agreement(policy, bank, invoice, currency):
     foreign = replace(invoice, currency=currency)
     assert score_pair(bank, foreign, policy, workspace_currency="MYR") is None

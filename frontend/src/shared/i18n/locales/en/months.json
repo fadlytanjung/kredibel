@@ -142,7 +142,8 @@
       "search": "Search documents",
       "filterAll": "All",
       "filterOpen": "Not paid yet",
-      "filterPaid": "Paid"
+      "filterPaid": "Paid",
+      "noCurrencyPrinted": "No currency printed: read as {{currency}}"
     },
     "payment": {
       "PAID_BANK": "Paid through the bank",

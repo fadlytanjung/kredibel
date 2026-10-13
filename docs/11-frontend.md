@@ -491,7 +491,8 @@ audit record. Details/allocations stack on phones, with ordinary 44 px action bu
 needs loading, empty, error and populated states when implemented in T007-10; the static mock is
 design work, not a claim these actions already exist in the application.
 
-The workspace currency is fixed at onboarding. A mismatching or unknown printed currency opens
+The workspace currency is fixed at onboarding. A document that prints no currency is read in the
+workspace currency and its row says **No currency printed: read as IDR**. A different printed currency opens
 **Confirm document currency**: “This document says IDR. Use its amounts as MYR without conversion?”
 Actions: **Use amounts as MYR** or **Replace document**. Until agreed, show **Currency needs
 confirmation** and exclude the document from totals/matching. Keep its printed currency visible

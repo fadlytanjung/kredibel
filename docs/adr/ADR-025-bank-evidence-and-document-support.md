@@ -41,8 +41,11 @@ reconciled only after actual computation, statement coverage checks and resoluti
 the presence of one statement is insufficient.
 
 Each workspace has one fixed currency chosen at onboarding; there is no FX feature. Preserve the
-printed currency. If it differs (or is unknown), ask the user to accept the numeric amounts as the
-workspace currency **without conversion**, or replace the document. For example: “This document
+printed currency. If it differs, ask the user to accept the numeric amounts as the
+workspace currency **without conversion**, or replace the document. A document that prints **no
+currency at all** (a till roll's "TOTAL 467,976.00") is read in the workspace currency and says so
+("No currency printed: read as IDR"); its printed currency stays empty. Asking for each such receipt
+blocked every one of them from matching (amended 13 Oct 2026, T007-12). For example: “This document
 says IDR. Use its amounts as MYR without conversion?” Until explicitly accepted, exclude it from
 totals and matching. Store the original currency and the audited decision separately; never silently
 relabel source evidence. T007-06a owns the decision contract and UI, including statement documents.

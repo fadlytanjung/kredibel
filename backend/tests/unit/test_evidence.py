@@ -136,11 +136,16 @@ def test_a_persons_payment_confirmation_is_shown_apart_from_bank_evidence():
     )
 
 
-def test_a_foreign_or_unknown_currency_waits_for_the_persons_agreement():
+def test_a_foreign_currency_waits_for_the_persons_agreement():
     assert evidence(inv(printed_currency="IDR")).payment == "CURRENCY_TO_CONFIRM"
-    assert evidence(inv(printed_currency=None)).payment == "CURRENCY_TO_CONFIRM"
     agreed = evidence(inv(printed_currency="IDR", currency_accepted=True))
     assert agreed.payment == "UNPAID" and agreed.printed_currency == "IDR"
+
+
+def test_a_document_printing_no_currency_is_in_the_workspace_currency():
+    unprinted = evidence(inv(printed_currency=None))
+    assert unprinted.payment == "UNPAID"  # judged like any other invoice, no agreement asked
+    assert (unprinted.printed_currency, unprinted.effective_currency) == (None, "MYR")
 
 
 def test_receipts_paid_in_cash_need_no_bank_line():

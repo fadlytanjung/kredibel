@@ -21,7 +21,7 @@ from app.domain.models.document import DocStatus, DocType, Document, DuplicateKi
 from app.domain.models.invoice import Invoice, Receipt
 from app.domain.models.match import StoredMatch
 from app.domain.reconcile import Allocation, Decisions, ManualMatch
-from app.domain.reconcile_scoring import MatchRecord
+from app.domain.reconcile_scoring import MatchRecord, in_workspace_currency
 
 
 def month_bounds(month: str) -> tuple[date, date]:
@@ -110,7 +110,7 @@ async def read_month(deps: PipelineDeps, org_id: str, month: str) -> MonthData |
         meta = doc.statement_meta or {}
         if doc.doc_type != DocType.BANK_STATEMENT or not meta.get("periodStart"):
             continue
-        if meta.get("currency") != currency and doc.doc_id not in accepted:
+        if not in_workspace_currency(meta.get("currency"), currency) and doc.doc_id not in accepted:
             continue  # its amounts wait for the person's agreement (ADR-025)
         account = " ".join(x for x in (meta.get("bankName"), meta.get("accountMasked")) if x)
         account_of[doc.doc_id] = account or doc.doc_id

@@ -67,6 +67,12 @@ def _reference_in(reference: str | None, text: str) -> Decimal:
     return Decimal(int(bool(normalized) and f" {normalized} " in f" {_fold(text)} "))
 
 
+def in_workspace_currency(printed: str | None, workspace_currency: str) -> bool:
+    """A document that prints no currency is read in the workspace currency (ADR-025, T007-12);
+    only a different printed currency waits for a person's agreement."""
+    return not printed or printed == workspace_currency
+
+
 def _valid(item: MatchRecord, workspace_currency: str) -> bool:
     return (
         not item.held
@@ -75,7 +81,10 @@ def _valid(item: MatchRecord, workspace_currency: str) -> bool:
         and item.amount.is_finite()
         and item.amount != 0
         and (item.kind in ("BANK", "LEDGER_CASH") or item.amount > 0)
-        and (item.currency == workspace_currency or item.currency_override_confirmed)
+        and (
+            in_workspace_currency(item.currency, workspace_currency)
+            or item.currency_override_confirmed
+        )
     )
 
 

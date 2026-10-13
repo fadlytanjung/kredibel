@@ -61,6 +61,7 @@ export function MonthDocuments({ month, currency }: { month: string; currency: s
           <strong>{title(r)}</strong>
           <div className="reason">{who(r)}</div>
           {r.date && <div className="reason">{formatDate(r.date)}</div>}
+          {r.noCurrencyPrinted && <div className="reason">{t('monthDetail.docs.noCurrencyPrinted', { currency })}</div>}
         </div>
       ),
     },

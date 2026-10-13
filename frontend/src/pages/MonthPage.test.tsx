@@ -87,11 +87,11 @@ const MATCHES = [
 ]
 
 const INVOICES = [
-  { invoiceId: 'inv_1', docId: 'doc_inv1', kind: 'SALES', number: 'INV/SCR/2026/03/0009', buyerName: 'Daybreak Café', issueDate: '2026-03-12', month: '2026-03', total: { amount: '1500.00', currency: 'MYR' }, evidence: { payment: 'PAID_BANK' } },
-  { invoiceId: 'inv_2', docId: 'doc_inv2', kind: 'PURCHASE', number: 'BW-0042', issuerName: 'Bluewater Trading Co.', issueDate: '2026-03-04', month: '2026-03', total: { amount: '800.00', currency: 'MYR' }, evidence: { payment: 'UNPAID' } },
+  { invoiceId: 'inv_1', docId: 'doc_inv1', kind: 'SALES', number: 'INV/SCR/2026/03/0009', buyerName: 'Daybreak Café', issueDate: '2026-03-12', month: '2026-03', total: { amount: '1500.00', currency: 'MYR' }, evidence: { payment: 'PAID_BANK', printedCurrency: 'MYR' } },
+  { invoiceId: 'inv_2', docId: 'doc_inv2', kind: 'PURCHASE', number: 'BW-0042', issuerName: 'Bluewater Trading Co.', issueDate: '2026-03-04', month: '2026-03', total: { amount: '800.00', currency: 'MYR' }, evidence: { payment: 'UNPAID', printedCurrency: 'MYR' } },
 ]
 const RECEIPTS = [
-  { receiptId: 'rcp_1', docId: 'doc_rcp1', merchantName: 'Cendana Fuel', date: '2026-03-18', month: '2026-03', total: { amount: '65.00', currency: 'MYR' }, evidence: { payment: 'PAID_CASH' } },
+  { receiptId: 'rcp_1', docId: 'doc_rcp1', merchantName: 'Cendana Fuel', date: '2026-03-18', month: '2026-03', total: { amount: '65.00', currency: 'MYR' }, evidence: { payment: 'PAID_CASH', printedCurrency: null } },
 ]
 const FINDINGS = [
   { findingId: 'fnd_1', code: 'R02_SUPPLIER_INVOICE_UNKNOWN_PARTY', severity: 'MEDIUM', title: 'Invoice from a supplier never paid before', status: 'OPEN', month: '2026-03', facts: {}, evidence: [], nextSteps: ['Check who sent it.'] },
@@ -251,6 +251,8 @@ describe('MonthPage', () => {
     expect(chip('Paid in cash')).toHaveClass('cleared')
     expect(screen.getByText('Sales, to Daybreak Café')).toBeInTheDocument()
     expect(screen.getByText('Purchase, from Bluewater Trading Co.')).toBeInTheDocument()
+    // The receipt prints no currency: read in the workspace currency, and it says so (ADR-025).
+    expect(screen.getAllByText('No currency printed: read as MYR')).toHaveLength(1)
 
     fireEvent.click(screen.getByText('Receipt'))
     expect(screen.getByTestId('where')).toHaveTextContent('/documents/doc_rcp1')

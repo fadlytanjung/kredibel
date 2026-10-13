@@ -95,10 +95,11 @@ This extends P0 with manual attestations and clarifies the existing bank-first d
   single matches before any assignment. No record is silently consumed twice within a match kind.
   Extraction, integrity, bank evidence, support and manual approval are separate labels in the mock
   and future page, at mobile, tablet and desktop widths.
-- **AC-007-19** Given a workspace fixed to MYR and a document printed in IDR (or missing currency),
-  when read, then ask for agreement before using its amounts as MYR **without conversion**. Until
-  accepted it is excluded from totals/matching. Acceptance preserves numeric values and printed
-  currency, records an audited override and uses MYR tolerances. No exchange rates or FX totals.
+- **AC-007-19** Given a workspace fixed to MYR and a document printed in IDR, when read, then ask
+  for agreement before using its amounts as MYR **without conversion**. Until accepted it is
+  excluded from totals/matching. Acceptance preserves numeric values and printed currency, records
+  an audited override and uses MYR tolerances. No exchange rates or FX totals. A document that
+  prints no currency is read as MYR without asking, and says "No currency printed: read as MYR".
 
 ## Delivery boundaries
 

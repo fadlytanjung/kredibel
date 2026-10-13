@@ -14,6 +14,7 @@ from decimal import Decimal
 from typing import Literal
 
 from .reconcile import Allocation
+from .reconcile_scoring import in_workspace_currency
 from .reconciliation_policy import ReconciliationPolicy
 
 PaymentEvidence = Literal[
@@ -138,7 +139,10 @@ def document_evidence(
     tolerance = policy.tolerance(doc.total, workspace_currency) or ZERO
 
     payment: PaymentEvidence
-    if doc.printed_currency != workspace_currency and not doc.currency_accepted:
+    if (
+        not in_workspace_currency(doc.printed_currency, workspace_currency)
+        and not doc.currency_accepted
+    ):
         payment = "CURRENCY_TO_CONFIRM"
     elif bank_paid > 0 and doc.total - bank_paid <= tolerance:
         payment = "PAID_BANK"

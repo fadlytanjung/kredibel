@@ -13,6 +13,8 @@ export interface Row {
   date?: string | null
   total?: { amount: string; currency: string } | null
   payment: Payment
+  // Read in the workspace currency because the document prints none (ADR-025, T007-12).
+  noCurrencyPrinted: boolean
 }
 
 function rows(invoices: Invoice[], receipts: Receipt[]): Row[] {
@@ -26,6 +28,7 @@ function rows(invoices: Invoice[], receipts: Receipt[]): Row[] {
       date: i.issueDate,
       total: i.total,
       payment: (i.evidence?.payment ?? 'NOT_RUN') as Payment,
+      noCurrencyPrinted: !!i.evidence && !i.evidence.printedCurrency,
     })),
     ...receipts.map((r) => ({
       id: r.receiptId,
@@ -36,6 +39,7 @@ function rows(invoices: Invoice[], receipts: Receipt[]): Row[] {
       date: r.date,
       total: r.total,
       payment: (r.evidence?.payment ?? 'NOT_RUN') as Payment,
+      noCurrencyPrinted: !!r.evidence && !r.evidence.printedCurrency,
     })),
   ].sort((a, b) => (a.date ?? '').localeCompare(b.date ?? '') || a.id.localeCompare(b.id))
 }

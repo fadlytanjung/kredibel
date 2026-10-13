@@ -12,9 +12,9 @@ import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { type BankLine, isIncoming, useMonthBankLines } from '../entities/bank-line'
 import { useFindings } from '../entities/finding'
 import { type Match, useCreateMatch, useMatches, useUnmatch } from '../entities/match'
-import { useMonth, useReconcileMonth } from '../entities/month'
+import { useMonth, useMonths, useReconcileMonth } from '../entities/month'
 import { useWorkspace } from '../entities/workspace'
-import { formatDate } from '../shared/lib/formatDate'
+import { formatDate, formatMonth } from '../shared/lib/formatDate'
 import { formatAmount } from '../shared/lib/formatMoney'
 import { Badge, Button, DataTable, type DataTableColumn, type DataTableFilter, Icon } from '../shared/ui'
 import type { IconName } from '../shared/ui/Icon'
@@ -96,7 +96,8 @@ function monthAround(month: string) {
 export function MonthPage() {
   const { t } = useTranslation(['months', 'common'])
   const { month = '' } = useParams<{ month: string }>()
-  const { data: monthData } = useMonth(month)
+  const { data: monthData, isLoading: monthLoading } = useMonth(month)
+  const { data: monthsList } = useMonths()
   const [params, setParams] = useSearchParams()
   const asked = params.get('tab') as Tab | null
   const tab: Tab = asked && TABS.includes(asked) ? asked : 'lines'
@@ -115,6 +116,19 @@ export function MonthPage() {
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
 
   const lines = linesData?.items ?? []
+  // A month with nothing in it (often this calendar month) says so and points to the latest month
+  // that has data, instead of a page of dashes.
+  const latestWithData = (monthsList?.items ?? [])
+    .filter((m) => m.month !== month && Object.keys(m.figures ?? {}).length > 0)
+    .map((m) => m.month)
+    .sort()
+    .at(-1)
+  const isEmpty =
+    !monthLoading &&
+    !linesLoading &&
+    lines.length === 0 &&
+    monthDocuments.length === 0 &&
+    Object.keys(monthData?.figures ?? {}).length === 0
   const matches = matchesData?.items ?? []
   const currency = ws?.currency ?? lines[0]?.amount?.currency ?? ''
   const figures = monthData?.figures as Figures
@@ -354,185 +368,208 @@ export function MonthPage() {
         </p>
       )}
 
-      <div className="stack gap-6 mt-6">
-        <section className="ledger" aria-label={t('months:monthDetail.figuresAria', { month: monthLabel })}>
-          <dl className="ledger-figures">
-            <div>
-              <dt>{t('months:monthDetail.openingBalance')}</dt>
-              <dd className="v">{figure(opening)}</dd>
-              <dd className="n">
-                {opening === undefined ? t('months:monthDetail.noBalances') : t('months:monthDetail.fromPreviousClosing')}
-              </dd>
-            </div>
-            <div>
-              <dt>{t('months:monthDetail.moneyIn')}</dt>
-              <dd className="v">{figure(moneyIn)}</dd>
-              <dd className="n">{t('months:monthDetail.creditsRecorded', { count: credits })}</dd>
-            </div>
-            <div>
-              <dt>{t('months:monthDetail.moneyOut')}</dt>
-              <dd className="v">{figure(moneyOut)}</dd>
-              <dd className="n">{t('months:monthDetail.debitsRecorded', { count: lines.length - credits })}</dd>
-            </div>
-            <div>
-              <dt>{t('months:monthDetail.closingBalance')}</dt>
-              <dd className="v">{figure(closing)}</dd>
-              <dd className="n">
-                {closing === undefined ? t('months:monthDetail.noBalances') : t('months:monthDetail.asPrintedOnStatement')}
-              </dd>
-            </div>
-            <div>
-              <dt>{t('months:monthDetail.matchedByKredibel')}</dt>
-              <dd className="v">{autoPercent === undefined ? noValue : `${autoPercent}%`}</dd>
-              <dd className="n">
-                {t('months:monthDetail.allocatedToDocs', { matched: count(figures, 'autoMatched'), total: Math.max(inScope, 0) })}
-              </dd>
-              {autoPercent !== undefined && (
-                <dd className="mini">
-                  <i style={{ width: `${autoPercent}%` }} /* allow-raw-style: the month's automatic match rate */ />
-                </dd>
-              )}
-            </div>
-            <div>
-              <dt>{t('months:monthDetail.ledgerDifference')}</dt>
-              <dd className="v">{figure(ledgerDifference)}</dd>
-              <dd className="n">
-                {ledgerDifference === undefined ? t('months:monthDetail.noLedger') : t('months:monthDetail.differenceWithLedger')}
-              </dd>
-            </div>
-          </dl>
+      {isEmpty ? (
+        <section className="panel panel-pad stack gap-3 mt-6" aria-labelledby="month-empty-h">
+          <h2 className="type-h3" id="month-empty-h">
+            {t('months:monthDetail.empty.title', { month: monthLabel })}
+          </h2>
+          <p className="muted">
+            {latestWithData
+              ? t('months:monthDetail.empty.hasOthers', { month: formatMonth(latestWithData) })
+              : t('months:monthDetail.empty.nothingYet')}
+          </p>
+          <div className="row gap-2 flex-wrap">
+            {latestWithData && (
+              <Link className="button button-primary button-sm" to={`/months/${latestWithData}`}>
+                {t('months:monthDetail.empty.openLatest', { month: formatMonth(latestWithData) })}
+              </Link>
+            )}
+            <Link className="button button-secondary button-sm" to="/documents?upload=1">
+              {t('months:monthDetail.empty.upload')}
+            </Link>
+          </div>
         </section>
-
-        {risk?.summary && (
-          <section className="explain" aria-labelledby="ex-h">
-            <h2 className="explain-head" id="ex-h">
-              <Icon name="shield-alert" />
-              {t(`months:monthDetail.explainHead.${risk.level}`)}
-            </h2>
-            <div className="explain-body">
-              <p className="lead">{risk.summary.replace(/\s*\[\[[^\]]*\]\]/g, '')}</p>
-              {(risk.nextSteps?.length ?? 0) > 0 && (
-                <div className="stack gap-2">
-                  <h3 className="type-h3">{t('months:monthDetail.whatNext')}</h3>
-                  <ol className="steps">
-                    {risk.nextSteps?.map((step) => <li key={step}>{step}</li>)}
-                  </ol>
-                </div>
-              )}
-              <span className="by-line">
-                <Icon name="sparkles" size="sm" />
-                {t('months:monthDetail.byline')}
-              </span>
-            </div>
-          </section>
-        )}
-
-        {meterTotal > 0 && (
-          <section className="recon-meter" aria-label={t('months:monthDetail.meterAria')}>
-            <div className="bar">
-              <i className="auto" style={{ width: share(meter.auto) }} /* allow-raw-style: share of the month's lines */ />
-              <i className="manual" style={{ width: share(meter.manual) }} /* allow-raw-style: share of the month's lines */ />
-              <i className="open" style={{ width: share(meter.open) }} /* allow-raw-style: share of the month's lines */ />
-            </div>
-            <p className="key">
-              <span>
-                <i className="auto"></i>
-                {t('months:monthDetail.matchedByKredibel')} <b>{meter.auto}</b>
-              </span>
-              <span>
-                <i className="manual"></i>
-                {t('months:monthDetail.matchedByYou')} <b>{meter.manual}</b>
-              </span>
-              <span>
-                <i className="open"></i>
-                {t('months:monthDetail.open')} <b>{meter.open}</b>
-              </span>
-            </p>
-          </section>
-        )}
-
-        <nav className="tabs" role="tablist" aria-label={t('months:monthDetail.sectionsAria', { month: monthLabel })}>
-          {TABS.map((key) => {
-            const count =
-              key === 'lines' ? lines.length : key === 'documents' ? monthDocuments.length : key === 'findings' ? openFindings.length : undefined
-            return (
-              <button
-                key={key}
-                type="button"
-                role="tab"
-                id={`month-tab-${key}`}
-                aria-controls="month-tabpanel"
-                aria-selected={tab === key}
-                className="tab"
-                onClick={() => setParams(key === 'lines' ? {} : { tab: key }, { replace: true })}
-              >
-                {t(`months:monthDetail.tabs.${key}`)}
-                {count !== undefined && (
-                  <span className={`count${key === 'findings' && count > 0 ? ' is-attn' : ''}`}>{count}</span>
+      ) : (
+        <div className="stack gap-6 mt-6">
+          <section className="ledger" aria-label={t('months:monthDetail.figuresAria', { month: monthLabel })}>
+            <dl className="ledger-figures">
+              <div>
+                <dt>{t('months:monthDetail.openingBalance')}</dt>
+                <dd className="v">{figure(opening)}</dd>
+                <dd className="n">
+                  {opening === undefined ? t('months:monthDetail.noBalances') : t('months:monthDetail.fromPreviousClosing')}
+                </dd>
+              </div>
+              <div>
+                <dt>{t('months:monthDetail.moneyIn')}</dt>
+                <dd className="v">{figure(moneyIn)}</dd>
+                <dd className="n">{t('months:monthDetail.creditsRecorded', { count: credits })}</dd>
+              </div>
+              <div>
+                <dt>{t('months:monthDetail.moneyOut')}</dt>
+                <dd className="v">{figure(moneyOut)}</dd>
+                <dd className="n">{t('months:monthDetail.debitsRecorded', { count: lines.length - credits })}</dd>
+              </div>
+              <div>
+                <dt>{t('months:monthDetail.closingBalance')}</dt>
+                <dd className="v">{figure(closing)}</dd>
+                <dd className="n">
+                  {closing === undefined ? t('months:monthDetail.noBalances') : t('months:monthDetail.asPrintedOnStatement')}
+                </dd>
+              </div>
+              <div>
+                <dt>{t('months:monthDetail.matchedByKredibel')}</dt>
+                <dd className="v">{autoPercent === undefined ? noValue : `${autoPercent}%`}</dd>
+                <dd className="n">
+                  {t('months:monthDetail.allocatedToDocs', { matched: count(figures, 'autoMatched'), total: Math.max(inScope, 0) })}
+                </dd>
+                {autoPercent !== undefined && (
+                  <dd className="mini">
+                    <i style={{ width: `${autoPercent}%` }} /* allow-raw-style: the month's automatic match rate */ />
+                  </dd>
                 )}
-              </button>
-            )
-          })}
-        </nav>
+              </div>
+              <div>
+                <dt>{t('months:monthDetail.ledgerDifference')}</dt>
+                <dd className="v">{figure(ledgerDifference)}</dd>
+                <dd className="n">
+                  {ledgerDifference === undefined ? t('months:monthDetail.noLedger') : t('months:monthDetail.differenceWithLedger')}
+                </dd>
+              </div>
+            </dl>
+          </section>
 
-        <div role="tabpanel" id="month-tabpanel" aria-labelledby={`month-tab-${tab}`}>
-          {tab === 'lines' && (
-          <DataTable
-            data={lines}
-            columns={columns}
-            getRowKey={(line) => line.txId}
-            filters={filters}
-            filterGroupAriaLabel={t('months:monthDetail.filterBankLines')}
-            searchable={true}
-            searchPlaceholder={t('months:monthDetail.searchPlaceholder')}
-            searchPredicate={(line, q) =>
-              [line.description, line.counterpartyName, categoryLabel(line), line.date, line.amount?.amount]
-                .filter(Boolean)
-                .some((text) => String(text).toLowerCase().includes(q))
-            }
-            isLoading={linesLoading}
-            loadingMessage={<p>{t('months:monthDetail.loadingBankLines')}</p>}
-            emptyMessage={<p className="muted">{t('months:monthDetail.noBankLinesFilter')}</p>}
-            headerActions={
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={reconcileMutation.isPending}
-                onClick={() => reconcileMutation.mutate(month)}
-              >
-                {reconcileMutation.isPending ? t('months:monthDetail.reconciling') : t('months:monthDetail.reReconcile')}
-              </Button>
-            }
-            footer={
-              <p className="reading-legend">
+          {risk?.summary && (
+            <section className="explain" aria-labelledby="ex-h">
+              <h2 className="explain-head" id="ex-h">
+                <Icon name="shield-alert" />
+                {t(`months:monthDetail.explainHead.${risk.level}`)}
+              </h2>
+              <div className="explain-body">
+                <p className="lead">{risk.summary.replace(/\s*\[\[[^\]]*\]\]/g, '')}</p>
+                {(risk.nextSteps?.length ?? 0) > 0 && (
+                  <div className="stack gap-2">
+                    <h3 className="type-h3">{t('months:monthDetail.whatNext')}</h3>
+                    <ol className="steps">
+                      {risk.nextSteps?.map((step) => <li key={step}>{step}</li>)}
+                    </ol>
+                  </div>
+                )}
+                <span className="by-line">
+                  <Icon name="sparkles" size="sm" />
+                  {t('months:monthDetail.byline')}
+                </span>
+              </div>
+            </section>
+          )}
+
+          {meterTotal > 0 && (
+            <section className="recon-meter" aria-label={t('months:monthDetail.meterAria')}>
+              <div className="bar">
+                <i className="auto" style={{ width: share(meter.auto) }} /* allow-raw-style: share of the month's lines */ />
+                <i className="manual" style={{ width: share(meter.manual) }} /* allow-raw-style: share of the month's lines */ />
+                <i className="open" style={{ width: share(meter.open) }} /* allow-raw-style: share of the month's lines */ />
+              </div>
+              <p className="key">
                 <span>
-                  <span className="reading reading-agreed">{t('months:monthDetail.legendSample')}</span>{' '}
-                  {t('months:monthDetail.legendAgreed')}
+                  <i className="auto"></i>
+                  {t('months:monthDetail.matchedByKredibel')} <b>{meter.auto}</b>
                 </span>
                 <span>
-                  <span className="reading reading-single">{t('months:monthDetail.legendSample')}</span>{' '}
-                  {t('months:monthDetail.legendSingle')}
+                  <i className="manual"></i>
+                  {t('months:monthDetail.matchedByYou')} <b>{meter.manual}</b>
                 </span>
                 <span>
-                  <span className="reading reading-conflict">{t('months:monthDetail.legendSample')}</span>{' '}
-                  {t('months:monthDetail.legendConflict')}
+                  <i className="open"></i>
+                  {t('months:monthDetail.open')} <b>{meter.open}</b>
                 </span>
               </p>
-            }
-          />
+            </section>
           )}
-          {tab === 'documents' && <MonthDocuments month={month} currency={currency} />}
-          {tab === 'ledger' && (
-            <div className="stack gap-3">
-              <p className="muted">{t('months:monthDetail.ledger.none')}</p>
-              <Link className="button button-secondary button-sm self-start" to="/documents?upload=1">
-                {t('months:monthDetail.ledger.upload')}
-              </Link>
-            </div>
-          )}
-          {tab === 'findings' && <MonthFindings findings={openFindings} />}
+
+          <nav className="tabs" role="tablist" aria-label={t('months:monthDetail.sectionsAria', { month: monthLabel })}>
+            {TABS.map((key) => {
+              const count =
+                key === 'lines' ? lines.length : key === 'documents' ? monthDocuments.length : key === 'findings' ? openFindings.length : undefined
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  role="tab"
+                  id={`month-tab-${key}`}
+                  aria-controls="month-tabpanel"
+                  aria-selected={tab === key}
+                  className="tab"
+                  onClick={() => setParams(key === 'lines' ? {} : { tab: key }, { replace: true })}
+                >
+                  {t(`months:monthDetail.tabs.${key}`)}
+                  {count !== undefined && (
+                    <span className={`count${key === 'findings' && count > 0 ? ' is-attn' : ''}`}>{count}</span>
+                  )}
+                </button>
+              )
+            })}
+          </nav>
+
+          <div role="tabpanel" id="month-tabpanel" aria-labelledby={`month-tab-${tab}`}>
+            {tab === 'lines' && (
+            <DataTable
+              data={lines}
+              columns={columns}
+              getRowKey={(line) => line.txId}
+              filters={filters}
+              filterGroupAriaLabel={t('months:monthDetail.filterBankLines')}
+              searchable={true}
+              searchPlaceholder={t('months:monthDetail.searchPlaceholder')}
+              searchPredicate={(line, q) =>
+                [line.description, line.counterpartyName, categoryLabel(line), line.date, line.amount?.amount]
+                  .filter(Boolean)
+                  .some((text) => String(text).toLowerCase().includes(q))
+              }
+              isLoading={linesLoading}
+              loadingMessage={<p>{t('months:monthDetail.loadingBankLines')}</p>}
+              emptyMessage={<p className="muted">{t('months:monthDetail.noBankLinesFilter')}</p>}
+              headerActions={
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={reconcileMutation.isPending}
+                  onClick={() => reconcileMutation.mutate(month)}
+                >
+                  {reconcileMutation.isPending ? t('months:monthDetail.reconciling') : t('months:monthDetail.reReconcile')}
+                </Button>
+              }
+              footer={
+                <p className="reading-legend">
+                  <span>
+                    <span className="reading reading-agreed">{t('months:monthDetail.legendSample')}</span>{' '}
+                    {t('months:monthDetail.legendAgreed')}
+                  </span>
+                  <span>
+                    <span className="reading reading-single">{t('months:monthDetail.legendSample')}</span>{' '}
+                    {t('months:monthDetail.legendSingle')}
+                  </span>
+                  <span>
+                    <span className="reading reading-conflict">{t('months:monthDetail.legendSample')}</span>{' '}
+                    {t('months:monthDetail.legendConflict')}
+                  </span>
+                </p>
+              }
+            />
+            )}
+            {tab === 'documents' && <MonthDocuments month={month} currency={currency} />}
+            {tab === 'ledger' && (
+              <div className="stack gap-3">
+                <p className="muted">{t('months:monthDetail.ledger.none')}</p>
+                <Link className="button button-secondary button-sm self-start" to="/documents?upload=1">
+                  {t('months:monthDetail.ledger.upload')}
+                </Link>
+              </div>
+            )}
+            {tab === 'findings' && <MonthFindings findings={openFindings} />}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

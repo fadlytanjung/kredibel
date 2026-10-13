@@ -255,4 +255,20 @@ describe('MonthPage', () => {
     fireEvent.click(screen.getByText('Receipt'))
     expect(screen.getByTestId('where')).toHaveTextContent('/documents/doc_rcp1')
   })
+
+  it('says a month without data is empty and opens the latest month that has data', async () => {
+    vi.mocked(apiClient).mockImplementation((url: string) => {
+      if (url === '/api/months') {
+        return Promise.resolve({ items: [{ month: '2026-06', state: 'RECONCILED', figures: { bankLines: fact('bank_lines', '26') } }] })
+      }
+      if (url.startsWith('/api/months/2026-10')) return Promise.reject(new Error('not found'))
+      if (url.startsWith('/api/workspace')) return Promise.resolve({ orgId: 'org_1', currency: 'IDR' })
+      return Promise.resolve({ items: [] })
+    })
+    renderPage('2026-10')
+
+    expect(await screen.findByText('Nothing for October 2026 yet')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Open June 2026' })).toHaveAttribute('href', '/months/2026-06')
+    expect(screen.queryByRole('tab', { name: /Bank lines/ })).not.toBeInTheDocument()
+  })
 })

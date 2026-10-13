@@ -167,6 +167,13 @@
       "colSeverity": "Severity",
       "colFinding": "Finding",
       "search": "Search findings"
+    },
+    "empty": {
+      "title": "Nothing for {{month}} yet",
+      "hasOthers": "No bank statement or document covers this month. Your latest month with data is {{month}}.",
+      "nothingYet": "Upload the bank statement for this month, or invoices and receipts, to reconcile it.",
+      "openLatest": "Open {{month}}",
+      "upload": "Upload documents"
     }
   },
   "categories": {

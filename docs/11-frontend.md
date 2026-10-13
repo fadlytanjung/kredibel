@@ -458,7 +458,8 @@ stateDiagram-v2
   grounding guard failed, the template text is shown and the by-line says "Written from a template".
 - **Match meter:** matched by Kredibel, matched by you, open.
 - **Opens on the current month** from the navigation; previous and next move a month; **All months**
-  lists them.
+  lists them. A month with no statement, document or figure says so ("Nothing for October 2026
+  yet") and offers its latest month with data and the upload, instead of a page of dashes.
 - **Tabs:** Bank lines (default), Documents, Ledger (with the difference count), Findings, each with
   its count. Documents: the month's invoices and receipts with their payment evidence, each opening
   its document. Ledger: the difference with the ledger (until ledger import, T005-04, it says none

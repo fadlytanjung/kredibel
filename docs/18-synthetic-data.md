@@ -180,7 +180,12 @@ Seeds vary amounts (±15%), dates (±3 days) and counts. Built-in matching cases
 The video follows S1 → S3 → S2 → S4; S5 is shown as a test result, not live.
 
 The **demo workspace** (`backend/scripts/seed_demo_workspace.py`) holds S1 to S4 together, uploaded
-in that order, so one workspace shows every story at once. It is also what the screen mocks show
+in that order, so one workspace shows every story at once. `make demo-books EMAIL=…`
+(`backend/scripts/upload_demo_books.py`) uploads S1 in full and then only what S2 to S4 change: 81
+files, the half-year once plus ten scenario files (the edited March statement; the February copy, its
+re-export, the scanned invoice, the second receipt photo and the ledger keyed twice; the diverted
+Roastline invoice, the May statement that pays it and the two unpaid Bluewater invoices), rather than
+four copies of everything. It is also what the screen mocks show
 ([`11`](11-frontend.md) §6): 2 of 6 months reconciled (January, April); March `CRITICAL` (edited
 statement), May `HIGH` (changed supplier account), February and June `MEDIUM` (possible copies held);
 **9 review items**: 4 possible copies (February statement, invoice GVF-2026-0311, ledger line of

@@ -148,6 +148,10 @@ trace-smoke: ## Send a synthetic trace and verify it appears in the local viewer
 dev-traced: ## Run the local API/inline worker with metadata traces in Jaeger
 	TRACE_EXPORT=otlp AI_CONTENT_CAPTURE=off $(MAKE) dev-backend
 
+.PHONY: demo-books
+demo-books: ## Upload the synthetic demo books into EMAIL's workspace (docs/18 §5; DRY=1 lists them)
+	cd backend && $(shell command -v caffeinate >/dev/null && echo caffeinate -i) uv run python -m scripts.upload_demo_books --email "$(EMAIL)" $(if $(DRY),--dry-run,)
+
 .PHONY: demo-reconciliation demo-reconciliation-traced reconciliation-fixtures
 demo-reconciliation: ## Replay generated invoices/receipts/statements in both orders (offline)
 	cd backend && ENV_FILE=/dev/null PYTHONPATH=. uv run python scripts/demo_reconciliation.py

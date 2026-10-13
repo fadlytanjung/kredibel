@@ -33,3 +33,6 @@
 ## Phase 6 — Close
 
 - [x] **T002-16** `tools/synthetic/README.md` (how to run, scenarios table); update `docs/20-implementation-status.md`.
+- [x] **T002-17** `make demo-books`: upload the demo set into a workspace through the services, S1 in full
+  then each scenario's new files only (81 files), legal name and bank account aligned, months
+  reconciled. (AC-002-11)

@@ -588,3 +588,62 @@ async def test_ac008_6_explain_month_skips_when_hash_unchanged(workflow_deps):
 
     calls_second_run = len([c for c in fake_reader.calls if c[0] == "explain_month"])
     assert calls_second_run == 1  # Not called again because hash was unchanged!
+
+
+@pytest.mark.asyncio
+async def test_ac008_6_a_template_is_tried_again_on_the_next_run(workflow_deps):
+    """AC-008-6: the hash skip keeps Gemini's explanation; a template (here: no reader on the first
+    run, as every month run had until dea28e4) is tried again although nothing changed."""
+    deps, run_repo, month_repo, _ = workflow_deps
+    org_id, month_str = "org_exp_4", "2026-03"
+    await month_repo.save(
+        org_id, Month(month=month_str, state=MonthState.COLLECTING, dirty=True, generation=1)
+    )
+    sessions = InMemorySessionService()
+
+    async def run(generation: int) -> None:
+        run_id = f"month-{org_id}-{month_str}-{generation}"
+        await run_repo.create(
+            org_id,
+            Run(
+                run_id=run_id,
+                kind=RunKind.MONTH,
+                target=month_str,
+                generation=generation,
+                status=RunStatus.RUNNING,
+            ),
+        )
+        saved = await month_repo.get(org_id, month_str)
+        assert saved is not None
+        saved.generation, saved.dirty = generation, True
+        await month_repo.save(org_id, saved)
+        runner = Runner(
+            agent=cast(Any, build_month_workflow(deps)),
+            app_name="kredibel",
+            session_service=sessions,
+        )
+        node_input = {
+            "orgId": org_id,
+            "month": month_str,
+            "generation": generation,
+            "runId": run_id,
+        }
+        await sessions.create_session(
+            app_name="kredibel", user_id="u", session_id=run_id, state={"node_input": node_input}
+        )
+        async for _ in runner.run_async(user_id="u", session_id=run_id):
+            pass
+
+    deps.reader = None
+    await run(1)
+    first = await month_repo.get(org_id, month_str)
+    assert first is not None and first.risk["grounding"] == "TEMPLATE"
+
+    reader = FakeDocumentReader(
+        month_explanation=MonthExplanation(summary="Clean month summary.", next_steps=[])
+    )
+    deps.reader = reader
+    await run(2)
+    second = await month_repo.get(org_id, month_str)
+    assert [c[0] for c in reader.calls].count("explain_month") == 1
+    assert second is not None and second.risk["grounding"] == "VERIFIED"

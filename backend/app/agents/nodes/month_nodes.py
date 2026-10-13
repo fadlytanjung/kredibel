@@ -381,9 +381,11 @@ def explain_month(deps: PipelineDeps):
             node_input.get("figures") or (current_month.figures if current_month else {}) or {}
         )
 
-        # 3. Check hash skip (AC-008-6)
+        # 3. Check hash skip (AC-008-6): Gemini's explanation of the same facts is kept; a template
+        #    stood in for it and is tried again.
         exp_hash = _compute_explanation_hash(level, unique_findings, figures)
-        if current_month and current_month.risk and current_month.risk.get("hash") == exp_hash:
+        stored = current_month.risk if current_month and current_month.risk else {}
+        if stored.get("hash") == exp_hash and stored.get("grounding") == "VERIFIED":
             return {
                 **node_input,
                 "summary": "Explanation unchanged (hash skip)",

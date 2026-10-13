@@ -9,6 +9,7 @@ from google.adk import Context
 from app.agents.deps import PipelineDeps
 from app.agents.month_data import (
     account_spans,
+    allocations_for_checks,
     bank_record,
     confirmations,
     document_facts,
@@ -245,7 +246,7 @@ def check_month(deps: PipelineDeps, pending: PendingMonths):
                 for r in data.receipts
                 if r.currency == data.currency or r.doc_id in data.accepted_docs
             ],
-            allocations=result.allocations,
+            allocations=allocations_for_checks(result.allocations, data.matches, month),
             negative_days=int(node_input.get("negativeDays") or 0),
         )
         fresh = run_month_checks(context)

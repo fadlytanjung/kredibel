@@ -192,18 +192,27 @@ statement), May `HIGH` (changed supplier account), February and June `MEDIUM` (p
 12 May, receipt of 17 Jun), the proposed match of 9 Feb, the ledger difference of 14 Mar, two unpaid
 Bluewater Trading Co. invoices and the unmatched cash deposit of 21 Jun.
 
-**End-to-end run, 13 Oct 2026** (S1 to S4 seed 1, 290 uploads through the services with Gemini, into
-a fresh company workspace): 78 documents read, 210 exact copies recorded, 6 held as possible copies;
-March `CRITICAL` with `A01`, `A02`, `M03`, `M04`, `M01`, `M02`; `D02`, `D03`, `D05` on the copies; two
-`R02` for Bluewater. The run found and fixed: invoice documents keeping the classifier's type
-(6dbc5d0), quantities read in the wrong number style (af703f6), month checks blind to other months'
-payments (20317ab) and to proposed ones (5b39863). Still different from the expectations above:
-- every other month `MEDIUM`, not `LOW`: the receipt photos have no OCR witness (`E01`, T005-05);
-- most bank lines unmatched: two thirds of the expected matches are ledger matches (T005-04);
-- receipts wait for a currency agreement because they print none (decision, T007-12);
-- May is not `HIGH`: the diverted invoice is held as a copy of the original (decision, T006-11);
-- the net-of-tax payment of invoice 0010 is proposed, not automatic, as the policy says (T007-08
-  aligns the generator's expectation).
+**End-to-end runs, 13 Oct 2026** (S1 to S4 seed 1 through the services with Gemini into a company
+workspace). The first uploaded all four scenarios in full (290 files) and found: invoice documents
+keeping the classifier's type (6dbc5d0), quantities read in the wrong number style (af703f6), month
+checks blind to other months' payments (20317ab) and proposed ones (5b39863), receipts printing no
+currency all waiting for an agreement (decided: 994baca), the diverted invoice held as a plain copy
+(decided: ba25c26), steps recording upstream tokens (1c0213b), month explanations never reaching
+Gemini (no reader, dea28e4; signed facts, 09b0b4d). The second used `make demo-books` (81 files,
+resumed once after the laptop slept) and found one account split in two by a branch line
+(45c461c). Its result:
+- 78 documents read, the intended exact copy recorded, both ledger files waiting for their columns;
+- January, February, April, May and June `RECONCILED`; March `NEEDS_REVIEW`;
+- risk: March `CRITICAL` (`A01`, `A02`, `M03`, `M04`), May `HIGH` (the diverted Roastline invoice,
+  `D03` with another account to pay into), the others `MEDIUM`; every explanation by Gemini and
+  `VERIFIED`;
+- 38 invoices and 19 receipts paid through the bank, 5 receipts paid in cash, the two Bluewater
+  bills unpaid (`R02`), invoice 0010's net-of-tax payment proposed;
+- 11 review items: 6 possible copies, the proposal, the two unpaid bills, two cash receipts whose
+  single reading no bank line corroborates.
+Still different from the expectations above: the other months are `MEDIUM`, not `LOW`, because the
+receipt photos have no OCR witness (`E01`, T005-05), and about 40% of bank lines match because the
+rest are ledger matches (T005-04).
 
 ---
 

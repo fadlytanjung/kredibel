@@ -22,12 +22,10 @@ class ReviewSubjectDoc(BaseModel):
 
 class ReviewCandidateDoc(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="ignore")
-    candidate_id: str
-    kind: str
-    amount: str
-    date: str
-    counterparty: str | None = None
-    reference: str | None = None
+    match_id: str
+    bank_line_ids: list[str] = Field(default_factory=list)
+    invoice_ids: list[str] = Field(default_factory=list)
+    receipt_ids: list[str] = Field(default_factory=list)
     score: str = "0"  # a decimal string
     reasons: list[str] = Field(default_factory=list)
 

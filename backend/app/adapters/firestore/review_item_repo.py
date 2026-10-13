@@ -36,12 +36,10 @@ from app.ports.review_item_repository import ReviewItemRepository
 def _to_doc(item: ReviewItem) -> ReviewItemDoc:
     candidates = [
         ReviewCandidateDoc(
-            candidate_id=c.candidate_id,
-            kind=c.kind,
-            amount=str(c.amount),
-            date=c.date,
-            counterparty=c.counterparty,
-            reference=c.reference,
+            match_id=c.match_id,
+            bank_line_ids=c.bank_line_ids,
+            invoice_ids=c.invoice_ids,
+            receipt_ids=c.receipt_ids,
             score=str(c.score),
             reasons=c.reasons,
         )
@@ -91,12 +89,10 @@ def _to_doc(item: ReviewItem) -> ReviewItemDoc:
 def _to_domain(doc: ReviewItemDoc) -> ReviewItem:
     candidates = [
         ReviewCandidate(
-            candidate_id=c.candidate_id,
-            kind=c.kind,
-            amount=Decimal(c.amount),
-            date=c.date,
-            counterparty=c.counterparty,
-            reference=c.reference,
+            match_id=c.match_id,
+            bank_line_ids=c.bank_line_ids,
+            invoice_ids=c.invoice_ids,
+            receipt_ids=c.receipt_ids,
             score=Decimal(c.score),
             reasons=c.reasons,
         )

@@ -37,12 +37,10 @@ class ResolvePayload(BaseModel):
 def review_item_body(it: ReviewItem) -> dict[str, Any]:
     candidates = [
         {
-            "candidateId": c.candidate_id,
-            "kind": c.kind,
-            "amount": str(c.amount),
-            "date": c.date,
-            "counterparty": c.counterparty,
-            "reference": c.reference,
+            "matchId": c.match_id,
+            "bankLineIds": c.bank_line_ids,
+            "invoiceIds": c.invoice_ids,
+            "receiptIds": c.receipt_ids,
             "score": str(c.score),
             "reasons": c.reasons,
         }

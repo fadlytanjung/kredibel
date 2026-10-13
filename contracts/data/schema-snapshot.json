@@ -308,13 +308,11 @@
   },
   "ReviewCandidateDoc": {
     "fields": {
-      "amount": "str",
-      "candidate_id": "str",
-      "counterparty": "str | None",
-      "date": "str",
-      "kind": "str",
+      "bank_line_ids": "list[str]",
+      "invoice_ids": "list[str]",
+      "match_id": "str",
       "reasons": "list[str]",
-      "reference": "str | None",
+      "receipt_ids": "list[str]",
       "score": "str"
     },
     "file": "review_item.py",

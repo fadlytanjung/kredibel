@@ -91,12 +91,12 @@ class ReviewSubject:
 
 @dataclass
 class ReviewCandidate:
-    candidate_id: str
-    kind: str
-    amount: Decimal
-    date: str
-    counterparty: str | None = None
-    reference: str | None = None
+    """A possible match (contracts/openapi.yaml ReviewCandidate)."""
+
+    match_id: str
+    bank_line_ids: list[str] = field(default_factory=list)
+    invoice_ids: list[str] = field(default_factory=list)
+    receipt_ids: list[str] = field(default_factory=list)
     score: Decimal = Decimal(0)
     reasons: list[str] = field(default_factory=list)
 
@@ -287,10 +287,10 @@ def month_items(
             suggestion=ReviewSuggestion(
                 candidates=[
                     ReviewCandidate(
-                        candidate_id=p.match_id,
-                        kind="MATCH",
-                        amount=p.amount,
-                        date=p.day.isoformat() if p.day else "",
+                        match_id=p.match_id,
+                        bank_line_ids=list(p.bank_line_ids),
+                        invoice_ids=list(p.invoice_ids),
+                        receipt_ids=list(p.receipt_ids),
                         score=p.score,
                         reasons=list(p.reasons),
                     )

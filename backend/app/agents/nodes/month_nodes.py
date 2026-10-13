@@ -4,6 +4,7 @@ import hashlib
 from decimal import Decimal
 from typing import Any
 
+import structlog
 from google.adk import Context
 
 from app.agents.deps import PipelineDeps
@@ -34,6 +35,8 @@ from app.domain.models.run import RunStatus
 from app.domain.next_steps import next_steps_for_findings
 from app.domain.reconcile import assign_matches
 from app.domain.risk import RiskAssessment, assess_document_risk, assess_month_risk
+
+_log = structlog.get_logger()
 
 
 def load_month(deps: PipelineDeps):
@@ -404,6 +407,8 @@ def explain_month(deps: PipelineDeps):
         ordered_steps: list[str] = list(catalog_steps)
         finding_explanations: dict[str, str] = {}
         grounding = "TEMPLATE"
+        fallback = "no reader"
+        calls: list[Any] = []  # every model call, recorded on the run's stage
 
         if deps.reader:
             try:
@@ -419,6 +424,7 @@ def explain_month(deps: PipelineDeps):
                     figures_summary=figures_text,
                     catalog_steps=catalog_steps,
                 )
+                calls.append(res)
                 explanation_val = res.value
                 g_res = check_grounding(explanation_val.summary, grounding_ctx)
 
@@ -438,6 +444,7 @@ def explain_month(deps: PipelineDeps):
                         catalog_steps=catalog_steps,
                         retry_problems=g_res.problems,
                     )
+                    calls.append(retry_res)
                     retry_val = retry_res.value
                     retry_g_res = check_grounding(retry_val.summary, grounding_ctx)
                     if retry_g_res.valid:
@@ -447,8 +454,14 @@ def explain_month(deps: PipelineDeps):
                         finding_explanations = {
                             fe.finding_id: fe.explanation for fe in retry_val.finding_explanations
                         }
-            except Exception:
+                    else:
+                        fallback = "not grounded"
+            except Exception as error:  # noqa: BLE001 - the template stands in; the run says why
                 grounding = "TEMPLATE"
+                fallback = type(error).__name__
+            if grounding == "TEMPLATE":
+                # Counts only: the problems quote the model's sentences, which name parties.
+                _log.warning("explain_month.template", reason=fallback, calls=len(calls))
 
         # 7. Template fallback if not verified
         if grounding == "TEMPLATE" or not summary:
@@ -496,10 +509,20 @@ def explain_month(deps: PipelineDeps):
             "hash": exp_hash,
         }
 
+        outcome = grounding if grounding == "VERIFIED" else f"TEMPLATE: {fallback}"
         return {
             **node_input,
             "risk": updated_risk,
-            "summary": f"Month explanation generated ({grounding})",
+            "summary": f"Month explanation generated ({outcome})",
+            **(
+                {
+                    "model": calls[-1].model,
+                    "tokens_in": sum(c.tokens_in for c in calls),
+                    "tokens_out": sum(c.tokens_out for c in calls),
+                }
+                if calls
+                else {}
+            ),
         }
 
     return _node

@@ -245,12 +245,14 @@ def check_grounding(text: str, context: GroundingContext) -> GroundingResult:
             if parsed_dec is None:
                 continue
 
+            # Sizes are compared: a signed fact (a break of -6000000.00) is written with or without
+            # its sign ("6,000,000 short"), and the token never carries the sign.
             matched = False
             for cited_val in sentence_cited_values:
-                if cited_val == parsed_dec:
+                if abs(cited_val) == parsed_dec:
                     matched = True
                     break
-                if is_pct and cited_val == parsed_dec / Decimal("100"):
+                if is_pct and abs(cited_val) == parsed_dec / Decimal("100"):
                     matched = True
                     break
 

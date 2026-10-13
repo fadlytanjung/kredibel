@@ -489,6 +489,12 @@ async def test_ac008_5_explain_month_ungrounded_falls_back_to_template(workflow_
     assert saved_month is not None
     assert saved_month.risk["grounding"] == "TEMPLATE"
     assert "High fraud risk detected" in saved_month.risk["summary"]
+    # The run says the model was asked twice (the call and its retry) and why it fell back.
+    run = await run_repo.get(org_id, run_id)
+    assert run is not None
+    explain = next(s for s in run.stages if s.node == "explain_month")
+    assert (explain.model, explain.tokens_in, explain.tokens_out) == ("fake-model", 800, 300)
+    assert explain.summary == "Month explanation generated (TEMPLATE: not grounded)"
 
 
 @pytest.mark.asyncio

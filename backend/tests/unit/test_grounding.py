@@ -71,6 +71,28 @@ class TestGroundingGuardTDD:
             res = check_grounding(sentence, sample_context)
             assert res.valid is True, f"Failed for sentence: {sentence}, problems: {res.problems}"
 
+    def test_ac008_5_a_signed_fact_matches_its_number_with_or_without_the_sign(self):
+        """A01 records the break as a signed difference; the sentence names its size (T008-03)."""
+        context = GroundingContext(
+            findings={
+                "fnd_neg": Finding(
+                    finding_id="fnd_neg",
+                    code="A01_RUNNING_BALANCE_BREAK",
+                    category="ARITHMETIC",
+                    severity="CRITICAL",
+                    title="Balance break",
+                    facts={"difference": "-6000000.00"},
+                    evidence=[],
+                )
+            },
+        )
+        for text in (
+            "The balance breaks by -6,000,000.00 [[finding:fnd_neg]].",
+            "The balance is IDR 6,000,000 short [[finding:fnd_neg]].",
+        ):
+            assert check_grounding(text, context).valid, text
+        assert not check_grounding("It is 7,000,000 short [[finding:fnd_neg]].", context).valid
+
     def test_ac008_5_ambiguous_suffix_m_is_rejected(self, sample_context):
         # 1.25M is rejected as ambiguous (must use 'million' or explicit number)
         text = "The single payout was IDR 1.25M [[fact:2026-03:single_payout]]."

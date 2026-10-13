@@ -68,4 +68,3 @@ class FakeFindingRepository(FindingRepository):
 
     async def save_finding(self, org_id: str, finding: Finding) -> None:
         self.findings[(org_id, finding.finding_id)] = finding
-

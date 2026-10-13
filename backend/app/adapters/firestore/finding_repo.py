@@ -139,4 +139,3 @@ class FirestoreFindingRepository(FindingRepository):
 
     async def save_finding(self, org_id: str, finding: Finding) -> None:
         await self._col(org_id).document(finding.finding_id).set(dump(_to_doc(finding)))
-

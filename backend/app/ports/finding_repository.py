@@ -44,4 +44,3 @@ class FindingRepository(Protocol):
     async def save_finding(self, org_id: str, finding: Finding) -> None:
         """Save an updated finding in the workspace."""
         ...
-

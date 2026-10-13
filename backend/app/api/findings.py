@@ -47,9 +47,7 @@ def create_findings_router(provider: ServiceProvider, workspace_dep: Any) -> API
         status: str | None = Query(
             default=None, pattern="^(OPEN|ACKNOWLEDGED|DISMISSED|RESOLVED)$"
         ),
-        severity: str | None = Query(
-            default=None, pattern="^(CRITICAL|HIGH|MEDIUM|LOW|INFO)$"
-        ),
+        severity: str | None = Query(default=None, pattern="^(CRITICAL|HIGH|MEDIUM|LOW|INFO)$"),
         code: str | None = Query(default=None),
         limit: int = Query(default=200, ge=1, le=500),
         principal: Principal = Depends(workspace_dep),
@@ -81,4 +79,3 @@ def create_findings_router(provider: ServiceProvider, workspace_dep: Any) -> API
         return finding_body(updated)
 
     return router
-

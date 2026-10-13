@@ -643,6 +643,7 @@ a:hover { color: var(--k-color-brand-hover); }
 .review { container: review / inline-size; }
 .review-layout { display: grid; grid-template-columns: 1fr; gap: var(--k-space-6); }
 @container review (width >= 980px) { .review-layout { grid-template-columns: minmax(300px, 0.85fr) minmax(0, 1.4fr); align-items: start; } }
+@container review (width < 980px) { .review-layout > .fix { order: -1; } }
 .queue > li { border-top: 1px solid var(--k-color-border-default); }
 .queue > li:first-child { border-top: 0; }
 .qitem { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px var(--k-space-3); padding: var(--k-space-3) var(--k-space-4); text-decoration: none; color: var(--k-color-text-default); position: relative; }

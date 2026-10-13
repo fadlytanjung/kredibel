@@ -1149,6 +1149,19 @@ button.tab { border: 0; background: transparent; cursor: pointer; font-family: i
 .chart.waterfall .wf-val { font-size: 14px; font-weight: 660; font-variant-numeric: tabular-nums; }
 .chart.waterfall .wf-link { stroke: var(--k-color-border-strong); stroke-dasharray: 3 3; }
 
+.flow-sheet { position: fixed; inset: 0; z-index: var(--k-z-sheet); }
+.flow-sheet .scrim { position: absolute; inset: 0; background: var(--k-color-scrim); border: 0; }
+.flow-sheet .sheet { position: absolute; left: 0; right: 0; bottom: 0; max-height: 85dvh; display: flex; flex-direction: column; border-radius: var(--k-radius-lg) var(--k-radius-lg) 0 0; background: var(--k-color-bg-surface); box-shadow: var(--k-shadow-overlay); }
+@container app (width >= 600px) { .flow-sheet .sheet { left: auto; top: 0; bottom: 0; width: min(480px, 100%); max-height: none; border-radius: 0; } }
+.flow-sheet .sheet-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--k-space-3); padding: var(--k-space-4) var(--k-space-4) var(--k-space-3); border-bottom: 1px solid var(--k-color-border-default); }
+.flow-sheet .sheet-head h2 { font-size: 17px; line-height: 24px; font-weight: 660; }
+.flow-sheet .sheet-body { overflow: auto; padding: var(--k-space-2) var(--k-space-4) calc(var(--k-space-6) + env(safe-area-inset-bottom)); }
+.flow-sheet .line-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px var(--k-space-3); padding: var(--k-space-3) 0; border-top: 1px solid var(--k-color-border-default); font-size: 14px; color: var(--k-color-text-default); text-decoration: none; }
+.flow-sheet .line-row:first-child { border-top: 0; }
+.flow-sheet .line-row .s { grid-column: 1 / -1; font-size: 12.5px; color: var(--k-color-text-muted); }
+.flow-sheet .line-row .amt { font-weight: 620; font-variant-numeric: tabular-nums; }
+.sankey .band, .sankey .node { cursor: pointer; }
+
 .hbars { display: grid; grid-template-columns: 1fr; gap: var(--k-space-5); padding: var(--k-space-2) var(--k-space-5) var(--k-space-4); }
 .hbar-group h3 { display: flex; justify-content: space-between; font-size: 13px; font-weight: 660; color: var(--k-color-text-muted); margin-bottom: var(--k-space-2); }
 .hbar-group ul { display: flex; flex-direction: column; gap: var(--k-space-2); }

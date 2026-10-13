@@ -4,19 +4,20 @@
  * Every number comes from GET /api/dashboard, computed by code from the workspace's statements:
  * the status sentence, the period's figures against the previous period, the open findings, where
  * the money went in short, and one tab per month. A workspace without data sees the upload empty
- * state (AC-001-3, AC-010-3). The charts of "Where the money went" arrive with T010-05.
+ * state (AC-001-3, AC-010-3). "Where the money went" draws the period's money flow, months and
+ * cash-flow statement (T010-05).
  */
 
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
-import { type Dashboard, useDashboard } from '../entities/insight'
+import { type Dashboard, type Framework, useDashboard } from '../entities/insight'
 import { useWorkspace } from '../entities/workspace'
 import { formatMonth } from '../shared/lib/formatDate'
 import { Button } from '../shared/ui/Button'
 import { EmptyState } from '../shared/ui/EmptyState'
 import { Icon } from '../shared/ui/Icon'
-import { AlertList, FlowSummary, KpiCard, MonthStrip, ReviewPreview } from '../widgets/dashboard'
+import { AlertList, ChartsSection, FlowSummary, KpiCard, MonthStrip, ReviewPreview } from '../widgets/dashboard'
 
 const RISK_ORDER = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']
 
@@ -33,7 +34,7 @@ function rangeOf(months: string[], t: (key: string, o?: Record<string, unknown>)
   return t('periodRange', { first: monthName(first, !sameYear), last: monthName(last) })
 }
 
-function Body({ data, name }: { data: Dashboard; name: string }) {
+function Body({ data, name, period, framework }: { data: Dashboard; name: string; period: string; framework?: Framework }) {
   const { t } = useTranslation('dashboard')
   const months = data.periodMonths ?? []
   const range = rangeOf(months, t)
@@ -92,6 +93,8 @@ function Body({ data, name }: { data: Dashboard; name: string }) {
           uses={data.moneyFlowSummary?.topUses ?? []}
         />
       </div>
+
+      <ChartsSection period={period} range={range} framework={framework} />
 
       <section aria-labelledby="months-h">
         <div className="section-head">
@@ -158,7 +161,7 @@ export function DashboardPage() {
           ))}
         </div>
       </div>
-      <Body data={data} name={workspace?.name ?? ''} />
+      <Body data={data} name={workspace?.name ?? ''} period={period} framework={workspace?.profile?.accountingFramework as Framework | undefined} />
     </div>
   )
 }

@@ -23,6 +23,15 @@
 | `shared/ui/ChartPanel.tsx`, `SegmentedControl.tsx` | full-width panel with compact, medium and wide drawings; view and framework switches |
 | `shared/ui/PeriodPicker.tsx` | month, quarter, all |
 
+## Dependencies
+
+| Package | Version | Why |
+|---|---|---|
+| `d3-sankey` (frontend) | 0.12.3 | the Sankey layout only (node positions, band widths); we draw the SVG ourselves; it brings `d3-array` and `d3-shape` |
+| `@types/d3-sankey` (frontend, dev) | 0.12.4 | its types |
+
+The bar charts and the waterfall are plain SVG from tokens, with no chart library.
+
 ## Constitution check
 
 P3 ✔ (every band opens its lines) · P2 ✔ (flows computed by code) · NFR-08 ✔ (table alternative)

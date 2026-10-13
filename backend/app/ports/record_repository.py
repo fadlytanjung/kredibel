@@ -2,6 +2,8 @@
 
 from typing import Any, Protocol
 
+from app.domain.models.events import AuditEvent
+
 
 class DocumentRecords[T](Protocol):
     async def replace_for_document(self, org_id: str, doc_id: str, records: list[T]) -> None:
@@ -17,6 +19,10 @@ class DocumentRecords[T](Protocol):
         ...
 
     async def get_record(self, org_id: str, record_id: str) -> T | None: ...
+
+    async def save_correction(self, org_id: str, record: T, event: AuditEvent) -> None:
+        """A person's correction of one record (T009-03a), with its audit event in one write."""
+        ...
 
     async def set_evidence(self, org_id: str, updates: dict[str, dict[str, Any]]) -> None:
         """Write the month run's payment evidence per record (ADR-025)."""

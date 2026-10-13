@@ -159,12 +159,13 @@ The salted hash of the full number lives in `orgPrivate/{orgId}/accountHashes/{a
 | `currency`, `pages[]`, `notes[]` | Currency as printed (else the workspace's); the pages it was read from; parse notes |
 | `consensus`, `heldAsDuplicate`, `counterpartyId?` | Per field (`number`, `issuerName`, `total`, `lines.{i}.amount`, …): status, page, box, raw readings; `payTo` raw readings masked |
 | `dupKey`, `dupKeyAlt` | Content keys for `D03`/`D04` (issuer + number; issuer + date + total), single-field indexed |
+| `correctedFields[]`, `correctedBy?`, `correctedAt?` | Fields a person corrected through review (`total`, `issueDate`); the readings stay in `consensus.raw` and a re-run never undoes them |
 
 Receipts: `docId`, `merchantName`, `merchantTaxId?` (masked), `number?`, `date`, `time?`, `month`,
 `currency`, `totalMinor`, `taxMinor?`, `paymentMethod` (`CASH`, `CARD`, `TRANSFER`, `UNKNOWN`),
 `items[]?`, `pages[]`, `notes[]`, `payment` (as above), `consensus`,
 `heldAsDuplicate`, `dupKey` (merchant + date + total, for `D05`; the perceptual hash is on the
-document).
+document), `correctedFields[]` (`total`, `date`), `correctedBy?`, `correctedAt?` as for invoices.
 
 ### 3.8 `orgs/{orgId}/ledgerEntries/{entryId}`
 

@@ -3,6 +3,7 @@
 from collections.abc import Callable
 from typing import Any
 
+from app.domain.models.events import AuditEvent
 from app.domain.models.invoice import Invoice, Receipt
 from app.ports.record_repository import DocumentRecords
 
@@ -13,6 +14,7 @@ class FakeRecords[T](DocumentRecords[T]):
         self._order = order
         self.records: dict[tuple[str, str], T] = {}
         self.held: set[tuple[str, str]] = set()
+        self.events: list[AuditEvent] = []
 
     async def replace_for_document(self, org_id: str, doc_id: str, records: list[T]) -> None:
         for key in [k for k, v in self.records.items() if k[0] == org_id and v.doc_id == doc_id]:  # type: ignore[attr-defined]
@@ -25,6 +27,10 @@ class FakeRecords[T](DocumentRecords[T]):
             record = self.records.get((org_id, record_id))
             if record is not None:
                 record.evidence = evidence  # type: ignore[attr-defined]
+
+    async def save_correction(self, org_id: str, record: T, event: AuditEvent) -> None:
+        self.records[(org_id, self._id(record))] = record
+        self.events.append(event)
 
     async def get_record(self, org_id: str, record_id: str) -> T | None:
         return self.records.get((org_id, record_id))

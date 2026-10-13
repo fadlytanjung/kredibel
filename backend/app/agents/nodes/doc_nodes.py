@@ -23,6 +23,7 @@ from app.domain.categorize import (
     keep_person_categories,
 )
 from app.domain.checks.base import CheckContext, DeclaredAccount, PdfInfo, run_document_checks
+from app.domain.corrections import keep_corrections
 from app.domain.duplicates import (
     InvoiceKey,
     Match,
@@ -468,14 +469,18 @@ async def _records(
         result: Any = build_invoices(
             doc.doc_id, readings, words, classified=doc.doc_type.value, own_names=names
         )
-        await deps.invoices.replace_for_document(org_id, doc.doc_id, result.records)
+        stored = await deps.invoices.list_records(org_id, doc_id=doc.doc_id)
+        records = keep_corrections(result.records, stored)
+        await deps.invoices.replace_for_document(org_id, doc.doc_id, records)
         noun = "invoices"
         doc_type = document_type_of([r.kind for r in result.records], doc.doc_type.value)
     else:
         if deps.receipts is None:
             return None
         result = build_receipts(doc.doc_id, readings, words)
-        await deps.receipts.replace_for_document(org_id, doc.doc_id, result.records)
+        stored = await deps.receipts.list_records(org_id, doc_id=doc.doc_id)
+        records = keep_corrections(result.records, stored)
+        await deps.receipts.replace_for_document(org_id, doc.doc_id, records)
         noun = "receipts"
         doc_type = None
     return _Verified(

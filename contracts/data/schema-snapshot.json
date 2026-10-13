@@ -173,6 +173,9 @@
       "buyer_name": "str | None",
       "buyer_tax_id": "str | None",
       "consensus": "dict[str, Any]",
+      "corrected_at": "datetime | None",
+      "corrected_by": "str | None",
+      "corrected_fields": "list[str]",
       "counterparty_id": "str | None",
       "currency": "str | None",
       "doc_id": "str",
@@ -276,6 +279,9 @@
   "ReceiptDoc": {
     "fields": {
       "consensus": "dict[str, Any]",
+      "corrected_at": "datetime | None",
+      "corrected_by": "str | None",
+      "corrected_fields": "list[str]",
       "currency": "str | None",
       "date": "str | None",
       "doc_id": "str",

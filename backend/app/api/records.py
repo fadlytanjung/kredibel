@@ -105,6 +105,7 @@ def invoice_body(inv: Invoice, workspace_currency: str) -> dict[str, Any]:
         "payment": _payment(inv.evidence),
         "evidence": evidence_body(inv.evidence, workspace_currency),
         "readings": readings_body(inv.consensus),
+        "correctedFields": inv.corrected_fields,
         "heldAsDuplicate": False,
     }
 
@@ -129,6 +130,7 @@ def receipt_body(r: Receipt, workspace_currency: str) -> dict[str, Any]:
         "payment": _payment(r.evidence),
         "evidence": evidence_body(r.evidence, workspace_currency),
         "readings": readings_body(r.consensus),
+        "correctedFields": r.corrected_fields,
         "heldAsDuplicate": False,
     }
 

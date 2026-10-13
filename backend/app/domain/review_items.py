@@ -47,7 +47,7 @@ ALLOWED_ACTIONS_BY_KIND: dict[ReviewItemKind, list[ResolveAction]] = {
     "UNMATCHED_BANK_LINE": ["MATCH", "NO_DOCUMENT_NEEDED", "IGNORE"],
     "UNMATCHED_DOCUMENT": ["MATCH", "NOT_YET_PAID", "IGNORE"],
     "POSSIBLE_DUPLICATE": ["CONFIRM_DUPLICATE", "NOT_DUPLICATE"],
-    "LOW_CONFIDENCE_VALUE": ["ACCEPT_AS_READ"],  # CORRECT_VALUE with T009-03a
+    "LOW_CONFIDENCE_VALUE": ["CORRECT_VALUE", "ACCEPT_AS_READ"],
     "LEDGER_DIFFERENCE": ["EXPLAIN", "MATCH", "IGNORE"],
     "CONFIRM_TYPE": ["SET_TYPE"],
     "CONFIRM_LEDGER_MAPPING": ["CONFIRM_MAPPING"],
@@ -238,6 +238,7 @@ def month_items(
         title: str,
         subject: ReviewSubject,
         suggestion: ReviewSuggestion | None = None,
+        actions: list[ResolveAction] | None = None,
     ) -> None:
         out.append(
             ReviewItem(
@@ -250,7 +251,7 @@ def month_items(
                 title=title,
                 subject=subject,
                 suggestion=suggestion or ReviewSuggestion(),
-                allowed_actions=list(ALLOWED_ACTIONS_BY_KIND[kind]),
+                allowed_actions=list(actions or ALLOWED_ACTIONS_BY_KIND[kind]),
                 key=key,
             )
         )
@@ -350,6 +351,7 @@ def month_items(
                 subject=ReviewSubject(
                     bank_line_ids=[ln.tx_id], doc_ids=[ln.doc_id], field=unsure[0]
                 ),
+                actions=["ACCEPT_AS_READ"],  # a bank line's CORRECT_VALUE comes with T009-03b
             )
         elif ln.support == "NO_SUPPORT" and ln.cited_by:
             add(

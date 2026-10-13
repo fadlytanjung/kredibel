@@ -17,7 +17,7 @@ from app.domain.models.document import (
     DuplicateInfo,
     DuplicateKind,
 )
-from app.domain.models.invoice import Invoice
+from app.domain.models.invoice import Invoice, Receipt
 from app.domain.models.match import StoredMatch
 from app.domain.review_items import HeldCopy, ProposalFacts, RecordFacts, month_items
 from tests.fakes.match_repository import FakeMatchRepository
@@ -267,4 +267,63 @@ async def test_not_a_duplicate_releases_the_copy_and_its_records():
     assert (doc.held_as_duplicate, doc.duplicate.decision) == (False, DuplicateDecision.REJECTED)
     assert doc.duplicate.decided_by == "u-1"
     assert (ORG, "doc_copy") not in _fakes(deps)[2].held
+    assert MONTH in _month_tasks(deps)
+
+
+async def test_correcting_a_value_keeps_the_reading_and_reruns_the_months():
+    deps, _ = _deps()
+    await _seed(deps)
+    receipt = Receipt(
+        "rcp_17mar",
+        "doc_photo",
+        "CENDANA FUEL",
+        dt.date(2026, 3, 17),
+        MONTH,
+        Decimal("467976.00"),
+        consensus={"total": {"status": "SINGLE_SOURCE", "raw": {"GEMINI": "467,976.00"}}},
+    )
+    await deps.receipts.replace_for_document(ORG, "doc_photo", [receipt])
+    (item,) = month_items(
+        month=MONTH,
+        currency="IDR",
+        risk_level="LOW",
+        lines=[],
+        records=[
+            RecordFacts(
+                "rcp_17mar",
+                "doc_photo",
+                "RECEIPT",
+                None,
+                dt.date(2026, 3, 17),
+                Decimal("467976.00"),
+                "NO_BANK_MATCH",
+                checks=(("total", "SINGLE_SOURCE"),),
+            )
+        ],
+        proposals=[],
+        held=[],
+    )
+    await deps.review_items.replace_month_review_items(ORG, MONTH, [item], now=NOW)
+    async with _client(deps) as client:
+        bad = await client.post(
+            f"/api/review-items/{item.item_id}/resolve",
+            json={"action": "CORRECT_VALUE", "field": "total", "value": "four hundred"},
+            headers=AUTH,
+        )
+        res = await client.post(
+            f"/api/review-items/{item.item_id}/resolve",
+            json={"action": "CORRECT_VALUE", "field": "total", "value": "476976"},
+            headers=AUTH,
+        )
+        listed = (await client.get("/api/receipts", headers=AUTH)).json()["items"]
+
+    assert bad.status_code == 422
+    assert res.status_code == 200, res.text
+    (stored,) = [r for r in listed if r["receiptId"] == "rcp_17mar"]
+    assert stored["total"] == {"amount": "476976.00", "currency": "IDR"}
+    assert stored["correctedFields"] == ["total"]
+    assert stored["readings"]["total"]["raw"] == {"GEMINI": "467,976.00"}
+    assert isinstance(deps.receipts, FakeRecords)
+    (event,) = deps.receipts.events
+    assert (event.type, event.details) == ("VALUE_CORRECTED", {"field": "total"})
     assert MONTH in _month_tasks(deps)

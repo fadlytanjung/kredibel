@@ -2078,6 +2078,7 @@ components:
         payment: { $ref: "#/components/schemas/PaymentRef" }
         evidence: { oneOf: [{ $ref: "#/components/schemas/DocumentEvidence" }, { type: "null" }], description: "Null until a month run derived it (ADR-025)" }
         readings: { type: object, additionalProperties: { $ref: "#/components/schemas/ValueReading" } }
+        correctedFields: { type: array, items: { type: string }, description: "Fields a person corrected through review; readings keeps what was read" }
         heldAsDuplicate: { type: boolean }
     InvoicePage:
       type: object
@@ -2113,6 +2114,7 @@ components:
         payment: { $ref: "#/components/schemas/PaymentRef" }
         evidence: { oneOf: [{ $ref: "#/components/schemas/DocumentEvidence" }, { type: "null" }], description: "Null until a month run derived it (ADR-025)" }
         readings: { type: object, additionalProperties: { $ref: "#/components/schemas/ValueReading" } }
+        correctedFields: { type: array, items: { type: string }, description: "Fields a person corrected through review; readings keeps what was read" }
         heldAsDuplicate: { type: boolean }
     ReceiptPage:
       type: object

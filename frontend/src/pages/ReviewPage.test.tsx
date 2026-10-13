@@ -56,6 +56,10 @@ const INVOICES = [
   { invoiceId: 'inv_bw42', docId: 'doc_bw42', kind: 'PURCHASE', number: 'BW-0042', issuerName: 'Bluewater Trading Co.', issueDate: '2026-02-03', month: '2026-02', total: idr('990000.00') },
 ]
 
+const RECEIPTS = [
+  { receiptId: 'rcp_17feb', docId: 'doc_rcp', merchantName: 'Cendana Fuel', date: '2026-02-17', month: '2026-02', total: idr('467976.00') },
+]
+
 function serve(items = [COPY, PROPOSAL, UNPAID]) {
   vi.mocked(apiClient).mockImplementation((url: string, init?: RequestInit) => {
     if (url.startsWith('/api/review-items?')) {
@@ -73,7 +77,7 @@ function serve(items = [COPY, PROPOSAL, UNPAID]) {
     if (one) return Promise.resolve(items.find((i) => i.itemId === one[1]))
     if (url.startsWith('/api/bank-lines?month=')) return Promise.resolve({ items: LINES })
     if (url.startsWith('/api/invoices?month=')) return Promise.resolve({ items: INVOICES })
-    if (url.startsWith('/api/receipts?month=')) return Promise.resolve({ items: [] })
+    if (url.startsWith('/api/receipts?month=')) return Promise.resolve({ items: RECEIPTS })
     if (url.startsWith('/api/documents/')) return Promise.resolve({ docId: url.split('/').pop(), fileName: 'statement-2026-03.pdf' })
     return Promise.resolve({})
   })
@@ -118,7 +122,7 @@ describe('ReviewPage', () => {
     expect(screen.queryByText('This statement covers days another statement already covers')).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByText('Invoice BW-0042 of IDR 990,000.00 is unpaid after its due date'))
-    expect(screen.getByTestId('where')).toHaveTextContent(`/review/${UNPAID.itemId}`)
+    await waitFor(() => expect(screen.getByTestId('where')).toHaveTextContent(`/review/${UNPAID.itemId}`))
   })
 
   it('shows a proposal with its reasons and fit, and confirming opens the next item (AC-009-4, AC-009-7)', async () => {
@@ -143,7 +147,8 @@ describe('ReviewPage', () => {
       ),
     )
     expect(await screen.findByRole('status')).toHaveTextContent('Saved. February is being reconciled again. Next: 2 left')
-    expect(screen.getByTestId('where')).toHaveTextContent(`/review/${UNPAID.itemId}`)
+    // Navigation is a transition: it may land a render after the status.
+    await waitFor(() => expect(screen.getByTestId('where')).toHaveTextContent(`/review/${UNPAID.itemId}`))
   })
 
   it('offers the bank lines that could pay an unpaid bill, and leaving it needs a reason (AC-009-5)', async () => {
@@ -170,16 +175,45 @@ describe('ReviewPage', () => {
     )
   })
 
+  it('corrects a value read from a receipt, as printed (AC-009-5, T009-03a)', async () => {
+    const check = {
+      itemId: 'itm_0000000000000004',
+      kind: 'LOW_CONFIDENCE_VALUE',
+      month: '2026-02',
+      status: 'OPEN',
+      priority: 40,
+      title: 'Check the total read from the receipt of 17 Feb 2026',
+      subject: { receiptIds: ['rcp_17feb'], docIds: ['doc_rcp'], field: 'total' },
+      suggestion: {},
+      allowedActions: ['CORRECT_VALUE', 'ACCEPT_AS_READ'],
+    }
+    serve([check])
+    renderAt(`/review/${check.itemId}`)
+
+    const panel = await screen.findByRole('region', { name: check.title })
+    expect(await within(panel).findByText('Cendana Fuel, 17 Feb 2026')).toBeInTheDocument()
+    fireEvent.click(within(panel).getByRole('button', { name: 'Correct it' }))
+    fireEvent.change(within(panel).getByLabelText('The total as printed'), { target: { value: '476976.00' } })
+    fireEvent.click(within(panel).getByRole('button', { name: 'Save the correction' }))
+
+    await waitFor(() =>
+      expect(apiClient).toHaveBeenCalledWith(
+        `/api/review-items/${check.itemId}/resolve`,
+        expect.objectContaining({ body: JSON.stringify({ action: 'CORRECT_VALUE', field: 'total', value: '476976.00' }) }),
+      ),
+    )
+  })
+
   it('moves with J and K and closes with Esc (AC-009-7)', async () => {
     serve()
     renderAt(`/review/${COPY.itemId}`)
 
     await screen.findByRole('region', { name: COPY.title })
     fireEvent.keyDown(document, { key: 'j' })
-    expect(screen.getByTestId('where')).toHaveTextContent(`/review/${PROPOSAL.itemId}`)
+    await waitFor(() => expect(screen.getByTestId('where')).toHaveTextContent(`/review/${PROPOSAL.itemId}`))
     fireEvent.keyDown(document, { key: 'k' })
-    expect(screen.getByTestId('where')).toHaveTextContent(`/review/${COPY.itemId}`)
+    await waitFor(() => expect(screen.getByTestId('where')).toHaveTextContent(`/review/${COPY.itemId}`))
     fireEvent.keyDown(document, { key: 'Escape' })
-    expect(screen.getByTestId('where')).toHaveTextContent('/review')
+    await waitFor(() => expect(screen.getByTestId('where')).toHaveTextContent(/^\/review$/))
   })
 })

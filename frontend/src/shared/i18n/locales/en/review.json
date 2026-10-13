@@ -56,7 +56,9 @@
     "next_other": "Next: {{count}} left",
     "allDone": "That was the last item.",
     "missing": "This item is no longer open.",
-    "enterKey": "Enter"
+    "enterKey": "Enter",
+    "correctLabel": "The {{field}} as printed",
+    "correctHint": "Amounts as digits (476976.00), dates as YYYY-MM-DD. What was read is kept beside it."
   },
   "actions": {
     "CONFIRM_MATCH": "Confirm the match",
@@ -68,6 +70,14 @@
     "NOT_DUPLICATE": "Not a copy",
     "ACCEPT_AS_READ": "The value is right",
     "NO_DOCUMENT_NEEDED": "No document needed",
-    "saveIgnore": "Leave it"
+    "saveIgnore": "Leave it",
+    "CORRECT_VALUE": "Correct it",
+    "saveCorrection": "Save the correction"
+  },
+  "fields": {
+    "total": "total",
+    "date": "date",
+    "issueDate": "date",
+    "amount": "amount"
   }
 }

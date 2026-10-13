@@ -1,5 +1,6 @@
 """orgs/{orgId}/invoices/{invoiceId} and receipts/{receiptId} as stored (docs/09 §3.7)."""
 
+from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -50,6 +51,10 @@ class InvoiceDoc(FirestoreModel):
     notes: list[str] = Field(default_factory=list)
     payment: dict[str, Any] = Field(default_factory=_unpaid)
     evidence: dict[str, Any] | None = None
+    # A person's corrections through review (T009-03a); optional, so older documents read as none.
+    corrected_fields: list[str] = Field(default_factory=list)
+    corrected_by: str | None = None
+    corrected_at: datetime | None = None
     held_as_duplicate: bool = False
     counterparty_id: str | None = None
 
@@ -79,4 +84,8 @@ class ReceiptDoc(FirestoreModel):
     notes: list[str] = Field(default_factory=list)
     payment: dict[str, Any] = Field(default_factory=_unpaid)
     evidence: dict[str, Any] | None = None
+    # A person's corrections through review (T009-03a); optional, so older documents read as none.
+    corrected_fields: list[str] = Field(default_factory=list)
+    corrected_by: str | None = None
+    corrected_at: datetime | None = None
     held_as_duplicate: bool = False

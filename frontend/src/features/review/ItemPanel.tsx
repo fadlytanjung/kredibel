@@ -175,6 +175,8 @@ export function ItemPanel({ item, position, onResolved, onSkip, onClose }: ItemP
   const [picked, setPicked] = useState<string>()
   const [reasonOpen, setReasonOpen] = useState(false)
   const [reason, setReason] = useState('')
+  const [correcting, setCorrecting] = useState(false)
+  const [correction, setCorrection] = useState('')
 
   const monthLines = lineData?.items ?? []
   const subjects = subjectsOf(item, {
@@ -207,6 +209,9 @@ export function ItemPanel({ item, position, onResolved, onSkip, onClose }: ItemP
               ? { label: t('actions.NO_DOCUMENT_NEEDED'), request: { action: 'NO_DOCUMENT_NEEDED' } }
               : undefined
   const quiet = (['REJECT_MATCH', 'NOT_DUPLICATE', 'NOT_YET_PAID'] as const).filter((a) => allowed.has(a))
+  // T009-03a: an invoice's or receipt's total or date, as printed; what was read is kept.
+  const field = item.subject.field ?? ''
+  const canCorrect = allowed.has('CORRECT_VALUE') && documents.length > 0 && Boolean(field)
   const busy = resolve.isPending
   useQueueKeys(
     useMemo(
@@ -252,8 +257,13 @@ export function ItemPanel({ item, position, onResolved, onSkip, onClose }: ItemP
         {item.kind === 'PROPOSED_MATCH' && <Proposal item={item} />}
         {item.kind === 'UNMATCHED_DOCUMENT' && <LinePicker lines={candidates} picked={pickedLine?.txId} onPick={setPicked} />}
 
-        {(quiet.length > 0 || allowed.has('IGNORE')) && (
+        {(quiet.length > 0 || allowed.has('IGNORE') || canCorrect) && (
           <div className="other-actions">
+            {canCorrect && !correcting && (
+              <Button variant="quiet" size="sm" onClick={() => setCorrecting(true)}>
+                {t('actions.CORRECT_VALUE')}
+              </Button>
+            )}
             {quiet.map((action) => (
               <Button key={action} variant="quiet" size="sm" disabled={resolve.isPending} onClick={() => act({ action })}>
                 {t(`actions.${action}`)}
@@ -265,6 +275,26 @@ export function ItemPanel({ item, position, onResolved, onSkip, onClose }: ItemP
               </Button>
             )}
           </div>
+        )}
+        {correcting && (
+          <form
+            className="field"
+            onSubmit={(e) => {
+              e.preventDefault()
+              act({ action: 'CORRECT_VALUE', field, value: correction.trim() })
+            }}
+          >
+            <label className="label" htmlFor="correct-value">
+              {t('panel.correctLabel', { field: t(`fields.${field}`, { defaultValue: field }) })}
+            </label>
+            <input id="correct-value" className="input" value={correction} onChange={(e) => setCorrection(e.target.value)} />
+            <p className="muted small">{t('panel.correctHint')}</p>
+            <div className="row">
+              <Button type="submit" size="sm" disabled={!correction.trim() || resolve.isPending}>
+                {t('actions.saveCorrection')}
+              </Button>
+            </div>
+          </form>
         )}
         {reasonOpen && (
           <form

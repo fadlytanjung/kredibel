@@ -15,6 +15,7 @@ from typing import Any
 from app.core.auth import Principal
 from app.core.clock import Clock
 from app.core.ids import new_id
+from app.domain.corrections import correct_record
 from app.domain.errors import (
     ActionNotAllowedError,
     ItemAlreadyResolvedError,
@@ -22,6 +23,7 @@ from app.domain.errors import (
     NotFoundError,
     ReasonRequiredError,
     ToleranceExceededError,
+    ValidationProblem,
     WorkspaceRequiredError,
 )
 from app.domain.models.document import DuplicateDecision
@@ -83,6 +85,8 @@ class ReviewService:
         self._months = months
         self._docs = doc_repo
         self._holders = (bank_lines, invoices, receipts)
+        self._invoices = invoices
+        self._receipts = receipts
         self._clock = clock
 
     async def list_items(
@@ -141,6 +145,8 @@ class ReviewService:
                     tx_id=tx_id,
                     reason=note or "No supporting document is needed for this line.",
                 )
+            case "CORRECT_VALUE":
+                await self._correct(principal, item, request)
             case "CONFIRM_DUPLICATE" | "NOT_DUPLICATE":
                 await self._decide_duplicate(principal, item, request.action == "CONFIRM_DUPLICATE")
             case _:
@@ -192,6 +198,45 @@ class ReviewService:
         except ToleranceExceededError as error:
             difference = error.extras.get("difference")
             raise MatchAmountMismatchError(error.detail, difference=difference) from error
+
+    async def _correct(
+        self, principal: Principal, item: ReviewItem, request: ResolveRequest
+    ) -> None:
+        """T009-03a: the value as the person reads it on the page; the reading is kept."""
+        org_id = _org(principal)
+        field = request.field or item.subject.field or ""
+        value = (request.value or "").strip()
+        if not value:
+            raise ValidationProblem("value", "Write the value as it is printed.")
+        now = self._clock.now()
+        if item.subject.invoice_ids:
+            invoice = await self._invoices.get_record(org_id, item.subject.invoice_ids[0])
+            if invoice is None:
+                raise NotFoundError("The invoice is gone")
+            before, fixed = invoice, correct_record(invoice, field, value, by=principal.uid, at=now)
+            store: DocumentRecords[Any] = self._invoices
+            record_id = invoice.invoice_id
+        elif item.subject.receipt_ids:
+            receipt = await self._receipts.get_record(org_id, item.subject.receipt_ids[0])
+            if receipt is None:
+                raise NotFoundError("The receipt is gone")
+            before, fixed = receipt, correct_record(receipt, field, value, by=principal.uid, at=now)
+            store = self._receipts
+            record_id = receipt.receipt_id
+        else:
+            raise ValidationProblem("field", "A bank line's values cannot be corrected yet.")
+        event = AuditEvent(
+            event_id=new_id("evt"),
+            type="VALUE_CORRECTED",
+            actor_uid=principal.uid,
+            actor_role=principal.role or "owner",
+            at=now,
+            subject={"recordId": record_id, "docId": before.doc_id},
+            details={"field": field},  # no values: they are the document's content
+        )
+        await store.save_correction(org_id, fixed, event)
+        months = sorted({m for m in (before.month, fixed.month) if m})
+        await self._months.mark_dirty(org_id, months, reason="value_corrected")
 
     async def _decide_duplicate(self, principal: Principal, item: ReviewItem, copy: bool) -> None:
         """AC-006-6: "duplicate" keeps the copy's values out; "not a duplicate" releases them."""

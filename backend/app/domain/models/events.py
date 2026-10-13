@@ -22,6 +22,7 @@ EventType = Literal[
     "DUPLICATE_CONFIRMED",
     "DUPLICATE_REJECTED",
     "REVIEW_ITEM_RESOLVED",
+    "VALUE_CORRECTED",
 ]
 
 

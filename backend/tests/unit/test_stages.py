@@ -153,7 +153,9 @@ async def test_a_step_records_only_the_model_calls_it_made(test_deps):
 
     @stage(deps, "categorize_step")
     async def categorize_step(ctx: Context, node_input: dict) -> dict:
-        return {**node_input, "tokens_in": 900, "tokens_out": 80, "summary": "12 by model"}
+        # The same model as the classifier upstream: its own tokens make it its own call.
+        model = "gemini-3.5-flash-lite"
+        return {**node_input, "model": model, "tokens_in": 900, "tokens_out": 80, "summary": "12"}
 
     upstream = {
         "orgId": "org_1",
@@ -168,5 +170,8 @@ async def test_a_step_records_only_the_model_calls_it_made(test_deps):
 
     check, categorize = (await run_repo.get("org_1", "run_2")).stages  # type: ignore[union-attr]
     assert (check.model, check.tokens_in, check.tokens_out) == (None, None, None)
-    assert (categorize.tokens_in, categorize.tokens_out) == (900, 80)
-    assert categorize.model is None  # it did not name a model of its own
+    assert (categorize.model, categorize.tokens_in, categorize.tokens_out) == (
+        "gemini-3.5-flash-lite",
+        900,
+        80,
+    )

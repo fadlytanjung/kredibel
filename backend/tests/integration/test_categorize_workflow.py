@@ -78,5 +78,9 @@ async def test_lines_are_categorized_by_rules_then_the_model():
 
     calls = [c for c in reader.calls if c[0] == "categorize"]
     assert len(calls) == 1 and calls[0][1] < len(stored)  # one batch, only what rules left
+    # The run records the categorizer's model beside its tokens (docs/23 §5.1).
+    runs = await deps.run_repo.list_by_target("org_1", doc_id)
+    (stage,) = [s for r in runs for s in r.stages if s.node == "categorize_bank_lines"]
+    assert stage.model == "fake-model" and stage.tokens_in
     await deps.document_workflow_runner("org_1", doc_id, "run_again", 1)
     assert [c for c in reader.calls if c[0] == "categorize"] == calls  # served from the cache

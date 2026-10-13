@@ -125,18 +125,16 @@ def stage(
 
                     duration_ms = int((ended_at - started_at).total_seconds() * 1000)
 
-                    # Steps pass their input on; only values this step changed are its own model
-                    # calls, so an upstream classifier's tokens are not counted again here.
-                    def own(key: str) -> Any:
-                        if not isinstance(result, dict):
-                            return None
-                        value = result.get(key)
-                        given = actual_input.get(key) if isinstance(actual_input, dict) else None
-                        return None if value == given else value
-
-                    model = own("model")
-                    tokens_in = own("tokens_in")
-                    tokens_out = own("tokens_out")
+                    # Steps pass their input on, so an upstream step's model and tokens arrive
+                    # here too. Tokens that changed are this step's own calls, and then so is its
+                    # model (it may be the same model as upstream's); a pass-through records none.
+                    out = result if isinstance(result, dict) else {}
+                    given = actual_input if isinstance(actual_input, dict) else {}
+                    spent = any(out.get(k) != given.get(k) for k in ("tokens_in", "tokens_out"))
+                    named = out.get("model") != given.get("model")
+                    model = out.get("model") if spent or named else None
+                    tokens_in = out.get("tokens_in") if spent else None
+                    tokens_out = out.get("tokens_out") if spent else None
                     summary = result.get("summary") if isinstance(result, dict) else None
 
                     stage_record = RunStage(

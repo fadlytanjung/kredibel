@@ -825,8 +825,10 @@ def categorize_bank_lines(deps: PipelineDeps):
             line.cashflow_class = policy.categories[c.category].cashflow_class(framework)
         await deps.bank_lines.replace_document_lines(org_id, doc_id, lines)
         by = Counter(line.categorized_by for line in lines)
+        asked = deps.reader is not None and tokens[0] > 0  # cache hits call no model
         return {
             **node_input,
+            **({"model": deps.reader.version("categorize")[0]} if asked and deps.reader else {}),
             "tokens_in": tokens[0],
             "tokens_out": tokens[1],
             "summary": ", ".join(f"{n} by {k.lower()}" for k, n in sorted(by.items())),

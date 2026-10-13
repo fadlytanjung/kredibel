@@ -20,7 +20,8 @@
     "MONEY_OUT": "Money out",
     "NET": "Net",
     "AUTO_MATCH_RATE": "Matched by Kredibel",
-    "DOCUMENTS_WAITING": "Waiting for you"
+    "DOCUMENTS_WAITING": "Waiting for you",
+    "OPEN_REVIEW_ITEMS": "To review"
   },
   "previous": "Previous period: {{value}}",
   "noPrevious": "No earlier period to compare",
@@ -54,5 +55,10 @@
     "CRITICAL": "Critical"
   },
   "loading": "Loading your books…",
-  "loadFailed": "The dashboard could not be loaded."
+  "loadFailed": "The dashboard could not be loaded.",
+  "reviewWaiting_one": "{{count}} item to decide",
+  "reviewWaiting_other": "{{count}} items to decide",
+  "nothingToReview": "Nothing to review",
+  "review": "To review",
+  "allReview": "Open the queue"
 }

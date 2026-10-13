@@ -22,11 +22,13 @@ from app.domain.models.month import Month
 from app.domain.money_flow import FlowNode, MoneyFlow, View, build_money_flow
 from app.domain.period import Period, resolve_period
 from app.domain.reconcile_scoring import in_workspace_currency
+from app.domain.review_items import ReviewItem
 from app.ports.bank_line_repository import BankLineRepository
 from app.ports.decision_repository import DecisionRepository
 from app.ports.document_repository import DocumentRepository
 from app.ports.finding_repository import FindingRepository
 from app.ports.month_repository import MonthRepository
+from app.ports.review_item_repository import ReviewItemRepository
 from app.ports.workspace_repository import WorkspaceRepository
 
 ZERO = Decimal("0")
@@ -75,6 +77,7 @@ class Dashboard:
     alerts: tuple[Alert, ...]
     top_sources: tuple[FlowNode, ...] = field(default_factory=tuple)
     top_uses: tuple[FlowNode, ...] = field(default_factory=tuple)
+    review_preview: tuple[ReviewItem, ...] = field(default_factory=tuple)
 
 
 @dataclass
@@ -104,6 +107,7 @@ class InsightService:
         findings: FindingRepository,
         decisions: DecisionRepository,
         categories: CategoryPolicy,
+        review_items: ReviewItemRepository | None = None,
     ) -> None:
         self._workspaces = workspaces
         self._docs = doc_repo
@@ -112,6 +116,7 @@ class InsightService:
         self._findings = findings
         self._decisions = decisions
         self._categories = categories
+        self._review_items = review_items
 
     async def _books(self, org_id: str) -> _Books:
         workspace = await self._workspaces.get_workspace(org_id)
@@ -277,6 +282,15 @@ class InsightService:
                     "AUTO_MATCH_RATE", "rate", rate, self._auto_match_rate(books, resolved.previous)
                 )
             )
+        # The period's open review items, in the queue's order (AC-010-1, spec 009).
+        preview: list[ReviewItem] = []
+        if self._review_items is not None:
+            queue, _, _ = await self._review_items.list_review_items(
+                org_id, status="OPEN", limit=500
+            )
+            mine = [i for i in queue if i.month is None or i.month in resolved.months]
+            kpis.append(Kpi("OPEN_REVIEW_ITEMS", "count", len(mine)))
+            preview = mine[:5]
         docs, _ = await self._docs.list_documents(org_id, limit=500)
         waiting = sum(1 for d in docs if d.held_as_duplicate or d.status == DocStatus.NEEDS_INPUT)
         kpis.append(Kpi("DOCUMENTS_WAITING", "count", waiting))
@@ -305,6 +319,7 @@ class InsightService:
             alerts=tuple(alerts),
             top_sources=tuple(sorted(sources, key=lambda n: (-n.value, n.id))[:3]),
             top_uses=tuple(sorted(uses, key=lambda n: (-n.value, n.id))[:3]),
+            review_preview=tuple(preview),
         )
 
     @staticmethod

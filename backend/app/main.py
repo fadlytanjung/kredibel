@@ -622,6 +622,7 @@ class AppDeps:
                 findings=self.findings,
                 decisions=self.decisions,
                 categories=self.categories,
+                review_items=self.review_items,
             ),
         )
 

@@ -16,7 +16,7 @@ import { formatMonth } from '../shared/lib/formatDate'
 import { Button } from '../shared/ui/Button'
 import { EmptyState } from '../shared/ui/EmptyState'
 import { Icon } from '../shared/ui/Icon'
-import { AlertList, FlowSummary, KpiCard, MonthStrip } from '../widgets/dashboard'
+import { AlertList, FlowSummary, KpiCard, MonthStrip, ReviewPreview } from '../widgets/dashboard'
 
 const RISK_ORDER = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']
 
@@ -86,6 +86,7 @@ function Body({ data, name }: { data: Dashboard; name: string }) {
 
       <div className="dash-lists">
         <AlertList alerts={alerts} />
+        <ReviewPreview items={data.reviewPreview ?? []} />
         <FlowSummary
           sources={data.moneyFlowSummary?.topSources ?? []}
           uses={data.moneyFlowSummary?.topUses ?? []}

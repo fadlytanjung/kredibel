@@ -9,6 +9,7 @@ from typing import Any, Literal
 from fastapi import APIRouter, Depends, Query
 
 from app.api.deps import ServiceProvider, org_of
+from app.api.review_items import review_item_body
 from app.core.auth import Principal
 from app.domain.cash_flow import CashFlow
 from app.domain.money_flow import FlowNode, MoneyFlow
@@ -174,6 +175,7 @@ def dashboard_body(d: Dashboard) -> dict[str, Any]:
             "topSources": [node_body(n, c) for n in d.top_sources],
             "topUses": [node_body(n, c) for n in d.top_uses],
         },
+        "reviewPreview": [review_item_body(i) for i in d.review_preview],
     }
 
 

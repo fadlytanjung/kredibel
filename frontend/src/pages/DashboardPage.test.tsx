@@ -21,6 +21,7 @@ const DASHBOARD = {
     { id: 'MONEY_OUT', value: money('5831.45'), previous: null },
     { id: 'NET', value: money('-943.51'), previous: null },
     { id: 'AUTO_MATCH_RATE', value: '0.8960', previous: null },
+    { id: 'OPEN_REVIEW_ITEMS', value: 3, previous: null },
     { id: 'DOCUMENTS_WAITING', value: 2, previous: null },
   ],
   months: [
@@ -31,6 +32,18 @@ const DASHBOARD = {
   alerts: [
     { severity: 'CRITICAL', title: 'The statement was edited after the bank issued it', month: '2026-08', findingId: 'fnd_1', link: '/risk/fnd_1' },
     { severity: 'MEDIUM', title: 'Invoices from an unknown supplier', month: '2026-09', findingId: 'fnd_2', link: '/risk/fnd_2' },
+  ],
+  reviewPreview: [
+    {
+      itemId: 'itm_0000000000000001',
+      kind: 'PROPOSED_MATCH',
+      month: '2026-08',
+      status: 'OPEN',
+      priority: 85,
+      title: 'Confirm the payment of MYR 1,800.00 on 9 Aug 2026',
+      subject: { matchId: 'mat_1' },
+      allowedActions: ['CONFIRM_MATCH', 'MATCH', 'REJECT_MATCH'],
+    },
   ],
   moneyFlowSummary: {
     topSources: [{ id: 'src:client:cp_1', column: 'SOURCE', label: 'Daybreak Cafe', value: money('2500.00') }],
@@ -101,6 +114,20 @@ describe('DashboardPage', () => {
     expect(within(months).getByText('0 of 1 statements')).toBeInTheDocument()
     expect(screen.getByText('Daybreak Cafe')).toBeInTheDocument()
     expect(screen.getByText('Cost of sales')).toBeInTheDocument()
+  })
+
+  it('previews the review queue and links each item and the figure to it (AC-010-1, AC-010-2)', async () => {
+    serve(DASHBOARD)
+    renderPage()
+
+    const preview = await screen.findByRole('region', { name: 'To review' })
+    expect(within(preview).getByRole('link', { name: /Confirm the payment of MYR 1,800.00/ })).toHaveAttribute(
+      'href',
+      '/review/itm_0000000000000001',
+    )
+    expect(within(preview).getByText('Choose a match, August 2026')).toBeInTheDocument()
+    const figures = screen.getByRole('region', { name: /Figures for/ })
+    expect(within(figures).getByRole('link', { name: '3 items to decide' })).toHaveAttribute('href', '/review')
   })
 
   it('asks for the period it shows', async () => {

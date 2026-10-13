@@ -2,8 +2,10 @@
 AC-010-6, AC-010-12…14). Synthetic March statement and invoice of "Sunrise Coffee Roasters"."""
 
 from collections import defaultdict
+from datetime import UTC, datetime
 from decimal import Decimal as D
 
+from app.domain.review_items import RecordFacts, month_items
 from tests.fakes.document_reader import FakeDocumentReader
 from tests.integration.test_invoice_workflow import AUTH, PDF, _client, _deps, _recorded
 from tests.integration.test_month_workflow_reconcile import STATEMENT, _classify, _upload
@@ -96,11 +98,48 @@ async def test_the_cash_flow_adds_up_from_opening_to_closing():
     assert bad.status_code == 422
 
 
+async def test_the_dashboard_previews_the_review_queue_of_its_period():
+    deps, _ = _deps()
+    async with _client(deps) as client:
+        await _books(client, deps)
+        await deps.review_items.replace_month_review_items(
+            "org_1",
+            "2026-03",
+            month_items(
+                month="2026-03",
+                currency="IDR",
+                risk_level="LOW",
+                lines=[],
+                records=[
+                    RecordFacts(
+                        f"inv_{n}", f"doc_{n}", "PURCHASE", f"BW-{n}", None, D("100.00"), "UNPAID"
+                    )
+                    for n in range(7)
+                ],
+                proposals=[],
+                held=[],
+            ),
+            now=datetime(2026, 4, 2, tzinfo=UTC),
+        )
+        board = (await client.get("/api/dashboard", headers=AUTH)).json()
+
+    kpis = {k["id"]: k for k in board["kpis"]}
+    assert kpis["OPEN_REVIEW_ITEMS"]["value"] >= 7
+    assert len(board["reviewPreview"]) == 5
+    assert board["reviewPreview"][0]["kind"] in (
+        "POSSIBLE_DUPLICATE",
+        "PROPOSED_MATCH",
+        "UNMATCHED_DOCUMENT",
+    )
+    assert [k["id"] for k in board["kpis"]][-2:] == ["OPEN_REVIEW_ITEMS", "DOCUMENTS_WAITING"]
+
+
 async def test_the_dashboard_shows_the_period_figures_months_and_top_flows():
     deps, _ = _deps()
     async with _client(deps) as client:
         lines = await _books(client, deps)
         board = (await client.get("/api/dashboard", headers=AUTH)).json()
+        queue = (await client.get("/api/review-items?status=OPEN", headers=AUTH)).json()["items"]
 
     assert (board["period"], board["periodMonths"]) == ("recent", ["2026-03"])
     kpis = {k["id"]: k for k in board["kpis"]}
@@ -109,7 +148,8 @@ async def test_the_dashboard_shows_the_period_figures_months_and_top_flows():
     assert D(kpis["NET"]["value"]["amount"]) == money_in - money_out
     assert kpis["MONEY_IN"]["previous"] is None  # nothing before March
     assert "AUTO_MATCH_RATE" in kpis and kpis["DOCUMENTS_WAITING"]["value"] == 0
-    assert "OPEN_REVIEW_ITEMS" not in kpis  # the review queue (spec 009) is not wired yet
+    assert kpis["OPEN_REVIEW_ITEMS"]["value"] == len(queue)  # the period's open items (AC-010-1)
+    assert [i["itemId"] for i in board["reviewPreview"]] == [i["itemId"] for i in queue][:5]
     [march] = board["months"]
     assert (
         march["month"],

@@ -20,6 +20,7 @@ function percent(rate: string): string {
   return `${(Math.round(Number(rate) * 1000) / 10).toFixed(1)}%`
 }
 
+const WAITING: Kpi['id'][] = ['DOCUMENTS_WAITING', 'OPEN_REVIEW_ITEMS']
 const ICON: Partial<Record<Kpi['id'], IconName>> = { MONEY_IN: 'arrow-down-left', MONEY_OUT: 'arrow-up-right' }
 
 export function KpiCard({ kpi }: { kpi: Kpi }) {
@@ -45,13 +46,22 @@ export function KpiCard({ kpi }: { kpi: Kpi }) {
     ) : (
       t('nothingWaiting')
     )
+  } else if (kpi.id === 'OPEN_REVIEW_ITEMS') {
+    const count = Number(value)
+    note = count ? (
+      <Link className="link" to="/review">
+        {t('reviewWaiting', { count })}
+      </Link>
+    ) : (
+      t('nothingToReview')
+    )
   } else if (kpi.id === 'NET' && isMoney(value)) {
     note = value.amount.startsWith('-') ? t('taken') : t('kept')
   } else {
     note = previous !== null && previous !== undefined ? t('previous', { value: shown(previous, signed) }) : t('noPrevious')
   }
   return (
-    <div className={kpi.id === 'DOCUMENTS_WAITING' && Number(value) > 0 ? 'is-attn' : undefined}>
+    <div className={WAITING.includes(kpi.id) && Number(value) > 0 ? 'is-attn' : undefined}>
       <dt>
         {icon && <Icon name={icon} size="sm" />}
         {t(`kpi.${kpi.id}`)}

@@ -185,6 +185,11 @@ def test_r01_an_overdue_sales_invoice_only_where_statements_cover_the_period():
         ctx("2026-02", statements=covered, invoices=[sale], allocations=[_paid("c1", "s1")])
     )
     assert paid == []
+    proposed = replace(_paid("c1", "s1"), status="PROPOSED", method=None)
+    asked = run_month_checks(
+        ctx("2026-02", statements=covered, invoices=[sale], allocations=[proposed])
+    )
+    assert asked == []  # a person is asked about the payment: waiting, not overdue
 
 
 def test_r02_a_supplier_with_no_bank_history_never_paid():

@@ -35,4 +35,4 @@ def test_this_months_allocations_plus_other_months_confirmed_matches():
         stored("mat_feb_old", "2026-02", "CONFIRMED"),  # this month's stored: replaced by the run
     ]
     ids = [a.match_id for a in allocations_for_checks(fresh, matches, "2026-02")]
-    assert ids == ["mat_feb", "mat_jan", "mat_jan_manual"]
+    assert ids == ["mat_feb", "mat_jan", "mat_jan_manual", "mat_jan_proposed"]

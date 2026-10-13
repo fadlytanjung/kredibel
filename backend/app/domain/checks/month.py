@@ -361,11 +361,13 @@ def overdue_sales(ctx: MonthContext) -> list[Finding]:
     """Unpaid more than graceDays after its due date, and statements cover the whole time it could
     have been paid in: without coverage the invoice is waiting for a statement, not overdue."""
     paid = _confirmed_documents(ctx)
+    # A proposed payment (a net-of-tax shortfall, a close candidate) waits for the person.
+    asked = {r for a in ctx.allocations if a.status == "PROPOSED" for r in a.right_ids}
     grace = timedelta(days=ctx.policy.reconciliation_checks.overdue_grace_days)
     share = ctx.policy.reconciliation_checks.overdue_medium_share
     out: list[Finding] = []
     for inv in ctx.invoices:
-        if inv.kind != "SALES" or inv.invoice_id in paid or inv.total is None:
+        if inv.kind != "SALES" or inv.invoice_id in paid | asked or inv.total is None:
             continue
         if inv.issue_date is None:
             continue

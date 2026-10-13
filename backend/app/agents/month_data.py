@@ -258,10 +258,11 @@ def stored_allocations(matches: list[StoredMatch]) -> list[Allocation]:
 def allocations_for_checks(
     fresh: list[Allocation], matches: list[StoredMatch], month: str
 ) -> list[Allocation]:
-    """This run's allocations plus every confirmed match of other months, so the month checks see
-    payments made in any month: R01 must not call overdue what an earlier statement shows paid,
-    and D07 must see the first payment of an invoice."""
-    others = [m for m in matches if m.month != month and m.status == "CONFIRMED"]
+    """This run's allocations plus the confirmed and proposed matches of other months, so the month
+    checks see payments made in any month: R01 must not call overdue what an earlier statement shows
+    paid or a person is asked about, and D07 must see the first payment of an invoice. Checks count
+    only CONFIRMED allocations as payments."""
+    others = [m for m in matches if m.month != month and m.status in ("CONFIRMED", "PROPOSED")]
     return [*fresh, *stored_allocations(others)]
 
 

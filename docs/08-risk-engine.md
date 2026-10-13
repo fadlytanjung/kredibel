@@ -135,7 +135,7 @@ printed (wrong) balance, which shows where the edit was made.
 
 | Code | Rule | Severity | P |
 |---|---|---|---|
-| `R01_SALES_INVOICE_OVERDUE` | A sales invoice unpaid more than `graceDays` after its due date, statements covering that period present (every day from issue to due + grace; otherwise it is waiting for a statement, not overdue); reported in the month it becomes overdue | LOW (MEDIUM if > 10% of the invoiced sales of its issue month) | P0 |
+| `R01_SALES_INVOICE_OVERDUE` | A sales invoice unpaid more than `graceDays` after its due date, statements covering that period present (every day from issue to due + grace; otherwise it is waiting for a statement, not overdue); paid means a confirmed match in any month, and an invoice with a proposed payment waits for the person instead; reported in the month it becomes overdue | LOW (MEDIUM if > 10% of the invoiced sales of its issue month) | P0 |
 | `R02_SUPPLIER_INVOICE_UNKNOWN_PARTY` | A purchase invoice from a supplier with no bank history and no ledger entry, never paid | MEDIUM | P0 |
 | `R03_PAID_BEFORE_ISSUE` | A matched payment dated more than 3 days before the invoice issue date | MEDIUM | P1 |
 | `B01_GAMBLING_INDICATORS` | ≥ 1 bank line tagged `GAMBLING` | MEDIUM | P0 |

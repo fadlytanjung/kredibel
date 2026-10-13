@@ -118,4 +118,21 @@ describe('DocumentsPage', () => {
     await waitFor(() => expect(screen.getByText('1 to 10 of 23')).toBeInTheDocument())
     expect(screen.getByRole('button', { name: /Receipts/ })).toHaveTextContent('23')
   })
+
+  it('says an exact copy is not checked instead of "Checking" forever', async () => {
+    vi.mocked(apiClient).mockResolvedValueOnce({
+      items: [
+        { docId: 'doc_copy', fileName: 'ACB_Feb_2026 (1).pdf', contentType: 'application/pdf', docType: 'BANK_STATEMENT', status: 'DUPLICATE', pageCount: 3, months: ['2026-02'], uploadedAt: '2026-07-02T10:00:00Z' },
+        { docId: 'doc_ledger', fileName: 'ledger.csv', contentType: 'text/csv', docType: 'UNKNOWN', status: 'NEEDS_INPUT', pageCount: 0, months: [], uploadedAt: '2026-07-02T10:01:00Z' },
+      ],
+      nextCursor: null,
+    })
+
+    renderPage()
+
+    await waitFor(() => expect(screen.getByText('ACB_Feb_2026 (1).pdf')).toBeInTheDocument())
+    expect(screen.getByText('Copy, not checked')).toBeInTheDocument()
+    expect(screen.getByText('Not checked')).toBeInTheDocument()
+    expect(screen.queryByText('Checking')).not.toBeInTheDocument()
+  })
 })

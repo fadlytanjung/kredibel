@@ -87,7 +87,9 @@ export function DocumentsPage() {
       return <Badge variant="critical" icon={<Icon name="shield-alert" size="sm" />}>{t('documents:verdict.suspicious')}</Badge>
     if (verdict === 'UNVERIFIABLE') return <Badge variant="medium">{t('documents:verdict.unverifiable')}</Badge>
     if (PROCESSING.includes(doc.status)) return <span className="muted small">{t('documents:status.afterReading')}</span>
-    return <span className="muted small">{t('documents:status.screening')}</span>
+    // An exact copy is never read or checked; anything else without a verdict was not checked.
+    if (doc.status === 'DUPLICATE') return <span className="muted small">{t('documents:status.copyNotChecked')}</span>
+    return <span className="muted small">{t('documents:status.notChecked')}</span>
   }
   const riskOf = (doc: Document) =>
     doc.risk?.level ? (

@@ -59,7 +59,9 @@
     "noPages": "No pages to check",
     "afterReading": "After reading",
     "notYet": "Not yet",
-    "possibleCopy": "Possible copy"
+    "possibleCopy": "Possible copy",
+    "copyNotChecked": "Copy, not checked",
+    "notChecked": "Not checked"
   },
   "verdict": {
     "clean": "Clean",

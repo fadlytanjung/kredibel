@@ -25,15 +25,30 @@ setup: ## Install all backend, frontend, and synthetic dependencies
 	@if [ -f tools/synthetic/pyproject.toml ]; then cd tools/synthetic && uv sync; fi
 	@echo "==> Setup complete."
 
-dev: ## Run local dev servers (FastAPI on :8000 + worker inline, Vite on :5173)
+dev: ## Run local dev servers (FastAPI on :8000, Vite on :5173, Langfuse, Firestore emulator)
 	@echo "Starting Kredibel in local dev mode..."
 	@if [ -f .env ]; then export $$(cat .env | grep -v '^#' | xargs); fi
 	@make docker-up
-	@echo "Starting backend and frontend..."
-	@concurrently "make dev-backend" "make dev-frontend" 2>/dev/null || ( \
-		echo "Run backend: (cd backend && uv run uvicorn app.main:app --reload --port 8000)"; \
-		echo "Run frontend: (cd frontend && npm run dev)" \
-	)
+	@if [ -f infra/langfuse/docker-compose.yml ]; then \
+		echo "Ensuring Langfuse trace viewer is running..."; \
+		make langfuse-up; \
+	fi
+	@echo ""
+	@echo "==================================================================="
+	@echo "  Kredibel Local Development Services"
+	@echo "==================================================================="
+	@echo "  • Web App (Frontend):     http://localhost:5173"
+	@echo "  • Backend API:            http://localhost:8000"
+	@echo "  • API Docs (Swagger):     http://localhost:8000/docs"
+	@echo "  • API Docs (ReDoc):       http://localhost:8000/redoc"
+	@echo "  • Langfuse Traces:        http://localhost:3000"
+	@echo "  • Firestore Emulator:     http://localhost:8080 (UI: :4000)"
+	@echo "  • AI Content Capture:     $(if $(CONTENT),ENABLED (prompts & responses visible),OFF (metadata only; pass CONTENT=1))"
+	@echo "==================================================================="
+	@echo ""
+	@npx -y concurrently -n "api,web" -c "cyan,magenta" \
+		"$(if $(filter 1,$(NO_LANGFUSE)),,$(WITH_LANGFUSE)) AI_CONTENT_CAPTURE=$(if $(CONTENT),synthetic,off) DATA_CLASS=$(if $(CONTENT),synthetic,$${DATA_CLASS:-real}) make dev-backend" \
+		"make dev-frontend"
 
 dev-backend: ## Run local backend with reload
 	cd backend && APP_ROLE=all TASK_QUEUE_MODE=inline FIRESTORE_DATABASE=$${FIRESTORE_DATABASE:-kredibel} DATA_CLASS=$${DATA_CLASS:-real} uv run uvicorn app.main:app --reload --port 8000
@@ -165,7 +180,7 @@ langfuse-smoke: ## Send a synthetic trace with one generation to the local Langf
 	$(WITH_LANGFUSE) && cd backend && ENV_FILE=/dev/null PYTHONPATH=. uv run python scripts/trace_smoke.py --langfuse
 
 dev-langfuse: ## Run the local API/inline worker traced in Langfuse (CONTENT=1: prompts too; refused unless DATA_CLASS=synthetic)
-	$(WITH_LANGFUSE) AI_CONTENT_CAPTURE=$(if $(CONTENT),synthetic,off) $(MAKE) dev-backend
+	$(WITH_LANGFUSE) AI_CONTENT_CAPTURE=$(if $(CONTENT),synthetic,off) DATA_CLASS=$(if $(CONTENT),synthetic,$${DATA_CLASS:-real}) $(MAKE) dev-backend
 
 gemini-usage: ## Gemini requests and tokens of the project from Cloud Monitoring (DAYS=7)
 	cd backend && PYTHONPATH=. uv run python scripts/gemini_usage.py --days $(or $(DAYS),7)

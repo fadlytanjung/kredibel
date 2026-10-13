@@ -645,6 +645,9 @@ a:hover { color: var(--k-color-brand-hover); }
 .qitem .kind { grid-row: span 2; }
 .qitem .t { font-size: 14px; line-height: 19px; font-weight: 620; }
 .qitem .s { font-size: 12.5px; line-height: 17px; color: var(--k-color-text-muted); }
+.review .chips { flex-wrap: wrap; overflow-x: visible; }
+.data-table .qitem { padding: 0; }
+.data-table .qitem:hover { background: none; }
 .queue-group { padding: var(--k-space-2) var(--k-space-4); background: var(--k-color-bg-sunken); font-size: 12.5px; font-weight: 640; color: var(--k-color-text-muted); display: flex; justify-content: space-between; }
 
 .fix { background: var(--k-color-bg-raised); border: 1px solid var(--k-color-border-default); border-radius: var(--k-radius-md); box-shadow: var(--k-shadow-raised); overflow: hidden; }

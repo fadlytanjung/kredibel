@@ -7,6 +7,7 @@ import { useParams } from 'react-router-dom'
 import { DashboardPage } from '../pages/DashboardPage'
 import { DocumentPage } from '../pages/DocumentPage'
 import { MonthPage } from '../pages/MonthPage'
+import { ReviewPage } from '../pages/ReviewPage'
 import { SettingsPage } from '../pages/SettingsPage'
 import { AppShell } from '../shared/ui'
 
@@ -50,6 +51,15 @@ export function MonthPreview() {
   return (
     <AppShell {...PREVIEW_PROPS} activePath="/months" onUpload={() => undefined}>
       <MonthPage />
+    </AppShell>
+  )
+}
+
+/** Review inside the shell, for the visual tests; the tests serve its API data. */
+export function ReviewPreview() {
+  return (
+    <AppShell {...PREVIEW_PROPS} activePath="/review" onUpload={() => undefined}>
+      <ReviewPage />
     </AppShell>
   )
 }

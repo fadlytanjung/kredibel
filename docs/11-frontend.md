@@ -504,9 +504,9 @@ after acceptance; the confirmation is audited. No exchange-rate fields, conversi
 
 <p><img src="assets/mocks/review-desktop.png" alt="Review at 1440 px: queue grouped by month beside the fix panel for a bank line that fits two invoices" width="66%"> <img src="assets/mocks/review-mobile.png" alt="Review on a phone: the item as a full page with candidates and a sticky Match button" width="26%"></p>
 
-- **Queue:** filter chips by kind and month; items grouped by month, each with a kind tile, a title
-  that names the money, and one line of context. The eight kinds of [`08`](08-risk-engine.md) §7
-  have these names on screen:
+- **Queue:** the shared `DataTable` ([`12`](12-design-system.md) §7): chips by kind with counts,
+  search, 10 items a page, a month column; each item with a kind tile, a title that names the money,
+  and its kind. The eight kinds of [`08`](08-risk-engine.md) §7 have these names on screen:
 
 | Kind | Chip | Kind | Chip |
 |---|---|---|---|
@@ -522,7 +522,10 @@ after acceptance; the confirmation is audited. No exchange-rate fields, conversi
   from facts; the other allowed actions as quiet buttons; the primary action named after the choice
   (**Match with invoice 0003**) and **Skip**.
 - Only actions allowed for the kind are shown ([`10`](10-api-contract.md) §4). After a fix the next
-  item opens and the month shows "Reconciling" until the month run finishes (§5.3).
+  item opens with "Saved. March is being reconciled again. Next: 5 left", and the month shows
+  "Reconciling" until the month run finishes (§5.3). An unpaid document lists up to three unmatched
+  bank lines of its direction within 10% of its total; leaving an item needs a reason.
+- On phones an opened item replaces the queue; the navigation badge shows the open count.
 - Keyboard on wide screens: `j`/`k` next and previous, `Enter` the primary action, `Esc` close.
 
 ### 6.6 Evidence viewer

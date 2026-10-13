@@ -7,6 +7,7 @@
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Navigate, Route, Routes, useNavigate } from 'react-router-dom'
+import { useReviewItems } from '../entities/review'
 import { useAuth } from '../entities/session'
 import { shellPropsFromWorkspace, useWorkspace } from '../entities/workspace'
 import { DashboardPage } from '../pages/DashboardPage'
@@ -22,15 +23,15 @@ import {
   AssistantPage,
   CounterpartiesPage,
   LabelsPage,
-  ReviewPage,
   RunsPage,
 } from '../pages/Placeholders'
+import { ReviewPage } from '../pages/ReviewPage'
 import { RiskPage } from '../pages/RiskPage'
 import { SettingsPage } from '../pages/SettingsPage'
 import { AppShell, Button } from '../shared/ui'
 import { OnboardingPreview } from './OnboardingPreview'
 import { TrialBanner } from '../widgets/TrialBanner'
-import { DocumentPreview, MonthPreview, SettingsPreview, ShellPreview } from './ShellPreview'
+import { DocumentPreview, MonthPreview, ReviewPreview, SettingsPreview, ShellPreview } from './ShellPreview'
 
 function FullPageLoading() {
   const { t } = useTranslation()
@@ -67,6 +68,7 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user, me, needsWorkspace, loading, meError } = useAuth()
   const navigate = useNavigate()
   const workspaceQuery = useWorkspace(Boolean(user && me?.orgId))
+  const reviewQuery = useReviewItems(Boolean(user && me?.orgId))
 
   if (loading) return <FullPageLoading />
   if (!user) return <Navigate to="/login" replace />
@@ -86,6 +88,7 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
   return (
     <AppShell
       user={{ name, role: me?.role }}
+      counts={{ review: reviewQuery.data?.items.length }}
       workspace={shell?.workspace}
       trial={shell?.trial}
       banner={shell?.trial && <TrialBanner trial={shell.trial} />}
@@ -152,6 +155,8 @@ export function AppRouter() {
       )}
       {import.meta.env.DEV && <Route path="/preview/documents/:docId" element={<DocumentPreview />} />}
       {import.meta.env.DEV && <Route path="/preview/months/:month" element={<MonthPreview />} />}
+      {import.meta.env.DEV && <Route path="/preview/review" element={<ReviewPreview />} />}
+      {import.meta.env.DEV && <Route path="/preview/review/:itemId" element={<ReviewPreview />} />}
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   )

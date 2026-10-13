@@ -306,6 +306,73 @@
     "file": "invoice.py",
     "schemaVersion": null
   },
+  "ReviewCandidateDoc": {
+    "fields": {
+      "amount": "str",
+      "candidate_id": "str",
+      "counterparty": "str | None",
+      "date": "str",
+      "kind": "str",
+      "reasons": "list[str]",
+      "reference": "str | None",
+      "score": "str"
+    },
+    "file": "review_item.py",
+    "schemaVersion": null
+  },
+  "ReviewItemDoc": {
+    "fields": {
+      "allowed_actions": "list[str]",
+      "doc_id": "str | None",
+      "item_id": "str",
+      "key": "str",
+      "kind": "str",
+      "month": "str | None",
+      "priority": "int",
+      "resolution": "ReviewResolutionDoc | None",
+      "status": "str",
+      "subject": "ReviewSubjectDoc",
+      "suggestion": "ReviewSuggestionDoc",
+      "title": "str"
+    },
+    "file": "review_item.py",
+    "schemaVersion": null
+  },
+  "ReviewResolutionDoc": {
+    "fields": {
+      "action": "str | None",
+      "note": "str | None",
+      "resolved_at": "datetime",
+      "resolved_by": "str"
+    },
+    "file": "review_item.py",
+    "schemaVersion": null
+  },
+  "ReviewSubjectDoc": {
+    "fields": {
+      "bank_line_ids": "list[str]",
+      "doc_ids": "list[str]",
+      "field": "str | None",
+      "invoice_ids": "list[str]",
+      "ledger_entry_ids": "list[str]",
+      "match_id": "str | None",
+      "receipt_ids": "list[str]"
+    },
+    "file": "review_item.py",
+    "schemaVersion": null
+  },
+  "ReviewSuggestionDoc": {
+    "fields": {
+      "candidates": "list[ReviewCandidateDoc]",
+      "difference": "str | None",
+      "doc_type": "str | None",
+      "evidence": "list[dict[str, Any]]",
+      "mapping": "dict[str, Any] | None",
+      "reading": "dict[str, Any] | None"
+    },
+    "file": "review_item.py",
+    "schemaVersion": null
+  },
   "SignupDoc": {
     "fields": {
       "workspaces_created": "int"

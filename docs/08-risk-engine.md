@@ -478,17 +478,20 @@ Created and closed by `reconcile_month` and the document workflow; never by a mo
 
 | Kind | Created when | Resolutions |
 |---|---|---|
-| `UNMATCHED_BANK_LINE` | A bank line has a specific unresolved evidence/support requirement; missing support alone is informational (ADR-025) | Match manually · categorize and mark "no document needed" · ignore with reason |
-| `UNMATCHED_DOCUMENT` | An invoice or receipt is unpaid while statements cover its window, or a ledger cash entry has no bank line | Match manually · mark as not yet paid · ignore with reason |
+| `UNMATCHED_BANK_LINE` | A bank line without support that a check names (an open finding cites the line, e.g. `X09` "deposited but never booked"); missing support alone is informational (ADR-025) | Match manually · categorize and mark "no document needed" · ignore with reason |
+| `UNMATCHED_DOCUMENT` | An invoice or receipt has no payment while statements cover its window (payment evidence `UNPAID` or `NO_BANK_MATCH`; never `NOT_DUE` or `WAITING_FOR_STATEMENT`), or a ledger cash entry has no bank line | Match manually · mark as not yet paid · ignore with reason |
 | `PROPOSED_MATCH` | A match is proposed (§6.3) | Confirm · choose another candidate · reject |
-| `POSSIBLE_DUPLICATE` | `D02`, `D03`, `D05`, `D06`, `D07` | Confirm duplicate · not a duplicate |
-| `LOW_CONFIDENCE_VALUE` | A value needed for matching or a check is `CONFLICT` or `SINGLE_SOURCE` | Correct the value on the page (both readings shown) · accept as read |
+| `POSSIBLE_DUPLICATE` | A copy held for a decision: `D02`, `D03`, `D05` (`D06`, `D07` with the ledger); one item, in the copy's first month; exact copies (`D01`) are never read and get none | Confirm duplicate · not a duplicate |
+| `LOW_CONFIDENCE_VALUE` | A value needed for matching (amount or total, date) is `CONFLICT`, or `SINGLE_SOURCE` and no bank match corroborates it; one item per record, before any `UNMATCHED_DOCUMENT` item of that record | Correct the value on the page (both readings shown) · accept as read |
 | `LEDGER_DIFFERENCE` | `X09` for a month | Explain (note) · match entries · ignore with reason |
 | `CONFIRM_TYPE` | `E03` | Choose the document type |
 | `CONFIRM_LEDGER_MAPPING` | A ledger file layout seen for the first time | Confirm or edit the proposed column mapping |
 
 One problem, one item: a bank line that is already the subject of a `LEDGER_DIFFERENCE` or
-`POSSIBLE_DUPLICATE` item gets no `UNMATCHED_BANK_LINE` item of its own. A month whose statement is
+`POSSIBLE_DUPLICATE` item gets no `UNMATCHED_BANK_LINE` item of its own, and a held copy's records
+get no item but the copy's. Each run recomputes the month's items: an open item whose cause is gone
+closes as `RESOLVED` by `system` (no action), and opens again if the cause comes back; an item a
+person resolved stays resolved. A month whose statement is
 missing keeps documents as "waiting for the bank statement" rather than creating `UNMATCHED_DOCUMENT`
 items. Resolving an item writes an event, marks the month dirty and re-runs `reconcile_month`.
 

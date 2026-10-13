@@ -16,6 +16,7 @@ from app.services.insight_service import InsightService
 from app.services.match_service import MatchService
 from app.services.month_service import MonthService
 from app.services.record_service import RecordService
+from app.services.review_service import ReviewService
 from app.services.runs import RunService
 from app.services.workspace_service import WorkspaceService
 
@@ -65,6 +66,9 @@ class ServiceProvider(Protocol):
 
     @property
     def finding_service(self) -> FindingService: ...
+
+    @property
+    def review_service(self) -> ReviewService: ...
 
 
 def org_of(principal: Principal) -> str:

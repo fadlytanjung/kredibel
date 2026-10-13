@@ -20,6 +20,7 @@ from app.ports.match_repository import MatchRepository
 from app.ports.month_repository import MonthRepository
 from app.ports.page_text import PageText
 from app.ports.record_repository import DocumentRecords
+from app.ports.review_item_repository import ReviewItemRepository
 from app.ports.run_repository import RunRepository
 from app.ports.task_queue import TaskQueue
 from app.ports.workspace_repository import WorkspaceRepository
@@ -55,3 +56,5 @@ class PipelineDeps:
     reconciliation: ReconciliationPolicy | None = None
     # Risk policy (spec 008).
     risk_policy: RiskPolicy | None = None
+    # Review queue (spec 009).
+    review_items: ReviewItemRepository | None = None

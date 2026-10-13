@@ -231,7 +231,7 @@ are optional until it has run (no migration: new optional fields).
 | `status` | `OPEN` \| `RESOLVED` \| `DISMISSED` | |
 | `priority` | int | Sorting: duplicates and high-risk first |
 | `suggestion?` | map | Proposed fix (candidates for a match, the other reading for a value) |
-| `resolution?` | map | `action` (`MATCHED`, `CORRECTED`, `DUPLICATE_CONFIRMED`, `NOT_DUPLICATE`, `NO_DOCUMENT_NEEDED`, `IGNORED`, `TYPE_CONFIRMED`, `MAPPING_CONFIRMED`), `note?`, `resolvedBy`, `resolvedAt` |
+| `resolution?` | map | `action` (the person's action of [`10`](10-api-contract.md) §4; absent when the system closed the item because its cause is gone), `note?`, `resolvedBy` (a uid or `system`), `resolvedAt` |
 | `key` | string | Deterministic ID input, so a re-run never duplicates an item (§4) |
 
 ### 3.12 `orgs/{orgId}/findings/{findingId}`
@@ -286,7 +286,7 @@ or `DECISION_WITHDRAWN` event in the same batch; never deleted.
 ### 3.16 `orgs/{orgId}/events/{eventId}` (append-only audit)
 
 `type` (`WORKSPACE_CREATED`, `CURRENCY_CHANGED` (support only), `DOCUMENT_UPLOADED`, `DUPLICATE_RECORDED`, `DOCUMENT_REMOVED`, `DUPLICATE_CONFIRMED`,
-`DUPLICATE_REJECTED`, `VALUE_CORRECTED`, `CATEGORY_CHANGED`, `MATCH_CREATED`, `MATCH_REJECTED`,
+`DUPLICATE_REJECTED`, `VALUE_CORRECTED`, `CATEGORY_CHANGED`, `MATCH_CREATED`, `MATCH_CONFIRMED` (a person confirms a proposal), `MATCH_REJECTED`,
 `REVIEW_ITEM_RESOLVED`, `FINDING_ACKNOWLEDGED`,
 `FINDING_DISMISSED`, `SUGGESTION_ACCEPTED`, `SUGGESTION_REJECTED`, `LEDGER_MAPPING_CONFIRMED`,
 `BANK_ACCOUNT_ADDED`, `PROFILE_UPDATED`, `LABEL_CONFIRMED`, `LABEL_CORRECTED`, `WORKSPACE_RULE_CREATED`,

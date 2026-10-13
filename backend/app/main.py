@@ -18,6 +18,7 @@ from app.adapters.firestore.finding_repo import FirestoreFindingRepository
 from app.adapters.firestore.match_repo import FirestoreMatchRepository
 from app.adapters.firestore.month_repo import FirestoreMonthRepository
 from app.adapters.firestore.record_repo import firestore_invoices, firestore_receipts
+from app.adapters.firestore.review_item_repo import FirestoreReviewItemRepo
 from app.adapters.firestore.run_repo import FirestoreRunRepository
 from app.adapters.firestore.usage_repo import FirestoreUsageRepository
 from app.adapters.firestore.workspace_repo import FirestoreWorkspaceRepository
@@ -50,6 +51,7 @@ from app.api.me import create_me_router
 from app.api.months import create_months_router
 from app.api.plans import create_plans_router
 from app.api.records import create_records_router
+from app.api.review_items import create_review_items_router
 from app.api.runs import create_runs_router
 from app.api.static import mount_static_spa
 from app.api.tasks import create_tasks_router
@@ -89,6 +91,7 @@ from app.ports.month_repository import MonthRepository
 from app.ports.page_renderer import PageRenderer
 from app.ports.page_text import PageText
 from app.ports.record_repository import DocumentRecords
+from app.ports.review_item_repository import ReviewItemRepository
 from app.ports.run_repository import RunRepository
 from app.ports.spreadsheet_reader import SpreadsheetReader
 from app.ports.task_queue import TaskQueue
@@ -102,6 +105,7 @@ from app.services.insight_service import InsightService
 from app.services.match_service import MatchService
 from app.services.month_service import MonthService
 from app.services.record_service import RecordService
+from app.services.review_service import ReviewService
 from app.services.runs import DocumentWorkflowRunner, MonthWorkflowRunner, RunService
 from app.services.workspace_service import WorkspaceService
 
@@ -141,6 +145,7 @@ class AppDeps:
         findings: FindingRepository | None = None,
         decisions: DecisionRepository | None = None,
         matches: MatchRepository | None = None,
+        review_items: ReviewItemRepository | None = None,
     ) -> None:
         self.settings = settings
         self._plans = plans
@@ -166,6 +171,7 @@ class AppDeps:
         self._findings = findings
         self._decisions = decisions
         self._matches = matches
+        self._review_items = review_items
         self._built: dict[str, Any] = {}
 
     def _once(self, name: str, build: Callable[[], T]) -> T:
@@ -429,6 +435,30 @@ class AppDeps:
             ),
         )
 
+    @property
+    def review_items(self) -> ReviewItemRepository:
+        return self._once(
+            "review_items",
+            lambda: self._review_items or FirestoreReviewItemRepo(self.firestore),
+        )
+
+    @property
+    def review_service(self) -> ReviewService:
+        return self._once(
+            "review_service",
+            lambda: ReviewService(
+                review_items=self.review_items,
+                matches=self.match_service,
+                decisions=self.decision_service,
+                bank_line_service=self.bank_line_service,
+                months=self.month_service,
+                doc_repo=self.doc_repo,
+                bank_lines=self.bank_lines,
+                invoices=self.invoices,
+                receipts=self.receipts,
+                clock=self.clock,
+            ),
+        )
 
     @property
     def forensics(self) -> ForensicsPolicy:
@@ -537,6 +567,7 @@ class AppDeps:
                 decisions=self.decisions,
                 reconciliation=self.reconciliation,
                 risk_policy=self.risk_policy,
+                review_items=self.review_items,
             )
             return await run_workflow(
                 build_month_workflow(pipeline_deps),
@@ -681,6 +712,7 @@ def create_app(
         app.include_router(create_findings_router(deps, workspace_dep))
         app.include_router(create_decisions_router(deps, workspace_dep))
         app.include_router(create_matches_router(deps, workspace_dep))
+        app.include_router(create_review_items_router(deps, workspace_dep))
 
     # 3. Worker role endpoints
     if active_settings.app_role in ("worker", "all"):

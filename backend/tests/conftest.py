@@ -26,6 +26,7 @@ def _never_a_real_model_or_store(monkeypatch: pytest.MonkeyPatch) -> None:
     from tests.fakes.finding_repository import FakeFindingRepository
     from tests.fakes.match_repository import FakeMatchRepository
     from tests.fakes.record_repository import fake_invoices, fake_receipts
+    from tests.fakes.review_item_repository import FakeReviewItemRepository
 
     monkeypatch.setattr("app.main.GeminiDocumentReader", lambda settings: FakeDocumentReader())
     monkeypatch.setattr("app.main.FirestoreBankLineRepository", lambda db: FakeBankLineRepository())
@@ -34,6 +35,7 @@ def _never_a_real_model_or_store(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("app.main.FirestoreFindingRepository", lambda db: FakeFindingRepository())
     monkeypatch.setattr("app.main.FirestoreDecisionRepository", lambda db: FakeDecisionRepository())
     monkeypatch.setattr("app.main.FirestoreMatchRepository", lambda db: FakeMatchRepository())
+    monkeypatch.setattr("app.main.FirestoreReviewItemRepo", lambda db: FakeReviewItemRepository())
 
 
 @pytest.fixture

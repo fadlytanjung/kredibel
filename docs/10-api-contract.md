@@ -213,7 +213,7 @@ All errors use **RFC 9457** `application/problem+json`:
 | `UNMATCHED_BANK_LINE` | `MATCH` {…} · `NO_DOCUMENT_NEEDED` {`category`} · `IGNORE` {`reason`} |
 | `UNMATCHED_DOCUMENT` | `MATCH` {…} · `NOT_YET_PAID` · `IGNORE` {`reason`} |
 | `POSSIBLE_DUPLICATE` | `CONFIRM_DUPLICATE` · `NOT_DUPLICATE` |
-| `LOW_CONFIDENCE_VALUE` | `CORRECT_VALUE` {`field`, `value`} · `ACCEPT_AS_READ` |
+| `LOW_CONFIDENCE_VALUE` | `CORRECT_VALUE` {`field`, `value`} (T009-03a; until then items offer only `ACCEPT_AS_READ`) · `ACCEPT_AS_READ` |
 | `LEDGER_DIFFERENCE` | `EXPLAIN` {`note`} · `MATCH` {…} · `IGNORE` {`reason`} |
 | `CONFIRM_TYPE` | `SET_TYPE` {`docType`} |
 | `CONFIRM_LEDGER_MAPPING` | `CONFIRM_MAPPING` {`mapping`} (as proposed or edited) |

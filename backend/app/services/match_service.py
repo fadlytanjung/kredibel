@@ -188,6 +188,35 @@ class MatchService:
         await self._rerun(org_id, [month])
         return match
 
+    async def confirm(self, principal: Principal, match_id: str) -> StoredMatch:
+        """A person confirms a proposed match (AC-009-5). It becomes theirs (MANUAL), so a re-run
+        keeps it; re-scoring keeps its reasons, and a confirmed net-of-tax match pays the invoice
+        in full (ADR-025)."""
+        org_id = _org(principal)
+        match = await self._matches.get(org_id, match_id)
+        if match is None:
+            raise NotFoundError(f"Match {match_id} not found")
+        if match.status == "CONFIRMED":
+            return match
+        if match.status == "REJECTED":
+            raise ValidationProblem("matchId", "This match was rejected; match the records again.")
+        now = self._clock.now()
+        confirmed = replace(
+            match, status="CONFIRMED", method="MANUAL", created_by=principal.uid, created_at=now
+        )
+        event = AuditEvent(
+            event_id=new_id("evt"),
+            type="MATCH_CONFIRMED",
+            actor_uid=principal.uid,
+            actor_role=principal.role or "owner",
+            at=now,
+            subject={"matchId": match_id, "month": match.month},
+            details={"score": str(match.score), "reasons": ",".join(match.reasons)},
+        )
+        await self._matches.save(org_id, confirmed, event)
+        await self._rerun(org_id, [match.month])
+        return confirmed
+
     async def unmatch(self, principal: Principal, match_id: str) -> None:
         org_id = _org(principal)
         match = await self._matches.get(org_id, match_id)

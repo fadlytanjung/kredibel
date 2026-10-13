@@ -28,12 +28,20 @@ from app.domain.evidence import document_evidence, line_support
 from app.domain.figures import month_figures
 from app.domain.findings import Finding, merge_findings
 from app.domain.grounding import GroundingContext, check_grounding
-from app.domain.models.document import DocStatus, DocType
+from app.domain.models.document import DocStatus, DocType, DuplicateDecision, DuplicateKind
 from app.domain.models.match import StoredMatch
 from app.domain.models.month import Month, MonthState
 from app.domain.models.run import RunStatus
 from app.domain.next_steps import next_steps_for_findings
 from app.domain.reconcile import assign_matches
+from app.domain.review_items import (
+    Check,
+    HeldCopy,
+    LineFacts,
+    ProposalFacts,
+    RecordFacts,
+    month_items,
+)
 from app.domain.risk import RiskAssessment, assess_document_risk, assess_month_risk
 
 _log = structlog.get_logger()
@@ -536,10 +544,137 @@ def build_flows(deps: PipelineDeps):
     return _node
 
 
+def _checks(consensus: dict[str, dict[str, Any]], fields: tuple[str, ...]) -> tuple[Check, ...]:
+    return tuple((f, str(consensus[f].get("status"))) for f in fields if f in consensus)
+
+
 def sync_review_items(deps: PipelineDeps):
+    """The month's review items (spec 009, docs/08 §7) from what this run stored: payment evidence,
+    line support, proposed matches, held copies and the findings that name a line."""
+
     @stage(deps, "sync_review_items")
     async def _node(ctx: Context, node_input: dict[str, Any]) -> dict[str, Any]:
-        return {**node_input, "summary": "Skipped: review item sync is not implemented"}
+        org_id = str(node_input.get("orgId") or node_input.get("org_id") or "")
+        month = str(node_input.get("month") or "")
+        if deps.review_items is None or deps.workspaces is None:
+            return {**node_input, "summary": "Skipped: review item sync is not configured"}
+        workspace = await deps.workspaces.get_workspace(org_id)
+        currency = workspace.currency if workspace else ""
+        risk = node_input.get("risk") or {}
+        risk_level = str(risk.get("level", "LOW")) if isinstance(risk, dict) else "LOW"
+
+        docs, _ = await deps.doc_repo.list_documents(org_id, limit=500)
+        held_docs = {d.doc_id for d in docs if d.held_as_duplicate}
+        held: list[HeldCopy] = []
+        for d in docs:
+            dup = d.duplicate
+            pending = dup is not None and dup.kind == DuplicateKind.CONTENT
+            if not (pending and dup and dup.decision == DuplicateDecision.PENDING):
+                continue
+            if not d.months or d.months[0] != month:
+                continue  # one item per copy, in its first month
+            own = (
+                await deps.findings.list_findings(org_id, doc_id=d.doc_id) if deps.findings else []
+            )
+            title = next(
+                (f.title for f in own if f.code == dup.code), "This document may be a copy"
+            )
+            held.append(HeldCopy(d.doc_id, dup.code, dup.of_doc_id, title))
+
+        cited: dict[str, set[str]] = {}
+        if deps.findings is not None:
+            for f in await deps.findings.list_findings(org_id, month=month):
+                if f.status == "OPEN":
+                    for e in f.evidence:
+                        if e.tx_id:
+                            cited.setdefault(e.tx_id, set()).add(f.code)
+        lines = (
+            await deps.bank_lines.list_lines(org_id, month=month, limit=5000)
+            if deps.bank_lines
+            else []
+        )
+        line_facts = [
+            LineFacts(
+                ln.tx_id,
+                ln.doc_id,
+                ln.date,
+                ln.amount,
+                ln.support or "NO_SUPPORT",
+                held=ln.doc_id in held_docs,
+                checks=_checks(ln.consensus, ("amount", "date")),
+                cited_by=tuple(sorted(cited.get(ln.tx_id, ()))),
+            )
+            for ln in lines
+        ]
+        day_of = {ln.tx_id: ln.date for ln in lines}
+
+        records: list[RecordFacts] = []
+        if deps.invoices:
+            for inv in await deps.invoices.list_records(org_id, month=month, limit=2000):
+                records.append(
+                    RecordFacts(
+                        inv.invoice_id,
+                        inv.doc_id,
+                        "SALES" if inv.kind == "SALES" else "PURCHASE",
+                        inv.number,
+                        inv.issue_date,
+                        inv.total,
+                        (inv.evidence or {}).get("payment"),
+                        held=inv.doc_id in held_docs,
+                        checks=_checks(inv.consensus, ("total", "issueDate")),
+                    )
+                )
+        if deps.receipts:
+            for rc in await deps.receipts.list_records(org_id, month=month, limit=2000):
+                records.append(
+                    RecordFacts(
+                        rc.receipt_id,
+                        rc.doc_id,
+                        "RECEIPT",
+                        rc.number,
+                        rc.date,
+                        rc.total,
+                        (rc.evidence or {}).get("payment"),
+                        held=rc.doc_id in held_docs,
+                        checks=_checks(rc.consensus, ("total", "date")),
+                    )
+                )
+
+        proposals = [
+            ProposalFacts(
+                m.match_id,
+                tuple(m.bank_line_ids),
+                tuple(m.invoice_ids),
+                tuple(m.receipt_ids),
+                m.amount,
+                min((day_of[t] for t in m.bank_line_ids if t in day_of), default=None),
+                m.score,
+                tuple(m.reasons),
+            )
+            for m in (
+                await deps.matches.list_matches(org_id, month=month, status="PROPOSED")
+                if deps.matches
+                else []
+            )
+        ]
+
+        fresh = month_items(
+            month=month,
+            currency=currency,
+            risk_level=risk_level,
+            lines=line_facts,
+            records=records,
+            proposals=proposals,
+            held=held,
+        )
+        written = await deps.review_items.replace_month_review_items(
+            org_id, month, fresh, now=deps.clock.now()
+        )
+        closed = sum(1 for i in written if i.status != "OPEN")
+        return {
+            **node_input,
+            "summary": f"{len(fresh)} open review item(s), {closed} closed",
+        }
 
     return _node
 

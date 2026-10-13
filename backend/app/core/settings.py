@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 from typing import Literal, Self
 
-from pydantic import SecretStr, model_validator
+from pydantic import SecretStr, field_validator, model_validator
 from pydantic_settings import (
     BaseSettings,
     DotEnvSettingsSource,
@@ -149,6 +149,20 @@ class Settings(BaseSettings):
     feature_labels: bool = False
     feature_agent_analytics: bool = False
     feature_dataset_export: bool = False
+
+    @field_validator("ai_content_capture", mode="before")
+    @classmethod
+    def _coerce_content_capture(cls, v: object) -> str:
+        if isinstance(v, str):
+            val = v.strip().lower()
+            if val in ("on", "true", "1", "synthetic"):
+                return "synthetic"
+            if val in ("off", "false", "0"):
+                return "off"
+            return val
+        if isinstance(v, bool):
+            return "synthetic" if v else "off"
+        return "off"
 
     @model_validator(mode="after")
     def _content_capture_only_on_synthetic_data(self) -> Self:

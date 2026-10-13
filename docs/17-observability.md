@@ -243,6 +243,12 @@ and the assistant gets its own app when it is built (specs 005–011), with reco
 open fails `make check`. Step-by-step use, the API behind the UI and troubleshooting:
 [`23`](23-agents-and-tracing-guide.md) §4.
 
+**Langfuse** ([ADR-026](adr/ADR-026-langfuse-trace-viewer.md)): `make langfuse-up` then
+`make dev-langfuse` sends every run to a local Langfuse at http://localhost:3000, where a document
+or month run is one trace, each Gemini call a generation with model and tokens, grouped by document
+or month and workspace. Prompts and responses only with synthetic data. Steps:
+[`23`](23-agents-and-tracing-guide.md) §5.2.
+
 ## 10. Feedback, datasets and evals (P1)
 
 A label keeps the `traceId` and `spanId` of the call that proposed its value, so a person's correction

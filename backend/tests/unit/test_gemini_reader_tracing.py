@@ -51,3 +51,30 @@ async def test_invalid_model_output_does_not_export_validation_message(spans):
     assert len(calls) == 2
     assert calls[0].status.status_code == StatusCode.ERROR
     assert "PRIVATE_DOCUMENT_SENTINEL" not in "\n".join(s.to_json() for s in calls)
+
+
+async def test_synthetic_capture_puts_the_prompt_and_answer_on_the_generation(spans):
+    """ADR-026: Langfuse shows input and output only when AI_CONTENT_CAPTURE=synthetic; the page
+    image never leaves, only the prompt's text parts."""
+    from app.core.settings import Settings
+    from tests.unit.test_gemini_reader_retries import _Models
+
+    models = _Models([_ok()])
+    client = type("C", (), {"aio": type("A", (), {"models": models})()})()
+    synthetic = Settings(_env_file=None, ai_content_capture="synthetic", data_class="synthetic")  # type: ignore[call-arg]
+    reader = gemini_reader.GeminiDocumentReader(synthetic, client=client)  # type: ignore[arg-type]
+    await reader.classify(b"\x89PNG synthetic image bytes", "SYNTHETIC STATEMENT PAGE 1")
+    (call,) = spans.get_finished_spans()
+    assert call.attributes is not None
+    prompt = str(call.attributes["langfuse.observation.input"])
+    assert "SYNTHETIC STATEMENT PAGE 1" in prompt and "PNG" not in prompt
+    assert '"doc_type":"RECEIPT"' in str(call.attributes["langfuse.observation.output"])
+
+
+async def test_without_synthetic_capture_no_prompt_or_answer_is_exported(spans):
+    reader, _, _ = _reader([_ok()])
+    await reader.classify(b"png", "PRIVATE_DOCUMENT_SENTINEL")
+    (call,) = spans.get_finished_spans()
+    assert call.attributes is not None
+    assert "langfuse.observation.input" not in call.attributes
+    assert "langfuse.observation.output" not in call.attributes

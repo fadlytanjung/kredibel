@@ -16,9 +16,10 @@
   uploaded file) and `month_workflow` (reconciles one month).
 - A **`Runner`** executes a workflow inside a **session** (like a LangGraph thread). Our sessions live
   only for one run; the real data is in Firestore, not in ADK state.
-- Every run emits **OpenTelemetry spans**. Locally you see them in the **ADK dev UI**
-  (`make dev-agents`, the LangSmith-like screen); in production they go to **Cloud Trace**, and each
-  run in Firestore stores its `traceId`.
+- Every run emits **OpenTelemetry spans**. Locally you see them in **Langfuse** (`make langfuse-up`,
+  `make dev-langfuse`; the LangSmith-like view, §5.2) or the **ADK dev UI** for fixture workflows
+  (`make dev-agents`); in production they go to **Cloud Trace**, and each run in Firestore stores its
+  `traceId`. Gemini usage per model: `make gemini-usage` (§3.4).
 
 ---
 
@@ -123,19 +124,34 @@ really use AI?" is answered per document and per month.
 
 ### 3.4 Where Gemini usage shows in Google Cloud
 
-The application calls Gemini **on Vertex AI** with the service account's credentials
-(`GOOGLE_GENAI_USE_VERTEXAI=TRUE`, `GOOGLE_CLOUD_LOCATION=global`), never with an API key. The calls
-therefore do not appear under an AI Studio or Gemini API key; they appear under the project's
-**Vertex AI API**:
+The application calls Gemini **on Vertex AI** with Google credentials (the service account on Cloud
+Run, your `gcloud auth application-default login` locally; `GOOGLE_GENAI_USE_VERTEXAI=TRUE`), never
+with an AI Studio or Gemini API key. So **nothing shows under an AI Studio key**; the usage is in the
+project's Cloud Monitoring.
 
-1. Console → **APIs & Services** → **Enabled APIs & services** → **Vertex AI API** → **Metrics**.
-   Choose a time range; filter **Methods** by `GenerateContent`. Traffic and errors by response code
-   are there (a burst of 429s means the quota was hit and the reader retried).
-2. Console → **Vertex AI** → **Dashboard** for requests per model.
-3. Console → **Billing** → **Reports**, filter **Service** = Vertex AI, for the cost.
+**Quickest: one command** (counts only, needs `roles/monitoring.viewer`):
 
-A local run (`make dev`, `make demo-books`) uses your own `gcloud auth application-default login`
-credentials against the same project, so its calls appear in the same place.
+```bash
+make gemini-usage            # last 7 days; DAYS=2 for two
+# Gemini on Vertex AI, project cloud-hack2skill, last 2 day(s)
+# model                          calls    input tokens   output tokens
+# gemini-3.8-flash                 355         851,767         278,683
+# gemini-3.5-flash-lite            314         621,821          69,902
+# GenerateContent requests by response: 2xx 628, 4xx 29
+```
+
+**In the console**, independent of where the menus moved (Vertex AI now appears under Agent
+Platform): open **Monitoring → Metrics Explorer**, switch to the code editor (PromQL or MQL) or pick
+by metric name, and chart:
+
+- `aiplatform.googleapis.com/publisher/online_serving/model_invocation_count`, grouped by
+  `model_user_id`: calls per model;
+- `aiplatform.googleapis.com/publisher/online_serving/token_count`, grouped by `model_user_id` and
+  `type` (input, output): tokens per model;
+- `serviceruntime.googleapis.com/api/request_count` with `service = aiplatform.googleapis.com`,
+  grouped by `response_code_class`: errors and 429s.
+
+Cost: **Billing → Reports**, service "Vertex AI" (or its new name).
 
 ---
 
@@ -261,19 +277,40 @@ the step's trace span. It is the run history, kept with the workspace.
 
 A step that called no model records none: only the step that made the call carries its tokens.
 
-### 5.2 Locally: Jaeger keeps the traces of your session
+### 5.2 Locally: Langfuse, the LangSmith-like view ([ADR-026](adr/ADR-026-langfuse-trace-viewer.md))
 
-`make trace-up` then `make dev-traced` (§4.1). Jaeger at http://localhost:16686 keeps every trace
-until `make trace-down`: search by service `kredibel-all`, by operation `workflow:document_workflow`,
-or by tag `runId=…`. Each Gemini request is a `generate_content <model>` span with tokens, attempt and
-prompt version. With `DATA_CLASS=synthetic` and `AI_CONTENT_CAPTURE=synthetic` the prompts and
-responses are in the span too (§7); never with real documents.
+```bash
+make langfuse-up     # first run: writes infra/langfuse/.env (credentials, git ignores it), pulls ~2 GB
+make langfuse-smoke  # sends a synthetic trace with one generation and finds it through the API
+make dev-langfuse    # API :8000 + inline worker, every run traced into Langfuse
+make dev-frontend    # in another terminal; upload as usual
+```
 
-### 5.3 Not built yet (spec 017, P1)
+1. Open **http://localhost:3000** and sign in as `dev@kredibel.local`; the password is
+   `LANGFUSE_INIT_USER_PASSWORD` in `infra/langfuse/.env`. The project `kredibel-local` is ready.
+2. **Tracing → Traces**: one row per run, named `workflow:document_workflow` or
+   `workflow:month_workflow`, with latency, tokens and the models used. Open one for the tree: every
+   `node:` step, and each Gemini call as a **generation** with model, prompt version, attempt and
+   input/output tokens; failed attempts in red with their error type.
+3. **Sessions**: all runs of one document (its `docId`) or one month (`month:2026-03`) together, for
+   instance a document's first attempt and its retry. **Users** are workspaces (`orgId`).
+4. Prompts and responses: only with synthetic data. Start with
+   `DATA_CLASS=synthetic make dev-langfuse CONTENT=1` (refused when `DATA_CLASS=real`), and each
+   generation shows the prompt's text (never the page image) and the JSON Gemini returned.
 
-A LangSmith-style list of all runs with filters, an event inspector and feedback on single calls:
-the BigQuery Agent Analytics plugin (T017-03), `GET /api/runs/{runId}/events` (T017-04) and the
-Runs pages (T017-05).
+Any other command can send its traces too, e.g. the demo upload:
+`set -a; . infra/langfuse/.env; set +a; TRACE_EXPORT=langfuse make demo-books EMAIL=…`.
+`make langfuse-down` stops it and keeps the traces; `RESET=1` deletes them.
+
+Jaeger (`make trace-up`, `make dev-traced`, http://localhost:16686) still works for the raw span
+view and needs nothing but Docker.
+
+### 5.3 Production
+
+In production, spans go to Cloud Trace (§6). A production Langfuse is proposed in ADR-026 and not
+decided: it needs Postgres, ClickHouse, Redis and storage on Google Cloud, and with real documents
+it may show metadata only. The in-app alternative: the BigQuery Agent Analytics plugin (T017-03),
+`GET /api/runs/{runId}/events` (T017-04) and the Runs pages (T017-05).
 
 ## 6. Trace a run in production (Cloud Trace)
 
@@ -314,7 +351,7 @@ can link straight to the failing span.
 
 | Setting | Value | Effect |
 |---|---|---|
-| `TRACE_EXPORT` | `cloud` on Cloud Run, `otlp` for local Jaeger, `none` by default | Where spans go |
+| `TRACE_EXPORT` | `cloud` on Cloud Run, `langfuse` for local Langfuse, `otlp` for local Jaeger, `none` by default | Where spans go |
 | `AI_CONTENT_CAPTURE` | `off` (default, the only value allowed with real data) | Spans keep model, tokens, durations and IDs; never prompts, page text or outputs (`ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS=false`) |
 | | `synthetic` (only with `DATA_CLASS=synthetic`; start-up refuses otherwise) | Prompts and responses appear in span attributes, so Trace Explorer and the dev UI show them |
 

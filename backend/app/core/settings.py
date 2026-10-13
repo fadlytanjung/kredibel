@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 from typing import Literal, Self
 
-from pydantic import model_validator
+from pydantic import SecretStr, model_validator
 from pydantic_settings import (
     BaseSettings,
     DotEnvSettingsSource,
@@ -123,9 +123,12 @@ class Settings(BaseSettings):
     learning_file: str = "contracts/policy/learning.v1.yaml"
 
     # Observability
-    # Cloud Trace on Cloud Run; local Jaeger through OTLP/HTTP; opt-in (docs/17 §2).
-    trace_export: Literal["none", "cloud", "otlp"] = "none"
+    # Cloud Trace on Cloud Run; local Jaeger through OTLP/HTTP; Langfuse (ADR-026); opt-in.
+    trace_export: Literal["none", "cloud", "otlp", "langfuse"] = "none"
     otel_exporter_otlp_traces_endpoint: str = "http://127.0.0.1:4318/v1/traces"
+    langfuse_host: str = "http://127.0.0.1:3000"
+    langfuse_public_key: str = ""
+    langfuse_secret_key: SecretStr = SecretStr("")
     ai_content_capture: Literal["off", "synthetic"] = "off"
     adk_capture_message_content_in_spans: bool = False
     analytics_dataset: str = "kredibel_agent_analytics"
@@ -152,6 +155,14 @@ class Settings(BaseSettings):
         # Non-negotiable 17: prompts and responses are recorded only with synthetic data.
         if self.ai_content_capture == "synthetic" and self.data_class != "synthetic":
             raise ValueError("AI_CONTENT_CAPTURE=synthetic requires DATA_CLASS=synthetic")
+        return self
+
+    @model_validator(mode="after")
+    def _langfuse_needs_its_project_keys(self) -> Self:
+        if self.trace_export == "langfuse" and not (
+            self.langfuse_public_key and self.langfuse_secret_key.get_secret_value()
+        ):
+            raise ValueError("TRACE_EXPORT=langfuse requires LANGFUSE_PUBLIC_KEY and _SECRET_KEY")
         return self
 
     @property

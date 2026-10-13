@@ -27,6 +27,11 @@ corrections people made.
   the model, prompt version, attempt number, token usage and sanitized error type/status, never
   document content, images or exception messages. Cloud Run continues to use Cloud Trace.
 
+- **AC-017-10** `make langfuse-up` starts a loopback-only Langfuse with per-machine credentials that
+  git ignores, and `make langfuse-smoke` proves a trace arrives. With `TRACE_EXPORT=langfuse` a
+  document or month run appears as one trace whose Gemini calls are generations with model and
+  tokens, grouped by the document or month (session) and the workspace (user); prompts and responses
+  appear only with `AI_CONTENT_CAPTURE=synthetic` (ADR-026).
 - **AC-017-1** `make dev-agents` starts the ADK dev UI (`adk web`) on `backend/app/agents/dev_apps/`
   with one app per LLM node (classifier, page reader, ledger mapper, categorizer, explainer) and the
   assistant, wired to recorded fixtures by default and to real Gemini with `LIVE=1`; the Trace view

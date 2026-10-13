@@ -148,6 +148,28 @@ trace-smoke: ## Send a synthetic trace and verify it appears in the local viewer
 dev-traced: ## Run the local API/inline worker with metadata traces in Jaeger
 	TRACE_EXPORT=otlp AI_CONTENT_CAPTURE=off $(MAKE) dev-backend
 
+.PHONY: langfuse-up langfuse-down langfuse-smoke dev-langfuse gemini-usage
+LANGFUSE_COMPOSE := docker compose -f infra/langfuse/docker-compose.yml --env-file infra/langfuse/.env
+# The project keys from infra/langfuse/.env, for commands that send traces to the local Langfuse.
+WITH_LANGFUSE := set -a && . ./infra/langfuse/.env && set +a && TRACE_EXPORT=langfuse LANGFUSE_HOST=http://127.0.0.1:3000
+
+langfuse-up: ## Start a local Langfuse at http://localhost:3000 (ADR-026); the first run writes infra/langfuse/.env
+	python3 tools/langfuse/init_env.py
+	$(LANGFUSE_COMPOSE) up -d --wait
+	@echo "Langfuse: http://localhost:3000  (sign in as dev@kredibel.local; the password is LANGFUSE_INIT_USER_PASSWORD in infra/langfuse/.env)"
+
+langfuse-down: ## Stop the local Langfuse; its traces stay (RESET=1 deletes them)
+	$(LANGFUSE_COMPOSE) down $(if $(RESET),-v,)
+
+langfuse-smoke: ## Send a synthetic trace with one generation to the local Langfuse and find it
+	$(WITH_LANGFUSE) && cd backend && ENV_FILE=/dev/null PYTHONPATH=. uv run python scripts/trace_smoke.py --langfuse
+
+dev-langfuse: ## Run the local API/inline worker traced in Langfuse (CONTENT=1: prompts too; refused unless DATA_CLASS=synthetic)
+	$(WITH_LANGFUSE) AI_CONTENT_CAPTURE=$(if $(CONTENT),synthetic,off) $(MAKE) dev-backend
+
+gemini-usage: ## Gemini requests and tokens of the project from Cloud Monitoring (DAYS=7)
+	cd backend && PYTHONPATH=. uv run python scripts/gemini_usage.py --days $(or $(DAYS),7)
+
 .PHONY: demo-books
 demo-books: ## Upload the synthetic demo books into EMAIL's workspace (docs/18 §5; DRY=1 lists them)
 	cd backend && $(shell command -v caffeinate >/dev/null && echo caffeinate -i) uv run python -m scripts.upload_demo_books --email "$(EMAIL)" $(if $(DRY),--dry-run,)

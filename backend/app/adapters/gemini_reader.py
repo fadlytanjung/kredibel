@@ -105,6 +105,10 @@ class GeminiDocumentReader(DocumentReader):
             record_exception=False,
             set_status_on_exception=False,
         ) as span:
+            if self._settings.capture_span_content:
+                # Synthetic data only (ADR-017, ADR-026): the prompt's text parts; never an image.
+                text = [prompt.text, *(p for p in parts if isinstance(p, str))]
+                span.set_attribute("langfuse.observation.input", "\n\n".join(text))
             try:
                 response = await asyncio.wait_for(
                     self._genai().aio.models.generate_content(
@@ -119,6 +123,8 @@ class GeminiDocumentReader(DocumentReader):
                 tokens_out = (usage.candidates_token_count or 0) if usage else 0
                 span.set_attribute("gen_ai.usage.input_tokens", tokens_in)
                 span.set_attribute("gen_ai.usage.output_tokens", tokens_out)
+                if self._settings.capture_span_content:
+                    span.set_attribute("langfuse.observation.output", value.model_dump_json())
                 return ReaderCall(
                     value=value,
                     model=model,

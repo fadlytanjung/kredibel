@@ -81,7 +81,7 @@ sequenceDiagram
 ### 3.1 `document_workflow` (dynamic)
 
 One orchestrator node calls the steps in code, so branches and the page fan-out are ordinary
-Python. Today most steps are stubs; specs 005 to 008 fill them in.
+Python. Which steps call Gemini and which are code is in §3.3.
 
 ```mermaid
 %%{init: {"theme": "base", "themeVariables": {"fontFamily": "Arial, Helvetica, sans-serif", "fontSize": "14px", "primaryColor": "#E7F2EE", "primaryBorderColor": "#0E5A47", "primaryTextColor": "#16212B", "lineColor": "#56636F", "secondaryColor": "#E8ECEE", "tertiaryColor": "#FFFFFF", "clusterBkg": "#F2F4F5", "clusterBorder": "#B9C2CA", "noteBkgColor": "#FFF5D6", "noteTextColor": "#16212B"}, "htmlLabels": false, "flowchart": {"htmlLabels": false, "padding": 16, "nodeSpacing": 40, "rankSpacing": 50, "wrappingWidth": 220}, "sequence": {"wrap": true, "useMaxWidth": true, "noteFontFamily": "Arial, Helvetica, sans-serif", "messageFontFamily": "Arial, Helvetica, sans-serif", "actorFontFamily": "Arial, Helvetica, sans-serif"}}}%%
@@ -103,6 +103,39 @@ Ten nodes in a fixed line; the graph view draws them all.
 
 `load_month → reconcile → check_month → build_counterparties → suggest_profile → score_risk →
 explain_month → build_flows → sync_review_items → finalize_month`
+
+### 3.3 Which steps use Gemini, and which are code
+
+Gemini reads and words; code decides every number, match and risk level (constitution, rule 1).
+
+| Step | Gemini? | What it does |
+|---|---|---|
+| `classify_document` | Yes, `MODEL_LITE` | Says what the file is (statement, sales or purchase invoice, receipt, ledger) from page 1 |
+| `read_page` (one per page, in parallel) | Yes, `MODEL_FAST` | Reads the page image plus its numbered layout chunks; cites the chunk of every value |
+| `verify_pages`, `escalate_pages` | No | Grounds each value in the words of the chunk it cites (ADR-023); checks arithmetic |
+| `check_document`, `detect_content_duplicates` | No | Forensics (`M0x`, `A0x`, `E0x`) and possible copies (`D0x`) |
+| `categorize_bank_lines` | Rules first, then `MODEL_LITE` | Rules from `contracts/policy/categories.v1.yaml`; the model only for lines no rule knows |
+| `reconcile`, `check_month`, `score_risk` | No | Matching, month checks, risk level: pure functions over all the month's data |
+| `explain_month` | Yes, `MODEL_FAST` | Words the month's risk from its findings and figures; the grounding guard rejects any number it cannot trace, then one retry, then a template |
+
+Each run's stages say which model a step called and how many tokens it used (§5.1), so "did this
+really use AI?" is answered per document and per month.
+
+### 3.4 Where Gemini usage shows in Google Cloud
+
+The application calls Gemini **on Vertex AI** with the service account's credentials
+(`GOOGLE_GENAI_USE_VERTEXAI=TRUE`, `GOOGLE_CLOUD_LOCATION=global`), never with an API key. The calls
+therefore do not appear under an AI Studio or Gemini API key; they appear under the project's
+**Vertex AI API**:
+
+1. Console → **APIs & Services** → **Enabled APIs & services** → **Vertex AI API** → **Metrics**.
+   Choose a time range; filter **Methods** by `GenerateContent`. Traffic and errors by response code
+   are there (a burst of 429s means the quota was hit and the reader retried).
+2. Console → **Vertex AI** → **Dashboard** for requests per model.
+3. Console → **Billing** → **Reports**, filter **Service** = Vertex AI, for the cost.
+
+A local run (`make dev`, `make demo-books`) uses your own `gcloud auth application-default login`
+credentials against the same project, so its calls appear in the same place.
 
 ---
 
@@ -161,7 +194,7 @@ Each folder under `backend/app/agents/dev_apps/` is one app: today `document_wor
 4. **Traces**: the run as a waterfall, like a LangSmith run tree: ADK's `invoke_node` span for each
    step with our `node:<name>` span inside it, durations, and a detail panel (IDs, timing, children,
    attributes). Once LLM nodes exist, their `call_llm` spans appear here with model and tokens, and
-   prompts when content capture is on (§6).
+   prompts when content capture is on (§7).
 
    <img src="assets/adk/dev-ui-traces.png" alt="ADK dev UI Traces: the month_workflow run as a waterfall of node spans with durations" width="80%">
 
@@ -201,7 +234,7 @@ uploads the five PDFs in `backend/tests/fixtures/reconciliation/` into in-memory
 first with the statement first, then with the supporting documents first. Both runs must produce
 three automatic bank matches (sales invoice, purchase invoice, card receipt), a paid-cash receipt
 with no bank match, and identical figures. Bank rows without documents remain `NO_SUPPORT`.
-Both receipts omit printed currency; the fixture replay simulates explicit user agreement to IDR.
+Both receipts print no currency, so they are read in the workspace currency (ADR-025, T007-12).
 It never changes a real workspace, uses no Google credentials, and calls no model. Actual Gemini
 request spans are visible when uploading through `make dev-traced` (§4.1).
 
@@ -211,7 +244,38 @@ are hand-edited. This is a focused workflow regression, not the full six-month S
 The trace also names unfinished downstream nodes as skipped; risk explanations, money flows and
 review-item sync are still separate implementation tasks.
 
-## 5. Trace a run in production (Cloud Trace)
+## 5. Run history: local and production
+
+There is no LangSmith project to open; three places hold what LangSmith would show.
+
+### 5.1 Every run, every environment: the run record
+
+Each upload and each month reconciliation writes one run, `orgs/{orgId}/runs/{runId}`, with one
+stage per step: status, start and end, `model`, `tokensIn`, `tokensOut`, a one-line `summary` and
+the step's trace span. It is the run history, kept with the workspace.
+
+- In the app: a document's page shows its progress line from these stages.
+- Through the API: `GET /api/runs?target=<docId or yyyy-mm>` lists a target's runs, newest first;
+  `GET /api/runs/{runId}` returns one with its stages and `traceId`.
+- In the console: **Firestore** → database `kredibel` → `orgs/{orgId}/runs`.
+
+A step that called no model records none: only the step that made the call carries its tokens.
+
+### 5.2 Locally: Jaeger keeps the traces of your session
+
+`make trace-up` then `make dev-traced` (§4.1). Jaeger at http://localhost:16686 keeps every trace
+until `make trace-down`: search by service `kredibel-all`, by operation `workflow:document_workflow`,
+or by tag `runId=…`. Each Gemini request is a `generate_content <model>` span with tokens, attempt and
+prompt version. With `DATA_CLASS=synthetic` and `AI_CONTENT_CAPTURE=synthetic` the prompts and
+responses are in the span too (§7); never with real documents.
+
+### 5.3 Not built yet (spec 017, P1)
+
+A LangSmith-style list of all runs with filters, an event inspector and feedback on single calls:
+the BigQuery Agent Analytics plugin (T017-03), `GET /api/runs/{runId}/events` (T017-04) and the
+Runs pages (T017-05).
+
+## 6. Trace a run in production (Cloud Trace)
 
 On Cloud Run `TRACE_EXPORT=cloud`, so `app/observability/tracing.setup_tracing()` installs ADK's Google
 Cloud exporter at start-up and every run becomes one trace:
@@ -246,7 +310,7 @@ can link straight to the failing span.
 
 ---
 
-## 6. What is recorded, and what never is
+## 7. What is recorded, and what never is
 
 | Setting | Value | Effect |
 |---|---|---|
@@ -258,7 +322,7 @@ Logs never contain document text, names or account numbers ([`17`](17-observabil
 
 ---
 
-## 7. Adding an agent or a node: the checklist
+## 8. Adding an agent or a node: the checklist
 
 1. Write the node in `agents/nodes/` with `stage(deps, "<name>")`; return a dict (with `summary`, and
    `model`, `tokens_in`, `tokens_out` for LLM calls so the run stage records them).
@@ -271,7 +335,7 @@ Logs never contain document text, names or account numbers ([`17`](17-observabil
 
 ---
 
-## 8. Troubleshooting
+## 9. Troubleshooting
 
 | Symptom | Cause and fix |
 |---|---|

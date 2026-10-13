@@ -49,7 +49,7 @@ with 400, so the resource is not optional. `TRACE_EXPORT=none` (the default) kee
 local runs, and the dev UI, which has its own in-memory trace view. `app/agents/runtime.run_workflow`
 opens the `workflow:<name>` root span, stores its trace ID on the run and binds the trace field to every
 log line of the run; `stage()` tags `node:` spans with the ADK invocation ID so the dev UI groups them.
-How to find a run's trace: [`23`](23-agents-and-tracing-guide.md) §5.
+How to find a run's trace: [`23`](23-agents-and-tracing-guide.md) §6; run history and Gemini usage: §5 and §3.4.
 
 **Local OTLP/HTTP**: `TRACE_EXPORT=otlp` installs a traces-only provider using
 `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` (default `http://127.0.0.1:4318/v1/traces`). `make trace-up`

@@ -12,6 +12,7 @@ from decimal import Decimal
 from typing import Any
 
 from app.agents.deps import PipelineDeps
+from app.domain.accounts import statement_account
 from app.domain.checks.month import StatementSpan
 from app.domain.evidence import AccountSpan, DocumentEvidence, DocumentFacts, PaymentConfirmation
 from app.domain.figures import AccountLines
@@ -112,7 +113,7 @@ async def read_month(deps: PipelineDeps, org_id: str, month: str) -> MonthData |
             continue
         if not in_workspace_currency(meta.get("currency"), currency) and doc.doc_id not in accepted:
             continue  # its amounts wait for the person's agreement (ADR-025)
-        account = " ".join(x for x in (meta.get("bankName"), meta.get("accountMasked")) if x)
+        account = statement_account(meta.get("bankName"), meta.get("accountMasked"))
         account_of[doc.doc_id] = account or doc.doc_id
         statements.append(doc)
         spans.append(

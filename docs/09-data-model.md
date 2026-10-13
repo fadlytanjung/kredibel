@@ -119,7 +119,7 @@ The salted hash of the full number lives in `orgPrivate/{orgId}/accountHashes/{a
 | `months` | string[] | Months the document's values fall in (statement period, invoice/receipt date, ledger dates) |
 | `pages` | array | `{pageNo, imagePath, thumbPath, sha256, textLayer, blank, witness, status, agreement?}` — **realtime** "page n of m" |
 | `reading` | map? | `method` (`AI_TEXT_LAYER`, `AI_OCR`, `AI_MIXED`, `LEDGER_PARSER`), `agreement`, `fieldsCompared`, `fieldsAgreed`, `model`, `promptVersion` |
-| `statementMeta` | map? | `bankName`, `accountHolder`, `accountMasked`, `accountId?`, `periodStart`, `periodEnd`, `openingMinor`, `closingMinor`, `provenance` |
+| `statementMeta` | map? | `bankName`, `accountHolder`, `accountMasked`, `accountId?`, `periodStart`, `periodEnd`, `openingMinor`, `closingMinor`, `provenance`. The statement's account is the first line of `bankName` with spaces collapsed plus `accountMasked` (`domain/accounts.statement_account`): a branch line read on some pages only ("…Bank\nBandung Dago Branch") does not make a second account |
 | `ledgerMeta` | map? | `layoutSignature`, `mappingStatus` (`PROPOSED`, `CONFIRMED`), `rows`, `rowsImported`, `rowErrors[]` {`row`, `reason`} (≤ 100), `dateRange` |
 | `pdf` | map? | `producer`, `creator`, `creationDate`, `modDate`, `revisions`, `hasTextLayer`, `fonts[]` |
 | `integrity` | map? | `verdict` (`CLEAN`, `SUSPICIOUS`, `TAMPERED`, `UNVERIFIABLE`), `findingIds[]` |

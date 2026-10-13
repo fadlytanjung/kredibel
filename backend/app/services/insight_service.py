@@ -13,6 +13,7 @@ from decimal import Decimal
 from typing import Literal
 
 from app.core.ids import content_id
+from app.domain.accounts import statement_account
 from app.domain.cash_flow import CashFlow, build_cash_flow
 from app.domain.categorize import CategoryPolicy, Framework
 from app.domain.errors import WorkspaceRequiredError
@@ -93,7 +94,7 @@ class _Books:
 
 def account_label(doc: Document) -> str:
     meta = doc.statement_meta or {}
-    return " ".join(x for x in (meta.get("bankName"), meta.get("accountMasked")) if x) or doc.doc_id
+    return statement_account(meta.get("bankName"), meta.get("accountMasked")) or doc.doc_id
 
 
 class InsightService:

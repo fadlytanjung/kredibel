@@ -568,6 +568,7 @@ class AppDeps:
                 reconciliation=self.reconciliation,
                 risk_policy=self.risk_policy,
                 review_items=self.review_items,
+                reader=self.reader,  # explain_month words the month's risk (spec 008)
             )
             return await run_workflow(
                 build_month_workflow(pipeline_deps),

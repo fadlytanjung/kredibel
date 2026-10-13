@@ -49,6 +49,10 @@ async def test_a_month_with_a_statement_and_an_invoice_reconciles_itself():
         assert matches_response.status_code == 200
         [visible] = matches_response.json()["items"]
 
+    # The month run asks Gemini to word its risk (spec 008): its workflow has the reader. Every
+    # month run fell back to the template ("no reader") until the runner passed it.
+    assert any(call[0] == "explain_month" for call in deps._reader.calls)
+
     [match] = await deps.matches.list_matches("org_1", month="2026-03")
     assert (match.status, match.method, match.kind) == ("CONFIRMED", "AUTO", "BANK_SALES_INVOICE")
     assert match.reasons == ["AMOUNT_EXACT", "PARTY_MATCH", "REFERENCE_IN_TEXT", "DATE_NEAR"]

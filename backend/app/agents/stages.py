@@ -125,9 +125,18 @@ def stage(
 
                     duration_ms = int((ended_at - started_at).total_seconds() * 1000)
 
-                    model = result.get("model") if isinstance(result, dict) else None
-                    tokens_in = result.get("tokens_in") if isinstance(result, dict) else None
-                    tokens_out = result.get("tokens_out") if isinstance(result, dict) else None
+                    # Steps pass their input on; only values this step changed are its own model
+                    # calls, so an upstream classifier's tokens are not counted again here.
+                    def own(key: str) -> Any:
+                        if not isinstance(result, dict):
+                            return None
+                        value = result.get(key)
+                        given = actual_input.get(key) if isinstance(actual_input, dict) else None
+                        return None if value == given else value
+
+                    model = own("model")
+                    tokens_in = own("tokens_in")
+                    tokens_out = own("tokens_out")
                     summary = result.get("summary") if isinstance(result, dict) else None
 
                     stage_record = RunStage(

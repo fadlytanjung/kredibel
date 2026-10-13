@@ -134,3 +134,39 @@ async def test_stage_inside_adk_workflow_execution(test_deps):
     assert fetched.stages[0].node == "adk_child"
     assert fetched.stages[0].status == StageStatus.DONE
     assert fetched.stages[0].summary == "child done"
+
+
+@pytest.mark.asyncio
+async def test_a_step_records_only_the_model_calls_it_made(test_deps):
+    """Steps pass their input on ({**node_input, ...}); the classifier's model and tokens must not
+    be recorded again on every later step (the synthetic run showed them on verify_pages,
+    check_document and finalize_document, which call no model)."""
+    deps, run_repo = test_deps
+    await run_repo.create(
+        "org_1",
+        Run(run_id="run_2", kind=RunKind.DOCUMENT, target="doc_1", status=RunStatus.RUNNING),
+    )
+
+    @stage(deps, "check_step")
+    async def check_step(ctx: Context, node_input: dict) -> dict:
+        return {**node_input, "summary": "6 findings"}
+
+    @stage(deps, "categorize_step")
+    async def categorize_step(ctx: Context, node_input: dict) -> dict:
+        return {**node_input, "tokens_in": 900, "tokens_out": 80, "summary": "12 by model"}
+
+    upstream = {
+        "orgId": "org_1",
+        "runId": "run_2",
+        "docId": "doc_1",
+        "model": "gemini-3.5-flash-lite",
+        "tokens_in": 2000,
+        "tokens_out": 120,
+    }
+    passed = await check_step(None, upstream)
+    await categorize_step(None, passed)
+
+    check, categorize = (await run_repo.get("org_1", "run_2")).stages  # type: ignore[union-attr]
+    assert (check.model, check.tokens_in, check.tokens_out) == (None, None, None)
+    assert (categorize.tokens_in, categorize.tokens_out) == (900, 80)
+    assert categorize.model is None  # it did not name a model of its own

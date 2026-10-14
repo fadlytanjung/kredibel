@@ -16,6 +16,7 @@ from app.services.finding_service import FindingService
 from app.services.insight_service import InsightService
 from app.services.match_service import MatchService
 from app.services.month_service import MonthService
+from app.services.profit_loss_service import ProfitLossService
 from app.services.record_service import RecordService
 from app.services.review_service import ReviewService
 from app.services.runs import RunService
@@ -23,6 +24,9 @@ from app.services.workspace_service import WorkspaceService
 
 
 class ServiceProvider(Protocol):
+    @property
+    def profit_loss_service(self) -> ProfitLossService: ...
+
     @property
     def plans(self) -> PlanCatalog: ...
 

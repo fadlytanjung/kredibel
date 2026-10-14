@@ -16,6 +16,7 @@ from app.adapters.firestore.bank_line_repo import FirestoreBankLineRepository
 from app.adapters.firestore.decision_repo import FirestoreDecisionRepository
 from app.adapters.firestore.document_repo import FirestoreDocumentRepository
 from app.adapters.firestore.finding_repo import FirestoreFindingRepository
+from app.adapters.firestore.ledger_repo import FirestoreLedgerRepository
 from app.adapters.firestore.match_repo import FirestoreMatchRepository
 from app.adapters.firestore.month_repo import FirestoreMonthRepository
 from app.adapters.firestore.record_repo import firestore_invoices, firestore_receipts
@@ -31,6 +32,7 @@ from app.adapters.policy_files import (
     load_category_policy,
     load_forensics,
     load_plans,
+    load_profit_loss_policy,
     load_reconciliation_policy,
     load_risk_policy,
 )
@@ -52,6 +54,7 @@ from app.api.matches import create_matches_router
 from app.api.me import create_me_router
 from app.api.months import create_months_router
 from app.api.plans import create_plans_router
+from app.api.profit_loss import create_profit_loss_router
 from app.api.records import create_records_router
 from app.api.review_items import create_review_items_router
 from app.api.runs import create_runs_router
@@ -89,6 +92,7 @@ from app.ports.document_storage import DocumentStorage
 from app.ports.file_inspector import FileInspector
 from app.ports.finding_repository import FindingRepository
 from app.ports.identity_admin import IdentityAdmin
+from app.ports.ledger_repository import LedgerRepository
 from app.ports.match_repository import MatchRepository
 from app.ports.month_repository import MonthRepository
 from app.ports.page_renderer import PageRenderer
@@ -108,6 +112,7 @@ from app.services.finding_service import FindingService
 from app.services.insight_service import InsightService
 from app.services.match_service import MatchService
 from app.services.month_service import MonthService
+from app.services.profit_loss_service import ProfitLossService
 from app.services.record_service import RecordService
 from app.services.review_service import ReviewService
 from app.services.runs import DocumentWorkflowRunner, MonthWorkflowRunner, RunService
@@ -151,6 +156,7 @@ class AppDeps:
         matches: MatchRepository | None = None,
         review_items: ReviewItemRepository | None = None,
         assistant_repo: AssistantRepository | None = None,
+        ledger: LedgerRepository | None = None,
     ) -> None:
         self.settings = settings
         self._plans = plans
@@ -178,6 +184,7 @@ class AppDeps:
         self._matches = matches
         self._review_items = review_items
         self._assistant_repo = assistant_repo
+        self._ledger = ledger
         self._built: dict[str, Any] = {}
 
     def _once(self, name: str, build: Callable[[], T]) -> T:
@@ -618,6 +625,14 @@ class AppDeps:
         )
 
     @property
+    def profit_loss_service(self) -> ProfitLossService:
+        return self._once('profit_loss_service', lambda: ProfitLossService(
+            ledger=self._ledger or FirestoreLedgerRepository(self.firestore),
+            workspaces=self.workspace_repo, documents=self.doc_repo, clock=self.clock,
+            policy=load_profit_loss_policy(self.settings.contract_path(self.settings.policy_dir)),
+        ))
+
+    @property
     def insight_service(self) -> InsightService:
         return self._once(
             "insight_service",
@@ -668,6 +683,7 @@ class AppDeps:
             "assistant_service",
             lambda: AssistantService(
                 assistant_repo=self.assistant_repo,
+                profit_loss=lambda: self.profit_loss_service,
                 month_repo=self.month_repo,
                 finding_repo=self.findings,
                 bank_line_repo=self.bank_lines,
@@ -740,6 +756,7 @@ def create_app(
         app.include_router(create_months_router(deps, workspace_dep))
         app.include_router(create_bank_lines_router(deps, workspace_dep))
         app.include_router(create_insights_router(deps, workspace_dep))
+        app.include_router(create_profit_loss_router(deps, workspace_dep))
         app.include_router(create_records_router(deps, workspace_dep))
         app.include_router(create_findings_router(deps, workspace_dep))
         app.include_router(create_decisions_router(deps, workspace_dep))

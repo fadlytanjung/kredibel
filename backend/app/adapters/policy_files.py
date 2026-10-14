@@ -10,6 +10,7 @@ import yaml
 from app.domain.categorize import CategoryPolicy, parse_category_policy
 from app.domain.checks.policy import ForensicsPolicy, parse_forensics
 from app.domain.plans import PlanCatalog, parse_plans
+from app.domain.profit_loss import ProfitLossPolicy
 from app.domain.reconciliation_policy import ReconciliationPolicy
 from app.domain.risk import RiskPolicy, parse_risk_policy
 
@@ -48,3 +49,8 @@ def load_reconciliation_policy(policy_dir: Path) -> ReconciliationPolicy:
     """Validate all scoring thresholds from reconciliation.v1.yaml (AC-007-17)."""
     with (policy_dir / "reconciliation.v1.yaml").open(encoding="utf-8") as handle:
         return ReconciliationPolicy.model_validate(yaml.safe_load(handle))
+
+
+def load_profit_loss_policy(policy_dir: Path) -> ProfitLossPolicy:
+    with (policy_dir / "profit-loss.v1.yaml").open(encoding="utf-8") as handle:
+        return ProfitLossPolicy.model_validate(yaml.safe_load(handle))

@@ -369,3 +369,11 @@ Content-Type: multipart/form-data; boundary=…
   }
 }
 ```
+
+## Company P&L (spec 018)
+
+`GET /api/profit-loss?period=` returns accrual management totals, status, coverage, source entries,
+exclusion counts and gaps; decimal strings, null when unavailable. `GET /api/profit-loss/accounts`
+returns imported accounts and policy catalogs. `PUT /api/profit-loss/accounts` confirms
+`{accountCode, pnlLine, subledger}` for an owner/accountant, with atomic audit. All scopes come from
+the principal. Unknown catalog/account or reversed period → 422; other roles → 403.

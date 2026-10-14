@@ -219,6 +219,11 @@ several entities · real customer data (P8).
   cash-flow statement from opening to closing balance by activity; every chart takes the full content
   width, one per row.
 
+- **FR-054** A company management P&L uses posted GL income/expense entries with confirmed account
+  and subledger classifications, signed Decimal totals, source drill-down and explicit coverage.
+- **FR-055** Owners/accountants confirm workspace account mappings with an audit event; models never
+  change them. Missing ledger data is unavailable, never inferred from bank cash.
+
 ### 7.7 Profile and counterparties
 
 - **FR-060** The profile holds entity type, names, tax ID, address and bank accounts (masked).

@@ -51,6 +51,17 @@ The design loop is the `/ui-screen` skill (`.agents/skills/ui-screen/SKILL.md`):
 screenshots at 390, 834 and 1440 px → critique against §1 and §10 → component → stories → visual
 baseline.
 
+Every UI change updates its generated mock source and React implementation in the same change,
+including text and empty/loading/error states. Regenerate mocks and shared CSS, capture affected
+screens at 390/834/1440, inspect 360/1600 bounds, and update stories/visual baselines. A behaviour-only
+change must still have a representative mock state; do not edit generated HTML or app kit.css.
+`tools/checks/mock_sync.py` runs in `make check` and fails stale generated mock artifacts. Visual
+parity remains a screenshot review; source freshness alone does not prove it.
+
+P&L uses `.pnl-bars`, `.pnl-row`, `.pnl-track`, `.pnl-account` and `.pnl-source` from the kit. These
+HTML bars keep readable labels at every width; bar width alone uses computed geometry. The report
+shows signed values and source links; colours never imply that the books are complete or verified.
+
 Gates that keep it honest ([`15`](15-testing-and-evaluation.md) §2.6): `make tokens-check` (generated
 CSS is current, contrast pairs pass), `tools/checks/no_raw_styles.py` (no hex, `rgb()`, arbitrary
 Tailwind values or inline styles outside the allow-list), Storybook interaction and axe tests,

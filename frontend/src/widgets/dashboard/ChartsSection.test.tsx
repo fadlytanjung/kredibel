@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { apiClient } from '../../shared/api/client'
+import { EMPTY_PNL } from '../profit-loss/fixture'
 import { CASH, FLOW_PARTIES, FLOW_STATEMENT, LINES } from './charts.fixture'
 import { ChartsSection } from './ChartsSection'
 
@@ -10,6 +11,7 @@ vi.mock('../../shared/api/client', () => ({ apiClient: vi.fn(), ProblemError: cl
 
 function serve(cash: unknown = CASH) {
   vi.mocked(apiClient).mockImplementation((url: string) => {
+    if (url.startsWith('/api/profit-loss')) return Promise.resolve(EMPTY_PNL)
     if (url.startsWith('/api/money-flow')) return Promise.resolve(url.includes('COUNTERPARTIES') ? FLOW_PARTIES : FLOW_STATEMENT)
     if (url.startsWith('/api/cash-flow')) return Promise.resolve(cash)
     if (url.startsWith('/api/bank-lines')) return Promise.resolve(LINES)

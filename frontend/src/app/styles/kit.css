@@ -1397,3 +1397,15 @@ button.tab { border: 0; background: transparent; cursor: pointer; font-family: i
 .progress-bar { height: 100%; background: var(--k-color-brand-default); border-radius: var(--k-radius-full); transition: width 0.3s ease; }
 .progress-bar.is-failed { background: var(--k-color-severity-critical-fg); }
 .progress-bar.is-clean { background: var(--k-color-verdict-clean-fg); }
+
+/* Company P&L (spec 018): HTML bars keep labels readable at every container width. */
+.pnl-bars { display: grid; gap: var(--k-space-4); }
+.pnl-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--k-space-2); align-items: center; }
+.pnl-row > span:first-child { overflow-wrap: anywhere; }
+.pnl-row .num { text-align: right; }
+.pnl-track { grid-column: 1 / -1; display: block; background: var(--k-color-bg-sunken); border-radius: var(--k-radius-xs); overflow: hidden; }
+.pnl-bar { display: block; height: var(--k-space-2); background: var(--k-color-chart-balance); }
+.pnl-account { display: flex; flex-wrap: wrap; align-items: end; gap: var(--k-space-4); border-bottom: var(--k-border-width-hairline) solid var(--k-color-border-default); padding-block: var(--k-space-4); }
+.pnl-account > .field { flex: 1; min-width: 0; }
+.pnl-account > strong { flex-basis: 100%; overflow-wrap: anywhere; }
+.pnl-source { display: block; padding-block: var(--k-space-3); overflow-wrap: anywhere; }

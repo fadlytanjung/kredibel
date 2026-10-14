@@ -2,11 +2,13 @@ import type { Meta, StoryObj } from '@storybook/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
 import '../../shared/i18n/setup'
+import { EMPTY_PNL } from '../profit-loss/fixture'
 import { CASH, FLOW_PARTIES, FLOW_STATEMENT, LINES } from './charts.fixture'
 import { ChartsSection } from './ChartsSection'
 
 function seeded(cashData = CASH) {
   const client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity, retry: false } } })
+  client.setQueryData(['profit-loss', 'all'], EMPTY_PNL)
   client.setQueryData(['money-flow', { period: 'all', view: 'STATEMENT', framework: 'IFRS' }], FLOW_STATEMENT)
   client.setQueryData(['money-flow', { period: 'all', view: 'COUNTERPARTIES', framework: 'IFRS' }], FLOW_PARTIES)
   client.setQueryData(['money-flow', { period: 'all', view: 'STATEMENT', framework: 'US_GAAP' }], FLOW_STATEMENT)

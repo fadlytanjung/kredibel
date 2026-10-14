@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import re
 import uuid
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from datetime import UTC, datetime
 from typing import Any
 
@@ -30,6 +30,8 @@ from app.ports.month_repository import MonthRepository
 from app.ports.record_repository import DocumentRecords
 from app.ports.review_item_repository import ReviewItemRepository
 from app.services.entitlement_service import EntitlementService
+from app.services.profit_loss_answer import is_profit_question, profit_loss_answer, report_period
+from app.services.profit_loss_service import ProfitLossService
 
 
 def _new_id(prefix: str) -> str:
@@ -51,6 +53,7 @@ class AssistantService:
         invoices: DocumentRecords[Invoice] | None = None,
         receipts: DocumentRecords[Receipt] | None = None,
         entitlements: EntitlementService | None = None,
+        profit_loss: Callable[[], ProfitLossService] | None = None,
     ) -> None:
         self._assistant_repo = assistant_repo
         self._month_repo = month_repo
@@ -62,6 +65,7 @@ class AssistantService:
         self._invoices = invoices
         self._receipts = receipts
         self._entitlements = entitlements
+        self._profit_loss = profit_loss
 
     async def list_threads(
         self, org_id: str, limit: int = 50, cursor: str | None = None
@@ -107,7 +111,6 @@ class AssistantService:
 
     async def forget_memory(self, org_id: str, uid: str, memory_id: str) -> None:
         await self._assistant_repo.forget_memory(org_id, uid, memory_id)
-
 
     async def _gather_context(self, org_id: str) -> tuple[str, GroundingContext]:
         """Collect facts, findings, and figures into context string and GroundingContext."""
@@ -189,9 +192,7 @@ class AssistantService:
         )
         return "\n".join(context_lines), grounding_ctx
 
-    async def ask(
-        self, org_id: str, uid: str, thread_id: str, question: str
-    ) -> AssistantMessage:
+    async def ask(self, org_id: str, uid: str, thread_id: str, question: str) -> AssistantMessage:
         if self._entitlements is not None:
             await self._entitlements.reserve_assistant_question(org_id)
 
@@ -205,14 +206,25 @@ class AssistantService:
         )
         await self._assistant_repo.append_message(org_id, thread_id, user_msg)
 
+        if is_profit_question(question) and self._profit_loss is not None:
+            thread = await self.get_thread(org_id, thread_id)
+            period = report_period(question, thread.scope if thread else "WORKSPACE")
+            report = await self._profit_loss().report(org_id, period)
+            message = AssistantMessage(
+                message_id=_new_id("msg"),
+                role="assistant",
+                created_at=datetime.now(UTC),
+                answer=profit_loss_answer(report),
+            )
+            await self._assistant_repo.append_message(org_id, thread_id, message)
+            return message
+
         # 2. Gather context and history
         context_str, grounding_ctx = await self._gather_context(org_id)
         history_msgs = await self._assistant_repo.list_messages(org_id, thread_id)
         history_payload = []
         for m in history_msgs:
-            text = m.question or (
-                m.answer.parts[0].text if m.answer and m.answer.parts else ""
-            )
+            text = m.question or (m.answer.parts[0].text if m.answer and m.answer.parts else "")
             history_payload.append({"role": m.role, "content": text})
 
         # 3. Call AI reader
@@ -256,6 +268,28 @@ class AssistantService:
         self, org_id: str, uid: str, thread_id: str, question: str
     ) -> AsyncIterator[dict[str, Any]]:
         """Stream progress steps, tool calls, answer tokens, and the canonical AssistantMessage."""
+        if is_profit_question(question) and self._profit_loss is not None:
+            yield {
+                "event": "step",
+                "data": {"node": "profit_loss", "label": "Reading posted ledger activity"},
+            }
+            message = await self.ask(org_id, uid, thread_id, question)
+            yield {
+                "event": "tool",
+                "data": {"name": "get_profit_loss", "args_summary": "posted ledger", "ok": True},
+            }
+            yield {
+                "event": "message",
+                "data": {
+                    "messageId": message.message_id,
+                    "role": message.role,
+                    "createdAt": message.created_at.isoformat(),
+                    "answer": message.answer.model_dump(by_alias=True) if message.answer else None,
+                },
+            }
+            yield {"event": "done", "data": {"status": "complete"}}
+            return
+
         if self._entitlements is not None:
             await self._entitlements.reserve_assistant_question(org_id)
 
@@ -314,9 +348,7 @@ class AssistantService:
         history_msgs = await self._assistant_repo.list_messages(org_id, thread_id)
         history_payload = []
         for m in history_msgs:
-            text = m.question or (
-                m.answer.parts[0].text if m.answer and m.answer.parts else ""
-            )
+            text = m.question or (m.answer.parts[0].text if m.answer and m.answer.parts else "")
             history_payload.append({"role": m.role, "content": text})
 
         call = await self._reader.ask_assistant(history_payload, context_str)
@@ -380,10 +412,7 @@ class AssistantService:
         yield {"event": "message", "data": msg_body}
         yield {"event": "done", "data": {"status": "complete"}}
 
-
-    async def suggest_reconciliation_match(
-        self, org_id: str, tx_id: str
-    ) -> MatchSuggestion:
+    async def suggest_reconciliation_match(self, org_id: str, tx_id: str) -> MatchSuggestion:
         """Evaluate an unmatched bank transaction line against candidate documents using Gemini."""
         bank_line = await self._bank_line_repo.get_line(org_id, tx_id)
         if bank_line is None:
@@ -457,9 +486,7 @@ class AssistantService:
                 chart_rows: list[list[str]] = []
                 for inv in unpaid_invoices[:6]:
                     party = (
-                        inv.buyer_name
-                        if inv.kind == "SALES"
-                        else (inv.issuer_name or "Supplier")
+                        inv.buyer_name if inv.kind == "SALES" else (inv.issuer_name or "Supplier")
                     )
                     amt = float(inv.total or 0)
                     pct = f"{min(100, max(15, int((amt / max_amt) * 100)))}%"
@@ -486,9 +513,7 @@ class AssistantService:
                     figs = m.figures or {}
                     in_val = figs.get("inflow_minor", 0) / 100
                     out_val = figs.get("outflow_minor", 0) / 100
-                    chart_rows.append(
-                        [m.month, f"In: {in_val:,.0f} | Out: {out_val:,.0f}", "100%"]
-                    )
+                    chart_rows.append([m.month, f"In: {in_val:,.0f} | Out: {out_val:,.0f}", "100%"])
             parts.append(
                 AnswerPart(
                     type="chart",

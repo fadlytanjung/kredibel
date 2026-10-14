@@ -116,11 +116,15 @@ export interface PageChrome {
 }
 
 export function isActivePath(pathname: string, path: string): boolean {
-  if (path === '/') return pathname === '/'
+  if (path === '/') return pathname === '/' || pathname === '/profit-loss'
   return pathname === path || pathname.startsWith(`${path}/`)
 }
 
 export function chromeFor(pathname: string): PageChrome {
+  if (pathname === '/profit-loss') return {
+    crumbs: [{ label: 'nav.dashboard.long', to: '/' }, { label: 'profitLoss:title' }],
+    back: { to: '/', labelKey: 'nav.dashboard.long' }, fab: false,
+  }
   const item = NAV_ITEMS.find((nav) => isActivePath(pathname, nav.path))
   if (!item) return { crumbs: [], fab: false }
   const own: Crumb = { label: `nav.${item.key}.long` }

@@ -141,3 +141,11 @@ is in `docs/16-infrastructure-and-deployment.md` §6. Model IDs are configuratio
 - `make check` is green.
 - No new dependency without updating the spec's `plan.md`.
 - Docs updated if behaviour, contracts or status changed.
+
+## UI synchronization rule
+
+Every UI change must update the matching mock source in `tools/design/mocks/` and its React
+implementation together, including user-visible wording and states. Shared styles start in
+`design/mocks/assets/kit.css`; regenerate with `make tokens mocks`. Capture and review affected
+screens at 390/834/1440 px, check 360/1600 bounds, and update stories and visual baselines.
+`make check` verifies generated mock freshness. Follow `.agents/rules/35-ui-sync.md`.

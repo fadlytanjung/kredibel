@@ -111,7 +111,10 @@ function renderFormattedContent(text: string) {
 
 /** Render interactive chart/diagram preview and dashboard link button. */
 function ChartPart({ part }: { part: AnswerPart }) {
-  const { t } = useTranslation(['assistant'])
+  const { t } = useTranslation(['assistant', 'profitLoss'])
+  if (part.chart === 'PROFIT_LOSS') {
+    return <Link className="button button-secondary" to={`/profit-loss?period=${encodeURIComponent(String(part.query?.period ?? 'recent'))}`}>{t('profitLoss:open')}</Link>
+  }
   const isFlow = part.chart === 'MONEY_FLOW'
   const isInOut = part.chart === 'MONTHLY_IN_OUT'
   const isUnpaid = part.chart === 'INVOICE_BREAKDOWN'

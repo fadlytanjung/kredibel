@@ -75,6 +75,7 @@ check: ## Run all quality gates (lint, types, layers, repo checks, tests)
 	@if [ -f tools/checks/scan_secrets.py ]; then python3 tools/checks/scan_secrets.py; fi
 	@if [ -f tools/checks/schema_drift.py ]; then python3 tools/checks/schema_drift.py; fi
 	@if [ -f tools/checks/no_raw_styles.py ]; then python3 tools/checks/no_raw_styles.py; fi
+	@python3 tools/checks/mock_sync.py
 	@if [ -f tools/design/build_tokens.py ]; then python3 tools/design/build_tokens.py --check; fi
 	@echo "5. Running backend tests (pytest)..."
 	@if [ -f backend/pyproject.toml ]; then cd backend && uv run pytest; fi

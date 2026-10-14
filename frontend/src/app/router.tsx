@@ -10,6 +10,7 @@ import { Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import { useReviewItems } from '../entities/review'
 import { useAuth } from '../entities/session'
 import { shellPropsFromWorkspace, useWorkspace } from '../entities/workspace'
+import { ProfitLossPage } from '../pages/ProfitLossPage'
 import { DashboardPage } from '../pages/DashboardPage'
 import { DocumentPage } from '../pages/DocumentPage'
 import { DocumentsPage } from '../pages/DocumentsPage'
@@ -31,7 +32,7 @@ import { SettingsPage } from '../pages/SettingsPage'
 import { AppShell, Button } from '../shared/ui'
 import { OnboardingPreview } from './OnboardingPreview'
 import { TrialBanner } from '../widgets/TrialBanner'
-import { DocumentPreview, MonthPreview, ReviewPreview, SettingsPreview, ShellPreview } from './ShellPreview'
+import { DocumentPreview, MonthPreview, ProfitLossPreview, ReviewPreview, SettingsPreview, ShellPreview } from './ShellPreview'
 
 function FullPageLoading() {
   const { t } = useTranslation()
@@ -122,6 +123,7 @@ const PROTECTED_ROUTES: { path: string; element: ReactNode }[] = [
   { path: '/risk/:findingId', element: <RiskPage /> },
   { path: '/counterparties', element: <CounterpartiesPage /> },
   { path: '/counterparties/:id', element: <CounterpartiesPage /> },
+  { path: '/profit-loss', element: <ProfitLossPage /> },
   { path: '/assistant', element: <AssistantPage /> },
   { path: '/assistant/:threadId', element: <AssistantPage /> },
   { path: '/labels', element: <LabelsPage /> },
@@ -157,6 +159,7 @@ export function AppRouter() {
       {import.meta.env.DEV && <Route path="/preview/months/:month" element={<MonthPreview />} />}
       {import.meta.env.DEV && <Route path="/preview/review" element={<ReviewPreview />} />}
       {import.meta.env.DEV && <Route path="/preview/review/:itemId" element={<ReviewPreview />} />}
+      {import.meta.env.DEV && <Route path="/preview/profit-loss" element={<ProfitLossPreview />} />}
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   )

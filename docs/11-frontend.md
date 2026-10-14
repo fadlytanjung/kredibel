@@ -93,7 +93,8 @@ they never set colours, font sizes or shadows ([`12`](12-design-system.md) §0).
 | Group | Item (short label in the rail) | Route | Count badge |
 |---|---|---|---|
 | — | Dashboard | `/` | — |
-| Books | Documents | `/documents` | total, neutral (sidebar only) |
+| Books | Documents | `/profit-loss` | Company P&L | Period, source rows and human-confirmed account/subledger classifications |
+| `/documents` | total, neutral (sidebar only) |
 | Books | Reconciliation (Reconcile) | `/months` | — |
 | Books | Review | `/review` | open items, alert colour |
 | Books | Risk | `/risk` | months at High or Critical with open findings, alert colour |
@@ -167,6 +168,9 @@ flowchart LR
     review -.->|"See on the page"| ev
     risk -.-> ev
     doc -.-> ev
+    dash --> pnl["Company P&L<br/>account classifications and source rows"]
+    asst --> pnl
+    pnl --> doc
     dash --> cp["Clients and suppliers<br/>new account flagged"]
     cp -->|"flagged supplier"| risk
     dash --> asst["Assistant (P1)"]
@@ -379,6 +383,27 @@ Top to bottom:
 - **Months:** one binder tab per month with state, matched share, risk level and its reason; a
   critical month is tinted. Clicking opens the month.
 - **Profile suggestions:** one card when details were found in documents ([spec 014](specs/014-profile-and-counterparties/spec.md)).
+
+### 6.2a Company profit and loss (spec 018)
+
+The dashboard adds a full-width **Profit and loss** panel before the cash-flow framework section.
+The IFRS/US GAAP toggle applies only to cash flow. **Accounts and sources** opens `/profit-loss`
+with the same period. The report page offers Chart/Table, coverage, exclusions and journal gaps,
+account P&L/subledger selectors with **Confirm classification**, and source document/row links.
+Owners/accountants can confirm; other roles read. Empty means ledger import is not yet available,
+not zero profit. A failed request has **Try again**. All words use `profitLoss.json`.
+
+Bars use HTML at their actual font size rather than scaling SVG text. At compact widths each bar
+sits below its label and signed amount; controls wrap, source links wrap, tables scroll within their
+panel. Medium/large layouts retain the same full-width stack. No primary action is fixed over content.
+The assistant's deterministic P&L answer includes the same period and **Open profit and loss**.
+
+![P&L mobile](assets/mocks/profit-loss-mobile.png)
+![P&L tablet](assets/mocks/profit-loss-tablet.png)
+![P&L desktop](assets/mocks/profit-loss-desktop.png)
+
+The editable draw.io screen map predates this addition; the Mermaid map above is current. Update
+the draw.io source using its extension when that editor is available (never hand-edit the SVG).
 
 ### 6.3 Documents
 

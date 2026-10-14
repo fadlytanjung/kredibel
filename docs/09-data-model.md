@@ -181,6 +181,17 @@ document), `correctedFields[]` (`total`, `date`), `correctedBy?`, `correctedAt?`
 | `heldAsDuplicate` | bool | `D06` |
 | `dupKey` | string | date + amount + account + reference, for `D06` |
 
+For spec 018 reporting, optional `postingStatus` defaults to `UNKNOWN` (`POSTED` is required to
+contribute), `currency` defaults to null (must equal the workspace currency), and `journalId`
+defaults to null. `entryKind` defaults to `ACTIVITY`; explicit `OPENING`/`CLOSING` rows are
+excluded from period performance. Rows missing posting/currency evidence are excluded explicitly. This is an
+additive v1 persistence model; no legacy row is assumed posted. Each row stores `orgId` and `entryId`.
+
+`orgs/{orgId}/accountClassifications/{sha256(accountCode)}` (v1): `orgId`, `accountCode`, `pnlLine`,
+`subledger`, `confirmedBy`, `confirmedAt`, `schemaVersion`. Mappings are confirmed only through the
+API by an owner/accountant; classification plus audit event is atomic. No backfill. Catalog in
+`contracts/policy/profit-loss.v1.yaml`; row-level source remains `docId` / `rowNumber`.
+
 **Ledger column mapping** (`orgs/{orgId}.ledgerMappings[layoutSignature]`): `{date, description,
 reference?, accountCode, accountName?, debit?, credit?, amount?, signConvention?, dateFormat,
 decimalSeparator, confirmedBy, confirmedAt}`. The layout signature is a hash of the normalized header

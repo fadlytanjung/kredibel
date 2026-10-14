@@ -1,3 +1,4 @@
+import profitLossEn from './locales/en/profitLoss.json'
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 import { DEFAULT_LANGUAGE } from './languages'
@@ -16,6 +17,7 @@ void i18n.use(initReactI18next).init({
   resources: {
     en: {
       assistant: assistantEn,
+      profitLoss: profitLossEn,
       common: commonEn,
       dashboard: dashboardEn,
       documents: documentsEn,

@@ -1,4 +1,5 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import type { components } from '../../shared/api/schema'
 import { apiClient } from '../../shared/api/client'
 
 export interface Thread {
@@ -29,7 +30,7 @@ export interface AnswerPart {
   text?: string | null
   columns?: string[] | null
   rows?: string[][] | null
-  chart?: 'MONEY_FLOW' | 'MONTHLY_IN_OUT' | 'CATEGORY_BREAKDOWN' | 'INVOICE_BREAKDOWN' | null
+  chart?: components['schemas']['AnswerPart']['chart'] | null
   query?: Record<string, unknown> | null
 }
 

@@ -1,4 +1,16 @@
 {
+  "AccountClassificationDoc": {
+    "fields": {
+      "account_code": "str",
+      "confirmed_at": "datetime",
+      "confirmed_by": "str",
+      "org_id": "str",
+      "pnl_line": "str",
+      "subledger": "str"
+    },
+    "file": "ledger.py",
+    "schemaVersion": null
+  },
   "AccountHashDoc": {
     "fields": {
       "account_id": "str",
@@ -230,6 +242,26 @@
       "unit_price_minor": "int | None"
     },
     "file": "invoice.py",
+    "schemaVersion": null
+  },
+  "LedgerEntryDoc": {
+    "fields": {
+      "account_code": "str",
+      "account_name": "str",
+      "credit_minor": "int",
+      "currency": "str | None",
+      "date": "str",
+      "debit_minor": "int",
+      "doc_id": "str",
+      "entry_id": "str",
+      "entry_kind": "Literal[ACTIVITY, OPENING, CLOSING]",
+      "held_as_duplicate": "bool",
+      "journal_id": "str | None",
+      "org_id": "str",
+      "posting_status": "Literal[POSTED, DRAFT, UNKNOWN]",
+      "row_number": "int"
+    },
+    "file": "ledger.py",
     "schemaVersion": null
   },
   "MatchDoc": {

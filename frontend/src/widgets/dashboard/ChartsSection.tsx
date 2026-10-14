@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next'
 import type { Framework } from '../../entities/insight'
 import { SegmentedControl } from '../../shared/ui'
 import { MonthBarsPanel, WaterfallPanel } from '../cash-flow'
+import { ProfitLossPanel } from '../profit-loss'
 import { MoneyFlowPanel } from '../money-flow'
 
 export function ChartsSection({ period, range, framework }: { period: string; range: string; framework?: Framework }) {
@@ -16,6 +17,8 @@ export function ChartsSection({ period, range, framework }: { period: string; ra
   const [chosen, setChosen] = useState<Framework>()
   const shown: Framework = chosen ?? framework ?? 'IFRS'
   return (
+    <>
+    <ProfitLossPanel period={period} />
     <section className="stack gap-4" aria-labelledby="charts-h">
       <div className="section-head charts-section-head">
         <div>
@@ -43,5 +46,6 @@ export function ChartsSection({ period, range, framework }: { period: string; ra
         <WaterfallPanel period={period} framework={shown} />
       </div>
     </section>
+    </>
   )
 }

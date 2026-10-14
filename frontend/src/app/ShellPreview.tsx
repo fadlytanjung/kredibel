@@ -4,6 +4,7 @@
  */
 
 import { useParams } from 'react-router-dom'
+import { ProfitLossContent } from '../pages/ProfitLossPage'
 import { DashboardPage } from '../pages/DashboardPage'
 import { DocumentPage } from '../pages/DocumentPage'
 import { MonthPage } from '../pages/MonthPage'
@@ -62,4 +63,11 @@ export function ReviewPreview() {
       <ReviewPage />
     </AppShell>
   )
+}
+
+/** Synthetic P&L preview; Playwright provides all API responses. */
+export function ProfitLossPreview() {
+  return <AppShell {...PREVIEW_PROPS} activePath="/profit-loss" onUpload={() => undefined}>
+    <ProfitLossContent canEdit />
+  </AppShell>
 }

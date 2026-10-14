@@ -78,6 +78,30 @@ def by_fw(render) -> str:
             f'<div data-show-group="fw" data-show-value="US_GAAP" hidden>{render("US_GAAP")}</div>')
 
 
+def profit_loss_panel(detail: bool = False) -> str:
+    values = [("Revenue", 120), ("Cost of sales", 72), ("Gross profit", 48),
+              ("Operating expenses", 18), ("Operating profit", 30), ("Other income", 1),
+              ("Finance costs", 2), ("Income tax", 3), ("Net profit", 26)]
+    bars = "".join(f'<div class="pnl-row"><span>{label}</span><strong class="num">IDR {value:,},000,000</strong><span class="pnl-track" aria-hidden="true"><span class="pnl-bar" style="width:{value / 120 * 100:.2f}%"></span></span></div>' for label, value in values)
+    table = '<table class="table"><thead><tr><th scope="col">P&amp;L line</th><th scope="col" class="num">Amount</th></tr></thead><tbody>' + ''.join(f'<tr><th scope="row">{label}</th><td class="num">IDR {value:,},000,000</td></tr>' for label, value in values) + '</tbody></table>'
+    details_link = '<a class="button button-secondary" href="profit-loss.html">Accounts and sources</a>' if not detail else ''
+    return f"""<section class="chart-panel panel-pad stack gap-4" aria-label="Profit and loss">
+      <div class="chart-head"><div><h2 class="type-h2">Profit and loss</h2><p>Accrual management report for 2026-03</p></div>{details_link}</div>
+      <p class="muted">Imported posted ledger entries only. This does not certify that the company books are complete.</p>
+      {seg("pnlview", [("chart", "Chart"), ("table", "Table")], "chart", "Profit and loss view")}
+      <div class="pnl-bars" data-show-group="pnlview" data-show-value="chart">{bars}</div>
+      <div class="table-wrap" data-show-group="pnlview" data-show-value="table" hidden>{table}</div>
+    </section>"""
+
+
+def profit_loss() -> str:
+    controls = """<section class="panel panel-pad stack gap-4"><h2 class="type-h2">Account classifications</h2><p>Confirm how each company account appears in profit and loss. Subledgers group the supporting detail.</p>
+    <form class="pnl-account"><strong>4000 Sales</strong><label class="field">P&amp;L line<select class="input"><option>Revenue</option><option>Balance sheet (excluded from profit)</option></select></label><label class="field">Subledger<select class="input"><option>Receivables</option><option>General journals</option></select></label><button type="button" class="button button-primary">Confirm classification</button></form></section>
+    <section class="panel panel-pad stack gap-4"><h2 class="type-h2">Source entries</h2><h3 class="type-h3">Receivables</h3><a class="pnl-source link" href="document.html">4000 Sales, 2 Mar 2026, row 1: IDR 120,000,000</a><p class="muted">Synthetic reporting example. Subledger families group accounts; they do not certify a control-account reconciliation.</p></section>"""
+    content = f'<div class="page stack gap-5"><div class="page-head"><h1 class="type-title">Company profit and loss</h1><p>Company account classifications, with the ledger rows behind every total.</p></div><form class="row"><label class="field">Period<input class="input" value="2026-03"/></label><button class="button button-secondary" type="button">Apply period</button></form><p class="muted">Use recent, all, a year (2026), quarter (2026-Q1), month (2026-03), or range (2026-01..2026-03).</p>{profit_loss_panel(True)}{controls}</div>'
+    return shell("dashboard", topbar("Profit and loss", (("Dashboard", "dashboard.html"), "Profit and loss"), back=("Dashboard", "dashboard.html")), content, fab=False)
+
+
 def dashboard() -> str:
     hero = f"""
 <section class="status-hero" aria-labelledby="status-h">
@@ -185,6 +209,7 @@ def dashboard() -> str:
     {hero}
     {figs}
     {lists}
+    {profit_loss_panel()}
     {charts_section}
     {months}
     {found}
@@ -754,6 +779,8 @@ def assistant() -> str:
           </div>
         </div>
       </div>
+      <p class="msg-user">Show my profit and loss for 2026-03</p>
+      <div class="msg-ai"><div class="bubble"><p>Accrual management P&amp;L from imported posted ledger entries only. These totals do not certify that the company books are complete.</p><p>Net profit: IDR 26,000,000 <a class="citation" href="profit-loss.html">Net profit</a></p><a class="button button-secondary" href="profit-loss.html">Open profit and loss</a></div></div>
       <div class="suggested" aria-label="Suggested questions"><a href="#">Which invoices are still unpaid?</a><a href="#">Where did the money go in Q2?</a><a href="#">Who are my biggest clients?</a></div>
       <div class="composer"><p>Ask about your books</p><button class="button button-primary" type="button" aria-label="Send">{icon("send", "icon icon-sm")}</button></div>
     </div>
@@ -875,6 +902,7 @@ def onboarding() -> str:
 
 SCREENS = {
     "dashboard": ("Dashboard", dashboard),
+    "profit-loss": ("Company profit and loss", profit_loss),
     "documents": ("Documents", documents),
     "document": ("Document", document),
     "month": ("Month reconciliation", month),
@@ -887,6 +915,7 @@ SCREENS = {
 }
 
 NOTES = {
+    "profit-loss": "Accrual management P&L from posted ledger activity, with company account classifications and source rows.",
     "dashboard": "One sentence says where the books stand, then what needs you and the open risks. Below, full-width charts grouped by IFRS or US GAAP: money flow (flow, bars, table or by client and supplier), money in and out by month, and the cash-flow statement.",
     "document": "One read document: the page viewer with the selected value lit, beside what was read from it, a paginated list with reading marks, its findings and details.",
     "documents": "Upload anything in any order. Exact copies are recognised at once; possible copies wait for you; ledgers ask for their columns once.",

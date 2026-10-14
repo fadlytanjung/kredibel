@@ -24,7 +24,10 @@ class AnswerPart(BaseModel):
     columns: list[str] | None = None
     rows: list[list[str]] | None = None
     chart: (
-        Literal["MONEY_FLOW", "MONTHLY_IN_OUT", "CATEGORY_BREAKDOWN", "INVOICE_BREAKDOWN"] | None
+        Literal[
+            "MONEY_FLOW", "MONTHLY_IN_OUT", "CATEGORY_BREAKDOWN", "INVOICE_BREAKDOWN", "PROFIT_LOSS"
+        ]
+        | None
     ) = None
     query: dict[str, Any] | None = None
 
@@ -73,4 +76,3 @@ class Memory:
     memory_id: str
     fact: str
     updated_at: datetime | None = None
-

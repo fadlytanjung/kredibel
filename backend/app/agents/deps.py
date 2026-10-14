@@ -16,6 +16,7 @@ from app.ports.document_repository import DocumentRepository
 from app.ports.document_storage import DocumentStorage
 from app.ports.file_inspector import FileInspector
 from app.ports.finding_repository import FindingRepository
+from app.ports.ledger_repository import LedgerRepository
 from app.ports.match_repository import MatchRepository
 from app.ports.month_repository import MonthRepository
 from app.ports.page_text import PageText
@@ -58,3 +59,5 @@ class PipelineDeps:
     risk_policy: RiskPolicy | None = None
     # Review queue (spec 009).
     review_items: ReviewItemRepository | None = None
+    # Ledger repository (spec 018).
+    ledger: LedgerRepository | None = None

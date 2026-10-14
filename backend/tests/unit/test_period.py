@@ -32,7 +32,20 @@ def test_recent_is_the_last_three_months_with_data():
     assert recent.previous == ("2025-10", "2025-11", "2025-12")
 
 
+def test_hint_formatted_and_messy_period_strings_resolve_cleanly():
+    assert resolve_period("month (2026-03)", DATA).months == ("2026-03",)
+    assert resolve_period("quarter (2026-Q1)", DATA).months == ("2026-01", "2026-02", "2026-03")
+    assert resolve_period("year (2026)", DATA).months[0] == "2026-01"
+    assert resolve_period("range (2025-12..2026-02)", DATA).months == (
+        "2025-12",
+        "2026-01",
+        "2026-02",
+    )
+    assert resolve_period("  2026-03  ", DATA).months == ("2026-03",)
+
+
 @pytest.mark.parametrize("bad", ["2026-13", "2026-Q5", "2026-03..2026-01", "March", ""])
 def test_anything_else_is_refused(bad):
     with pytest.raises(ValueError):
         resolve_period(bad, DATA)
+

@@ -13,6 +13,10 @@ class FakeLedgerRepository:
     async def list_rows(self, org_id: str) -> list[LedgerRow]:
         return self.rows[org_id]
 
+    async def save_rows(self, org_id: str, rows: list[LedgerRow]) -> None:
+        self.rows[org_id].extend(rows)
+
+
     async def classifications(self, org_id: str) -> dict[str, Classification]:
         return self.mappings[org_id]
 

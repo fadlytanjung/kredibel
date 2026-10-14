@@ -36,6 +36,7 @@ from app.domain.duplicates import (
 from app.domain.findings import Evidence, Finding, finding_id
 from app.domain.invoice_records import build_invoices, build_receipts, document_type_of
 from app.domain.layout import Chunk, chunk_page, chunks_from_json, chunks_to_json, render_chunks
+from app.domain.ledger_csv import parse_ledger_csv
 from app.domain.models.bank_line import BankLine
 from app.domain.models.document import (
     DocStatus,
@@ -207,9 +208,22 @@ def propose_ledger_mapping(deps: PipelineDeps):
 def parse_ledger(deps: PipelineDeps):
     @stage(deps, "parse_ledger")
     async def _node(ctx: Context, node_input: dict[str, Any]) -> dict[str, Any]:
+        org_id, doc_id = _ids(node_input)
+        if deps.storage is not None and deps.ledger is not None:
+            doc = await deps.doc_repo.get_document(org_id, doc_id)
+            if doc is not None and doc.gcs_path:
+                ext = PurePosixPath(doc.gcs_path).suffix
+                content_bytes = await deps.storage.get_original(org_id, doc_id, ext)
+                if content_bytes:
+                    text = content_bytes.decode("utf-8", errors="replace")
+                    rows = parse_ledger_csv(text, doc_id=doc_id, currency="IDR")
+                    if rows:
+                        await deps.ledger.save_rows(org_id, rows)
+                        return {**node_input, "summary": f"Ledger parsed: {len(rows)} entries"}
         return {**node_input, "summary": "Ledger parsed"}
 
     return _node
+
 
 
 def parse_pages(deps: PipelineDeps):

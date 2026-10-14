@@ -37,8 +37,28 @@ def _with_previous(key: str, first: int, last: int) -> Period:
     return Period(key, _span(first, last), _span(first - length, first - 1))
 
 
+def normalize_period_key(period: str) -> str:
+    cleaned = period.strip()
+    if cleaned in ("all", "recent"):
+        return cleaned
+    if m := re.search(
+        r"^(?:range[:\s]*)?\(?(\d{4}-(?:0[1-9]|1[0-2])\s*\.\.\s*\d{4}-(?:0[1-9]|1[0-2]))\)?$",
+        cleaned,
+        re.IGNORECASE,
+    ):
+        return re.sub(r"\s*", "", m.group(1))
+    if m := re.search(r"^(?:quarter[:\s]*)?\(?(\d{4}-Q[1-4])\)?$", cleaned, re.IGNORECASE):
+        return m.group(1).upper()
+    if m := re.search(r"^(?:month[:\s]*)?\(?(\d{4}-(?:0[1-9]|1[0-2]))\)?$", cleaned, re.IGNORECASE):
+        return m.group(1)
+    if m := re.search(r"^(?:year[:\s]*)?\(?(\d{4})\)?$", cleaned, re.IGNORECASE):
+        return m.group(1)
+    return cleaned
+
+
 def resolve_period(period: str, with_data: Sequence[str]) -> Period:
     """`with_data`: the months that have data, in any order. Raises ValueError for anything else."""
+    period = normalize_period_key(period)
     data = sorted(set(with_data))
     if period == "all":
         return Period(period, tuple(data), ())

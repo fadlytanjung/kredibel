@@ -521,6 +521,12 @@ class AppDeps:
         )
 
     @property
+    def ledger_repo(self) -> LedgerRepository:
+        return self._once(
+            "ledger_repo", lambda: self._ledger or FirestoreLedgerRepository(self.firestore)
+        )
+
+    @property
     def document_workflow_runner(self) -> DocumentWorkflowRunner:
         if self._document_workflow_runner is not None:
             return self._document_workflow_runner
@@ -545,6 +551,7 @@ class AppDeps:
                 findings=self.findings,
                 categories=self.categories,
                 risk_policy=self.risk_policy,
+                ledger=self.ledger_repo,
             )
             await run_workflow(
                 build_document_workflow(pipeline_deps),

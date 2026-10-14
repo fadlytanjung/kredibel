@@ -53,3 +53,36 @@ async def test_ac018_classification_and_audit_round_trip(firestore_emulator):
     with pytest.raises(DomainError, match="Unsupported ledger schema"):
         await repo.list_rows("org_test")
     db.close()
+
+
+async def test_ac018_save_rows_persists_ledger_entries(firestore_emulator):
+    from datetime import date
+
+    from app.domain.profit_loss import LedgerRow
+
+    db = AsyncClient(project=f"test-{uuid.uuid4().hex[:12]}")
+    repo = FirestoreLedgerRepository(db)
+    new_rows = [
+        LedgerRow(
+            entry_id="row_1",
+            doc_id="doc_a",
+            row_number=1,
+            date=date(2026, 3, 1),
+            account_code="4000",
+            account_name="Sales",
+            debit=Decimal("0"),
+            credit=Decimal("500.00"),
+            currency="IDR",
+            posting_status="POSTED",
+            journal_id="J1",
+            entry_kind="ACTIVITY",
+        )
+    ]
+    await repo.save_rows("org_save_test", new_rows)
+    loaded = await repo.list_rows("org_save_test")
+    assert len(loaded) == 1
+    assert loaded[0].entry_id == "row_1"
+    assert loaded[0].credit == Decimal("500.00")
+    assert loaded[0].posting_status == "POSTED"
+    db.close()
+

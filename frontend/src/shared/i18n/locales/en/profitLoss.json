@@ -31,6 +31,9 @@
   "source": "{{account}}, {{date}}, row {{row}}: {{amount}}",
   "period": "Period",
   "apply": "Apply period",
+  "selectMonth": "Filter month",
+  "chooseMonth": "Select a month…",
+  "subledgersView": "Subledgers",
   "periodHelp": "Use recent, all, a year (2026), quarter (2026-Q1), month (2026-03), or range (2026-01..2026-03).",
   "open": "Open profit and loss",
   "lines": {

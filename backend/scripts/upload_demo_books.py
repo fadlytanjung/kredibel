@@ -68,6 +68,103 @@ def _log(*parts: object) -> None:
     print(time.strftime("%H:%M:%S"), *parts, flush=True)
 
 
+DEFAULT_CLASSIFICATIONS: dict[str, tuple[str, str]] = {
+    "1000": ("BALANCE_SHEET", "CASH"),
+    "1110": ("BALANCE_SHEET", "CASH"),
+    "1200": ("BALANCE_SHEET", "RECEIVABLES"),
+    "1300": ("BALANCE_SHEET", "PAYABLES"),
+    "1400": ("BALANCE_SHEET", "PAYABLES"),
+    "2100": ("BALANCE_SHEET", "PAYABLES"),
+    "2200": ("BALANCE_SHEET", "RECEIVABLES"),
+    "2300": ("BALANCE_SHEET", "CASH"),
+    "3100": ("BALANCE_SHEET", "GENERAL"),
+    "4000": ("REVENUE", "RECEIVABLES"),
+    "4100": ("REVENUE", "CASH"),
+    "5100": ("COST_OF_SALES", "PAYABLES"),
+    "5200": ("COST_OF_SALES", "PAYABLES"),
+    "6000": ("OPERATING_EXPENSES", "PAYROLL"),
+    "6050": ("OPERATING_EXPENSES", "PAYABLES"),
+    "6100": ("OPERATING_EXPENSES", "CASH"),
+    "6150": ("OPERATING_EXPENSES", "PAYABLES"),
+    "6200": ("OPERATING_EXPENSES", "PAYABLES"),
+    "6300": ("OPERATING_EXPENSES", "PAYABLES"),
+    "6400": ("OPERATING_EXPENSES", "CASH"),
+    "6500": ("OPERATING_EXPENSES", "PAYABLES"),
+    "6600": ("OPERATING_EXPENSES", "PAYABLES"),
+    "6900": ("OPERATING_EXPENSES", "CASH"),
+    "7100": ("FINANCE_COSTS", "CASH"),
+}
+
+
+async def seed_demo_ledger(
+    deps,
+    org_id: str,
+    principal,
+    demo_dir: Path,
+    months: set[str] | None = None,
+) -> int:
+    from dataclasses import replace
+    from datetime import UTC, datetime
+
+    from app.core.ids import new_id
+    from app.domain.ledger_csv import parse_ledger_csv
+    from app.domain.models.document import DocStatus, DocType
+    from app.domain.models.events import AuditEvent
+    from app.domain.profit_loss import Classification
+
+    csv_path = demo_dir / "S1" / "seed-1" / "ledger-2026-H1.csv"
+    if not csv_path.exists():
+        _log(f"ledger file not found at {csv_path}")
+        return 0
+
+    content = csv_path.read_text(encoding="utf-8")
+    held_docs, _ = await deps.doc_repo.list_documents(org_id, limit=500)
+    ledger_doc = next(
+        (
+            d
+            for d in held_docs
+            if d.file_name.startswith("ledger-") or d.doc_type == DocType.LEDGER_EXPORT
+        ),
+        None,
+    )
+    if ledger_doc is None:
+        ledger_doc = await deps.document_service.upload(
+            principal=principal, file_bytes=content.encode("utf-8"), filename="ledger-2026-H1.csv"
+        )
+    if ledger_doc.status != DocStatus.DONE:
+        ledger_doc = replace(ledger_doc, status=DocStatus.DONE, doc_type=DocType.LEDGER_EXPORT)
+        await deps.doc_repo.save_document(org_id, ledger_doc)
+
+    rows = parse_ledger_csv(content, doc_id=ledger_doc.doc_id, currency="IDR")
+    if months:
+        rows = [r for r in rows if r.date.strftime("%Y-%m") in months]
+
+    await deps.ledger_repo.save_rows(org_id, rows)
+    _log(f"seeded {len(rows)} ledger entries for {org_id}")
+
+    existing_classifications = await deps.ledger_repo.classifications(org_id)
+    confirmed_count = 0
+    now = datetime.now(UTC)
+    for code, (pnl_line, subledger) in DEFAULT_CLASSIFICATIONS.items():
+        if code not in existing_classifications:
+            decision = Classification(account_code=code, pnl_line=pnl_line, subledger=subledger)
+            event = AuditEvent(
+                event_id=new_id("evt"),
+                type="ACCOUNT_CLASSIFIED",
+                actor_uid=principal.uid,
+                actor_role=principal.role,
+                at=now,
+                subject={"accountCode": code},
+                details={"pnlLine": pnl_line, "subledger": subledger},
+            )
+            await deps.ledger_repo.confirm(org_id, decision, event)
+            confirmed_count += 1
+    if confirmed_count:
+        _log(f"confirmed {confirmed_count} account classifications")
+    return len(rows)
+
+
+
 async def _run(
     email: str,
     demo_dir: Path,
@@ -75,6 +172,7 @@ async def _run(
     months: set[str] | None = None,
     clean: bool = False,
     scenarios: tuple[str, ...] = SCENARIOS,
+    seed_ledger_only: bool = False,
 ) -> int:
     import firebase_admin
     from firebase_admin import auth
@@ -108,6 +206,12 @@ async def _run(
     if workspace is None or workspace.currency != "IDR":
         print("The synthetic books are in IDR; this workspace is not.", file=sys.stderr)
         return 1
+
+    if seed_ledger_only:
+        _log(f"seeding ledger entries and classifications for workspace {org_id}...")
+        await seed_demo_ledger(deps, org_id, principal, demo_dir, months)
+        _log("ledger seeding complete.")
+        return 0
 
     if clean and not dry_run:
         from scripts.clean_workspace import clean_org_data
@@ -198,6 +302,9 @@ async def _run(
         await queue.drain()
     _log("uploads:", dict(outcomes))
 
+    # Seed general ledger rows and account classifications for company P&L
+    await seed_demo_ledger(deps, org_id, principal, demo_dir, months)
+
     months_to_reconcile = [
         m
         for m in sorted(await deps.month_repo.list(org_id), key=lambda m: m.month)
@@ -234,6 +341,11 @@ def main() -> int:
         default="S1,S2,S3,S4",
         help="Comma-separated scenarios (default: S1,S2,S3,S4)",
     )
+    parser.add_argument(
+        "--seed-ledger-only",
+        action="store_true",
+        help="Seed ledger rows and account classifications without uploading documents",
+    )
     args = parser.parse_args()
     months_filter = {m.strip() for m in args.months.split(",")} if args.months else None
     scenarios_tuple = tuple(s.strip() for s in args.scenarios.split(","))
@@ -245,9 +357,11 @@ def main() -> int:
             months=months_filter,
             clean=args.clean,
             scenarios=scenarios_tuple,
+            seed_ledger_only=args.seed_ledger_only,
         )
     )
 
 
 if __name__ == "__main__":
     sys.exit(main())
+

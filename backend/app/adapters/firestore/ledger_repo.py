@@ -51,6 +51,33 @@ class FirestoreLedgerRepository:
             )
         return result
 
+    async def save_rows(self, org_id: str, rows: list[LedgerRow]) -> None:
+        if not rows:
+            return
+        org = self._org(org_id)
+        for i in range(0, len(rows), 400):
+            batch = self._db.batch()
+            for row in rows[i : i + 400]:
+                doc_ref = org.collection("ledgerEntries").document(row.entry_id)
+                data = LedgerEntryDoc(
+                    org_id=org_id,
+                    entry_id=row.entry_id,
+                    doc_id=row.doc_id,
+                    row_number=row.row_number,
+                    date=row.date.isoformat(),
+                    account_code=row.account_code,
+                    account_name=row.account_name,
+                    debit_minor=int(row.debit * 100),
+                    credit_minor=int(row.credit * 100),
+                    currency=row.currency,
+                    posting_status=row.posting_status,
+                    journal_id=row.journal_id,
+                    entry_kind=row.entry_kind,
+                    held_as_duplicate=row.held_as_duplicate,
+                )
+                batch.set(doc_ref, dump(data))
+            await batch.commit()
+
     async def classifications(self, org_id: str) -> dict[str, Classification]:
         result = {}
         async for snap in self._org(org_id).collection("accountClassifications").stream():

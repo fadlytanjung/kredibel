@@ -25,6 +25,7 @@ COLLECTIONS = (
     "invoices",
     "receipts",
     "ledgerEntries",
+    "accountClassifications",
     "months",
     "matches",
     "reviewItems",

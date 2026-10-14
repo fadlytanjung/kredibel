@@ -55,7 +55,7 @@ export function AppShellTopBar({
           <Icon name="chevron-left" />
         </Link>
       ) : (
-        <Link className="only-compact" to="/" aria-label={t('app.home')}>
+        <Link className="only-compact" to="/dashboard" aria-label={t('app.home')}>
           <img className="mark" src="/brand/kredibel-mark.svg" alt={t('app.name')} />
         </Link>
       )}

@@ -8,7 +8,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
 import { AppShell, type AppShellProps } from './AppShell'
 
-function renderShell(props: Partial<AppShellProps> = {}, path = '/') {
+function renderShell(props: Partial<AppShellProps> = {}, path = '/dashboard') {
   return render(
     <MemoryRouter initialEntries={[path]}>
       <AppShell {...props}>

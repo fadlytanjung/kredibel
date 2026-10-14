@@ -18,7 +18,7 @@ export function LoginPage() {
 
   // Wait for /api/me before choosing between onboarding and the dashboard.
   if (user && !loading) {
-    return <Navigate to={needsWorkspace ? '/onboarding' : '/'} replace />
+    return <Navigate to={needsWorkspace ? '/onboarding' : '/dashboard'} replace />
   }
 
   // Firebase error text is technical and English-only; the user gets one plain message.

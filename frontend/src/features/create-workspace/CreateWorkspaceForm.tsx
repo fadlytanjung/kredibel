@@ -65,7 +65,7 @@ export function CreateWorkspaceForm({ retryDelayMs }: { retryDelayMs?: number })
   const withBankAccount = useWatch({ control, name: 'withBankAccount' })
 
   useEffect(() => {
-    if (create.phase === 'done') navigate('/', { replace: true })
+    if (create.phase === 'done') navigate('/dashboard', { replace: true })
   }, [create.phase, navigate])
 
   // The currency follows the time zone until the person picks one themselves (ADR-020). A pick

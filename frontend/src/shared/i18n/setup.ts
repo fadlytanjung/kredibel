@@ -5,6 +5,7 @@ import commonEn from './locales/en/common.json'
 import documentsEn from './locales/en/documents.json'
 import errorsEn from './locales/en/errors.json'
 import onboardingEn from './locales/en/onboarding.json'
+import publicEn from './locales/en/public.json'
 import settingsEn from './locales/en/settings.json'
 
 void i18n.use(initReactI18next).init({
@@ -14,6 +15,7 @@ void i18n.use(initReactI18next).init({
       documents: documentsEn,
       errors: errorsEn,
       onboarding: onboardingEn,
+      public: publicEn,
       settings: settingsEn,
     },
   },

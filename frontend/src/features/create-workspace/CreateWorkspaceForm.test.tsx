@@ -75,7 +75,7 @@ function renderForm(refreshes: MeResponse[] = [me(false)]) {
         <MemoryRouter initialEntries={['/onboarding']}>
           <Routes>
             <Route path="/onboarding" element={<CreateWorkspaceForm retryDelayMs={5} />} />
-            <Route path="/" element={<p>Dashboard home</p>} />
+            <Route path="/dashboard" element={<p>Dashboard home</p>} />
           </Routes>
         </MemoryRouter>
       </AuthContext.Provider>

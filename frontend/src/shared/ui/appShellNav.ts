@@ -34,7 +34,7 @@ export interface NavItem {
 }
 
 export const NAV_ITEMS: readonly NavItem[] = [
-  { key: 'dashboard', path: '/', icon: 'dashboard', group: 'main', bottomNav: true, fab: true },
+  { key: 'dashboard', path: '/dashboard', icon: 'dashboard', group: 'main', bottomNav: true, fab: true },
   {
     key: 'documents',
     path: '/documents',
@@ -116,7 +116,6 @@ export interface PageChrome {
 }
 
 export function isActivePath(pathname: string, path: string): boolean {
-  if (path === '/') return pathname === '/'
   return pathname === path || pathname.startsWith(`${path}/`)
 }
 
@@ -130,12 +129,12 @@ export function chromeFor(pathname: string): PageChrome {
     return {
       item,
       crumbs: [{ label: 'nav.settings.long', to: '/settings' }, { label: `settings.sections.${section}` }],
-      back: { to: '/', labelKey: 'nav.dashboard.long' },
+      back: { to: '/dashboard', labelKey: 'nav.dashboard.long' },
       fab: false,
     }
   }
   const nested = pathname.slice(item.path.length).replace(/^\//, '')
-  if (nested && item.path !== '/') {
+  if (nested) {
     return {
       item,
       crumbs: [{ ...own, to: item.path }, { label: decodeURIComponent(nested), literal: true }],

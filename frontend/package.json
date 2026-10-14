@@ -25,6 +25,7 @@
     "firebase": "^13.0.0",
     "i18next": "^26.4.3",
     "lucide-react": "^1.55.0",
+    "motion": "^12.43.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-hook-form": "^7.90.0",

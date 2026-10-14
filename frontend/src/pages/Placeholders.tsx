@@ -15,7 +15,7 @@ function PlaceholderPage({ titleKey, spec }: PlaceholderProps) {
         <h1 className="type-title">{t(titleKey)}</h1>
         <p>{t('placeholder.body', { spec })}</p>
       </div>
-      <Link className="link" to="/">
+      <Link className="link" to="/dashboard">
         {t('placeholder.backToDashboard')}
       </Link>
     </div>

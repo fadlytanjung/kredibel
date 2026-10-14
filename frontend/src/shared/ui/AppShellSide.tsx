@@ -126,7 +126,7 @@ export function AppShellSide({ user, workspace, trial, counts, activePath }: Sid
 
   return (
     <aside className="side">
-      <Link to="/" aria-label={t('app.home')}>
+      <Link to="/dashboard" aria-label={t('app.home')}>
         <img className="lockup" src="/brand/kredibel-logo.svg" alt={t('app.name')} />
         <img className="side-mark" src="/brand/kredibel-mark.svg" alt={t('app.name')} />
       </Link>

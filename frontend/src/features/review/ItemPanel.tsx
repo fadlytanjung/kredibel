@@ -6,13 +6,13 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { type BankLine, useMonthBankLines } from '../../entities/bank-line'
+import { type BankLine, CASHFLOW_BADGE, useMonthBankLines } from '../../entities/bank-line'
 import { useDocument } from '../../entities/document'
 import { type Invoice, type Receipt, useMonthInvoices, useMonthReceipts } from '../../entities/record'
 import { type ResolveRequest, type ReviewItem, useResolveReviewItem } from '../../entities/review'
 import { formatDate } from '../../shared/lib/formatDate'
 import { formatAmount } from '../../shared/lib/formatMoney'
-import { Button, Icon } from '../../shared/ui'
+import { Badge, Button, Icon } from '../../shared/ui'
 import { KIND_ICON, monthName } from './kinds'
 import { linesThatCouldPay, subjectsOf } from './subjects'
 import { useQueueKeys } from './useQueueKeys'
@@ -31,7 +31,7 @@ function signed(line: BankLine) {
 }
 
 function LineSubject({ line }: { line: BankLine }) {
-  const { t } = useTranslation('review')
+  const { t } = useTranslation(['review', 'months'])
   return (
     <div className="subject">
       <span className="ico">
@@ -39,13 +39,18 @@ function LineSubject({ line }: { line: BankLine }) {
       </span>
       <span className="t">{line.description}</span>
       <span className={`amt ${Number(line.amount.amount) > 0 ? 'amt-in' : ''}`}>{signed(line)}</span>
-      <span className="s">
-        {formatDate(line.date)}{' '}
+      <div className="s row gap-2 items-center flex-wrap">
+        <span>{formatDate(line.date)}</span>
+        {line.category && (
+          <Badge variant={CASHFLOW_BADGE[line.cashflowClass ?? 'UNCLASSIFIED']}>
+            {t(`months:categories.${line.category}`, { defaultValue: line.category })}
+          </Badge>
+        )}
         <Link className="citation" to={`/documents/${line.docId}`}>
           <Icon name="eye" size="sm" />
-          {t('panel.seePage')}
+          {t('review:panel.seePage')}
         </Link>
-      </span>
+      </div>
     </div>
   )
 }
@@ -69,13 +74,20 @@ function RecordSubject({ record }: { record: Invoice | Receipt }) {
       </span>
       <span className="t">{name}</span>
       <span className="amt">{record.total ? formatAmount(record.total.amount, { currency: record.total.currency }) : '—'}</span>
-      <span className="s">
-        {[party, day && formatDate(day)].filter(Boolean).join(', ')}{' '}
+      <div className="s row gap-2 items-center flex-wrap">
+        <span>{[party, day && formatDate(day)].filter(Boolean).join(', ')}</span>
+        <Badge variant={isReceipt ? 'low' : record.kind === 'SALES' ? 'clean' : 'evidence'}>
+          {isReceipt
+            ? t('months:monthDetail.docs.badgeReceipt')
+            : record.kind === 'SALES'
+              ? t('months:monthDetail.docs.badgeSales')
+              : t('months:monthDetail.docs.badgePurchase')}
+        </Badge>
         <Link className="citation" to={`/documents/${record.docId}`}>
           <Icon name="eye" size="sm" />
           {t('review:panel.seePage')}
         </Link>
-      </span>
+      </div>
     </div>
   )
 }

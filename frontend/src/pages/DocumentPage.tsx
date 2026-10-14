@@ -11,7 +11,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { type BankLine, isIncoming, lineBox, StatementLines, useBankLines } from '../entities/bank-line'
-import { type Document, downloadOriginal, PageViewer, useDeleteDocument, useDocument } from '../entities/document'
+import { type Document, DOC_TYPE_BADGE, downloadOriginal, PageViewer, useDeleteDocument, useDocument } from '../entities/document'
 import { FindingList, useDocumentFindings } from '../entities/finding'
 import { InvoiceCard, ReceiptCard, useInvoices, useReceipts, type ValueFocus } from '../entities/record'
 import { sumDecimals } from '../shared/lib/decimal'
@@ -170,6 +170,11 @@ export function DocumentPage() {
         <h1 className="type-title">{doc.fileName}</h1>
         <p className="muted">{summary(doc, t)}</p>
         <div className="doc-status">
+          {doc.docType && doc.docType !== 'UNKNOWN' && (
+            <Badge variant={DOC_TYPE_BADGE[doc.docType]?.variant ?? 'outline'}>
+              {t(`documents:detail.docType.${doc.docType}`, { defaultValue: doc.docType })}
+            </Badge>
+          )}
           <StatusBadge doc={doc} />
           {doc.integrity?.verdict && (
             <Badge variant={VERDICT[doc.integrity.verdict].variant}>

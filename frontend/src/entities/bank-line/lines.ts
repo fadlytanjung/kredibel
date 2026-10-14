@@ -25,3 +25,13 @@ export function isIncoming(line: BankLine): boolean {
 export function needsCheck(line: BankLine): boolean {
   return line.source === 'WITNESS' || lineStatus(line) !== 'AGREED'
 }
+
+export type CashflowClass = 'OPERATING' | 'INVESTING' | 'FINANCING' | 'NON_CASH' | 'UNCLASSIFIED'
+
+export const CASHFLOW_BADGE: Record<CashflowClass, 'brand' | 'low' | 'evidence' | 'outline' | 'medium'> = {
+  OPERATING: 'brand',
+  INVESTING: 'low',
+  FINANCING: 'evidence',
+  NON_CASH: 'outline',
+  UNCLASSIFIED: 'medium',
+}

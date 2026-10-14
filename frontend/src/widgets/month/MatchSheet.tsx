@@ -11,7 +11,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useBankLineAiSuggestion } from '../../entities/assistant'
-import { type BankLine, isIncoming } from '../../entities/bank-line'
+import { type BankLine, CASHFLOW_BADGE, isIncoming } from '../../entities/bank-line'
 import { useCreateDecision } from '../../entities/decision'
 import { useCreateMatch } from '../../entities/match'
 import { formatDate } from '../../shared/lib/formatDate'
@@ -166,9 +166,19 @@ export function MatchSheet({
               {incoming ? '+' : ''}
               {formatAmount(line.amount?.amount ?? '0', { currency })}
             </span>
-            <span className="s">
-              {[line.date && formatDate(line.date), line.category].filter(Boolean).join(' • ')}
-            </span>
+            <div className="s row gap-2 items-center flex-wrap mt-1">
+              {line.date && <span>{formatDate(line.date)}</span>}
+              {line.category && (
+                <Badge variant={CASHFLOW_BADGE[line.cashflowClass ?? 'UNCLASSIFIED']}>
+                  {t(`months:categories.${line.category}`, { defaultValue: line.category })}
+                </Badge>
+              )}
+              {line.cashflowClass && line.cashflowClass !== 'UNCLASSIFIED' && (
+                <Badge variant="outline">
+                  {t('months:ifrsLabel', { classification: t(`months:cashflow.${line.cashflowClass}`) })}
+                </Badge>
+              )}
+            </div>
           </div>
 
           <p className="muted small">

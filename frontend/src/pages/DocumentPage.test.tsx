@@ -308,7 +308,7 @@ describe('DocumentPage', () => {
 
     await waitFor(() => expect(screen.getByText('INV/SCR/2026/03/0009')).toBeInTheDocument())
     expect(apiClient).toHaveBeenCalledWith('/api/invoices?docId=doc_inv')
-    expect(screen.getByText('Sales invoice')).toBeInTheDocument()
+    expect(screen.getAllByText('Sales invoice').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByRole('tab', { name: /Invoices/ })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByText('12 of 12 values found on the page')).toBeInTheDocument()
     expect(screen.getByText('Daybreak Café')).toBeInTheDocument()

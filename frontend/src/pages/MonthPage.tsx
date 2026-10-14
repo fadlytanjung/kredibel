@@ -9,7 +9,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
-import { type BankLine, isIncoming, useMonthBankLines } from '../entities/bank-line'
+import { type BankLine, CASHFLOW_BADGE, isIncoming, useMonthBankLines } from '../entities/bank-line'
 import { useFindings } from '../entities/finding'
 import { type Match, useMatches, useUnmatch } from '../entities/match'
 import { useMonth, useMonths, useReconcileMonth } from '../entities/month'
@@ -35,13 +35,6 @@ const SUPPORT_CHIP: Record<Support, { chip: string; icon: IconName }> = {
   NO_SUPPORT: { chip: 'none', icon: 'file-text' },
   NOT_RUN: { chip: 'none', icon: 'clock' },
 }
-const CASHFLOW_BADGE = {
-  OPERATING: 'brand',
-  INVESTING: 'low',
-  FINANCING: 'evidence',
-  NON_CASH: 'outline',
-  UNCLASSIFIED: 'medium',
-} as const
 const STATE_BADGE = {
   COLLECTING: 'outline',
   RECONCILING: 'low',

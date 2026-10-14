@@ -10,7 +10,7 @@
 import { useContext } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
-import { useDocuments, useDocumentsLive, type DocType, type Document } from '../entities/document'
+import { DOC_TYPE_BADGE, useDocuments, useDocumentsLive, type DocType, type Document } from '../entities/document'
 import { AuthContext } from '../entities/session'
 import { UploadSheet } from '../features/upload'
 import { formatDate, formatMonth } from '../shared/lib/formatDate'
@@ -21,14 +21,6 @@ function _docIcon(doc: Document): IconName {
   if (doc.docType === 'LEDGER_EXPORT') return 'table'
   if (doc.docType === 'RECEIPT') return 'receipt'
   return 'file-text'
-}
-
-const DOC_TYPE_BADGE: Record<string, { variant: 'brand' | 'clean' | 'evidence' | 'low' | 'outline' | 'default' }> = {
-  BANK_STATEMENT: { variant: 'brand' },
-  SALES_INVOICE: { variant: 'clean' },
-  PURCHASE_INVOICE: { variant: 'evidence' },
-  RECEIPT: { variant: 'low' },
-  LEDGER_EXPORT: { variant: 'outline' },
 }
 
 function _docSubtitle(doc: Document, t: (key: string, opts?: Record<string, unknown>) => string): string {

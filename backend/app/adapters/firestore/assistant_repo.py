@@ -71,14 +71,23 @@ class FirestoreAssistantRepository(AssistantRepository):
     def _threads_col(self, org_id: str):
         return self._db.collection("orgs").document(org_id).collection("assistantThreads")
 
-    async def list_threads(self, org_id: str, limit: int = 50) -> list[Thread]:
+    async def list_threads(
+        self, org_id: str, limit: int = 50, cursor: str | None = None
+    ) -> tuple[list[Thread], str | None]:
         query = (
             self._threads_col(org_id)
             .order_by("createdAt", direction=Query.DESCENDING)
-            .limit(limit)
         )
         snaps = [s async for s in query.stream()]
-        return [_thread_to_domain(ThreadDoc.model_validate(s.to_dict())) for s in snaps if s.exists]
+        threads = [
+            _thread_to_domain(ThreadDoc.model_validate(s.to_dict()))
+            for s in snaps
+            if s.exists
+        ]
+        start = int(cursor) if cursor and cursor.isdigit() else 0
+        end = start + limit
+        next_cursor = str(end) if end < len(threads) else None
+        return threads[start:end], next_cursor
 
     async def get_thread(self, org_id: str, thread_id: str) -> Thread | None:
         snap = await self._threads_col(org_id).document(thread_id).get()

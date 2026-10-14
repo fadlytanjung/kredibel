@@ -265,4 +265,56 @@ describe('AssistantPage', () => {
       expect(apiClient).toHaveBeenCalledWith('/api/assistant/memories', { method: 'DELETE' })
     })
   })
+
+  it('allows user to paginate earlier questions history', async () => {
+    vi.mocked(apiClient).mockImplementation(async (url: string) => {
+      if (url.includes('/messages')) {
+        return { items: [] }
+      }
+      if (url.includes('/api/assistant/threads') && url.includes('cursor=th_01')) {
+        return {
+          items: [
+            {
+              threadId: 'th_02',
+              title: 'April Reconciliation',
+              scope: '2026-04',
+              createdAt: '2026-04-15T10:00:00Z',
+            },
+          ],
+          nextCursor: null,
+        }
+      }
+      if (url.includes('/api/assistant/threads')) {
+        return {
+          items: [
+            {
+              threadId: 'th_01',
+              title: 'May Reconciliation Query',
+              scope: '2026-05',
+              createdAt: '2026-05-15T10:00:00Z',
+            },
+          ],
+          nextCursor: 'th_01',
+        }
+      }
+      if (url.includes('/api/assistant/memories')) {
+        return { items: [] }
+      }
+      return { items: [] }
+    })
+
+    renderWithClient('/assistant/th_01')
+
+    await waitFor(() => {
+      expect(screen.getByText('May Reconciliation Query')).toBeInTheDocument()
+    })
+
+    const loadMoreBtn = screen.getByRole('button', { name: /Load earlier questions/i })
+    expect(loadMoreBtn).toBeInTheDocument()
+    fireEvent.click(loadMoreBtn)
+
+    await waitFor(() => {
+      expect(screen.getByText('April Reconciliation')).toBeInTheDocument()
+    })
+  })
 })

@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '../../shared/api/client'
 
 export interface Thread {
@@ -11,6 +11,7 @@ export interface Thread {
 
 export interface ThreadListResponse {
   items: Thread[]
+  nextCursor?: string | null
 }
 
 export interface CitationRef {
@@ -58,11 +59,31 @@ export interface MatchAiSuggestion {
   missingDocumentAdvice: string
 }
 
-/** List all conversation threads in the workspace. */
-export function useThreads() {
+/** List conversation threads in the workspace. */
+export function useThreads(limit = 20, cursor?: string | null) {
   return useQuery({
-    queryKey: ['assistant-threads'],
-    queryFn: () => apiClient<ThreadListResponse>('/api/assistant/threads'),
+    queryKey: ['assistant-threads', { limit, cursor }],
+    queryFn: () => {
+      const params = new URLSearchParams()
+      params.set('limit', String(limit))
+      if (cursor) params.set('cursor', cursor)
+      return apiClient<ThreadListResponse>(`/api/assistant/threads?${params.toString()}`)
+    },
+  })
+}
+
+/** Infinite paginated conversation threads in the workspace. */
+export function useInfiniteThreads(limit = 10) {
+  return useInfiniteQuery({
+    queryKey: ['assistant-threads-infinite', { limit }],
+    queryFn: ({ pageParam }) => {
+      const params = new URLSearchParams()
+      params.set('limit', String(limit))
+      if (pageParam) params.set('cursor', pageParam)
+      return apiClient<ThreadListResponse>(`/api/assistant/threads?${params.toString()}`)
+    },
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
   })
 }
 
@@ -78,6 +99,7 @@ export function useCreateThread() {
       }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['assistant-threads'] })
+      void queryClient.invalidateQueries({ queryKey: ['assistant-threads-infinite'] })
     },
   })
 }

@@ -16,11 +16,12 @@ import {
   useCreateThread,
   useForgetMemories,
   useForgetMemory,
+  useInfiniteThreads,
   useMemories,
   useMessages,
-  useThreads,
 } from '../entities/assistant'
 import { Icon } from '../shared/ui'
+import { formatDate } from '../shared/lib/formatDate'
 import { ActivityTrail, AnswerParts } from '../widgets/assistant'
 
 export function AssistantPage() {
@@ -30,10 +31,16 @@ export function AssistantPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const queryClient = useQueryClient()
 
-  const { data: threadsData, isLoading: loadingThreads } = useThreads()
+  const {
+    data: threadsInfiniteData,
+    isLoading: loadingThreads,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+  } = useInfiniteThreads(10)
   const createThreadMutation = useCreateThread()
 
-  const threads = threadsData?.items ?? []
+  const threads = threadsInfiniteData?.pages.flatMap((page) => page.items) ?? []
   const activeThread = threads.find((th) => th.threadId === threadId) || threads[0]
   const currentThreadId = threadId || activeThread?.threadId
 
@@ -361,27 +368,53 @@ export function AssistantPage() {
                 + {t('assistant:newThread')}
               </button>
             </div>
-            {loadingThreads ? (
+            {loadingThreads && threads.length === 0 ? (
               <p className="muted small">{t('common:loading', { defaultValue: 'Loading...' })}</p>
             ) : threads.length === 0 ? (
               <p className="muted small">{t('assistant:noThreads')}</p>
             ) : (
-              threads.map((th) => {
-                const isSelected = th.threadId === currentThreadId
-                return (
-                  <a
-                    key={th.threadId}
-                    className={`link text-sm truncate ${isSelected ? 'font-semibold' : ''}`}
-                    href={`/assistant/${th.threadId}`}
-                    onClick={(e) => {
-                      e.preventDefault()
-                      handleSelectThread(th.threadId)
-                    }}
+              <>
+                <div className="stack gap-1">
+                  {threads.map((th) => {
+                    const isSelected = th.threadId === currentThreadId
+                    const dateStr = th.lastMessageAt || th.createdAt
+                    const formattedDate = dateStr ? formatDate(dateStr) : null
+                    return (
+                      <a
+                        key={th.threadId}
+                        className={`link text-sm truncate flex items-center justify-between py-1 ${isSelected ? 'font-semibold' : ''}`}
+                        href={`/assistant/${th.threadId}`}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          handleSelectThread(th.threadId)
+                        }}
+                      >
+                        <span className="truncate">{th.title || t('assistant:defaultThreadTitle')}</span>
+                        {formattedDate && (
+                          <span className="text-xs muted shrink-0 ml-2">{formattedDate}</span>
+                        )}
+                      </a>
+                    )
+                  })}
+                </div>
+                {hasNextPage && (
+                  <button
+                    type="button"
+                    className="button button-quiet button-sm w-full mt-2"
+                    onClick={() => void fetchNextPage()}
+                    disabled={isFetchingNextPage}
                   >
-                    {th.title || t('assistant:defaultThreadTitle')}
-                  </a>
-                )
-              })
+                    {isFetchingNextPage ? (
+                      <span className="inline-flex items-center gap-1.5">
+                        <Icon name="spinner" className="spin" size="sm" />
+                        {t('common:loading', { defaultValue: 'Loading...' })}
+                      </span>
+                    ) : (
+                      t('assistant:loadMoreThreads')
+                    )}
+                  </button>
+                )}
+              </>
             )}
           </section>
         </aside>

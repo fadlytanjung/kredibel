@@ -200,3 +200,64 @@ async def test_assistant_memories_lifecycle(test_deps):
         res = await client.delete("/api/assistant/memories", headers=headers)
         assert res.status_code == 204
 
+
+@pytest.mark.asyncio
+async def test_assistant_threads_pagination(test_deps):
+    deps, _, _ = test_deps
+    app = create_app(deps=deps)
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        headers = {"Authorization": "Bearer test-token"}
+
+        # Create 3 threads
+        for i in range(3):
+            await client.post(
+                "/api/assistant/threads",
+                json={"title": f"Thread {i}", "scope": "WORKSPACE"},
+                headers=headers,
+            )
+
+        # Page 1 (limit 2)
+        res = await client.get("/api/assistant/threads?limit=2", headers=headers)
+        assert res.status_code == 200
+        body = res.json()
+        assert len(body["items"]) == 2
+        assert body["nextCursor"] == "2"
+
+        # Page 2 (cursor 2)
+        res2 = await client.get("/api/assistant/threads?limit=2&cursor=2", headers=headers)
+        assert res2.status_code == 200
+        body2 = res2.json()
+        assert len(body2["items"]) == 1
+        assert body2["nextCursor"] is None
+
+
+@pytest.mark.asyncio
+async def test_assistant_diagram_request(test_deps):
+    deps, _, _ = test_deps
+    app = create_app(deps=deps)
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        headers = {"Authorization": "Bearer test-token"}
+
+        # 1. Create thread
+        res = await client.post(
+            "/api/assistant/threads",
+            json={"title": "Diagram Test", "scope": "WORKSPACE"},
+            headers=headers,
+        )
+        thread_id = res.json()["threadId"]
+
+        # 2. Ask question about diagram / money flow
+        res = await client.post(
+            f"/api/assistant/threads/{thread_id}/messages",
+            json={"question": "Can you show me a diagram of our money flow?"},
+            headers=headers,
+        )
+        assert res.status_code == 200
+        msg = res.json()
+        parts = msg["answer"]["parts"]
+        assert any(p["type"] == "chart" and p["chart"] == "MONEY_FLOW" for p in parts)
+

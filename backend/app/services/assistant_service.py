@@ -57,8 +57,10 @@ class AssistantService:
         self._reader = reader
         self._entitlements = entitlements
 
-    async def list_threads(self, org_id: str) -> list[Thread]:
-        return await self._assistant_repo.list_threads(org_id)
+    async def list_threads(
+        self, org_id: str, limit: int = 50, cursor: str | None = None
+    ) -> tuple[list[Thread], str | None]:
+        return await self._assistant_repo.list_threads(org_id, limit=limit, cursor=cursor)
 
     async def get_thread(self, org_id: str, thread_id: str) -> Thread | None:
         return await self._assistant_repo.get_thread(org_id, thread_id)
@@ -195,7 +197,7 @@ class AssistantService:
         ]
 
         # Format answer parts
-        parts = [AnswerPart(type="text", text=answer_text)]
+        parts = await self._build_answer_parts(org_id, question, answer_text)
 
         answer_obj = MessageAnswer(
             parts=parts,
@@ -309,7 +311,7 @@ class AssistantService:
             for kind, cid in citation_matches
         ]
 
-        parts = [AnswerPart(type="text", text=answer_text)]
+        parts = await self._build_answer_parts(org_id, question, answer_text)
         answer_obj = MessageAnswer(
             parts=parts,
             citations=citations,
@@ -377,3 +379,44 @@ class AssistantService:
 
         call = await self._reader.suggest_match(line_info, candidates_info)
         return call.value
+
+    async def _build_answer_parts(
+        self, org_id: str, question: str, answer_text: str
+    ) -> list[AnswerPart]:
+        parts = [AnswerPart(type="text", text=answer_text)]
+        lower_q = question.lower()
+        diagram_triggers = [
+            "chart",
+            "diagram",
+            "sankey",
+            "waterfall",
+            "breakdown",
+            "flow",
+            "money flow",
+            "grafik",
+        ]
+        if any(w in lower_q for w in diagram_triggers):
+            chart_type = (
+                "MONEY_FLOW"
+                if any(w in lower_q for w in ["flow", "sankey", "money"])
+                else "MONTHLY_IN_OUT"
+            )
+            months = await self._month_repo.list(org_id)
+            chart_rows: list[list[str]] = []
+            if months:
+                for m in sorted(months, key=lambda x: x.month)[-6:]:
+                    figs = m.figures or {}
+                    in_val = figs.get("inflow_minor", 0) / 100
+                    out_val = figs.get("outflow_minor", 0) / 100
+                    chart_rows.append(
+                        [m.month, f"In: {in_val:,.0f} | Out: {out_val:,.0f}", "100%"]
+                    )
+            parts.append(
+                AnswerPart(
+                    type="chart",
+                    chart=chart_type,
+                    rows=chart_rows,
+                    query={"target": "dashboard", "view": "OPERATING"},
+                )
+            )
+        return parts

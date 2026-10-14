@@ -1169,6 +1169,9 @@ paths:
     get:
       tags: [assistant]
       operationId: listThreads
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
       responses:
         "200":
           description: The caller's threads, newest first
@@ -1179,6 +1182,7 @@ paths:
                 required: [items]
                 properties:
                   items: { type: array, items: { $ref: "#/components/schemas/Thread" } }
+                  nextCursor: { type: [string, "null"] }
     post:
       tags: [assistant]
       operationId: createThread

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 from app.domain.models.assistant import AssistantMessage, Memory, Thread
 from app.ports.assistant_repository import AssistantRepository
 
@@ -12,10 +14,15 @@ class FakeAssistantRepository(AssistantRepository):
         self.messages: dict[tuple[str, str], list[AssistantMessage]] = {}
         self.memories: dict[tuple[str, str], list[Memory]] = {}
 
-    async def list_threads(self, org_id: str, limit: int = 50) -> list[Thread]:
+    async def list_threads(
+        self, org_id: str, limit: int = 50, cursor: str | None = None
+    ) -> tuple[list[Thread], str | None]:
         found = [t for (o, _), t in self.threads.items() if o == org_id]
-        found.sort(key=lambda t: t.created_at or 0, reverse=True)
-        return found[:limit]
+        found.sort(key=lambda t: t.created_at or datetime.min.replace(tzinfo=UTC), reverse=True)
+        start = int(cursor) if cursor and cursor.isdigit() else 0
+        end = start + limit
+        next_cursor = str(end) if end < len(found) else None
+        return found[start:end], next_cursor
 
     async def get_thread(self, org_id: str, thread_id: str) -> Thread | None:
         return self.threads.get((org_id, thread_id))

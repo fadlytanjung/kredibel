@@ -10,8 +10,10 @@ from app.domain.models.assistant import AssistantMessage, Memory, Thread
 class AssistantRepository(Protocol):
     """Stores conversation threads and messages for the Finance Assistant."""
 
-    async def list_threads(self, org_id: str, limit: int = 50) -> list[Thread]:
-        """List threads for an org, newest first."""
+    async def list_threads(
+        self, org_id: str, limit: int = 50, cursor: str | None = None
+    ) -> tuple[list[Thread], str | None]:
+        """List threads for an org, newest first, with optional cursor pagination."""
         ...
 
     async def get_thread(self, org_id: str, thread_id: str) -> Thread | None:

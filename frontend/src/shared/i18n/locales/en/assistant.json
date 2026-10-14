@@ -11,6 +11,14 @@
   "earlierQuestions": "Earlier questions",
   "openEvidence": "Open the evidence",
   "goToMonth": "Go to month",
+  "viewFullDiagram": "View diagram",
+  "seeFullDiagramClick": "See full interactive diagram on Dashboard",
+  "loadMoreThreads": "Load earlier questions",
+  "charts": {
+    "moneyFlow": "Money Flow (Sankey)",
+    "monthlyInOut": "Monthly In / Out",
+    "categoryBreakdown": "Category Breakdown"
+  },
   "starters": {
     "unpaid": "Which invoices are still unpaid?",
     "q2": "Where did the money go in Q2?",

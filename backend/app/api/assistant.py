@@ -54,11 +54,18 @@ def create_assistant_router(deps: ServiceProvider, workspace_dep: Any) -> APIRou
 
     @router.get("/assistant/threads")
     async def list_threads(
+        limit: int = 50,
+        cursor: str | None = None,
         principal: Principal = Depends(workspace_dep),
     ) -> dict[str, Any]:
         org_id = org_of(principal)
-        threads = await deps.assistant_service.list_threads(org_id)
-        return {"items": [_thread_body(t) for t in threads]}
+        threads, next_cursor = await deps.assistant_service.list_threads(
+            org_id, limit=limit, cursor=cursor
+        )
+        return {
+            "items": [_thread_body(t) for t in threads],
+            "nextCursor": next_cursor,
+        }
 
     @router.post("/assistant/threads", status_code=status.HTTP_201_CREATED)
     async def create_thread(

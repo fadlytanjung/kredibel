@@ -29,6 +29,34 @@ describe('AnswerParts', () => {
     expect(screen.getByText('Open the evidence')).toBeInTheDocument()
   })
 
+  it('renders markdown links to internal pages', () => {
+    const answer: MessageAnswer = {
+      parts: [
+        {
+          type: 'text',
+          text: 'See the [Cash Flow Dashboard](/dashboard) and [May 2026](/months/2026-05) for details.',
+        },
+      ],
+      citations: [],
+      grounding: { verdict: 'AGREED', citations: [] },
+      toolsUsed: [],
+    }
+
+    render(
+      <MemoryRouter>
+        <AnswerParts answer={answer} />
+      </MemoryRouter>,
+    )
+
+    const dashLink = screen.getByRole('link', { name: /Cash Flow Dashboard/i })
+    expect(dashLink).toBeInTheDocument()
+    expect(dashLink).toHaveAttribute('href', '/dashboard')
+
+    const monthLink = screen.getByRole('link', { name: /May 2026/i })
+    expect(monthLink).toBeInTheDocument()
+    expect(monthLink).toHaveAttribute('href', '/months/2026-05')
+  })
+
   it('renders tabular parts correctly', () => {
     const answer: MessageAnswer = {
       parts: [
@@ -57,12 +85,12 @@ describe('AnswerParts', () => {
     expect(screen.getByText('Transfer 2')).toBeInTheDocument()
   })
 
-  it('renders chart mini-bars correctly', () => {
+  it('renders chart mini-bars and diagram link button correctly', () => {
     const answer: MessageAnswer = {
       parts: [
         {
           type: 'chart',
-          chart: 'CATEGORY_BREAKDOWN',
+          chart: 'MONEY_FLOW',
           rows: [
             ['Rent', 'IDR 15,000,000', '60%'],
             ['Payroll', 'IDR 10,000,000', '40%'],
@@ -80,8 +108,10 @@ describe('AnswerParts', () => {
       </MemoryRouter>,
     )
 
-    expect(screen.getByRole('img', { name: 'CATEGORY_BREAKDOWN' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Money Flow (Sankey)' })).toBeInTheDocument()
     expect(screen.getByText('Rent')).toBeInTheDocument()
     expect(screen.getByText('IDR 15,000,000')).toBeInTheDocument()
+    expect(screen.getByText('Money Flow (Sankey)')).toBeInTheDocument()
+    expect(screen.getByText('See full interactive diagram on Dashboard')).toBeInTheDocument()
   })
 })

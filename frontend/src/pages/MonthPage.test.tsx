@@ -204,6 +204,17 @@ describe('MonthPage', () => {
     )
   })
 
+  it('opens MatchSheet when Match button is clicked on an unmatched line', async () => {
+    serve()
+    renderPage()
+
+    const row = (await screen.findByText('DEBIT CARD CENDANA FUEL')).closest('tr') as HTMLElement
+    fireEvent.click(within(row).getByRole('button', { name: 'Match' }))
+
+    expect(await screen.findByRole('dialog')).toBeInTheDocument()
+    expect(screen.getByText('Match bank transaction')).toBeInTheDocument()
+  })
+
   it('searches bank lines by description and category', async () => {
     serve()
     renderPage()

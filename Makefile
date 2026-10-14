@@ -166,7 +166,7 @@ dev-traced: ## Run the local API/inline worker with metadata traces in Jaeger
 .PHONY: langfuse-up langfuse-down langfuse-smoke dev-langfuse gemini-usage
 LANGFUSE_COMPOSE := docker compose -f infra/langfuse/docker-compose.yml --env-file infra/langfuse/.env
 # The project keys from infra/langfuse/.env, for commands that send traces to the local Langfuse.
-WITH_LANGFUSE := set -a && . ./infra/langfuse/.env && set +a && TRACE_EXPORT=langfuse LANGFUSE_HOST=http://127.0.0.1:3000
+WITH_LANGFUSE := set -a && . ./infra/langfuse/.env && export TRACE_EXPORT=langfuse LANGFUSE_HOST=http://127.0.0.1:3000 && set +a
 
 langfuse-up: ## Start a local Langfuse at http://localhost:3000 (ADR-026); the first run writes infra/langfuse/.env
 	python3 tools/langfuse/init_env.py
@@ -180,14 +180,17 @@ langfuse-smoke: ## Send a synthetic trace with one generation to the local Langf
 	$(WITH_LANGFUSE) && cd backend && ENV_FILE=/dev/null PYTHONPATH=. uv run python scripts/trace_smoke.py --langfuse
 
 dev-langfuse: ## Run the local API/inline worker traced in Langfuse (CONTENT=1: prompts too; refused unless DATA_CLASS=synthetic)
-	$(WITH_LANGFUSE) AI_CONTENT_CAPTURE=$(if $(CONTENT),synthetic,off) DATA_CLASS=$(if $(CONTENT),synthetic,$${DATA_CLASS:-real}) $(MAKE) dev-backend
+	$(WITH_LANGFUSE) && export AI_CONTENT_CAPTURE=$(if $(CONTENT),synthetic,off) DATA_CLASS=$(if $(CONTENT),synthetic,$${DATA_CLASS:-real}) && $(MAKE) dev-backend
 
 gemini-usage: ## Gemini requests and tokens of the project from Cloud Monitoring (DAYS=7)
 	cd backend && PYTHONPATH=. uv run python scripts/gemini_usage.py --days $(or $(DAYS),7)
 
-.PHONY: demo-books
-demo-books: ## Upload the synthetic demo books into EMAIL's workspace (docs/18 §5; DRY=1 lists them)
-	cd backend && $(shell command -v caffeinate >/dev/null && echo caffeinate -i) uv run python -m scripts.upload_demo_books --email "$(EMAIL)" $(if $(DRY),--dry-run,)
+.PHONY: demo-books clean-workspace
+clean-workspace: ## Clean up workspace documents, bank lines and runs (EMAIL=... or ORG=...)
+	cd backend && uv run python -m scripts.clean_workspace $(if $(EMAIL),--email "$(EMAIL)",) $(if $(ORG),--org "$(ORG)",)
+
+demo-books: ## Upload synthetic demo books into EMAIL's workspace (docs/18 §5; DRY=1, MONTHS=..., CLEAN=1, SCENARIOS=...)
+	$(if $(filter 1,$(NO_LANGFUSE)),,$(WITH_LANGFUSE) && export DATA_CLASS=synthetic AI_CONTENT_CAPTURE=$(if $(NO_CONTENT),off,synthetic) &&) cd backend && $(shell command -v caffeinate >/dev/null && echo caffeinate -i) uv run python -m scripts.upload_demo_books --email "$(EMAIL)" $(if $(DRY),--dry-run,) $(if $(MONTHS),--months "$(MONTHS)",) $(if $(SCENARIOS),--scenarios "$(SCENARIOS)",) $(if $(filter 1,$(CLEAN)),--clean,)
 
 .PHONY: demo-reconciliation demo-reconciliation-traced reconciliation-fixtures
 demo-reconciliation: ## Replay generated invoices/receipts/statements in both orders (offline)

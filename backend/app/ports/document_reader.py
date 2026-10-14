@@ -67,3 +67,19 @@ class DocumentReader(Protocol):
     ) -> ReaderCall[Any]:
         """Gemini explanation for the month's fraud risk level (spec 008, AC-008-4)."""
         ...
+
+    async def suggest_match(
+        self,
+        bank_line_info: str,
+        candidates_info: str,
+    ) -> ReaderCall[Any]:
+        """Gemini recommendation and reasoning for matching a bank line with candidate documents."""
+        ...
+
+    async def ask_assistant(
+        self,
+        history: list[dict[str, str]],
+        context: str,
+    ) -> ReaderCall[str]:
+        """Ask the finance assistant with facts and context."""
+        ...

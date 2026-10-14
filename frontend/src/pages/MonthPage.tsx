@@ -11,14 +11,14 @@ import { useTranslation } from 'react-i18next'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { type BankLine, isIncoming, useMonthBankLines } from '../entities/bank-line'
 import { useFindings } from '../entities/finding'
-import { type Match, useCreateMatch, useMatches, useUnmatch } from '../entities/match'
+import { type Match, useMatches, useUnmatch } from '../entities/match'
 import { useMonth, useMonths, useReconcileMonth } from '../entities/month'
 import { useWorkspace } from '../entities/workspace'
 import { formatDate, formatMonth } from '../shared/lib/formatDate'
 import { formatAmount } from '../shared/lib/formatMoney'
 import { Badge, Button, DataTable, type DataTableColumn, type DataTableFilter, Icon } from '../shared/ui'
 import type { IconName } from '../shared/ui/Icon'
-import { MonthDocuments, MonthFindings, useMonthDocuments } from '../widgets/month'
+import { MatchSheet, MonthDocuments, MonthFindings, useMonthDocuments } from '../widgets/month'
 
 type Tab = 'lines' | 'documents' | 'ledger' | 'findings'
 const TABS: Tab[] = ['lines', 'documents', 'ledger', 'findings']
@@ -108,11 +108,9 @@ export function MonthPage() {
   const { data: matchesData } = useMatches(month)
   const { data: ws } = useWorkspace(true)
   const reconcileMutation = useReconcileMonth()
-  const createMatchMutation = useCreateMatch()
   const unmatchMutation = useUnmatch()
 
-  const [matchingTxId, setMatchingTxId] = useState<string | null>(null)
-  const [matchCandidateId, setMatchCandidateId] = useState<string>('')
+  const [matchingLine, setMatchingLine] = useState<BankLine | null>(null)
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
 
   const lines = linesData?.items ?? []
@@ -159,20 +157,6 @@ export function MonthPage() {
   const share = (n: number) => `${((n / meterTotal) * 100).toFixed(1)}%`
   const credits = lines.filter(isIncoming).length
 
-  const handleManualMatch = async (txId: string) => {
-    if (!matchCandidateId.trim()) return
-    try {
-      await createMatchMutation.mutateAsync({
-        bankLineIds: [txId],
-        invoiceIds: [matchCandidateId.trim()],
-      })
-      setStatusMessage(t('months:monthDetail.matchedStatus', { id: matchCandidateId.trim() }))
-      setMatchingTxId(null)
-      setMatchCandidateId('')
-    } catch {
-      setStatusMessage(t('months:monthDetail.matchFailed'))
-    }
-  }
 
   const handleUnmatch = async (matchId: string) => {
     try {
@@ -222,6 +206,11 @@ export function MonthPage() {
               >
                 {categoryLabel(line)}
               </Badge>
+              {cashflow && cashflow !== 'UNCLASSIFIED' && (
+                <Badge variant="outline">
+                  {t('months:ifrsLabel', { classification: t(`months:cashflow.${cashflow}`) })}
+                </Badge>
+              )}
               {line.categorizedBy === 'USER' && (
                 <span className="reason">{t('months:monthDetail.categoryByYou')}</span>
               )}
@@ -288,32 +277,11 @@ export function MonthPage() {
             </Button>
           )
         }
-        if (matchingTxId === line.txId) {
-          return (
-            <div className="row gap-2 items-center">
-              <input
-                className="input input-sm"
-                placeholder={t('months:monthDetail.invoiceIdPlaceholder')}
-                value={matchCandidateId}
-                onChange={(e) => setMatchCandidateId(e.target.value)}
-              />
-              <Button size="sm" onClick={() => void handleManualMatch(line.txId)}>
-                {t('months:monthDetail.link')}
-              </Button>
-              <Button variant="secondary" size="sm" onClick={() => setMatchingTxId(null)}>
-                {t('months:monthDetail.cancel')}
-              </Button>
-            </div>
-          )
-        }
         return (
           <Button
             variant="secondary"
             size="sm"
-            onClick={() => {
-              setMatchingTxId(line.txId)
-              setMatchCandidateId('')
-            }}
+            onClick={() => setMatchingLine(line)}
           >
             {t('months:monthDetail.match')}
           </Button>
@@ -358,7 +326,15 @@ export function MonthPage() {
               {t('months:monthDetail.critical')}
             </Badge>
           )}
+          <Link
+            className="button button-quiet button-sm ml-auto"
+            to={`/assistant?q=${encodeURIComponent(`What is the reconciliation status and risk for ${monthLabel}?`)}`}
+          >
+            <Icon name="sparkles" size="sm" />
+            {t('months:monthDetail.askAboutMonth')}
+          </Link>
         </div>
+
         <p className="muted">{monthData?.note || t('months:monthDetail.subtitle')}</p>
       </div>
 
@@ -569,6 +545,27 @@ export function MonthPage() {
             {tab === 'findings' && <MonthFindings findings={openFindings} />}
           </div>
         </div>
+      )}
+      {matchingLine && (
+        <MatchSheet
+          line={matchingLine}
+          month={month}
+          currency={currency}
+          documents={monthDocuments}
+          onClose={() => setMatchingLine(null)}
+          onMatched={(id) => {
+            setStatusMessage(t('months:monthDetail.matchedStatus', { id }))
+            setMatchingLine(null)
+          }}
+          onNotRequired={() => {
+            setStatusMessage(
+              t('months:monthDetail.matchSheet.noDocSuccess', {
+                defaultValue: 'Marked as needing no document. Reconciling month...',
+              }),
+            )
+            setMatchingLine(null)
+          }}
+        />
       )}
     </div>
   )

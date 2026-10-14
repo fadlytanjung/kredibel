@@ -82,7 +82,8 @@ _Last updated: 12 Oct 2026 — Local OTLP tracing and generated invoice/receipt 
 |---|---|---|---|
 | Model Armor screening + quarantine | 015 | Specified | Depends on spike S4 |
 | Run graph | 015 | Specified | ADK traces, docs/17 §5 |
-| Finance Assistant (tools, Firestore vector retrieval, Sessions, Memory Bank) | 011 | Specified | ADR-014; spike S5 |
+| Finance Assistant (tools, Firestore vector retrieval, Sessions, Memory Bank) | 011 | In progress | ADR-014; Assistant API (threads, messages, memories list/purge, AI match suggestions) built; `AssistantPage` markup and kit CSS aligned with official mock; `AnswerParts` widget (citations, tables, mini-bars charts) and "Ask about this" buttons on Dashboard/Month/Findings built and tested (T011-07, AC-011-4, AC-011-10, AC-011-11, AC-011-12) |
+
 | DeepEval suite for the assistant | 011, 012 | Specified | Gemini judge on Agent Platform |
 | Month sign-off | 015 | Specified | |
 | Revision diff, `M05`, `A03`, `A05` | 015 | Specified | |

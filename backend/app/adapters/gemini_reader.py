@@ -33,6 +33,9 @@ _TASKS = {
     "invoice_page": "read_invoice_page",
     "receipt_page": "read_receipt",
     "categorize": "categorize_transactions",
+    "explain_month": "explain_month",
+    "suggest_match": "suggest_match",
+    "assistant": "finance_assistant",
 }
 
 
@@ -247,6 +250,39 @@ class GeminiDocumentReader(DocumentReader):
                 + "\n".join(f"- {p}" for p in retry_problems)
             )
         return await self._call(load_prompt("explain_month"), parts, MonthExplanation)
+
+    async def suggest_match(
+        self,
+        bank_line_info: str,
+        candidates_info: str,
+    ) -> ReaderCall[Any]:
+        from app.domain.models.assistant import MatchSuggestion
+
+        parts: list[Any] = [
+            f"BANK TRANSACTION LINE:\n{bank_line_info}",
+            f"CANDIDATE DOCUMENTS:\n{candidates_info}",
+        ]
+        return await self._call(load_prompt("suggest_match"), parts, MatchSuggestion)
+
+    async def ask_assistant(
+        self,
+        history: list[dict[str, str]],
+        context: str,
+    ) -> ReaderCall[Any]:
+        from pydantic import BaseModel, Field
+
+        class AssistantResponse(BaseModel):
+            answer: str
+            suggested_followups: list[str] = Field(default_factory=list)
+
+        history_text = "\n".join(
+            f"{m.get('role', 'user').upper()}: {m.get('content', '')}" for m in history
+        )
+        parts: list[Any] = [
+            f"FINANCIAL CONTEXT AND FACTS:\n{context}",
+            f"CONVERSATION HISTORY:\n{history_text}",
+        ]
+        return await self._call(load_prompt("finance_assistant"), parts, AssistantResponse)
 
 
 def _page_parts(image_png: bytes, chunks: str, page: int) -> list[Any]:

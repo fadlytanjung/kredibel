@@ -39,6 +39,7 @@ def upload_plan(
     demo_dir: Path,
     scenarios: tuple[str, ...] = SCENARIOS,
     already: set[tuple[str, str]] | None = None,
+    months: set[str] | None = None,
 ) -> list[tuple[str, Path]]:
     """Every file of the first scenario, then each later scenario's files whose name and content
     were not uploaded before. A file with new content keeps its place in its scenario's order; a
@@ -49,6 +50,11 @@ def upload_plan(
     for scenario in scenarios:
         folder = demo_dir / scenario / "seed-1"
         for name in _order(folder):
+            is_ledger = name.startswith("ledger-") and any(
+                m in name or "H1" in name for m in (months or ())
+            )
+            if months and not any(m in name for m in months) and not is_ledger:
+                continue
             path = folder / name
             key = (name, hashlib.sha256(path.read_bytes()).hexdigest())
             if key in sent:
@@ -62,7 +68,14 @@ def _log(*parts: object) -> None:
     print(time.strftime("%H:%M:%S"), *parts, flush=True)
 
 
-async def _run(email: str, demo_dir: Path, dry_run: bool) -> int:
+async def _run(
+    email: str,
+    demo_dir: Path,
+    dry_run: bool,
+    months: set[str] | None = None,
+    clean: bool = False,
+    scenarios: tuple[str, ...] = SCENARIOS,
+) -> int:
     import firebase_admin
     from firebase_admin import auth
 
@@ -96,9 +109,21 @@ async def _run(email: str, demo_dir: Path, dry_run: bool) -> int:
         print("The synthetic books are in IDR; this workspace is not.", file=sys.stderr)
         return 1
 
+    if clean and not dry_run:
+        from scripts.clean_workspace import clean_org_data
+
+        _log(f"cleaning workspace {org_id} before upload...")
+        deleted = await clean_org_data(org_id, settings)
+        _log("cleaned:", {k: v for k, v in deleted.items() if v})
+
     # Resume: skip what the workspace already holds; finish documents a stopped run left half read.
     held, _ = await deps.doc_repo.list_documents(org_id, limit=500)
-    plan = upload_plan(demo_dir, already={(d.file_name, d.sha256) for d in held})
+    plan = upload_plan(
+        demo_dir,
+        scenarios=scenarios,
+        already={(d.file_name, d.sha256) for d in held},
+        months=months,
+    )
     _log(
         f"{len(plan)} files to upload, {len(held)} already there:",
         dict(Counter(s for s, _ in plan)),
@@ -146,8 +171,20 @@ async def _run(email: str, demo_dir: Path, dry_run: bool) -> int:
     for start in range(0, len(plan), CHUNK):
         for scenario, path in plan[start : start + CHUNK]:
             try:
+                content = path.read_bytes()
+                if months and path.name.startswith("ledger-") and path.suffix == ".csv":
+                    month_suffixes = tuple(f"/{m.split('-')[1]}/{m.split('-')[0]}" for m in months)
+                    filtered_lines = []
+                    for line in content.decode("utf-8", errors="replace").splitlines(keepends=True):
+                        if line.startswith("#") or line.startswith("Date,"):
+                            filtered_lines.append(line)
+                            continue
+                        date_str = line.split(",", 1)[0].strip()
+                        if any(date_str.endswith(sfx) for sfx in month_suffixes):
+                            filtered_lines.append(line)
+                    content = "".join(filtered_lines).encode("utf-8")
                 doc = await deps.document_service.upload(
-                    principal=principal, file_bytes=path.read_bytes(), filename=path.name
+                    principal=principal, file_bytes=content, filename=path.name
                 )
                 outcomes[str(getattr(doc.status, "value", doc.status))] += 1
             except Exception as error:  # noqa: BLE001 - report every refused file and go on
@@ -161,7 +198,12 @@ async def _run(email: str, demo_dir: Path, dry_run: bool) -> int:
         await queue.drain()
     _log("uploads:", dict(outcomes))
 
-    for month in sorted(await deps.month_repo.list(org_id), key=lambda m: m.month):
+    months_to_reconcile = [
+        m
+        for m in sorted(await deps.month_repo.list(org_id), key=lambda m: m.month)
+        if not months or m.month in months
+    ]
+    for month in months_to_reconcile:
         generation, _ = await deps.month_repo.bump_generation(org_id, month.month, dirty=True)
         await deps.run_service.reconcile_month_task(
             org_id=org_id,
@@ -171,8 +213,10 @@ async def _run(email: str, demo_dir: Path, dry_run: bool) -> int:
         )
     docs, _ = await deps.doc_repo.list_documents(org_id, limit=500)
     _log("documents:", dict(Counter(str(getattr(d.status, "value", d.status)) for d in docs)))
-    for month in sorted(await deps.month_repo.list(org_id), key=lambda m: m.month):
-        _log(f"  {month.month}: {month.state.value}, risk {(month.risk or {}).get('level')}")
+    for month in months_to_reconcile:
+        fresh = await deps.month_repo.get(org_id, month.month)
+        m_obj = fresh or month
+        _log(f"  {m_obj.month}: {m_obj.state.value}, risk {(m_obj.risk or {}).get('level')}")
     return 0
 
 
@@ -181,8 +225,28 @@ def main() -> int:
     parser.add_argument("--email", required=True, help="The workspace owner's sign-in email")
     parser.add_argument("--demo-dir", type=Path, default=DEMO_DIR)
     parser.add_argument("--dry-run", action="store_true", help="List the files and stop")
+    parser.add_argument("--months", help="Comma-separated months, e.g. 2026-04,2026-05,2026-06")
+    parser.add_argument(
+        "--clean", action="store_true", help="Wipe previous documents and runs before uploading"
+    )
+    parser.add_argument(
+        "--scenarios",
+        default="S1,S2,S3,S4",
+        help="Comma-separated scenarios (default: S1,S2,S3,S4)",
+    )
     args = parser.parse_args()
-    return asyncio.run(_run(args.email, args.demo_dir, args.dry_run))
+    months_filter = {m.strip() for m in args.months.split(",")} if args.months else None
+    scenarios_tuple = tuple(s.strip() for s in args.scenarios.split(","))
+    return asyncio.run(
+        _run(
+            args.email,
+            args.demo_dir,
+            args.dry_run,
+            months=months_filter,
+            clean=args.clean,
+            scenarios=scenarios_tuple,
+        )
+    )
 
 
 if __name__ == "__main__":

@@ -6,12 +6,12 @@
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { type Finding, SeverityBadge, type SeverityLevel } from '../../entities/finding'
-import { DataTable, type DataTableColumn, type DataTableFilter } from '../../shared/ui'
+import { DataTable, type DataTableColumn, type DataTableFilter, Icon } from '../../shared/ui'
 
 const SEVERITIES: SeverityLevel[] = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']
 
 export function MonthFindings({ findings }: { findings: Finding[] }) {
-  const { t } = useTranslation(['months', 'risk'])
+  const { t } = useTranslation(['months', 'risk', 'assistant'])
   const navigate = useNavigate()
   if (findings.length === 0) return <p className="muted">{t('months:monthDetail.findings.none')}</p>
   const sorted = [...findings].sort((a, b) => SEVERITIES.indexOf(a.severity as SeverityLevel) - SEVERITIES.indexOf(b.severity as SeverityLevel))
@@ -37,13 +37,27 @@ export function MonthFindings({ findings }: { findings: Finding[] }) {
       header: t('months:monthDetail.findings.colFinding'),
       wideOnMobile: true,
       render: (f) => (
-        <div>
-          <strong>{f.title}</strong>
-          {f.nextSteps?.[0] && <div className="reason">{f.nextSteps[0]}</div>}
+        <div className="row items-center justify-between gap-3">
+          <div>
+            <strong>{f.title}</strong>
+            {f.nextSteps?.[0] && <div className="reason">{f.nextSteps[0]}</div>}
+          </div>
+          <button
+            type="button"
+            className="button button-quiet button-sm"
+            onClick={(e) => {
+              e.stopPropagation()
+              navigate(`/assistant?q=${encodeURIComponent(`Explain finding ${f.code} for month ${f.month}: ${f.title}`)}&scope=${f.findingId}`)
+            }}
+          >
+            <Icon name="sparkles" size="sm" />
+            {t('assistant:title', { defaultValue: 'Ask' })}
+          </button>
         </div>
       ),
     },
   ]
+
   return (
     <DataTable
       data={sorted}

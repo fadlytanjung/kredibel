@@ -22,6 +22,7 @@
   "monthDetail": {
     "previousMonth": "Previous month",
     "nextMonth": "Next month",
+    "askAboutMonth": "Ask about this month",
     "subtitle": "Statement, invoices, receipts, and ledger transactions for this period.",
     "critical": "Critical",
     "figuresAria": "{{month}} figures",
@@ -136,6 +137,9 @@
       "sales": "Sales, to {{party}}",
       "purchase": "Purchase, from {{party}}",
       "merchant": "Paid to {{party}}",
+      "badgeSales": "Sales invoice",
+      "badgePurchase": "Purchase invoice",
+      "badgeReceipt": "Receipt",
       "unknownParty": "an unnamed party",
       "none": "No invoices or receipts for this month yet.",
       "upload": "Upload documents",
@@ -206,5 +210,6 @@
     "FINANCING": "Financing",
     "NON_CASH": "Not cash",
     "UNCLASSIFIED": "Not classified"
-  }
+  },
+  "ifrsLabel": "IFRS: {{classification}}"
 }

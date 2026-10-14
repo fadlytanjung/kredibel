@@ -25,6 +25,5 @@ function PlaceholderPage({ titleKey, spec }: PlaceholderProps) {
 export const CounterpartiesPage = () => (
   <PlaceholderPage titleKey="placeholder.counterparties" spec="spec 014" />
 )
-export const AssistantPage = () => <PlaceholderPage titleKey="placeholder.assistant" spec="spec 011" />
 export const LabelsPage = () => <PlaceholderPage titleKey="placeholder.labels" spec="spec 016" />
 export const RunsPage = () => <PlaceholderPage titleKey="placeholder.runs" spec="spec 017" />

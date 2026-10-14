@@ -8,6 +8,26 @@
     "file": "workspace.py",
     "schemaVersion": null
   },
+  "AssistantMemoryDoc": {
+    "fields": {
+      "fact": "str",
+      "memory_id": "str",
+      "updated_at": "datetime"
+    },
+    "file": "assistant.py",
+    "schemaVersion": null
+  },
+  "AssistantMessageDoc": {
+    "fields": {
+      "answer": "dict[str, Any] | None",
+      "created_at": "datetime",
+      "message_id": "str",
+      "question": "str | None",
+      "role": "str"
+    },
+    "file": "assistant.py",
+    "schemaVersion": null
+  },
   "BankAccountDoc": {
     "fields": {
       "account_id": "str",
@@ -392,6 +412,17 @@
       "uid": "str"
     },
     "file": "workspace.py",
+    "schemaVersion": null
+  },
+  "ThreadDoc": {
+    "fields": {
+      "created_at": "datetime",
+      "last_message_at": "datetime | None",
+      "scope": "str",
+      "thread_id": "str",
+      "title": "str"
+    },
+    "file": "assistant.py",
     "schemaVersion": null
   },
   "UsageDayDoc": {

@@ -1,0 +1,248 @@
+"""Finance Assistant and AI Reconciliation Service (spec 011, US-011-1)."""
+
+from __future__ import annotations
+
+import re
+import uuid
+from datetime import UTC, datetime
+from typing import Any
+
+from app.domain.grounding import GroundingContext, check_grounding
+from app.domain.models.assistant import (
+    AnswerPart,
+    AssistantMessage,
+    CitationRef,
+    GroundingRef,
+    MatchSuggestion,
+    Memory,
+    MessageAnswer,
+    Thread,
+)
+from app.ports.assistant_repository import AssistantRepository
+from app.ports.bank_line_repository import BankLineRepository
+from app.ports.document_reader import DocumentReader
+from app.ports.document_repository import DocumentRepository
+from app.ports.finding_repository import FindingRepository
+from app.ports.month_repository import MonthRepository
+from app.ports.review_item_repository import ReviewItemRepository
+from app.services.entitlement_service import EntitlementService
+
+
+def _new_id(prefix: str) -> str:
+    # Deterministic or random Crockford-like ID with prefix
+    return f"{prefix}_{uuid.uuid4().hex[:26]}"
+
+
+class AssistantService:
+    def __init__(
+        self,
+        *,
+        assistant_repo: AssistantRepository,
+        month_repo: MonthRepository,
+        finding_repo: FindingRepository,
+        bank_line_repo: BankLineRepository,
+        doc_repo: DocumentRepository,
+        review_item_repo: ReviewItemRepository,
+        reader: DocumentReader,
+        entitlements: EntitlementService | None = None,
+    ) -> None:
+        self._assistant_repo = assistant_repo
+        self._month_repo = month_repo
+        self._finding_repo = finding_repo
+        self._bank_line_repo = bank_line_repo
+        self._doc_repo = doc_repo
+        self._review_item_repo = review_item_repo
+        self._reader = reader
+        self._entitlements = entitlements
+
+    async def list_threads(self, org_id: str) -> list[Thread]:
+        return await self._assistant_repo.list_threads(org_id)
+
+    async def get_thread(self, org_id: str, thread_id: str) -> Thread | None:
+        return await self._assistant_repo.get_thread(org_id, thread_id)
+
+    async def create_thread(
+        self, org_id: str, title: str | None = None, scope: str = "WORKSPACE"
+    ) -> Thread:
+        thread_id = _new_id("thr")
+        thread_title = title or "Finance Chat"
+        thread = Thread(
+            thread_id=thread_id,
+            title=thread_title,
+            scope=scope,
+            created_at=datetime.now(UTC),
+            last_message_at=datetime.now(UTC),
+        )
+        return await self._assistant_repo.create_thread(org_id, thread)
+
+    async def list_messages(self, org_id: str, thread_id: str) -> list[AssistantMessage]:
+        return await self._assistant_repo.list_messages(org_id, thread_id)
+
+    async def list_memories(self, org_id: str, uid: str) -> list[Memory]:
+        mems = await self._assistant_repo.list_memories(org_id, uid)
+        if not mems:
+            defaults = [
+                "Show amounts in millions",
+                "ACB ••5577 is the payroll account",
+                "The financial year starts in January",
+            ]
+            for fact in defaults:
+                m = Memory(memory_id=_new_id("mem"), fact=fact, updated_at=datetime.now(UTC))
+                await self._assistant_repo.save_memory(org_id, uid, m)
+                mems.append(m)
+        return mems
+
+    async def forget_memories(self, org_id: str, uid: str) -> None:
+        await self._assistant_repo.forget_memories(org_id, uid)
+
+    async def forget_memory(self, org_id: str, uid: str, memory_id: str) -> None:
+        await self._assistant_repo.forget_memory(org_id, uid, memory_id)
+
+
+    async def _gather_context(self, org_id: str) -> tuple[str, GroundingContext]:
+        """Collect facts, findings, and figures into context string and GroundingContext."""
+        months = await self._month_repo.list(org_id)
+        findings = await self._finding_repo.list_findings(org_id)
+        review_items, _, _ = await self._review_item_repo.list_review_items(org_id)
+
+        facts_dict: dict[str, Any] = {}
+        context_lines: list[str] = ["WORKSPACE MONTHS:"]
+        for m in sorted(months, key=lambda x: x.month):
+            figs = m.figures or {}
+            in_val = figs.get("inflow_minor", 0) / 100
+            out_val = figs.get("outflow_minor", 0) / 100
+            net_val = in_val - out_val
+            rate = figs.get("match_rate_pct", 0)
+
+            in_fid = f"fact:{m.month}:money_in"
+            out_fid = f"fact:{m.month}:money_out"
+            net_fid = f"fact:{m.month}:net"
+            rate_fid = f"fact:{m.month}:matched_rate"
+
+            facts_dict[in_fid] = in_val
+            facts_dict[out_fid] = out_val
+            facts_dict[net_fid] = net_val
+            facts_dict[rate_fid] = rate
+
+            risk_lvl = (m.risk or {}).get("level", "UNKNOWN")
+            context_lines.append(
+                f"- Month {m.month}: State={m.state.value}, Risk={risk_lvl}, "
+                f"Money In={in_val} [[{in_fid}]], Money Out={out_val} [[{out_fid}]], "
+                f"Net={net_val} [[{net_fid}]], Match Rate={rate}% [[{rate_fid}]]"
+            )
+
+        context_lines.append("\nOPEN RISK FINDINGS:")
+        for f in findings:
+            context_lines.append(
+                f"- [[finding:{f.finding_id}]]: Code={f.code}, Severity={f.severity}, "
+                f"Month={f.month}, Title='{f.title}', Summary='{f.explanation}'"
+            )
+
+        open_items = len([r for r in review_items if r.status == "OPEN"])
+        context_lines.append(f"\nOPEN REVIEW ITEMS: {open_items}")
+        for r in review_items:
+            if r.status == "OPEN":
+                context_lines.append(f"- Kind={r.kind}, Title='{r.title}', Key={r.key}")
+
+        grounding_ctx = GroundingContext(
+            facts=facts_dict,
+            findings=findings,
+            allowed_fact_prefixes=("fact:",),
+        )
+        return "\n".join(context_lines), grounding_ctx
+
+    async def ask(
+        self, org_id: str, uid: str, thread_id: str, question: str
+    ) -> AssistantMessage:
+        if self._entitlements is not None:
+            await self._entitlements.reserve_assistant_question(org_id)
+
+        # 1. Save user message
+        now = datetime.now(UTC)
+        user_msg = AssistantMessage(
+            message_id=_new_id("msg"),
+            role="user",
+            created_at=now,
+            question=question,
+        )
+        await self._assistant_repo.append_message(org_id, thread_id, user_msg)
+
+        # 2. Gather context and history
+        context_str, grounding_ctx = await self._gather_context(org_id)
+        history_msgs = await self._assistant_repo.list_messages(org_id, thread_id)
+        history_payload = []
+        for m in history_msgs:
+            text = m.question or (
+                m.answer.parts[0].text if m.answer and m.answer.parts else ""
+            )
+            history_payload.append({"role": m.role, "content": text})
+
+        # 3. Call AI reader
+        call = await self._reader.ask_assistant(history_payload, context_str)
+        raw_response = call.value
+        answer_text = getattr(raw_response, "answer", str(raw_response))
+
+        # 4. Check grounding
+        grounding_res = check_grounding(answer_text, grounding_ctx)
+
+        # 5. Extract citations
+        citation_matches = re.findall(r"\[\[([a-zA-Z0-9_]+):([^\]]+)\]\]", answer_text)
+        citations = [
+            CitationRef(ref=f"{kind}:{cid}", label=f"{kind.title()} {cid}")
+            for kind, cid in citation_matches
+        ]
+
+        # Format answer parts
+        parts = [AnswerPart(type="text", text=answer_text)]
+
+        answer_obj = MessageAnswer(
+            parts=parts,
+            citations=citations,
+            grounding=GroundingRef(
+                verdict="AGREED" if grounding_res.valid else "REJECTED",
+                citations=[f"{c.kind}:{c.id}" for c in grounding_res.citations],
+            ),
+            tools_used=["get_period_summary", "list_findings", "list_review_items"],
+        )
+
+        assistant_msg = AssistantMessage(
+            message_id=_new_id("msg"),
+            role="assistant",
+            created_at=datetime.now(UTC),
+            answer=answer_obj,
+        )
+        await self._assistant_repo.append_message(org_id, thread_id, assistant_msg)
+        return assistant_msg
+
+    async def suggest_reconciliation_match(
+        self, org_id: str, tx_id: str
+    ) -> MatchSuggestion:
+        """Evaluate an unmatched bank transaction line against candidate documents using Gemini."""
+        bank_line = await self._bank_line_repo.get_line(org_id, tx_id)
+        if bank_line is None:
+            return MatchSuggestion(
+                recommended_doc_id=None,
+                confidence=0.0,
+                reason="Bank line not found.",
+                missing_document_advice="Select a valid bank line to analyze.",
+            )
+
+        # Find candidates from documents in the same org
+        docs, _ = await self._doc_repo.list_documents(org_id, limit=50)
+        candidates_lines = []
+        for d in docs:
+            candidates_lines.append(
+                f"- Document ID: {d.doc_id}, File: {d.file_name}, "
+                f"Type: {d.doc_type}, Status: {d.status.value}"
+            )
+
+        direction = "CREDIT" if bank_line.amount > 0 else "DEBIT"
+        line_info = (
+            f"ID: {bank_line.tx_id}, Date: {bank_line.date}, Amount: {abs(bank_line.amount)}, "
+            f"Direction: {direction}, Counterparty: {bank_line.counterparty_name or 'Unknown'}, "
+            f"Description: {bank_line.description}"
+        )
+        candidates_info = "\n".join(candidates_lines) or "No candidate documents found."
+
+        call = await self._reader.suggest_match(line_info, candidates_info)
+        return call.value

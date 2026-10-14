@@ -19,8 +19,8 @@ import { OnboardingPage } from '../pages/OnboardingPage'
 import { MonthPage } from '../pages/MonthPage'
 import { MonthsPage } from '../pages/MonthsPage'
 import { CurrentMonthRedirect } from '../pages/CurrentMonthRedirect'
+import { AssistantPage } from '../pages/AssistantPage'
 import {
-  AssistantPage,
   CounterpartiesPage,
   LabelsPage,
   RunsPage,

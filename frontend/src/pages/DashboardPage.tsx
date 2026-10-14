@@ -47,12 +47,46 @@ function Body({ data, name, period, framework }: { data: Dashboard; name: string
     .sort((a, b) => RISK_ORDER.indexOf(a.riskLevel ?? 'LOW') - RISK_ORDER.indexOf(b.riskLevel ?? 'LOW'))[0]
   return (
     <div className="dash">
+      <header className="stack gap-1">
+        <h1 className="type-title">{name || t('overview')}</h1>
+        <p className="greeting muted">{t('greeting', { name, range })}</p>
+      </header>
+
+      <section className="ledger" aria-label={t('figuresAria', { range })}>
+        <dl className="ledger-figures">
+          {data.kpis.map((kpi) => (
+            <KpiCard key={kpi.id} kpi={kpi} />
+          ))}
+        </dl>
+      </section>
+
+      <ChartsSection period={period} range={range} framework={framework} />
+
       <section className="status-hero" aria-labelledby="status-h">
-        <p className="greeting">{t('greeting', { name, range })}</p>
-        <h1 className="status-sentence" id="status-h">
+        <div className="section-head">
+          <h2 className="type-h2" id="status-h">
+            {t('reconciliationHealth')}
+          </h2>
+          <div className="actions">
+            {worst && (
+              <Link className="button button-secondary button-sm" to={`/months/${worst.month}`}>
+                {t('seeMonth', { month: monthName(worst.month, false) })}
+              </Link>
+            )}
+            <Link
+              className="button button-quiet button-sm"
+              to={`/assistant?q=${encodeURIComponent(`What is the reconciliation status for ${range || 'this period'}?`)}`}
+            >
+              <Icon name="sparkles" size="sm" />
+              {t('askAboutThis')}
+            </Link>
+          </div>
+
+        </div>
+        <p className="status-sentence">
           <span className="done">{t('reconciled', { done, count: inPeriod.length })}</span>{' '}
           <span className="ask">{alerts.length ? t('openFindings', { count: alerts.length }) : t('nothingOpen')}</span>
-        </h1>
+        </p>
         {why.length > 0 && (
           <ul className="why">
             {why.map((a) => (
@@ -68,21 +102,6 @@ function Body({ data, name, period, framework }: { data: Dashboard; name: string
             ))}
           </ul>
         )}
-        <div className="actions">
-          {worst && (
-            <Link className="button button-secondary button-lg" to={`/months/${worst.month}`}>
-              {t('seeMonth', { month: monthName(worst.month, false) })}
-            </Link>
-          )}
-        </div>
-      </section>
-
-      <section className="ledger" aria-label={t('figuresAria', { range })}>
-        <dl className="ledger-figures">
-          {data.kpis.map((kpi) => (
-            <KpiCard key={kpi.id} kpi={kpi} />
-          ))}
-        </dl>
       </section>
 
       <div className="dash-lists">
@@ -93,8 +112,6 @@ function Body({ data, name, period, framework }: { data: Dashboard; name: string
           uses={data.moneyFlowSummary?.topUses ?? []}
         />
       </div>
-
-      <ChartsSection period={period} range={range} framework={framework} />
 
       <section aria-labelledby="months-h">
         <div className="section-head">

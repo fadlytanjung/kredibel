@@ -57,3 +57,24 @@ def test_the_generated_demo_set_is_the_half_year_plus_ten_scenario_files():
     plan = upload_plan(demo)
     assert len(plan) == 81
     assert sum(1 for s, _ in plan if s != "S1") == 10
+
+
+def test_upload_plan_filters_by_months(tmp_path):
+    scenario(
+        tmp_path,
+        "S1",
+        {
+            "statement-2026-04.pdf": b"apr",
+            "statement-2026-05.pdf": b"may",
+            "statement-2026-06.pdf": b"jun",
+            "statement-2026-01.pdf": b"jan",
+        },
+    )
+    target_months = {"2026-04", "2026-05", "2026-06"}
+    plan = [(s, p.name) for s, p in upload_plan(tmp_path, ("S1",), months=target_months)]
+    assert plan == [
+        ("S1", "statement-2026-04.pdf"),
+        ("S1", "statement-2026-05.pdf"),
+        ("S1", "statement-2026-06.pdf"),
+    ]
+

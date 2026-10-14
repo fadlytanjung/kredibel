@@ -23,10 +23,18 @@ function _docIcon(doc: Document): IconName {
   return 'file-text'
 }
 
+const DOC_TYPE_BADGE: Record<string, { variant: 'brand' | 'clean' | 'evidence' | 'low' | 'outline' | 'default' }> = {
+  BANK_STATEMENT: { variant: 'brand' },
+  SALES_INVOICE: { variant: 'clean' },
+  PURCHASE_INVOICE: { variant: 'evidence' },
+  RECEIPT: { variant: 'low' },
+  LEDGER_EXPORT: { variant: 'outline' },
+}
+
 function _docSubtitle(doc: Document, t: (key: string, opts?: Record<string, unknown>) => string): string {
   const parts: string[] = []
   if (doc.docType && doc.docType !== 'UNKNOWN') {
-    parts.push(t(`documents:filters.${doc.docType.toLowerCase()}`, { defaultValue: doc.docType }))
+    parts.push(t(`documents:detail.docType.${doc.docType}`, { defaultValue: doc.docType }))
   }
   if (doc.pageCount && doc.pageCount > 0) {
     parts.push(t('documents:table.pages', { count: doc.pageCount }))
@@ -113,7 +121,16 @@ export function DocumentsPage() {
             <Link className="doc-link" to={`/documents/${doc.docId}`} onClick={(e) => e.stopPropagation()}>
               <strong>{doc.fileName}</strong>
             </Link>
-            <span className="sub">{_docSubtitle(doc, t)}</span>
+            <div className="row gap-2 items-center flex-wrap mt-1">
+              {doc.docType && doc.docType !== 'UNKNOWN' && (
+                <Badge variant={DOC_TYPE_BADGE[doc.docType]?.variant ?? 'outline'}>
+                  {t(`documents:detail.docType.${doc.docType}`, { defaultValue: doc.docType })}
+                </Badge>
+              )}
+              {doc.pageCount && doc.pageCount > 0 ? (
+                <span className="muted small">{t('documents:table.pages', { count: doc.pageCount })}</span>
+              ) : null}
+            </div>
           </span>
         </span>
       ),

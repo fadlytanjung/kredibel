@@ -93,3 +93,53 @@ class FakeDocumentReader(DocumentReader):
         else:
             res = self.month_explanation
         return ReaderCall(res, "fake-model", "explain_month@test", 400, 150)
+
+    async def suggest_match(
+        self,
+        bank_line_info: str,
+        candidates_info: str,
+    ) -> ReaderCall[Any]:
+        from app.domain.models.assistant import MatchSuggestion
+
+        self.calls.append(("suggest_match", 1))
+        return ReaderCall(
+            MatchSuggestion(
+                recommended_doc_id=None,
+                confidence=0.85,
+                reason="Semantic match based on counterparty and amount.",
+                missing_document_advice="Check for invoice or receipt.",
+            ),
+            "fake-model",
+            "suggest_match@test",
+            200,
+            100,
+        )
+
+    async def ask_assistant(
+        self,
+        history: list[dict[str, str]],
+        context: str,
+    ) -> ReaderCall[Any]:
+        from pydantic import BaseModel, Field
+
+        class FakeAssistantResponse(BaseModel):
+            answer: str
+            suggested_followups: list[str] = Field(default_factory=list)
+
+        self.calls.append(("ask_assistant", len(history)))
+        return ReaderCall(
+            FakeAssistantResponse(
+                answer=(
+                    "Here is the financial summary based on your books: "
+                    "[[fact:2026-05:money_in]] is verified."
+                ),
+                suggested_followups=[
+                    "Why is May risk level Medium?",
+                    "Show unmatched bank lines",
+                ],
+            ),
+            "fake-model",
+            "assistant@test",
+            300,
+            150,
+        )

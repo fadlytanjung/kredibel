@@ -1,6 +1,7 @@
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 import { DEFAULT_LANGUAGE } from './languages'
+import assistantEn from './locales/en/assistant.json'
 import commonEn from './locales/en/common.json'
 import dashboardEn from './locales/en/dashboard.json'
 import documentsEn from './locales/en/documents.json'
@@ -14,6 +15,7 @@ import settingsEn from './locales/en/settings.json'
 void i18n.use(initReactI18next).init({
   resources: {
     en: {
+      assistant: assistantEn,
       common: commonEn,
       dashboard: dashboardEn,
       documents: documentsEn,

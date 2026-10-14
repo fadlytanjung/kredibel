@@ -1,0 +1,51 @@
+{
+  "title": "Assistant",
+  "preview": "Preview",
+  "subtitle": "Ask about your books. Numbers come from your reconciled data, never from memory, and every answer shows its source.",
+  "newThread": "New question",
+  "defaultThreadTitle": "Question",
+  "threadsTitle": "Earlier questions",
+  "noThreads": "No earlier questions yet",
+  "noThreadsPrompt": "Ask a question below to check your books.",
+  "suggestedQuestions": "Suggested questions",
+  "earlierQuestions": "Earlier questions",
+  "openEvidence": "Open the evidence",
+  "goToMonth": "Go to month",
+  "starters": {
+    "unpaid": "Which invoices are still unpaid?",
+    "q2": "Where did the money go in Q2?",
+    "clients": "Who are my biggest clients?",
+    "riskJune": "Why is June risk Medium?"
+  },
+  "composer": {
+    "placeholder": "Ask about your books",
+    "send": "Send",
+    "sending": "Checking your books...",
+    "disclaimer": "Numbers come from your reconciled data, never from memory, and every answer shows its source."
+  },
+  "messages": {
+    "user": "You",
+    "assistant": "Kredibel Assistant",
+    "citations": "Sources",
+    "toolsUsed": "Tools queried",
+    "groundingAgreed": "Every number checked against your books",
+    "groundingTemplate": "Safe summary fallback"
+  },
+  "remembered": {
+    "title": "Remembered for you",
+    "forgetAll": "Forget all",
+    "forget": "Forget",
+    "empty": "No preferences remembered yet.",
+    "footer": "Only preferences are remembered. Figures are always read fresh from your books."
+  },
+
+  "matchSuggestion": {
+    "title": "AI Match Analysis",
+    "analyzing": "Analyzing counterparty & transaction...",
+    "recommended": "Recommended document",
+    "confidence": "Confidence",
+    "advice": "Missing document advice",
+    "selectRecommended": "Select recommended document",
+    "noCandidate": "No candidate document matches this transaction."
+  }
+}

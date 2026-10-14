@@ -7,6 +7,7 @@ from app.core.clock import Clock
 from app.domain.plans import PlanCatalog
 from app.ports.finding_repository import FindingRepository
 from app.ports.match_repository import MatchRepository
+from app.services.assistant_service import AssistantService
 from app.services.bank_line_service import BankLineService
 from app.services.decision_service import DecisionService
 from app.services.document_service import DocumentService
@@ -69,6 +70,9 @@ class ServiceProvider(Protocol):
 
     @property
     def review_service(self) -> ReviewService: ...
+
+    @property
+    def assistant_service(self) -> AssistantService: ...
 
 
 def org_of(principal: Principal) -> str:

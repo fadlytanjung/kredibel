@@ -843,6 +843,98 @@ button.tab { border: 0; background: transparent; cursor: pointer; font-family: i
 .remembered li:first-child { border-top: 0; }
 @container app (width < 1200px) { .chat-aside { display: none; } }
 
+/* Live Assistant Animations & Activity Trail (spec 011; AC-011-11) */
+@keyframes caret-blink {
+  0%, 45% { opacity: 1; }
+  55%, 100% { opacity: 0; }
+}
+.stream-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1.15em;
+  margin-left: 2px;
+  vertical-align: -0.15em;
+  background: var(--k-color-brand-default);
+  animation: caret-blink 1s steps(1, end) infinite;
+}
+
+@keyframes bounce-dot {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.45; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
+.thinking-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+}
+.thinking-dots span {
+  display: inline-block;
+  height: 6px;
+  width: 6px;
+  border-radius: 9999px;
+  background: var(--k-color-text-muted);
+  animation: bounce-dot 1.2s infinite;
+}
+.thinking-dots span:nth-child(2) { animation-delay: 0.15s; }
+.thinking-dots span:nth-child(3) { animation-delay: 0.3s; }
+
+.activity-trail {
+  border-radius: var(--k-radius-md);
+  border: 1px solid var(--k-color-border-default);
+  background: var(--k-color-bg-sunken);
+  padding: var(--k-space-2) var(--k-space-3);
+  font-size: 13px;
+  line-height: 18px;
+}
+.activity-trail.is-running {
+  border-color: var(--k-color-brand-line);
+  background: var(--k-color-brand-soft);
+}
+.activity-trail .trail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--k-space-2);
+  width: 100%;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  color: var(--k-color-text-default);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+}
+.activity-trail .trail-list {
+  margin-top: var(--k-space-2);
+  padding-top: var(--k-space-2);
+  border-top: 1px solid var(--k-color-border-default);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.activity-trail .trail-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--k-color-text-muted);
+}
+.activity-trail .trail-item.is-busy {
+  color: var(--k-color-brand-default);
+  font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stream-caret,
+  .thinking-dots span {
+    animation: none !important;
+  }
+  .stream-caret { opacity: 1; }
+}
+
+
 /* ------------------------------------------------------------------------------------------ */
 /* Settings, plans and usage                                                                    */
 /* ------------------------------------------------------------------------------------------ */

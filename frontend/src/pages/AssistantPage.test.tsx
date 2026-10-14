@@ -6,11 +6,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { apiClient } from '../shared/api/client'
+import { apiClient, apiStream } from '../shared/api/client'
 import { AssistantPage } from './AssistantPage'
 
 vi.mock('../shared/api/client', () => ({
   apiClient: vi.fn(),
+  apiStream: vi.fn(),
   ProblemError: class ProblemError extends Error {},
 }))
 
@@ -72,6 +73,21 @@ const MOCK_MEMORIES = {
       updatedAt: '2026-06-01T10:00:00Z',
     },
   ],
+}
+
+function makeSSEStream(events: Array<{ event: string; data: string }>) {
+  const encoder = new TextEncoder()
+  const payload = events.map((e) => `event: ${e.event}\ndata: ${e.data}\n\n`).join('')
+  const stream = new ReadableStream({
+    start(controller) {
+      controller.enqueue(encoder.encode(payload))
+      controller.close()
+    },
+  })
+  return new Response(stream, {
+    status: 200,
+    headers: { 'Content-Type': 'text/event-stream' },
+  })
 }
 
 function renderWithClient(initialRoute = '/assistant/th_01') {
@@ -157,19 +173,10 @@ describe('AssistantPage', () => {
 
     expect(screen.getByLabelText('Suggested questions')).toBeInTheDocument()
     expect(screen.getByText('Where did the money go in Q2?')).toBeInTheDocument()
-
   })
 
-  it('allows user to send a new question via composer', async () => {
-    vi.mocked(apiClient).mockImplementation(async (url: string, opts?: RequestInit) => {
-      if (opts?.method === 'POST') {
-        return {
-          messageId: 'msg_new',
-          role: 'user',
-          question: 'What is our current balance?',
-          createdAt: new Date().toISOString(),
-        }
-      }
+  it('allows user to stream a new question via composer with SSE', async () => {
+    vi.mocked(apiClient).mockImplementation(async (url: string) => {
       if (url.includes('/api/assistant/threads/th_01/messages')) {
         return { items: [] }
       }
@@ -181,6 +188,29 @@ describe('AssistantPage', () => {
       }
       return { items: [] }
     })
+
+    const streamResponse = makeSSEStream([
+      { event: 'step', data: JSON.stringify({ node: 'plan', label: 'Planning query' }) },
+      { event: 'tool', data: JSON.stringify({ name: 'get_period_summary', args_summary: '2026-05', ok: true }) },
+      { event: 'token', data: JSON.stringify({ text: 'Current balance is IDR 50,000,000.' }) },
+      {
+        event: 'message',
+        data: JSON.stringify({
+          messageId: 'msg_streamed',
+          role: 'assistant',
+          createdAt: new Date().toISOString(),
+          answer: {
+            parts: [{ type: 'text', text: 'Current balance is IDR 50,000,000.' }],
+            citations: [],
+            grounding: { verdict: 'AGREED', citations: [] },
+            toolsUsed: ['get_period_summary'],
+          },
+        }),
+      },
+      { event: 'done', data: '{}' },
+    ])
+
+    vi.mocked(apiStream).mockResolvedValue(streamResponse)
 
     renderWithClient('/assistant/th_01')
 
@@ -195,7 +225,7 @@ describe('AssistantPage', () => {
     fireEvent.click(sendBtn)
 
     await waitFor(() => {
-      expect(apiClient).toHaveBeenCalledWith(
+      expect(apiStream).toHaveBeenCalledWith(
         '/api/assistant/threads/th_01/messages',
         expect.objectContaining({
           method: 'POST',
@@ -221,7 +251,6 @@ describe('AssistantPage', () => {
       }
       return { items: [] }
     })
-
 
     renderWithClient('/assistant/th_01')
 

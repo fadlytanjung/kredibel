@@ -123,9 +123,25 @@ async def test_assistant_threads_and_chat_lifecycle(test_deps):
         assert msgs[0]["role"] == "user"
         assert msgs[1]["role"] == "assistant"
 
+        # 6. Ask via SSE streaming
+        stream_res = await client.post(
+            f"/api/assistant/threads/{thread_id}/messages",
+            json={"question": "What were the open findings?"},
+            headers={**headers, "Accept": "text/event-stream"},
+        )
+        assert stream_res.status_code == 200
+        assert "text/event-stream" in stream_res.headers["content-type"]
+        body = stream_res.text
+        assert "event: step" in body
+        assert "event: tool" in body
+        assert "event: token" in body
+        assert "event: message" in body
+        assert "event: done" in body
+
 
 @pytest.mark.asyncio
 async def test_bank_line_ai_match_suggestion(test_deps):
+
     deps, bank_lines, reader = test_deps
     app = create_app(deps=deps)
 

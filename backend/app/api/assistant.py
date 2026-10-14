@@ -1,8 +1,10 @@
 """Assistant API routes (spec 011; contracts/openapi.yaml /api/assistant/*)."""
 
+import json
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from app.api.deps import ServiceProvider, org_of
@@ -85,12 +87,35 @@ def create_assistant_router(deps: ServiceProvider, workspace_dep: Any) -> APIRou
     async def ask_question(
         thread_id: str,
         body: AskRequestBody,
+        request: Request,
         principal: Principal = Depends(workspace_dep),
-    ) -> dict[str, Any]:
+    ) -> Any:
         org_id = org_of(principal)
         thread = await deps.assistant_service.get_thread(org_id, thread_id)
         if thread is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Thread not found")
+
+        accept = request.headers.get("accept", "")
+        if "text/event-stream" in accept:
+            async def event_generator():
+                async for event in deps.assistant_service.stream_ask(
+                    org_id=org_id,
+                    uid=principal.uid,
+                    thread_id=thread_id,
+                    question=body.question,
+                ):
+                    yield f"event: {event['event']}\ndata: {json.dumps(event['data'])}\n\n"
+
+            return StreamingResponse(
+                event_generator(),
+                media_type="text/event-stream",
+                headers={
+                    "Cache-Control": "no-cache",
+                    "Connection": "keep-alive",
+                    "X-Accel-Buffering": "no",
+                },
+            )
+
         msg = await deps.assistant_service.ask(
             org_id=org_id,
             uid=principal.uid,
@@ -98,6 +123,7 @@ def create_assistant_router(deps: ServiceProvider, workspace_dep: Any) -> APIRou
             question=body.question,
         )
         return _message_body(msg)
+
 
     @router.get("/bank-lines/{tx_id}/ai-suggestion")
     async def get_match_ai_suggestion(

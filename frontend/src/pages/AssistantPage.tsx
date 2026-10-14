@@ -7,9 +7,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import {
   type AssistantMessage,
-  useAskQuestion,
+  type StepEvent,
+  type ToolEvent,
+  streamQuestion,
   useCreateThread,
   useForgetMemories,
   useForgetMemory,
@@ -18,14 +21,14 @@ import {
   useThreads,
 } from '../entities/assistant'
 import { Icon } from '../shared/ui'
-import { AnswerParts } from '../widgets/assistant'
-
+import { ActivityTrail, AnswerParts } from '../widgets/assistant'
 
 export function AssistantPage() {
   const { t } = useTranslation(['assistant', 'common'])
   const navigate = useNavigate()
   const { threadId } = useParams<{ threadId?: string }>()
   const [searchParams, setSearchParams] = useSearchParams()
+  const queryClient = useQueryClient()
 
   const { data: threadsData, isLoading: loadingThreads } = useThreads()
   const createThreadMutation = useCreateThread()
@@ -35,7 +38,6 @@ export function AssistantPage() {
   const currentThreadId = threadId || activeThread?.threadId
 
   const { data: messagesData, isLoading: loadingMessages } = useMessages(currentThreadId)
-  const askQuestionMutation = useAskQuestion(currentThreadId)
 
   const { data: memoriesData } = useMemories()
   const forgetMemoriesMutation = useForgetMemories()
@@ -44,14 +46,29 @@ export function AssistantPage() {
   const memories = memoriesData?.items ?? []
 
   const [inputQuestion, setInputQuestion] = useState('')
+  const [isStreaming, setIsStreaming] = useState(false)
+  const [liveSteps, setLiveSteps] = useState<StepEvent[]>([])
+  const [liveTools, setLiveTools] = useState<ToolEvent[]>([])
+  const [draftText, setDraftText] = useState('')
+  const [optimisticUserQuestion, setOptimisticUserQuestion] = useState<string | null>(null)
+  const [streamError, setStreamError] = useState<string | null>(null)
+
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const hasHandledQueryParam = useRef(false)
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   // Auto-scroll to bottom of messages
   const messages = messagesData?.items ?? []
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView?.({ behavior: 'smooth' })
-  }, [messages.length, askQuestionMutation.isPending])
+  }, [messages.length, isStreaming, draftText, liveSteps.length, liveTools.length])
+
+  // Cleanup abort controller on unmount
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort()
+    }
+  }, [])
 
   const handleSelectThread = (id: string) => {
     navigate(`/assistant/${id}`)
@@ -71,7 +88,7 @@ export function AssistantPage() {
 
   const handleSend = async (questionToSend?: string) => {
     const q = (questionToSend ?? inputQuestion).trim()
-    if (!q || askQuestionMutation.isPending) return
+    if (!q || isStreaming) return
 
     let targetThreadId = currentThreadId
     if (!targetThreadId) {
@@ -88,10 +105,54 @@ export function AssistantPage() {
     }
 
     setInputQuestion('')
+    setStreamError(null)
+    setOptimisticUserQuestion(q)
+    setIsStreaming(true)
+    setLiveSteps([])
+    setLiveTools([])
+    setDraftText('')
+
+    abortControllerRef.current?.abort()
+    const abortCtrl = new AbortController()
+    abortControllerRef.current = abortCtrl
+
     try {
-      await askQuestionMutation.mutateAsync({ question: q })
-    } catch {
-      // Error handled by query state
+      await streamQuestion(
+        targetThreadId,
+        q,
+        {
+          onStep: (step) => {
+            setLiveSteps((prev) => [...prev, step])
+          },
+          onTool: (tool) => {
+            setLiveTools((prev) => [...prev, tool])
+          },
+          onToken: (tok) => {
+            setDraftText((prev) => prev + tok)
+          },
+          onMessage: () => {
+            void queryClient.invalidateQueries({
+              queryKey: ['assistant', 'threads', targetThreadId, 'messages'],
+            })
+          },
+          onError: (err) => {
+            setStreamError(err.message)
+          },
+          onDone: () => {
+            setIsStreaming(false)
+            setOptimisticUserQuestion(null)
+            setDraftText('')
+            setLiveSteps([])
+            setLiveTools([])
+          },
+        },
+        abortCtrl.signal,
+      )
+    } catch (e) {
+      setIsStreaming(false)
+      setOptimisticUserQuestion(null)
+      setDraftText('')
+      setStreamError(e instanceof Error ? e.message : 'Failed to send message')
     }
   }
 
@@ -161,15 +222,40 @@ export function AssistantPage() {
               })
             )}
 
-            {askQuestionMutation.isPending && (
-              <div className="msg-ai">
+            {/* Optimistic user question while streaming */}
+            {isStreaming && optimisticUserQuestion && (
+              <p className="msg-user" data-testid="optimistic-user-message">
+                {optimisticUserQuestion}
+              </p>
+            )}
+
+            {/* In-flight streaming response with ActivityTrail & typing animation */}
+            {isStreaming && (
+              <div className="msg-ai" data-testid="streaming-ai-message">
                 <img className="ai-mark" src="/brand/kredibel-mark.svg" alt="" aria-hidden="true" />
-                <div className="bubble">
-                  <div className="row items-center gap-2">
-                    <Icon name="sparkles" size="sm" className="spin" />
-                    <span className="muted small">{t('assistant:composer.sending')}</span>
-                  </div>
+                <div className="bubble stack gap-3">
+                  <ActivityTrail steps={liveSteps} tools={liveTools} running={isStreaming} />
+
+                  {!draftText ? (
+                    <div className="thinking-dots" aria-label={t('assistant:activity.thinking')}>
+                      <span />
+                      <span />
+                      <span />
+                    </div>
+                  ) : (
+                    <p className="m-0 leading-relaxed whitespace-pre-line">
+                      {draftText}
+                      <span className="stream-caret" aria-hidden="true" />
+                    </p>
+                  )}
                 </div>
+              </div>
+            )}
+
+            {streamError && (
+              <div className="banner banner-critical text-sm">
+                <Icon name="circle-alert" size="sm" />
+                <span>{streamError}</span>
               </div>
             )}
 
@@ -206,13 +292,13 @@ export function AssistantPage() {
               placeholder={t('assistant:composer.placeholder')}
               value={inputQuestion}
               onChange={(e) => setInputQuestion(e.target.value)}
-              disabled={askQuestionMutation.isPending}
+              disabled={isStreaming}
             />
             <button
               className="button button-primary"
               type="submit"
               aria-label={t('assistant:composer.send')}
-              disabled={!inputQuestion.trim() || askQuestionMutation.isPending}
+              disabled={!inputQuestion.trim() || isStreaming}
             >
               <Icon name="send" size="sm" />
             </button>

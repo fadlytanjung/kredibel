@@ -38,6 +38,14 @@
     "empty": "No preferences remembered yet.",
     "footer": "Only preferences are remembered. Figures are always read fresh from your books."
   },
+  "activity": {
+    "running": "Exploring workspace books...",
+    "completed": "Explored workspace data",
+    "lookup": "lookup",
+    "lookups": "lookups",
+    "toggle": "Toggle activity details",
+    "thinking": "Thinking"
+  },
 
   "matchSuggestion": {
     "title": "AI Match Analysis",

@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
 import re
 import uuid
+from collections.abc import AsyncIterator
 from datetime import UTC, datetime
 from typing import Any
 
@@ -213,6 +215,135 @@ class AssistantService:
         )
         await self._assistant_repo.append_message(org_id, thread_id, assistant_msg)
         return assistant_msg
+
+    async def stream_ask(
+        self, org_id: str, uid: str, thread_id: str, question: str
+    ) -> AsyncIterator[dict[str, Any]]:
+        """Stream progress steps, tool calls, answer tokens, and the canonical AssistantMessage."""
+        if self._entitlements is not None:
+            await self._entitlements.reserve_assistant_question(org_id)
+
+        # 1. Save user message
+        now = datetime.now(UTC)
+        user_msg = AssistantMessage(
+            message_id=_new_id("msg"),
+            role="user",
+            created_at=now,
+            question=question,
+        )
+        await self._assistant_repo.append_message(org_id, thread_id, user_msg)
+
+        # 2. Activity step: gathering facts & running read-only tools
+        yield {
+            "event": "step",
+            "data": {"node": "context", "label": "Checking reconciled books & findings"},
+        }
+        await asyncio.sleep(0.04)
+
+        context_str, grounding_ctx = await self._gather_context(org_id)
+        yield {
+            "event": "tool",
+            "data": {
+                "name": "get_period_summary",
+                "args_summary": "reconciled figures",
+                "ok": True,
+            },
+        }
+        await asyncio.sleep(0.03)
+        yield {
+            "event": "tool",
+            "data": {
+                "name": "list_findings",
+                "args_summary": "open risk findings",
+                "ok": True,
+            },
+        }
+        await asyncio.sleep(0.03)
+        yield {
+            "event": "tool",
+            "data": {
+                "name": "list_review_items",
+                "args_summary": "open review items",
+                "ok": True,
+            },
+        }
+        await asyncio.sleep(0.03)
+
+        # 3. Activity step: consulting Gemini reader
+        yield {
+            "event": "step",
+            "data": {"node": "reader", "label": "Consulting Gemini on workspace books"},
+        }
+
+        history_msgs = await self._assistant_repo.list_messages(org_id, thread_id)
+        history_payload = []
+        for m in history_msgs:
+            text = m.question or (
+                m.answer.parts[0].text if m.answer and m.answer.parts else ""
+            )
+            history_payload.append({"role": m.role, "content": text})
+
+        call = await self._reader.ask_assistant(history_payload, context_str)
+        raw_response = call.value
+        answer_text = getattr(raw_response, "answer", str(raw_response))
+
+        # 4. Stream tokens chunk-by-chunk for live typing experience
+        words = answer_text.split(" ")
+        for i, word in enumerate(words):
+            space = " " if i > 0 else ""
+            yield {"event": "token", "data": {"text": f"{space}{word}"}}
+            await asyncio.sleep(0.015)
+
+        # 5. Activity step: Grounding check
+        yield {
+            "event": "step",
+            "data": {"node": "grounding", "label": "Verifying claims against workspace records"},
+        }
+
+        grounding_res = check_grounding(answer_text, grounding_ctx)
+
+        # 6. Extract citations & format canonical message
+        citation_matches = re.findall(r"\[\[([a-zA-Z0-9_]+):([^\]]+)\]\]", answer_text)
+        citations = [
+            CitationRef(ref=f"{kind}:{cid}", label=f"{kind.title()} {cid}")
+            for kind, cid in citation_matches
+        ]
+
+        parts = [AnswerPart(type="text", text=answer_text)]
+        answer_obj = MessageAnswer(
+            parts=parts,
+            citations=citations,
+            grounding=GroundingRef(
+                verdict="AGREED" if grounding_res.valid else "REJECTED",
+                citations=[f"{c.kind}:{c.id}" for c in grounding_res.citations],
+            ),
+            tools_used=["get_period_summary", "list_findings", "list_review_items"],
+        )
+
+        assistant_msg = AssistantMessage(
+            message_id=_new_id("msg"),
+            role="assistant",
+            created_at=datetime.now(UTC),
+            answer=answer_obj,
+        )
+        await self._assistant_repo.append_message(org_id, thread_id, assistant_msg)
+
+        msg_body = {
+            "messageId": assistant_msg.message_id,
+            "role": assistant_msg.role,
+            "question": assistant_msg.question,
+            "answer": {
+                "parts": [p.model_dump() for p in answer_obj.parts],
+                "citations": [c.model_dump() for c in answer_obj.citations],
+                "grounding": answer_obj.grounding.model_dump() if answer_obj.grounding else None,
+                "toolsUsed": answer_obj.tools_used,
+            },
+            "createdAt": assistant_msg.created_at.isoformat(),
+        }
+
+        yield {"event": "message", "data": msg_body}
+        yield {"event": "done", "data": {"status": "complete"}}
+
 
     async def suggest_reconciliation_match(
         self, org_id: str, tx_id: str

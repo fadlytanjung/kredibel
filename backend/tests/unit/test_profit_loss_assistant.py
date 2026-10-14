@@ -27,5 +27,7 @@ def test_ac018_6_tool_facts_match_api_report_and_include_coverage():
     assert answer.tools_used == ["get_profit_loss"]
     assert {c.ref for c in answer.citations} == {line.fact_id for line in result.lines}
     assert answer.parts[-1].chart == "PROFIT_LOSS"
+    assert answer.parts[-1].rows is not None
+    assert any("Revenue" in r[0] for r in answer.parts[-1].rows)
     assert answer.parts[-1].query is not None
     assert answer.parts[-1].query["period"] == "2026-03"

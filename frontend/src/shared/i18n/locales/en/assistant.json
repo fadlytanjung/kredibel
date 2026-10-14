@@ -19,7 +19,8 @@
     "moneyFlow": "Money Flow (Sankey)",
     "monthlyInOut": "Monthly In / Out",
     "categoryBreakdown": "Category Breakdown",
-    "unpaidInvoices": "Outstanding Invoices"
+    "unpaidInvoices": "Outstanding Invoices",
+    "profitLoss": "Company Profit & Loss Breakdown"
   },
   "starters": {
     "unpaid": "Which invoices are still unpaid?",

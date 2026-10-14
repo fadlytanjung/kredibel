@@ -112,22 +112,32 @@ function renderFormattedContent(text: string) {
 /** Render interactive chart/diagram preview and dashboard link button. */
 function ChartPart({ part }: { part: AnswerPart }) {
   const { t } = useTranslation(['assistant', 'profitLoss'])
-  if (part.chart === 'PROFIT_LOSS') {
-    return <Link className="button button-secondary" to={`/profit-loss?period=${encodeURIComponent(String(part.query?.period ?? 'recent'))}`}>{t('profitLoss:open')}</Link>
-  }
+  const isPnl = part.chart === 'PROFIT_LOSS'
   const isFlow = part.chart === 'MONEY_FLOW'
   const isInOut = part.chart === 'MONTHLY_IN_OUT'
   const isUnpaid = part.chart === 'INVOICE_BREAKDOWN'
   const diagramIcon = isFlow ? 'flow' : isUnpaid ? 'file-text' : 'bar-chart'
-  const targetUrl = isUnpaid ? '/documents' : part.query?.month ? `/months/${String(part.query.month)}` : '/dashboard'
-  const chartLabel = isFlow
-    ? t('assistant:charts.moneyFlow')
-    : isInOut
-      ? t('assistant:charts.monthlyInOut')
-      : isUnpaid
-        ? t('assistant:charts.unpaidInvoices')
-        : t('assistant:charts.categoryBreakdown')
-  const buttonLabel = isUnpaid ? t('assistant:seeInvoicesClick') : t('assistant:seeFullDiagramClick')
+  const targetUrl = isPnl
+    ? `/profit-loss?period=${encodeURIComponent(String(part.query?.period ?? 'recent'))}`
+    : isUnpaid
+      ? '/documents'
+      : part.query?.month
+        ? `/months/${String(part.query.month)}`
+        : '/dashboard'
+  const chartLabel = isPnl
+    ? t('assistant:charts.profitLoss')
+    : isFlow
+      ? t('assistant:charts.moneyFlow')
+      : isInOut
+        ? t('assistant:charts.monthlyInOut')
+        : isUnpaid
+          ? t('assistant:charts.unpaidInvoices')
+          : t('assistant:charts.categoryBreakdown')
+  const buttonLabel = isPnl
+    ? t('profitLoss:open')
+    : isUnpaid
+      ? t('assistant:seeInvoicesClick')
+      : t('assistant:seeFullDiagramClick')
 
   return (
     <div className="stack gap-2 my-1">

@@ -36,18 +36,25 @@ def profit_loss_answer(report: ProfitLoss) -> MessageAnswer:
         )
     parts = [AnswerPart(type="text", text=f"{coverage}\n{text}\nPeriod: {report.period}")]
     citations = []
+    chart_rows: list[list[str]] = []
     if any(line.amount is not None for line in report.lines):
         rows = []
+        amounts = [abs(float(line.amount)) for line in report.lines if line.amount is not None]
+        max_val = max(amounts, default=1.0) or 1.0
         for line in report.lines:
             label = line.id.replace("_", " ").capitalize()
             if line.amount is not None:
+                amt = float(line.amount)
                 rows.append([label, f"{line.amount:.2f} {report.currency} [[{line.fact_id}]]"])
                 citations.append(CitationRef(ref=line.fact_id, label=label))
+                pct = f"{min(100, max(8, int((abs(amt) / max_val) * 100)))}%"
+                chart_rows.append([label, f"{amt:,.0f} {report.currency}", pct])
         parts.append(AnswerPart(type="table", columns=["P&L line", "Amount"], rows=rows))
     parts.append(
         AnswerPart(
             type="chart",
             chart="PROFIT_LOSS",
+            rows=chart_rows if chart_rows else None,
             query={"period": report.period, "target": "profit-loss"},
         )
     )

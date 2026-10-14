@@ -169,6 +169,7 @@ def dashboard() -> str:
 </article>"""
     charts_section = f"""
 <section class="charts" aria-labelledby="charts-h">
+  {profit_loss_panel()}
   <div class="section-head charts-section-head">
     <div><h2 class="type-h2" id="charts-h">Where the money went</h2><p>January to June 2026, IDR millions, grouped the way your accounting framework groups cash flows.</p></div>
     <div class="fw-switch"><span>Framework</span>{seg("fw", [("IFRS", "IFRS"), ("US_GAAP", "US GAAP")], "IFRS", "Accounting framework")}</div>
@@ -206,11 +207,10 @@ def dashboard() -> str:
     content = f"""
 <div class="page">
   <div class="dash">
-    {hero}
     {figs}
-    {lists}
-    {profit_loss_panel()}
     {charts_section}
+    {hero}
+    {lists}
     {months}
     {found}
   </div>
@@ -777,10 +777,23 @@ def assistant() -> str:
             <p>The quickest check is to download March again from internet banking and upload it. Want me to open the evidence?</p>
             <div class="row"><a class="button button-secondary button-sm" href="evidence-viewer.html">Open the evidence</a><a class="button button-quiet button-sm" href="month.html">Go to March</a></div>
           </div>
+        <p class="msg-user">Show my profit and loss for 2026-03</p>
+        <div class="msg-ai"><img class="ai-mark" src="{BRAND}/kredibel-mark.svg" alt="Kredibel"/>
+          <div class="bubble">
+            <p>Accrual management P&amp;L from imported posted ledger entries only. These totals do not certify that the company books are complete.</p>
+            <div class="mini-bars" role="img" aria-label="Profit and loss for 2026-03">
+              <div class="mb"><span>Revenue</span><span class="bar" style="width:100%"></span><b>120.0 M</b></div>
+              <div class="mb"><span>Cost of sales</span><span class="bar" style="width:60%"></span><b>72.0 M</b></div>
+              <div class="mb"><span>Gross profit</span><span class="bar" style="width:40%"></span><b>48.0 M</b></div>
+              <div class="mb"><span>Operating expenses</span><span class="bar" style="width:15%"></span><b>18.0 M</b></div>
+              <div class="mb"><span>Net profit</span><span class="bar" style="width:22%"></span><b>26.0 M</b></div>
+            </div>
+            <p>Net profit: IDR 26,000,000 <a class="citation" href="profit-loss.html">Net profit</a></p>
+            <div class="row"><a class="button button-secondary button-sm" href="profit-loss.html">Open profit and loss</a></div>
+            <span class="grounded">{icon("shield-check")}Every number checked against your books</span>
+          </div>
         </div>
       </div>
-      <p class="msg-user">Show my profit and loss for 2026-03</p>
-      <div class="msg-ai"><div class="bubble"><p>Accrual management P&amp;L from imported posted ledger entries only. These totals do not certify that the company books are complete.</p><p>Net profit: IDR 26,000,000 <a class="citation" href="profit-loss.html">Net profit</a></p><a class="button button-secondary" href="profit-loss.html">Open profit and loss</a></div></div>
       <div class="suggested" aria-label="Suggested questions"><a href="#">Which invoices are still unpaid?</a><a href="#">Where did the money go in Q2?</a><a href="#">Who are my biggest clients?</a></div>
       <div class="composer"><p>Ask about your books</p><button class="button button-primary" type="button" aria-label="Send">{icon("send", "icon icon-sm")}</button></div>
     </div>

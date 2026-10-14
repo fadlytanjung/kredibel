@@ -13,11 +13,13 @@
   "goToMonth": "Go to month",
   "viewFullDiagram": "View diagram",
   "seeFullDiagramClick": "See full interactive diagram on Dashboard",
+  "seeInvoicesClick": "View all invoices in Documents",
   "loadMoreThreads": "Load earlier questions",
   "charts": {
     "moneyFlow": "Money Flow (Sankey)",
     "monthlyInOut": "Monthly In / Out",
-    "categoryBreakdown": "Category Breakdown"
+    "categoryBreakdown": "Category Breakdown",
+    "unpaidInvoices": "Outstanding Invoices"
   },
   "starters": {
     "unpaid": "Which invoices are still unpaid?",

@@ -114,13 +114,17 @@ function ChartPart({ part }: { part: AnswerPart }) {
   const { t } = useTranslation(['assistant'])
   const isFlow = part.chart === 'MONEY_FLOW'
   const isInOut = part.chart === 'MONTHLY_IN_OUT'
-  const diagramIcon = isFlow ? 'flow' : 'bar-chart'
-  const targetUrl = part.query?.month ? `/months/${String(part.query.month)}` : '/dashboard'
+  const isUnpaid = part.chart === 'INVOICE_BREAKDOWN'
+  const diagramIcon = isFlow ? 'flow' : isUnpaid ? 'file-text' : 'bar-chart'
+  const targetUrl = isUnpaid ? '/documents' : part.query?.month ? `/months/${String(part.query.month)}` : '/dashboard'
   const chartLabel = isFlow
     ? t('assistant:charts.moneyFlow')
     : isInOut
       ? t('assistant:charts.monthlyInOut')
-      : t('assistant:charts.categoryBreakdown')
+      : isUnpaid
+        ? t('assistant:charts.unpaidInvoices')
+        : t('assistant:charts.categoryBreakdown')
+  const buttonLabel = isUnpaid ? t('assistant:seeInvoicesClick') : t('assistant:seeFullDiagramClick')
 
   return (
     <div className="stack gap-2 my-1">
@@ -154,7 +158,7 @@ function ChartPart({ part }: { part: AnswerPart }) {
       <div className="row">
         <Link to={targetUrl} className="button button-secondary button-sm inline-flex items-center gap-1.5">
           <Icon name={diagramIcon} size="sm" />
-          <span>{t('assistant:seeFullDiagramClick')}</span>
+          <span>{buttonLabel}</span>
           <Icon name="arrow-up-right" size="sm" />
         </Link>
       </div>

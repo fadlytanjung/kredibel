@@ -53,6 +53,7 @@ class GroundingContext:
     findings: dict[str, Finding] | Sequence[Finding] = field(default_factory=dict)
     documents: set[str] = field(default_factory=set)
     matches: set[str] = field(default_factory=set)
+    invoices: set[str] = field(default_factory=set)
     allowed_fact_prefixes: tuple[str, ...] = ()
 
 
@@ -190,6 +191,9 @@ def check_grounding(text: str, context: GroundingContext) -> GroundingResult:
                     resolved = True
             elif kind == "match":
                 if marker_id in context.matches:
+                    resolved = True
+            elif kind == "invoice":
+                if marker_id in context.invoices:
                     resolved = True
 
             if not resolved:

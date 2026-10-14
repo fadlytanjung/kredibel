@@ -20,12 +20,14 @@ from app.domain.models.assistant import (
     MessageAnswer,
     Thread,
 )
+from app.domain.models.invoice import Invoice, Receipt
 from app.ports.assistant_repository import AssistantRepository
 from app.ports.bank_line_repository import BankLineRepository
 from app.ports.document_reader import DocumentReader
 from app.ports.document_repository import DocumentRepository
 from app.ports.finding_repository import FindingRepository
 from app.ports.month_repository import MonthRepository
+from app.ports.record_repository import DocumentRecords
 from app.ports.review_item_repository import ReviewItemRepository
 from app.services.entitlement_service import EntitlementService
 
@@ -46,6 +48,8 @@ class AssistantService:
         doc_repo: DocumentRepository,
         review_item_repo: ReviewItemRepository,
         reader: DocumentReader,
+        invoices: DocumentRecords[Invoice] | None = None,
+        receipts: DocumentRecords[Receipt] | None = None,
         entitlements: EntitlementService | None = None,
     ) -> None:
         self._assistant_repo = assistant_repo
@@ -55,6 +59,8 @@ class AssistantService:
         self._doc_repo = doc_repo
         self._review_item_repo = review_item_repo
         self._reader = reader
+        self._invoices = invoices
+        self._receipts = receipts
         self._entitlements = entitlements
 
     async def list_threads(
@@ -148,9 +154,37 @@ class AssistantService:
             if r.status == "OPEN":
                 context_lines.append(f"- Kind={r.kind}, Title='{r.title}', Key={r.key}")
 
+        invoices_set: set[str] = set()
+        docs_set: set[str] = set()
+        if self._invoices is not None:
+            all_invoices = await self._invoices.list_records(org_id, limit=200)
+            if all_invoices:
+                context_lines.append("\nINVOICES AND PAYMENT STATUS:")
+                for inv in all_invoices:
+                    invoices_set.add(inv.invoice_id)
+                    docs_set.add(inv.doc_id)
+                    party = (
+                        inv.buyer_name
+                        if inv.kind == "SALES"
+                        else (inv.issuer_name or "Unknown Supplier")
+                    )
+                    pmt_status = (inv.evidence or {}).get("payment", "UNPAID")
+                    fid_total = f"fact:invoice:{inv.invoice_id}:total"
+                    facts_dict[fid_total] = float(inv.total or 0)
+                    due_str = f", DueDate={inv.due_date}" if inv.due_date else ""
+                    num_str = inv.number or "No number"
+                    amt_str = f"{inv.total or 0} {inv.currency or 'IDR'}"
+                    context_lines.append(
+                        f"- [[invoice:{inv.invoice_id}]]: Kind={inv.kind}, Number='{num_str}', "
+                        f"Party='{party}', Amount={amt_str} [[{fid_total}]], "
+                        f"PaymentStatus={pmt_status}{due_str}, Link=/documents/{inv.doc_id}"
+                    )
+
         grounding_ctx = GroundingContext(
             facts=facts_dict,
             findings=findings,
+            invoices=invoices_set,
+            documents=docs_set,
             allowed_fact_prefixes=("fact:",),
         )
         return "\n".join(context_lines), grounding_ctx
@@ -395,14 +429,58 @@ class AssistantService:
             "money flow",
             "grafik",
         ]
-        if any(w in lower_q for w in diagram_triggers):
+        invoice_triggers = [
+            "unpaid",
+            "invoice",
+            "invoices",
+            "bill",
+            "bills",
+            "tagihan",
+            "piutang",
+            "hutang",
+            "receivable",
+            "payable",
+        ]
+        if any(w in lower_q for w in invoice_triggers):
+            unpaid_invoices = []
+            if self._invoices is not None:
+                all_invs = await self._invoices.list_records(org_id, limit=50)
+                unpaid_invoices = [
+                    inv
+                    for inv in all_invs
+                    if (inv.evidence or {}).get("payment", "UNPAID")
+                    not in ("PAID_BANK", "PAID_CASH", "CONFIRMED_BY_YOU")
+                ]
+            if unpaid_invoices:
+                amounts = [float(inv.total or 0) for inv in unpaid_invoices]
+                max_amt = max(amounts, default=1.0) or 1.0
+                chart_rows: list[list[str]] = []
+                for inv in unpaid_invoices[:6]:
+                    party = (
+                        inv.buyer_name
+                        if inv.kind == "SALES"
+                        else (inv.issuer_name or "Supplier")
+                    )
+                    amt = float(inv.total or 0)
+                    pct = f"{min(100, max(15, int((amt / max_amt) * 100)))}%"
+                    label = inv.number or inv.invoice_id[-8:]
+                    chart_rows.append([label, f"{party} • {amt:,.0f} {inv.currency or 'IDR'}", pct])
+                parts.append(
+                    AnswerPart(
+                        type="chart",
+                        chart="INVOICE_BREAKDOWN",
+                        rows=chart_rows,
+                        query={"target": "documents", "view": "INVOICES"},
+                    )
+                )
+        elif any(w in lower_q for w in diagram_triggers):
             chart_type = (
                 "MONEY_FLOW"
                 if any(w in lower_q for w in ["flow", "sankey", "money"])
                 else "MONTHLY_IN_OUT"
             )
             months = await self._month_repo.list(org_id)
-            chart_rows: list[list[str]] = []
+            chart_rows = []
             if months:
                 for m in sorted(months, key=lambda x: x.month)[-6:]:
                     figs = m.figures or {}

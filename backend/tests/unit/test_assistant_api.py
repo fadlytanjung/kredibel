@@ -11,6 +11,7 @@ from httpx import ASGITransport, AsyncClient
 from app.adapters.policy_files import load_plans
 from app.core.settings import Settings
 from app.domain.models.bank_line import BankLine
+from app.domain.models.invoice import Invoice
 from app.domain.models.workspace import Subscription
 from app.main import AppDeps, create_app
 from tests.fakes.assistant_repository import FakeAssistantRepository
@@ -19,6 +20,7 @@ from tests.fakes.document_reader import FakeDocumentReader
 from tests.fakes.document_repository import FakeDocumentRepository
 from tests.fakes.finding_repository import FakeFindingRepository
 from tests.fakes.month_repository import FakeMonthRepository
+from tests.fakes.record_repository import fake_invoices, fake_receipts
 from tests.fakes.review_item_repository import FakeReviewItemRepository
 from tests.fakes.usage_repository import FakeUsageRepository
 
@@ -49,6 +51,9 @@ def test_deps():
     review_item_repo = FakeReviewItemRepository()
     reader = FakeDocumentReader()
 
+    invoices_repo = fake_invoices()
+    receipts_repo = fake_receipts()
+
     deps = AppDeps(
         settings,
         plans,
@@ -59,15 +64,17 @@ def test_deps():
         bank_lines=bank_line_repo,
         doc_repo=doc_repo,
         review_items=review_item_repo,
+        invoices=invoices_repo,
+        receipts=receipts_repo,
         reader=reader,
         assistant_repo=assistant_repo,
     )
-    return deps, bank_line_repo, reader
+    return deps, bank_line_repo, reader, invoices_repo
 
 
 @pytest.mark.asyncio
 async def test_assistant_threads_and_chat_lifecycle(test_deps):
-    deps, _, _ = test_deps
+    deps, *rest = test_deps
     app = create_app(deps=deps)
 
     transport = ASGITransport(app=app)
@@ -141,8 +148,7 @@ async def test_assistant_threads_and_chat_lifecycle(test_deps):
 
 @pytest.mark.asyncio
 async def test_bank_line_ai_match_suggestion(test_deps):
-
-    deps, bank_lines, reader = test_deps
+    deps, bank_lines, reader, *rest = test_deps
     app = create_app(deps=deps)
 
     # Insert a bank line
@@ -173,7 +179,7 @@ async def test_bank_line_ai_match_suggestion(test_deps):
 
 @pytest.mark.asyncio
 async def test_assistant_memories_lifecycle(test_deps):
-    deps, _, _ = test_deps
+    deps, *rest = test_deps
     app = create_app(deps=deps)
 
     transport = ASGITransport(app=app)
@@ -203,7 +209,7 @@ async def test_assistant_memories_lifecycle(test_deps):
 
 @pytest.mark.asyncio
 async def test_assistant_threads_pagination(test_deps):
-    deps, _, _ = test_deps
+    deps, *rest = test_deps
     app = create_app(deps=deps)
 
     transport = ASGITransport(app=app)
@@ -235,7 +241,7 @@ async def test_assistant_threads_pagination(test_deps):
 
 @pytest.mark.asyncio
 async def test_assistant_diagram_request(test_deps):
-    deps, _, _ = test_deps
+    deps, *rest = test_deps
     app = create_app(deps=deps)
 
     transport = ASGITransport(app=app)
@@ -260,4 +266,56 @@ async def test_assistant_diagram_request(test_deps):
         msg = res.json()
         parts = msg["answer"]["parts"]
         assert any(p["type"] == "chart" and p["chart"] == "MONEY_FLOW" for p in parts)
+
+
+@pytest.mark.asyncio
+async def test_assistant_unpaid_invoices_query(test_deps):
+    deps, _, _, invoices_repo = test_deps
+    app = create_app(deps=deps)
+
+    # Insert an unpaid invoice
+    inv = Invoice(
+        invoice_id="inv_test_unpaid_01",
+        doc_id="doc_test_01",
+        kind="PURCHASE",
+        number="BW-0042",
+        issuer_name="Bluewater Trading Co.",
+        buyer_name=None,
+        issue_date=date(2026, 2, 3),
+        month="2026-02",
+        total=Decimal("990000.00"),
+        currency="IDR",
+        due_date=date(2026, 2, 17),
+        evidence={"payment": "UNPAID"},
+    )
+    await invoices_repo.replace_for_document("org_test", "doc_test_01", [inv])
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        headers = {"Authorization": "Bearer test-token"}
+
+        # 1. Create thread
+        res = await client.post(
+            "/api/assistant/threads",
+            json={"title": "Invoice Test", "scope": "WORKSPACE"},
+            headers=headers,
+        )
+        thread_id = res.json()["threadId"]
+
+        # 2. Ask "Which invoices are still unpaid?"
+        res = await client.post(
+            f"/api/assistant/threads/{thread_id}/messages",
+            json={"question": "Which invoices are still unpaid?"},
+            headers=headers,
+        )
+        assert res.status_code == 200
+        msg = res.json()
+        parts = msg["answer"]["parts"]
+        # Must return INVOICE_BREAKDOWN chart
+        chart_part = next((p for p in parts if p["type"] == "chart"), None)
+        assert chart_part is not None
+        assert chart_part["chart"] == "INVOICE_BREAKDOWN"
+        assert len(chart_part["rows"]) > 0
+        assert "BW-0042" in chart_part["rows"][0][0]
+
 

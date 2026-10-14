@@ -674,6 +674,8 @@ class AppDeps:
                 doc_repo=self.doc_repo,
                 review_item_repo=self.review_items,
                 reader=self.reader,
+                invoices=self.invoices,
+                receipts=self.receipts,
                 entitlements=self.entitlement_service,
             ),
         )

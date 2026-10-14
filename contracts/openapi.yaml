@@ -2784,7 +2784,7 @@ components:
         text: { type: string, description: "With [[…]] citation markers" }
         columns: { type: array, items: { type: string } }
         rows: { type: array, items: { type: array, items: { type: string } } }
-        chart: { type: string, enum: [MONEY_FLOW, MONTHLY_IN_OUT, CATEGORY_BREAKDOWN] }
+        chart: { type: string, enum: [MONEY_FLOW, MONTHLY_IN_OUT, CATEGORY_BREAKDOWN, INVOICE_BREAKDOWN] }
         query: { type: object, additionalProperties: true, description: "Parameters the UI uses to fetch the chart data" }
     Citation:
       type: object

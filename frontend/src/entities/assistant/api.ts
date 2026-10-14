@@ -29,7 +29,7 @@ export interface AnswerPart {
   text?: string | null
   columns?: string[] | null
   rows?: string[][] | null
-  chart?: 'MONEY_FLOW' | 'MONTHLY_IN_OUT' | 'CATEGORY_BREAKDOWN' | null
+  chart?: 'MONEY_FLOW' | 'MONTHLY_IN_OUT' | 'CATEGORY_BREAKDOWN' | 'INVOICE_BREAKDOWN' | null
   query?: Record<string, unknown> | null
 }
 

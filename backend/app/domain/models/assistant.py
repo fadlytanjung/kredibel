@@ -23,7 +23,9 @@ class AnswerPart(BaseModel):
     text: str | None = None
     columns: list[str] | None = None
     rows: list[list[str]] | None = None
-    chart: Literal["MONEY_FLOW", "MONTHLY_IN_OUT", "CATEGORY_BREAKDOWN"] | None = None
+    chart: (
+        Literal["MONEY_FLOW", "MONTHLY_IN_OUT", "CATEGORY_BREAKDOWN", "INVOICE_BREAKDOWN"] | None
+    ) = None
     query: dict[str, Any] | None = None
 
 

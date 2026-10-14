@@ -3,11 +3,11 @@
  * wrong, the subject with a link to its page, the suggestion, and only the actions its kind allows.
  */
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { type BankLine, CASHFLOW_BADGE, useMonthBankLines } from '../../entities/bank-line'
-import { useDocument } from '../../entities/document'
+import { PageViewer, useDocument } from '../../entities/document'
 import { type Invoice, type Receipt, useMonthInvoices, useMonthReceipts } from '../../entities/record'
 import { type ResolveRequest, type ReviewItem, useResolveReviewItem } from '../../entities/review'
 import { formatDate } from '../../shared/lib/formatDate'
@@ -23,6 +23,7 @@ export interface ItemPanelProps {
   onResolved: (item: ReviewItem) => void
   onSkip: () => void
   onClose: () => void
+  onPreviewChange?: (hasPreview: boolean) => void
 }
 
 function signed(line: BankLine) {
@@ -30,8 +31,17 @@ function signed(line: BankLine) {
   return `${amount > 0 ? '+' : ''}${formatAmount(line.amount.amount, { currency: line.amount.currency })}`
 }
 
-function LineSubject({ line }: { line: BankLine }) {
+function LineSubject({
+  line,
+  onSeePage,
+  activePreviewDocId,
+}: {
+  line: BankLine
+  onSeePage?: (docId: string) => void
+  activePreviewDocId?: string | null
+}) {
   const { t } = useTranslation(['review', 'months'])
+  const isPreviewing = activePreviewDocId === line.docId
   return (
     <div className="subject">
       <span className="ico">
@@ -46,16 +56,45 @@ function LineSubject({ line }: { line: BankLine }) {
             {t(`months:categories.${line.category}`, { defaultValue: line.category })}
           </Badge>
         )}
-        <Link className="citation" to={`/documents/${line.docId}`}>
-          <Icon name="eye" size="sm" />
-          {t('review:panel.seePage')}
+        {onSeePage ? (
+          <button
+            type="button"
+            className={`citation button-ghost inline-flex items-center gap-1 text-xs cursor-pointer ${isPreviewing ? 'font-semibold text-brand' : ''}`}
+            onClick={() => onSeePage(line.docId)}
+            title={t('review:panel.seePage')}
+          >
+            <Icon name="eye" size="sm" />
+            <span>{t('review:panel.seePage')}</span>
+          </button>
+        ) : (
+          <Link className="citation" to={`/documents/${line.docId}`}>
+            <Icon name="eye" size="sm" />
+            {t('review:panel.seePage')}
+          </Link>
+        )}
+        <Link
+          className="citation"
+          to={`/documents/${line.docId}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={t('review:panel.openDocument')}
+        >
+          <Icon name="external" size="sm" />
         </Link>
       </div>
     </div>
   )
 }
 
-function RecordSubject({ record }: { record: Invoice | Receipt }) {
+function RecordSubject({
+  record,
+  onSeePage,
+  activePreviewDocId,
+}: {
+  record: Invoice | Receipt
+  onSeePage?: (docId: string) => void
+  activePreviewDocId?: string | null
+}) {
   const { t } = useTranslation(['review', 'months'])
   const isReceipt = 'receiptId' in record
   const name = isReceipt
@@ -67,6 +106,7 @@ function RecordSubject({ record }: { record: Invoice | Receipt }) {
       : t('months:monthDetail.docs.invoiceNoNumber')
   const party = isReceipt ? record.merchantName : record.kind === 'SALES' ? record.buyerName : record.issuerName
   const day = isReceipt ? record.date : record.issueDate
+  const isPreviewing = activePreviewDocId === record.docId
   return (
     <div className="subject">
       <span className="ico">
@@ -83,31 +123,84 @@ function RecordSubject({ record }: { record: Invoice | Receipt }) {
               ? t('months:monthDetail.docs.badgeSales')
               : t('months:monthDetail.docs.badgePurchase')}
         </Badge>
-        <Link className="citation" to={`/documents/${record.docId}`}>
-          <Icon name="eye" size="sm" />
-          {t('review:panel.seePage')}
+        {onSeePage ? (
+          <button
+            type="button"
+            className={`citation button-ghost inline-flex items-center gap-1 text-xs cursor-pointer ${isPreviewing ? 'font-semibold text-brand' : ''}`}
+            onClick={() => onSeePage(record.docId)}
+            title={t('review:panel.seePage')}
+          >
+            <Icon name="eye" size="sm" />
+            <span>{t('review:panel.seePage')}</span>
+          </button>
+        ) : (
+          <Link className="citation" to={`/documents/${record.docId}`}>
+            <Icon name="eye" size="sm" />
+            {t('review:panel.seePage')}
+          </Link>
+        )}
+        <Link
+          className="citation"
+          to={`/documents/${record.docId}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={t('review:panel.openDocument')}
+        >
+          <Icon name="external" size="sm" />
         </Link>
       </div>
     </div>
   )
 }
 
-function DocumentSubject({ docId, label }: { docId: string; label: string }) {
+function DocumentSubject({
+  docId,
+  label,
+  onSeePage,
+  activePreviewDocId,
+}: {
+  docId: string
+  label: string
+  onSeePage?: (docId: string) => void
+  activePreviewDocId?: string | null
+}) {
   const { t } = useTranslation('review')
   const { data: doc } = useDocument(docId)
+  const isPreviewing = activePreviewDocId === docId
   return (
     <div className="subject">
       <span className="ico">
         <Icon name="files" />
       </span>
       <span className="t">{doc?.fileName ?? docId}</span>
-      <span className="s">
-        {label}{' '}
-        <Link className="citation" to={`/documents/${docId}`}>
-          <Icon name="eye" size="sm" />
-          {t('panel.openDocument')}
+      <div className="s row gap-2 items-center flex-wrap">
+        <span>{label}</span>
+        {onSeePage ? (
+          <button
+            type="button"
+            className={`citation button-ghost inline-flex items-center gap-1 text-xs cursor-pointer ${isPreviewing ? 'font-semibold text-brand' : ''}`}
+            onClick={() => onSeePage(docId)}
+            title={t('panel.openDocument')}
+          >
+            <Icon name="eye" size="sm" />
+            <span>{t('panel.openDocument')}</span>
+          </button>
+        ) : (
+          <Link className="citation" to={`/documents/${docId}`}>
+            <Icon name="eye" size="sm" />
+            {t('panel.openDocument')}
+          </Link>
+        )}
+        <Link
+          className="citation"
+          to={`/documents/${docId}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={t('panel.openDocument')}
+        >
+          <Icon name="external" size="sm" />
         </Link>
-      </span>
+      </div>
     </div>
   )
 }
@@ -177,7 +270,14 @@ function LinePicker({ lines, picked, onPick }: { lines: BankLine[]; picked?: str
   )
 }
 
-export function ItemPanel({ item, position, onResolved, onSkip, onClose }: ItemPanelProps) {
+export function ItemPanel({
+  item,
+  position,
+  onResolved,
+  onSkip,
+  onClose,
+  onPreviewChange,
+}: ItemPanelProps) {
   const { t } = useTranslation('review')
   const month = item.month ?? undefined
   const { data: lineData } = useMonthBankLines(month)
@@ -190,16 +290,56 @@ export function ItemPanel({ item, position, onResolved, onSkip, onClose }: ItemP
   const [correcting, setCorrecting] = useState(false)
   const [correction, setCorrection] = useState('')
 
-  const monthLines = lineData?.items ?? []
-  const subjects = subjectsOf(item, {
-    lines: monthLines,
-    invoices: invoiceData?.items ?? [],
-    receipts: receiptData?.items ?? [],
-  })
-  const documents = [...subjects.invoices, ...subjects.receipts]
+  const monthLines = useMemo(() => lineData?.items ?? [], [lineData?.items])
+  const subjects = useMemo(
+    () =>
+      subjectsOf(item, {
+        lines: monthLines,
+        invoices: invoiceData?.items ?? [],
+        receipts: receiptData?.items ?? [],
+      }),
+    [item, monthLines, invoiceData?.items, receiptData?.items],
+  )
+  const documents = useMemo(() => [...subjects.invoices, ...subjects.receipts], [subjects.invoices, subjects.receipts])
   const candidates = item.kind === 'UNMATCHED_DOCUMENT' && documents[0] ? linesThatCouldPay(documents[0], monthLines) : []
   const allowed = new Set(item.allowedActions)
   const pickedLine = candidates.find((l) => l.txId === picked) ?? candidates[0]
+
+  const initialDocId =
+    item.docId ||
+    item.subject.docIds?.[0] ||
+    (documents[0] ? ('invoiceId' in documents[0] ? documents[0].docId : documents[0].docId) : null) ||
+    subjects.lines[0]?.docId ||
+    null
+
+  const [userToggledDocId, setUserToggledDocId] = useState<string | null>(null)
+  const [prevItemId, setPrevItemId] = useState(item.itemId)
+  if (prevItemId !== item.itemId) {
+    setPrevItemId(item.itemId)
+    setUserToggledDocId(null)
+  }
+
+  const isAutoPreview = item.kind === 'LOW_CONFIDENCE_VALUE' || item.kind === 'POSSIBLE_DUPLICATE'
+  const previewDocId =
+    userToggledDocId !== null
+      ? userToggledDocId === ''
+        ? null
+        : userToggledDocId
+      : isAutoPreview
+        ? initialDocId
+        : null
+
+  const [previewPage, setPreviewPage] = useState(1)
+  const { data: previewDoc, isLoading: previewLoading } = useDocument(previewDocId ?? undefined)
+
+  useEffect(() => {
+    onPreviewChange?.(Boolean(previewDocId))
+  }, [previewDocId, onPreviewChange])
+
+  const handleOpenSeePage = (docId: string) => {
+    setUserToggledDocId(docId)
+    setPreviewPage(1)
+  }
 
   const act = (request: ResolveRequest) =>
     resolve.mutate({ itemId: item.itemId, request }, { onSuccess: (resolved) => onResolved(resolved) })
@@ -234,40 +374,107 @@ export function ItemPanel({ item, position, onResolved, onSkip, onClose }: ItemP
   )
 
   return (
-    <section className="fix" aria-labelledby="fix-h">
-      <div className="fix-head">
-        <div className="pager-line">
-          <span className="row">
-            <span className="badge badge-brand">
-              <Icon name={KIND_ICON[item.kind] ?? 'inbox'} size="sm" />
-              {t(`kinds.${item.kind}`)}
+    <div className={`review-split-layout ${previewDocId ? 'with-preview' : ''}`}>
+      {previewDocId && (
+        <aside
+          className="review-split-preview"
+          aria-label={t('panel.documentPreview', { defaultValue: 'Document preview' })}
+        >
+          <div className="review-preview-header">
+            <span className="file flex items-center gap-2 font-medium text-xs truncate">
+              <Icon name="file-text" size="sm" />
+              <span className="truncate">{previewDoc?.fileName || t('panel.document')}</span>
             </span>
-            {month && <span>{monthName(month)}</span>}
-          </span>
-          <span className="row">
-            <span>{t('panel.position', { index: position.index + 1, total: position.total })}</span>
-            <button type="button" className="icon-button" aria-label={t('panel.close')} onClick={onClose}>
-              <Icon name="x" />
-            </button>
-          </span>
-        </div>
-        <h2 id="fix-h">{item.title}</h2>
-        <p>{t(`why.${item.kind}`)}</p>
-      </div>
+            <div className="row gap-2 items-center shrink-0">
+              <Link
+                to={`/documents/${previewDocId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="link small flex items-center gap-1"
+                title={t('panel.openDocument')}
+              >
+                <span>{t('panel.openDocument')}</span>
+                <Icon name="external" size="sm" />
+              </Link>
+              <button
+                type="button"
+                className="icon-button icon-button-sm"
+                aria-label={t('common:actions.close', { defaultValue: 'Close preview' })}
+                onClick={() => setUserToggledDocId('')}
+              >
+                <Icon name="x" size="sm" />
+              </button>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            {previewLoading ? (
+              <p className="muted small p-4">{t('common:loading', { defaultValue: 'Loading...' })}</p>
+            ) : previewDoc ? (
+              <PageViewer
+                docId={previewDoc.docId}
+                fileName={previewDoc.fileName}
+                pageCount={previewDoc.pageCount ?? previewDoc.pages?.length ?? 1}
+                page={previewPage}
+                onPage={setPreviewPage}
+                witness={previewDoc.pages?.[previewPage - 1]?.witness}
+              />
+            ) : (
+              <p className="muted small p-4">{t('panel.missing')}</p>
+            )}
+          </div>
+        </aside>
+      )}
 
-      <div className="fix-body">
-        {subjects.lines.map((line) => (
-          <LineSubject key={line.txId} line={line} />
-        ))}
-        {documents.map((record) => (
-          <RecordSubject key={'invoiceId' in record ? record.invoiceId : record.receiptId} record={record} />
-        ))}
-        {item.kind === 'POSSIBLE_DUPLICATE' &&
-          (item.subject.docIds ?? []).map((docId, i) => (
-            <DocumentSubject key={docId} docId={docId} label={i === 0 ? t('panel.thisCopy') : t('panel.earlier')} />
+      <section className="fix review-split-panel" aria-labelledby="fix-h">
+        <div className="fix-head">
+          <div className="pager-line">
+            <span className="row">
+              <span className="badge badge-brand">
+                <Icon name={KIND_ICON[item.kind] ?? 'inbox'} size="sm" />
+                {t(`kinds.${item.kind}`)}
+              </span>
+              {month && <span>{monthName(month)}</span>}
+            </span>
+            <span className="row">
+              <span>{t('panel.position', { index: position.index + 1, total: position.total })}</span>
+              <button type="button" className="icon-button" aria-label={t('panel.close')} onClick={onClose}>
+                <Icon name="x" />
+              </button>
+            </span>
+          </div>
+          <h2 id="fix-h">{item.title}</h2>
+          <p>{t(`why.${item.kind}`)}</p>
+        </div>
+
+        <div className="fix-body">
+          {subjects.lines.map((line) => (
+            <LineSubject
+              key={line.txId}
+              line={line}
+              onSeePage={handleOpenSeePage}
+              activePreviewDocId={previewDocId}
+            />
           ))}
-        {item.kind === 'PROPOSED_MATCH' && <Proposal item={item} />}
-        {item.kind === 'UNMATCHED_DOCUMENT' && <LinePicker lines={candidates} picked={pickedLine?.txId} onPick={setPicked} />}
+          {documents.map((record) => (
+            <RecordSubject
+              key={'invoiceId' in record ? record.invoiceId : record.receiptId}
+              record={record}
+              onSeePage={handleOpenSeePage}
+              activePreviewDocId={previewDocId}
+            />
+          ))}
+          {item.kind === 'POSSIBLE_DUPLICATE' &&
+            (item.subject.docIds ?? []).map((docId, i) => (
+              <DocumentSubject
+                key={docId}
+                docId={docId}
+                label={i === 0 ? t('panel.thisCopy') : t('panel.earlier')}
+                onSeePage={handleOpenSeePage}
+                activePreviewDocId={previewDocId}
+              />
+            ))}
+          {item.kind === 'PROPOSED_MATCH' && <Proposal item={item} />}
+          {item.kind === 'UNMATCHED_DOCUMENT' && <LinePicker lines={candidates} picked={pickedLine?.txId} onPick={setPicked} />}
 
         {(quiet.length > 0 || allowed.has('IGNORE') || canCorrect) && (
           <div className="other-actions">
@@ -350,5 +557,6 @@ export function ItemPanel({ item, position, onResolved, onSkip, onClose }: ItemP
         </span>
       </div>
     </section>
-  )
+  </div>
+)
 }

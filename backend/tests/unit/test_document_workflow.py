@@ -17,6 +17,8 @@ from app.domain.models.document import DocStatus, DocType, Document
 from app.domain.models.run import Run, RunKind, RunStatus
 from tests.fakes.clock import FixedClock
 from tests.fakes.document_repository import FakeDocumentRepository
+from tests.fakes.document_storage import FakeDocumentStorage
+from tests.fakes.ledger_repository import FakeLedgerRepository
 from tests.fakes.month_repository import FakeMonthRepository
 from tests.fakes.run_repository import FakeRunRepository
 from tests.fakes.task_queue import FakeTaskQueue
@@ -32,6 +34,8 @@ def workflow_deps():
     doc_repo = FakeDocumentRepository()
     month_repo = FakeMonthRepository()
     task_queue = FakeTaskQueue()
+    storage = FakeDocumentStorage()
+    ledger = FakeLedgerRepository()
     clock = FixedClock(NOW)
 
     deps = PipelineDeps(
@@ -39,6 +43,8 @@ def workflow_deps():
         run_repo=run_repo,
         doc_repo=doc_repo,
         month_repo=month_repo,
+        storage=storage,
+        ledger=ledger,
         task_queue=task_queue,
         clock=clock,
     )
@@ -277,3 +283,64 @@ async def test_ac004_1_ledger_export_workflow(workflow_deps):
     assert "parse_ledger" in stage_nodes
     assert "read_page" not in stage_nodes
     assert "finalize_document" in stage_nodes
+
+
+@pytest.mark.asyncio
+async def test_ledger_export_workflow_auto_confirms_standard_layout(workflow_deps):
+    """Standard CSV ledger export is auto-confirmed, parsed into ledger repo, and finalized."""
+    deps, run_repo, doc_repo = workflow_deps
+    org_id = "org_demo"
+    doc_id = "doc_ledger_auto"
+    run_id = f"doc-{doc_id}-1"
+
+    doc = make_doc(org_id, doc_id, doc_type=DocType.LEDGER_EXPORT, page_count=0)
+    await doc_repo.save_document(org_id, doc)
+
+    csv_data = (
+        b"Date,Journal,Account,Account Name,Description,Reference,Debit,Credit\n"
+        b"10/03/2026,BNK-001,6050,Rent,Office Rent,,1000000.00,\n"
+        b"10/03/2026,BNK-001,1110,Bank,Office Rent,,,1000000.00\n"
+    )
+    assert deps.storage is not None
+    await deps.storage.store_original(org_id, doc_id, ".pdf", csv_data, "text/csv")
+
+    await run_repo.create(
+        org_id,
+        Run(run_id=run_id, kind=RunKind.DOCUMENT, target=doc_id, status=RunStatus.RUNNING),
+    )
+
+    wf = build_document_workflow(deps)
+    sessions = InMemorySessionService()
+    runner = Runner(agent=cast(Any, wf), app_name="kredibel", session_service=sessions)
+
+    # Note: NO mappingConfirmed passed in node_input
+    await sessions.create_session(
+        app_name="kredibel",
+        user_id="user_1",
+        session_id=run_id,
+        state={
+            "node_input": {
+                "orgId": org_id,
+                "docId": doc_id,
+                "runId": run_id,
+                "attempt": 1,
+            }
+        },
+    )
+
+    async for _ in runner.run_async(user_id="user_1", session_id=run_id):
+        pass
+
+    updated_doc = await doc_repo.get_document(org_id, doc_id)
+    assert updated_doc is not None
+    assert updated_doc.status == DocStatus.DONE
+    assert updated_doc.ledger_meta is not None
+    assert updated_doc.ledger_meta["rowsImported"] == 2
+    assert updated_doc.months == ["2026-03"]
+
+    assert deps.ledger is not None
+    stored_rows = await deps.ledger.list_rows(org_id)
+    assert len(stored_rows) == 2
+    assert stored_rows[0].account_code == "6050"
+    assert stored_rows[1].account_code == "1110"
+

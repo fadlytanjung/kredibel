@@ -55,7 +55,9 @@ export function ActivityTrail({ steps, tools, running }: ActivityTrailProps) {
   const currentStep = steps.at(-1)
 
   const headerLabel = running
-    ? currentStep?.label || (openTool ? `Running ${openTool}...` : t('assistant:activity.running'))
+    ? (expanded
+        ? t('assistant:activity.running')
+        : (currentStep?.label || (openTool ? `Running ${openTool}...` : t('assistant:activity.running'))))
     : `${t('assistant:activity.completed')} · ${tools.length} ${
         tools.length === 1 ? t('assistant:activity.lookup') : t('assistant:activity.lookups')
       }`

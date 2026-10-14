@@ -48,7 +48,9 @@ def upload_plan(
     plan: list[tuple[str, Path]] = []
     sent: set[tuple[str, str]] = set(already or ())
     for scenario in scenarios:
-        folder = demo_dir / scenario / "seed-1"
+        folder = demo_dir if (demo_dir / "truth.json").exists() else demo_dir / scenario / "seed-1"
+        if not folder.exists():
+            continue
         for name in _order(folder):
             is_ledger = name.startswith("ledger-") and any(
                 m in name or "H1" in name for m in (months or ())
@@ -114,8 +116,14 @@ async def seed_demo_ledger(
 
     csv_path = demo_dir / "S1" / "seed-1" / "ledger-2026-H1.csv"
     if not csv_path.exists():
-        _log(f"ledger file not found at {csv_path}")
-        return 0
+        csv_candidates = list(demo_dir.glob("**/ledger-*.csv")) or list(
+            demo_dir.glob("ledger-*.csv")
+        )
+        if csv_candidates:
+            csv_path = csv_candidates[0]
+        else:
+            _log(f"ledger file not found at {csv_path}")
+            return 0
 
     content = csv_path.read_text(encoding="utf-8")
     held_docs, _ = await deps.doc_repo.list_documents(org_id, limit=500)
@@ -131,7 +139,13 @@ async def seed_demo_ledger(
         ledger_doc = await deps.document_service.upload(
             principal=principal, file_bytes=content.encode("utf-8"), filename="ledger-2026-H1.csv"
         )
-    if ledger_doc.status != DocStatus.DONE:
+    queue = getattr(deps, "task_queue", None)
+    if queue and hasattr(queue, "drain"):
+        await queue.drain()
+    fresh = await deps.doc_repo.get_document(org_id, ledger_doc.doc_id)
+    if fresh is not None:
+        ledger_doc = fresh
+    if ledger_doc.status != DocStatus.DONE or ledger_doc.doc_type != DocType.LEDGER_EXPORT:
         ledger_doc = replace(ledger_doc, status=DocStatus.DONE, doc_type=DocType.LEDGER_EXPORT)
         await deps.doc_repo.save_document(org_id, ledger_doc)
 
@@ -140,6 +154,15 @@ async def seed_demo_ledger(
         rows = [r for r in rows if r.date.strftime("%Y-%m") in months]
 
     await deps.ledger_repo.save_rows(org_id, rows)
+    row_months = sorted({r.date.strftime("%Y-%m") for r in rows})
+    ledger_meta = {
+        "rowsImported": len(rows),
+        "rows": len(rows),
+        "dateFrom": min(r.date for r in rows).isoformat() if rows else None,
+        "dateTo": max(r.date for r in rows).isoformat() if rows else None,
+    }
+    ledger_doc = replace(ledger_doc, months=row_months, ledger_meta=ledger_meta)
+    await deps.doc_repo.save_document(org_id, ledger_doc)
     _log(f"seeded {len(rows)} ledger entries for {org_id}")
 
     existing_classifications = await deps.ledger_repo.classifications(org_id)
@@ -246,7 +269,12 @@ async def _run(
         _log(f"{len(unfinished)} half-read document(s) finished")
 
     # The books belong to the synthetic business: its legal name and its declared bank account.
-    truth = json.loads((demo_dir / "S1" / "seed-1" / "truth.json").read_text(encoding="utf-8"))
+    truth_file = (
+        demo_dir / "truth.json"
+        if (demo_dir / "truth.json").exists()
+        else demo_dir / "S1" / "seed-1" / "truth.json"
+    )
+    truth = json.loads(truth_file.read_text(encoding="utf-8"))
     business = truth["workspace"]
     if workspace.profile.legal_name != business["profile"]["legalName"]:
         profile = workspace.profile.model_copy(

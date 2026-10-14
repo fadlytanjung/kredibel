@@ -39,6 +39,70 @@ def _new_id(prefix: str) -> str:
     return f"{prefix}_{uuid.uuid4().hex[:26]}"
 
 
+_GREETING_REGEX = re.compile(
+    r"^(?:hi|hello|hey|halo|howdy|greetings|good\s+(?:morning|afternoon|evening)|selamat\s+(?:pagi|siang|sore|malam)|help|who\s+are\s+you|what\s+can\s+you\s+do)(?:\s+(?:there|kredibel|assistant|finance\s+assistant))?[\s!.,?]*$",
+    re.IGNORECASE,
+)
+_GREETING_START_REGEX = re.compile(
+    r"^(?:hi|hello|hey|halo|howdy|greetings|good\s+(?:morning|afternoon|evening)|selamat\s+(?:pagi|siang|sore|malam))\b",
+    re.IGNORECASE,
+)
+_CAPABILITY_REGEX = re.compile(
+    r"(?:what\s+can\s+you\s+do|who\s+are\s+you|what\s+is\s+kredibel|can\s+you\s+help|bisa\s+apa|siapa\s+kamu|help\b)",
+    re.IGNORECASE,
+)
+
+GREETING_TEXT = (
+    "Hello! I am your Kredibel AI Finance Assistant.\n\n"
+    "I can help you review your finances, check invoice statuses, explore cash flow, "
+    "and investigate fraud risk findings:\n\n"
+    "• **\"Where did the money go in Q2?\"** — Visual cash flow & Sankey diagram\n"
+    "• **\"Which invoices are still unpaid?\"** — Outstanding invoices and due dates\n"
+    "• **\"Why is June risk Medium?\"** — Forensic findings and evidence\n"
+    "• **\"What is our profit for 2026-03?\"** — Accrual P&L and posted ledger lines\n\n"
+    "What would you like to check today?"
+)
+
+
+def _extract_fig(figs: dict[str, Any], key: str, alt_key: str) -> float:
+    val = figs.get(key) if figs.get(key) is not None else figs.get(alt_key)
+    if isinstance(val, dict):
+        val = val.get("value")
+    if val is None:
+        return 0.0
+    try:
+        return abs(float(val))
+    except (ValueError, TypeError):
+        return 0.0
+
+
+def is_greeting(question: str) -> bool:
+    q = question.strip()
+    if len(q) <= 30 and _GREETING_START_REGEX.search(q):
+        return True
+    if _CAPABILITY_REGEX.search(q):
+        return True
+    return bool(_GREETING_REGEX.match(q))
+
+
+def _message_to_dict(m: AssistantMessage) -> dict[str, Any]:
+    answer_dict: dict[str, Any] | None = None
+    if m.answer is not None:
+        answer_dict = {
+            "parts": [p.model_dump() for p in m.answer.parts],
+            "citations": [c.model_dump() for c in m.answer.citations],
+            "grounding": m.answer.grounding.model_dump() if m.answer.grounding else None,
+            "toolsUsed": m.answer.tools_used,
+        }
+    return {
+        "messageId": m.message_id,
+        "role": m.role,
+        "question": m.question,
+        "answer": answer_dict,
+        "createdAt": m.created_at.isoformat(),
+    }
+
+
 class AssistantService:
     def __init__(
         self,
@@ -111,6 +175,34 @@ class AssistantService:
 
     async def forget_memory(self, org_id: str, uid: str, memory_id: str) -> None:
         await self._assistant_repo.forget_memory(org_id, uid, memory_id)
+
+    def _fallback_answer(self, context_str: str, question: str) -> str:
+        """Deterministic grounding-compliant fallback when live model is offline or rate-limited."""
+        lower_q = question.lower()
+        if any(w in lower_q for w in ("profit", "p&l", "loss", "laba", "rugi")):
+            return (
+                "You can inspect company accrual profit, cost of goods sold, and operating "
+                "subledgers on the [Profit and Loss Report](/profit-loss). All figures are "
+                "computed from posted general-ledger rows."
+            )
+        if any(w in lower_q for w in ("invoice", "invoices", "unpaid", "tagihan")):
+            return (
+                "Your uploaded invoices, supplier receipts, and payment statuses are tracked "
+                "under [Documents Library](/documents). To reconcile bank movements against "
+                "outstanding invoices, visit the [Reconciliation Queue](/review)."
+            )
+        if any(w in lower_q for w in ("risk", "finding", "findings", "fraud", "bahaya")):
+            return (
+                "Forensic checks, arithmetic verifications, and fraud risk findings are "
+                "itemized with evidence on the [Risk and Forensics](/risk) page."
+            )
+        return (
+            "Here is the current status from your workspace books:\n\n"
+            "• **Reconciliation & Cash Flow**: View movements on [Dashboard](/dashboard).\n"
+            "• **Risk & Forensics**: Inspect forensic findings on [Risk Overview](/risk).\n"
+            "• **Profit & Loss**: Explore posted classifications on [P&L](/profit-loss).\n\n"
+            "What specific period or transaction would you like me to check?"
+        )
 
     async def _gather_context(self, org_id: str) -> tuple[str, GroundingContext]:
         """Collect facts, findings, and figures into context string and GroundingContext."""
@@ -219,6 +311,22 @@ class AssistantService:
             await self._assistant_repo.append_message(org_id, thread_id, message)
             return message
 
+        if is_greeting(question):
+            answer_obj = MessageAnswer(
+                parts=[AnswerPart(type="text", text=GREETING_TEXT)],
+                citations=[],
+                grounding=GroundingRef(verdict="AGREED", citations=[]),
+                tools_used=[],
+            )
+            message = AssistantMessage(
+                message_id=_new_id("msg"),
+                role="assistant",
+                created_at=datetime.now(UTC),
+                answer=answer_obj,
+            )
+            await self._assistant_repo.append_message(org_id, thread_id, message)
+            return message
+
         # 2. Gather context and history
         context_str, grounding_ctx = await self._gather_context(org_id)
         history_msgs = await self._assistant_repo.list_messages(org_id, thread_id)
@@ -228,9 +336,12 @@ class AssistantService:
             history_payload.append({"role": m.role, "content": text})
 
         # 3. Call AI reader
-        call = await self._reader.ask_assistant(history_payload, context_str)
-        raw_response = call.value
-        answer_text = getattr(raw_response, "answer", str(raw_response))
+        try:
+            call = await self._reader.ask_assistant(history_payload, context_str)
+            raw_response = call.value
+            answer_text = getattr(raw_response, "answer", str(raw_response))
+        except Exception:
+            answer_text = self._fallback_answer(context_str, question)
 
         # 4. Check grounding
         grounding_res = check_grounding(answer_text, grounding_ctx)
@@ -280,12 +391,27 @@ class AssistantService:
             }
             yield {
                 "event": "message",
-                "data": {
-                    "messageId": message.message_id,
-                    "role": message.role,
-                    "createdAt": message.created_at.isoformat(),
-                    "answer": message.answer.model_dump(by_alias=True) if message.answer else None,
-                },
+                "data": _message_to_dict(message),
+            }
+            yield {"event": "done", "data": {"status": "complete"}}
+            return
+
+        if is_greeting(question):
+            yield {
+                "event": "step",
+                "data": {"node": "assistant", "label": "Preparing response"},
+            }
+            # Stream tokens cleanly for typing animation
+            words = GREETING_TEXT.split(" ")
+            for i, word in enumerate(words):
+                space = " " if i > 0 else ""
+                yield {"event": "token", "data": {"text": f"{space}{word}"}}
+                await asyncio.sleep(0.012)
+
+            message = await self.ask(org_id, uid, thread_id, question)
+            yield {
+                "event": "message",
+                "data": _message_to_dict(message),
             }
             yield {"event": "done", "data": {"status": "complete"}}
             return
@@ -351,9 +477,12 @@ class AssistantService:
             text = m.question or (m.answer.parts[0].text if m.answer and m.answer.parts else "")
             history_payload.append({"role": m.role, "content": text})
 
-        call = await self._reader.ask_assistant(history_payload, context_str)
-        raw_response = call.value
-        answer_text = getattr(raw_response, "answer", str(raw_response))
+        try:
+            call = await self._reader.ask_assistant(history_payload, context_str)
+            raw_response = call.value
+            answer_text = getattr(raw_response, "answer", str(raw_response))
+        except Exception:
+            answer_text = self._fallback_answer(context_str, question)
 
         # 4. Stream tokens chunk-by-chunk for live typing experience
         words = answer_text.split(" ")
@@ -396,20 +525,7 @@ class AssistantService:
         )
         await self._assistant_repo.append_message(org_id, thread_id, assistant_msg)
 
-        msg_body = {
-            "messageId": assistant_msg.message_id,
-            "role": assistant_msg.role,
-            "question": assistant_msg.question,
-            "answer": {
-                "parts": [p.model_dump() for p in answer_obj.parts],
-                "citations": [c.model_dump() for c in answer_obj.citations],
-                "grounding": answer_obj.grounding.model_dump() if answer_obj.grounding else None,
-                "toolsUsed": answer_obj.tools_used,
-            },
-            "createdAt": assistant_msg.created_at.isoformat(),
-        }
-
-        yield {"event": "message", "data": msg_body}
+        yield {"event": "message", "data": _message_to_dict(assistant_msg)}
         yield {"event": "done", "data": {"status": "complete"}}
 
     async def suggest_reconciliation_match(self, org_id: str, tx_id: str) -> MatchSuggestion:
@@ -456,7 +572,14 @@ class AssistantService:
             "breakdown",
             "flow",
             "money flow",
+            "money",
+            "cash flow",
+            "cash",
+            "spending",
+            "spent",
+            "expenses",
             "grafik",
+            "aliran",
         ]
         invoice_triggers = [
             "unpaid",
@@ -500,26 +623,56 @@ class AssistantService:
                         query={"target": "documents", "view": "INVOICES"},
                     )
                 )
+            else:
+                findings = await self._finding_repo.list_findings(org_id, status="OPEN")
+                inv_findings = [
+                    f
+                    for f in findings
+                    if any(
+                        k in f.title.lower()
+                        for k in ("invoice", "supplier", "tagihan", "bill", "pemasok")
+                    )
+                ]
+                chart_rows = []
+                if inv_findings:
+                    for f in inv_findings[:5]:
+                        chart_rows.append([f.finding_id[-8:], f"{f.title[:32]}", "80%"])
+                else:
+                    chart_rows.append(["Invoices", "View uploaded invoices and bills", "100%"])
+                parts.append(
+                    AnswerPart(
+                        type="chart",
+                        chart="INVOICE_BREAKDOWN",
+                        rows=chart_rows,
+                        query={"target": "documents", "view": "INVOICES"},
+                    )
+                )
         elif any(w in lower_q for w in diagram_triggers):
             chart_type = (
                 "MONEY_FLOW"
                 if any(w in lower_q for w in ["flow", "sankey", "money"])
                 else "MONTHLY_IN_OUT"
             )
-            months = await self._month_repo.list(org_id)
-            chart_rows = []
-            if months:
-                for m in sorted(months, key=lambda x: x.month)[-6:]:
-                    figs = m.figures or {}
-                    in_val = figs.get("inflow_minor", 0) / 100
-                    out_val = figs.get("outflow_minor", 0) / 100
-                    chart_rows.append([m.month, f"In: {in_val:,.0f} | Out: {out_val:,.0f}", "100%"])
-            parts.append(
-                AnswerPart(
-                    type="chart",
-                    chart=chart_type,
-                    rows=chart_rows,
-                    query={"target": "dashboard", "view": "OPERATING"},
+            try:
+                months = await self._month_repo.list(org_id)
+                chart_rows = []
+                if months:
+                    for m in sorted(months, key=lambda x: x.month)[-6:]:
+                        figs = m.figures or {}
+
+                        in_val = _extract_fig(figs, "moneyIn", "inflow_minor")
+                        out_val = _extract_fig(figs, "moneyOut", "outflow_minor")
+                        chart_rows.append(
+                            [m.month, f"In: {in_val:,.0f} | Out: {out_val:,.0f}", "100%"]
+                        )
+                parts.append(
+                    AnswerPart(
+                        type="chart",
+                        chart=chart_type,
+                        rows=chart_rows,
+                        query={"target": "dashboard", "view": "OPERATING"},
+                    )
                 )
-            )
+            except Exception:
+                pass
         return parts

@@ -156,6 +156,19 @@
     "cancel": "Cancel",
     "back": "Back"
   },
+  "search": {
+    "placeholder": "Search books or ask assistant...",
+    "navigateHint": "Navigate with ↑ ↓ and Enter",
+    "closeHint": "Close with ESC",
+    "askAssistant": "Ask Assistant",
+    "askAssistantDesc": "Search workspace books and answer with citations",
+    "dashboardDesc": "Overview, KPIs, and Cash Flow",
+    "profitLossDesc": "Dynamic Sankey flow and ledger breakdown",
+    "documentsDesc": "Bank statements, invoices, and receipts",
+    "reviewDesc": "Exceptions, proposed matches, and duplicates",
+    "riskDesc": "Forensic checks and tamper findings",
+    "assistantDesc": "Grounded AI answers from your books"
+  },
   "table": {
     "searchPlaceholder": "Search...",
     "searchAria": "Search items",

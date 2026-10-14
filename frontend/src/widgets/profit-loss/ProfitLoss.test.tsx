@@ -18,7 +18,7 @@ function setup(ui: React.ReactNode) {
 
 it('AC-018-5: chart and table show the same money, period link and coverage', () => {
   setup(<ProfitLossView report={PNL} />)
-  expect(screen.getByText(/IDR.*26,000,000/)).toBeInTheDocument()
+  expect(screen.getAllByText(/IDR.*26,000,000/)[0]).toBeInTheDocument()
   expect(screen.getByText(/does not certify/)).toBeInTheDocument()
   expect(screen.getByRole('link', { name: 'Accounts and sources' })).toHaveAttribute('href', '/profit-loss?period=2026-03')
   fireEvent.click(screen.getByRole('button', { name: 'Table' }))
@@ -57,3 +57,14 @@ it('AC-018-6: assistant opens the same report period', () => {
   setup(<AnswerParts answer={{ parts: [{ type: 'chart', chart: 'PROFIT_LOSS', query: { period: '2026-Q2' } }], citations: [], toolsUsed: ['get_profit_loss'] }} />)
   expect(screen.getByRole('link', { name: 'Open profit and loss' })).toHaveAttribute('href', '/profit-loss?period=2026-Q2')
 })
+
+it('P&L flow renders Sankey and opens entries sheet on click', () => {
+  setup(<ProfitLossView report={PNL} />)
+  expect(screen.getByRole('button', { name: 'Flow' })).toHaveAttribute('aria-pressed', 'true')
+  fireEvent.click(screen.getAllByRole('button', { name: /4000 Sales/ })[0])
+  expect(screen.getByRole('dialog')).toBeInTheDocument()
+  expect(screen.getByText('Row 1')).toBeInTheDocument()
+  fireEvent.click(screen.getAllByLabelText('Close entries')[0])
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+})
+

@@ -74,7 +74,7 @@ def test_deps():
 
 @pytest.mark.asyncio
 async def test_assistant_threads_and_chat_lifecycle(test_deps):
-    deps, *rest = test_deps
+    deps, bank_lines, reader, *rest = test_deps
     app = create_app(deps=deps)
 
     transport = ASGITransport(app=app)
@@ -144,6 +144,49 @@ async def test_assistant_threads_and_chat_lifecycle(test_deps):
         assert "event: token" in body
         assert "event: message" in body
         assert "event: done" in body
+
+        # 7. Conversational greeting ("Hi") yields immediate agreed response without tool queries
+        hi_res = await client.post(
+            f"/api/assistant/threads/{thread_id}/messages",
+            json={"question": "Hi"},
+            headers=headers,
+        )
+        assert hi_res.status_code == 200
+        hi_msg = hi_res.json()
+        assert hi_msg["role"] == "assistant"
+        assert hi_msg["answer"]["grounding"]["verdict"] == "AGREED"
+        assert hi_msg["answer"]["toolsUsed"] == []
+        assert "Kredibel AI Finance Assistant" in hi_msg["answer"]["parts"][0]["text"]
+
+        # 8. Conversational greeting via streaming
+        stream_hi = await client.post(
+            f"/api/assistant/threads/{thread_id}/messages",
+            json={"question": "Hello, what can you do?"},
+            headers={**headers, "Accept": "text/event-stream"},
+        )
+        assert stream_hi.status_code == 200
+        hi_stream_body = stream_hi.text
+        assert "event: step" in hi_stream_body
+        assert "event: tool" not in hi_stream_body
+        assert "event: token" in hi_stream_body
+        assert "event: message" in hi_stream_body
+        assert "event: done" in hi_stream_body
+
+        # 9. When reader raises an error or times out, fallback answer is returned safely
+        def _failing_reader(*_a, **_kw):
+            raise RuntimeError("Gemini offline")
+
+        reader.ask_assistant = _failing_reader
+        stream_fallback = await client.post(
+            f"/api/assistant/threads/{thread_id}/messages",
+            json={"question": "Where did the money go in Q2?"},
+            headers={**headers, "Accept": "text/event-stream"},
+        )
+        assert stream_fallback.status_code == 200
+        fb_body = stream_fallback.text
+        assert "event: message" in fb_body
+        assert "event: done" in fb_body
+        assert "Dashboard" in fb_body
 
 
 @pytest.mark.asyncio

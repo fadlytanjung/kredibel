@@ -7,7 +7,13 @@ from app.domain.profit_loss import ProfitLoss
 
 
 def is_profit_question(question: str) -> bool:
-    return bool(re.search(r"\b(profit|p\s*&\s*l|pnl|income statement|laba rugi)\b", question, re.I))
+    return bool(
+        re.search(
+            r"\b(profit|p\s*&\s*l|pnl|income statement|laba rugi|revenue|omset|pendapatan)\b",
+            question,
+            re.I,
+        )
+    )
 
 
 def report_period(question: str, scope: str) -> str:

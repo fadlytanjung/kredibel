@@ -105,13 +105,17 @@ def create_assistant_router(deps: ServiceProvider, workspace_dep: Any) -> APIRou
         accept = request.headers.get("accept", "")
         if "text/event-stream" in accept:
             async def event_generator():
-                async for event in deps.assistant_service.stream_ask(
-                    org_id=org_id,
-                    uid=principal.uid,
-                    thread_id=thread_id,
-                    question=body.question,
-                ):
-                    yield f"event: {event['event']}\ndata: {json.dumps(event['data'])}\n\n"
+                try:
+                    async for event in deps.assistant_service.stream_ask(
+                        org_id=org_id,
+                        uid=principal.uid,
+                        thread_id=thread_id,
+                        question=body.question,
+                    ):
+                        yield f"event: {event['event']}\ndata: {json.dumps(event['data'])}\n\n"
+                except Exception as exc:
+                    yield f"event: error\ndata: {json.dumps({'message': str(exc)})}\n\n"
+                    yield f"event: done\ndata: {json.dumps({'status': 'error'})}\n\n"
 
             return StreamingResponse(
                 event_generator(),

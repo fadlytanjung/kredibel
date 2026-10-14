@@ -2,11 +2,12 @@
  * Finance Assistant (`/assistant`, `/assistant/:threadId`; spec 011; AC-011-1, AC-011-2, AC-011-11; mock assistant.html).
  *
  * Grounded AI chat answering questions about workspace books, periods, and risk findings.
+ * Gemini-style conversation experience with left sidebar history, streaming animations, and interactive diagrams.
  */
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   type AssistantMessage,
@@ -40,9 +41,17 @@ export function AssistantPage() {
   } = useInfiniteThreads(10)
   const createThreadMutation = useCreateThread()
 
-  const threads = threadsInfiniteData?.pages.flatMap((page) => page.items) ?? []
-  const activeThread = threads.find((th) => th.threadId === threadId) || threads[0]
-  const currentThreadId = threadId || activeThread?.threadId
+  const [selectedThreadId, setSelectedThreadId] = useState<string | undefined>(undefined)
+
+  const threads = useMemo(
+    () => threadsInfiniteData?.pages.flatMap((page) => page.items) ?? [],
+    [threadsInfiniteData?.pages],
+  )
+  const activeThread = useMemo(
+    () => threads.find((th) => th.threadId === (threadId || selectedThreadId)) || threads[0],
+    [threads, threadId, selectedThreadId],
+  )
+  const currentThreadId = threadId || selectedThreadId || activeThread?.threadId
 
   const { data: messagesData, isLoading: loadingMessages } = useMessages(currentThreadId)
 
@@ -57,15 +66,53 @@ export function AssistantPage() {
   const [liveSteps, setLiveSteps] = useState<StepEvent[]>([])
   const [liveTools, setLiveTools] = useState<ToolEvent[]>([])
   const [draftText, setDraftText] = useState('')
-  const [optimisticUserQuestion, setOptimisticUserQuestion] = useState<string | null>(null)
   const [streamError, setStreamError] = useState<string | null>(null)
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+  const [sessionMessagesMap, setSessionMessagesMap] = useState<Record<string, AssistantMessage[]>>({})
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const hasHandledQueryParam = useRef(false)
   const abortControllerRef = useRef<AbortController | null>(null)
 
+  // Combine server messages with session messages (guarantees chat bubbles never vanish)
+  const serverMessages = useMemo(() => messagesData?.items ?? [], [messagesData?.items])
+  const messages = useMemo(() => {
+    const activeKey = currentThreadId || selectedThreadId || threadId || ''
+    const activeSessionMessages = [
+      ...(sessionMessagesMap[''] ?? []),
+      ...(activeKey ? (sessionMessagesMap[activeKey] ?? []) : []),
+    ]
+    const combined = [...serverMessages]
+    for (const sm of activeSessionMessages) {
+      const alreadyInServer = combined.some((m) => {
+        if (m.messageId === sm.messageId) return true
+        if (
+          sm.messageId.startsWith('user-') &&
+          m.role === 'user' &&
+          m.question === sm.question &&
+          Math.abs(new Date(m.createdAt).getTime() - new Date(sm.createdAt).getTime()) < 60000
+        ) {
+          return true
+        }
+        if (
+          sm.role === 'assistant' &&
+          m.role === 'assistant' &&
+          sm.answer &&
+          m.answer &&
+          JSON.stringify(m.answer.parts) === JSON.stringify(sm.answer.parts)
+        ) {
+          return true
+        }
+        return false
+      })
+      if (!alreadyInServer) {
+        combined.push(sm)
+      }
+    }
+    return combined
+  }, [serverMessages, sessionMessagesMap, currentThreadId, selectedThreadId, threadId])
+
   // Auto-scroll to bottom of messages
-  const messages = messagesData?.items ?? []
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView?.({ behavior: 'smooth' })
   }, [messages.length, isStreaming, draftText, liveSteps.length, liveTools.length])
@@ -78,15 +125,19 @@ export function AssistantPage() {
   }, [])
 
   const handleSelectThread = (id: string) => {
+    setMobileSidebarOpen(false)
+    setSelectedThreadId(id)
     navigate(`/assistant/${id}`)
   }
 
   const handleNewConversation = async () => {
+    setMobileSidebarOpen(false)
     try {
       const thread = await createThreadMutation.mutateAsync({
         title: `Question ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
         scope: 'WORKSPACE',
       })
+      setSelectedThreadId(thread.threadId)
       navigate(`/assistant/${thread.threadId}`)
     } catch {
       // fallback
@@ -105,6 +156,7 @@ export function AssistantPage() {
           scope: 'WORKSPACE',
         })
         targetThreadId = thread.threadId
+        setSelectedThreadId(targetThreadId)
         navigate(`/assistant/${targetThreadId}`)
       } catch {
         return
@@ -113,11 +165,25 @@ export function AssistantPage() {
 
     setInputQuestion('')
     setStreamError(null)
-    setOptimisticUserQuestion(q)
     setIsStreaming(true)
     setLiveSteps([])
     setLiveTools([])
     setDraftText('')
+
+    const userTempId = `user-${Date.now()}`
+    const userMessage: AssistantMessage = {
+      messageId: userTempId,
+      role: 'user',
+      question: q,
+      createdAt: new Date().toISOString(),
+    }
+    setSessionMessagesMap((prev) => {
+      const existing = prev[targetThreadId] ?? []
+      return {
+        ...prev,
+        [targetThreadId]: [...existing, userMessage],
+      }
+    })
 
     abortControllerRef.current?.abort()
     const abortCtrl = new AbortController()
@@ -137,29 +203,84 @@ export function AssistantPage() {
           onToken: (tok) => {
             setDraftText((prev) => prev + tok)
           },
-          onMessage: () => {
+          onMessage: (msg) => {
+            setSessionMessagesMap((prev) => {
+              const existing = prev[targetThreadId] ?? []
+              const withoutDup = existing.filter((m) => m.messageId !== msg.messageId)
+              return {
+                ...prev,
+                [targetThreadId]: [...withoutDup, msg],
+              }
+            })
             void queryClient.invalidateQueries({
-              queryKey: ['assistant', 'threads', targetThreadId, 'messages'],
+              queryKey: ['assistant-messages', targetThreadId],
+            })
+            void queryClient.invalidateQueries({
+              queryKey: ['assistant-threads-infinite'],
+            })
+            void queryClient.invalidateQueries({
+              queryKey: ['assistant-threads'],
             })
           },
           onError: (err) => {
             setStreamError(err.message)
+            const fallbackText = draftText.trim()
+              ? `${draftText}\n\n*(Response interrupted: ${err.message})*`
+              : `I encountered an issue retrieving that information (${err.message}). Please try asking again.`
+            const errorMsg: AssistantMessage = {
+              messageId: `err-${Date.now()}`,
+              role: 'assistant',
+              createdAt: new Date().toISOString(),
+              answer: {
+                parts: [{ type: 'text', text: fallbackText }],
+                citations: [],
+                grounding: { verdict: 'TEMPLATE', citations: [] },
+                toolsUsed: [],
+              },
+            }
+            setSessionMessagesMap((prev) => {
+              const existing = prev[targetThreadId] ?? []
+              return {
+                ...prev,
+                [targetThreadId]: [...existing, errorMsg],
+              }
+            })
           },
           onDone: () => {
             setIsStreaming(false)
-            setOptimisticUserQuestion(null)
             setDraftText('')
             setLiveSteps([])
             setLiveTools([])
+            void queryClient.invalidateQueries({
+              queryKey: ['assistant-messages', targetThreadId],
+            })
           },
         },
         abortCtrl.signal,
       )
     } catch (e) {
       setIsStreaming(false)
-      setOptimisticUserQuestion(null)
+      const errMsg = e instanceof Error ? e.message : 'Failed to send message'
+      setStreamError(errMsg)
+      const errorMsg: AssistantMessage = {
+        messageId: `err-${Date.now()}`,
+        role: 'assistant',
+        createdAt: new Date().toISOString(),
+        answer: {
+          parts: [{ type: 'text', text: `I encountered an issue sending your message (${errMsg}). Please try asking again.` }],
+          citations: [],
+          grounding: { verdict: 'TEMPLATE', citations: [] },
+          toolsUsed: [],
+        },
+      }
+      setSessionMessagesMap((prev) => {
+        const existing = prev[targetThreadId] ?? []
+        return {
+          ...prev,
+          [targetThreadId]: [...existing, errorMsg],
+        }
+      })
       setDraftText('')
-      setStreamError(e instanceof Error ? e.message : 'Failed to send message')
     }
   }
 
@@ -180,24 +301,238 @@ export function AssistantPage() {
     t('assistant:starters.clients'),
   ]
 
+  const welcomePrompts = [
+    {
+      title: 'Money flow & cash flow',
+      question: t('assistant:starters.q2', { defaultValue: 'Where did the money go in Q2?' }),
+      icon: 'bar-chart' as const,
+    },
+    {
+      title: 'Outstanding invoices',
+      question: t('assistant:starters.unpaid', { defaultValue: 'Which invoices are still unpaid?' }),
+      icon: 'file-text' as const,
+    },
+    {
+      title: 'Forensic risk score',
+      question: t('assistant:starters.riskJune', { defaultValue: 'Why is June risk scored as Medium?' }),
+      icon: 'shield-alert' as const,
+    },
+    {
+      title: 'Profit & loss breakdown',
+      question: 'Show my profit and loss for 2026-03',
+      icon: 'table' as const,
+    },
+  ]
+
+  const threadSidebarContent = (
+    <>
+      <button
+        type="button"
+        className="button button-primary w-full inline-flex items-center justify-center gap-2"
+        onClick={handleNewConversation}
+        disabled={createThreadMutation.isPending}
+        data-testid="new-thread"
+      >
+        <Icon name="plus" size="sm" />
+        <span>+ {t('assistant:newChat', { defaultValue: 'New chat' })}</span>
+      </button>
+
+      {/* Conversations history list */}
+      <section className="stack gap-2 mt-2" aria-labelledby="thr-h">
+        <div className="spread items-center">
+          <h2 className="type-h3 text-xs uppercase tracking-wider text-muted font-bold" id="thr-h">
+            {t('assistant:earlierQuestions')}
+          </h2>
+          <span className="badge badge-quiet text-2xs">{threads.length}</span>
+        </div>
+
+        {loadingThreads && threads.length === 0 ? (
+          <p className="muted small">{t('common:loading', { defaultValue: 'Loading...' })}</p>
+        ) : threads.length === 0 ? (
+          <p className="muted small">{t('assistant:noThreads')}</p>
+        ) : (
+          <>
+            <div className="stack gap-1">
+              {threads.map((th) => {
+                const isSelected = th.threadId === currentThreadId
+                const dateStr = th.lastMessageAt || th.createdAt
+                const formattedDate = dateStr ? formatDate(dateStr) : null
+                return (
+                  <Link
+                    key={th.threadId}
+                    to={`/assistant/${th.threadId}`}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      handleSelectThread(th.threadId)
+                    }}
+                    className={`assistant-thread-btn ${isSelected ? 'is-active' : ''}`}
+                  >
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="truncate font-medium">{th.title || t('assistant:defaultThreadTitle')}</span>
+                      {formattedDate && (
+                        <span className="text-2xs opacity-60 shrink-0 ml-1">{formattedDate}</span>
+                      )}
+                    </div>
+                  </Link>
+                )
+              })}
+            </div>
+            {hasNextPage && (
+              <button
+                type="button"
+                className="button button-quiet button-sm w-full mt-2"
+                onClick={() => void fetchNextPage()}
+                disabled={isFetchingNextPage}
+              >
+                {isFetchingNextPage ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Icon name="spinner" className="spin" size="sm" />
+                    {t('common:loading', { defaultValue: 'Loading...' })}
+                  </span>
+                ) : (
+                  t('assistant:loadMoreThreads')
+                )}
+              </button>
+            )}
+          </>
+        )}
+      </section>
+
+      {/* Remembered Preferences */}
+      <section className="panel panel-pad stack gap-2 mt-auto" aria-labelledby="mem-h">
+        <div className="spread items-center">
+          <h2 className="type-h3 text-xs uppercase tracking-wider text-muted font-bold" id="mem-h">
+            {t('assistant:remembered.title')}
+          </h2>
+          {memories.length > 0 && (
+            <button
+              type="button"
+              className="link small border-0 bg-transparent cursor-pointer p-0"
+              onClick={() => forgetMemoriesMutation.mutate()}
+              disabled={forgetMemoriesMutation.isPending}
+            >
+              {t('assistant:remembered.forgetAll')}
+            </button>
+          )}
+        </div>
+        {memories.length === 0 ? (
+          <p className="muted small">{t('assistant:remembered.empty')}</p>
+        ) : (
+          <ul className="remembered m-0 p-0 list-none">
+            {memories.map((mem) => (
+              <li key={mem.memoryId}>
+                <span>{mem.fact}</span>
+                <button
+                  type="button"
+                  className="link small border-0 bg-transparent cursor-pointer p-0"
+                  onClick={() => forgetMemoryMutation.mutate(mem.memoryId)}
+                  disabled={forgetMemoryMutation.isPending}
+                >
+                  {t('assistant:remembered.forget')}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <p className="muted small">{t('assistant:remembered.footer')}</p>
+      </section>
+    </>
+  )
+
   return (
-    <div className="page">
+    <div className="page stack gap-4">
       {/* Page Header */}
       <div className="page-head">
-        <div className="spread">
-          <h1 className="type-title">{t('assistant:title')}</h1>
-          <span className="badge badge-outline">{t('assistant:preview')}</span>
+        <div className="spread items-center">
+          <div className="row items-center gap-2">
+            <button
+              type="button"
+              className="button button-quiet button-sm md:hidden inline-flex items-center gap-1.5"
+              onClick={() => setMobileSidebarOpen(true)}
+              aria-label={t('assistant:history')}
+            >
+              <Icon name="table" size="sm" />
+              <span>{t('assistant:history')}</span>
+            </button>
+            <h1 className="type-title">{t('assistant:title')}</h1>
+            <span className="badge badge-outline">{t('assistant:preview')}</span>
+          </div>
         </div>
         <p>{t('assistant:subtitle')}</p>
       </div>
 
-      {/* Chat Layout */}
-      <div className="chat-layout">
-        <div className="stack gap-5">
-          {/* Messages list */}
+      {/* Main Gemini-style Layout */}
+      <div className="assistant-page-container">
+        {/* Persistent Left Rail on Desktop */}
+        <aside className="assistant-sidebar assistant-sidebar-desktop" aria-label={t('assistant:recentConversations')}>
+          {threadSidebarContent}
+        </aside>
+
+        {/* Mobile Slide-over Drawer for Sidebar */}
+        {mobileSidebarOpen && (
+          <div className="flow-sheet">
+            <button
+              type="button"
+              className="scrim"
+              aria-label={t('assistant:closeHistory')}
+              onClick={() => setMobileSidebarOpen(false)}
+            />
+            <section className="sheet" role="dialog" aria-modal="true" aria-label={t('assistant:history')}>
+              <div className="sheet-head">
+                <h2 className="type-h3">{t('assistant:recentConversations')}</h2>
+                <button
+                  type="button"
+                  className="icon-button"
+                  aria-label={t('assistant:closeHistory')}
+                  onClick={() => setMobileSidebarOpen(false)}
+                >
+                  <Icon name="x" />
+                </button>
+              </div>
+              <div className="sheet-body stack gap-3">{threadSidebarContent}</div>
+            </section>
+          </div>
+        )}
+
+        {/* Main Conversation Stream */}
+        <main className="assistant-main">
           <div className="chat">
             {loadingMessages && messages.length === 0 ? (
               <div className="muted p-4">{t('common:loading', { defaultValue: 'Loading messages...' })}</div>
+            ) : messages.length === 0 && !isStreaming ? (
+              <div className="assistant-welcome" data-testid="assistant-welcome">
+                <div className="assistant-welcome-hero">
+                  <img className="assistant-welcome-mark" src="/brand/kredibel-mark.svg" alt="" aria-hidden="true" />
+                  <h2 className="assistant-welcome-title">
+                    {t('assistant:welcome.title', { defaultValue: 'How can I help with your books today?' })}
+                  </h2>
+                  <p className="assistant-welcome-subtitle">
+                    {t('assistant:welcome.subtitle', {
+                      defaultValue:
+                        'Ask anything about your cash flow, profit & loss, reconciliation, or forensic risk findings.',
+                    })}
+                  </p>
+                </div>
+                <div className="assistant-suggestion-grid">
+                  {welcomePrompts.map((p, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      className="assistant-prompt-card"
+                      onClick={() => void handleSend(p.question)}
+                      data-testid={`prompt-card-${idx}`}
+                    >
+                      <div className="assistant-prompt-card-icon">
+                        <Icon name={p.icon} size="sm" />
+                      </div>
+                      <div className="assistant-prompt-card-text">
+                        <strong>{p.title}</strong>
+                        <span>{p.question}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
             ) : (
               messages.map((msg: AssistantMessage) => {
                 if (msg.role === 'user') {
@@ -229,12 +564,6 @@ export function AssistantPage() {
               })
             )}
 
-            {/* Optimistic user question while streaming */}
-            {isStreaming && optimisticUserQuestion && (
-              <p className="msg-user" data-testid="optimistic-user-message">
-                {optimisticUserQuestion}
-              </p>
-            )}
 
             {/* In-flight streaming response with ActivityTrail & typing animation */}
             {isStreaming && (
@@ -269,7 +598,7 @@ export function AssistantPage() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Suggested questions */}
+          {/* Suggested starter questions */}
           <div className="suggested" aria-label={t('assistant:suggestedQuestions')}>
             {starterQuestions.map((q, idx) => (
               <a
@@ -310,114 +639,7 @@ export function AssistantPage() {
               <Icon name="send" size="sm" />
             </button>
           </form>
-        </div>
-
-        {/* Aside: Remembered Preferences & Earlier Questions */}
-        <aside className="chat-aside stack gap-4">
-          {/* Remembered panel */}
-          <section className="panel panel-pad stack gap-3" aria-labelledby="mem-h">
-            <div className="spread">
-              <h2 className="type-h3" id="mem-h">
-                {t('assistant:remembered.title')}
-              </h2>
-              {memories.length > 0 && (
-                <button
-                  type="button"
-                  className="link small border-0 bg-transparent cursor-pointer p-0"
-                  onClick={() => forgetMemoriesMutation.mutate()}
-                  disabled={forgetMemoriesMutation.isPending}
-                >
-                  {t('assistant:remembered.forgetAll')}
-                </button>
-              )}
-            </div>
-            {memories.length === 0 ? (
-              <p className="muted small">{t('assistant:remembered.empty')}</p>
-            ) : (
-              <ul className="remembered m-0 p-0 list-none">
-                {memories.map((mem) => (
-                  <li key={mem.memoryId}>
-                    <span>{mem.fact}</span>
-                    <button
-                      type="button"
-                      className="link small border-0 bg-transparent cursor-pointer p-0"
-                      onClick={() => forgetMemoryMutation.mutate(mem.memoryId)}
-                      disabled={forgetMemoryMutation.isPending}
-                    >
-                      {t('assistant:remembered.forget')}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <p className="muted small">{t('assistant:remembered.footer')}</p>
-          </section>
-
-          {/* Earlier questions panel */}
-          <section className="panel panel-pad stack gap-2" aria-labelledby="thr-h">
-            <div className="spread">
-              <h2 className="type-h3" id="thr-h">
-                {t('assistant:earlierQuestions')}
-              </h2>
-              <button
-                type="button"
-                className="link small border-0 bg-transparent cursor-pointer p-0"
-                onClick={handleNewConversation}
-                disabled={createThreadMutation.isPending}
-              >
-                + {t('assistant:newThread')}
-              </button>
-            </div>
-            {loadingThreads && threads.length === 0 ? (
-              <p className="muted small">{t('common:loading', { defaultValue: 'Loading...' })}</p>
-            ) : threads.length === 0 ? (
-              <p className="muted small">{t('assistant:noThreads')}</p>
-            ) : (
-              <>
-                <div className="stack gap-1">
-                  {threads.map((th) => {
-                    const isSelected = th.threadId === currentThreadId
-                    const dateStr = th.lastMessageAt || th.createdAt
-                    const formattedDate = dateStr ? formatDate(dateStr) : null
-                    return (
-                      <a
-                        key={th.threadId}
-                        className={`link text-sm truncate flex items-center justify-between py-1 ${isSelected ? 'font-semibold' : ''}`}
-                        href={`/assistant/${th.threadId}`}
-                        onClick={(e) => {
-                          e.preventDefault()
-                          handleSelectThread(th.threadId)
-                        }}
-                      >
-                        <span className="truncate">{th.title || t('assistant:defaultThreadTitle')}</span>
-                        {formattedDate && (
-                          <span className="text-xs muted shrink-0 ml-2">{formattedDate}</span>
-                        )}
-                      </a>
-                    )
-                  })}
-                </div>
-                {hasNextPage && (
-                  <button
-                    type="button"
-                    className="button button-quiet button-sm w-full mt-2"
-                    onClick={() => void fetchNextPage()}
-                    disabled={isFetchingNextPage}
-                  >
-                    {isFetchingNextPage ? (
-                      <span className="inline-flex items-center gap-1.5">
-                        <Icon name="spinner" className="spin" size="sm" />
-                        {t('common:loading', { defaultValue: 'Loading...' })}
-                      </span>
-                    ) : (
-                      t('assistant:loadMoreThreads')
-                    )}
-                  </button>
-                )}
-              </>
-            )}
-          </section>
-        </aside>
+        </main>
       </div>
     </div>
   )

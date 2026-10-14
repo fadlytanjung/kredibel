@@ -168,11 +168,13 @@ describe('AssistantPage', () => {
     renderWithClient('/assistant/th_empty')
 
     await waitFor(() => {
-      expect(screen.getByText('Which invoices are still unpaid?')).toBeInTheDocument()
+      expect(screen.getByTestId('assistant-welcome')).toBeInTheDocument()
+      expect(screen.getAllByText('Which invoices are still unpaid?')[0]).toBeInTheDocument()
     })
 
+    expect(screen.getByTestId('prompt-card-0')).toBeInTheDocument()
     expect(screen.getByLabelText('Suggested questions')).toBeInTheDocument()
-    expect(screen.getByText('Where did the money go in Q2?')).toBeInTheDocument()
+    expect(screen.getAllByText('Where did the money go in Q2?')[0]).toBeInTheDocument()
   })
 
   it('allows user to stream a new question via composer with SSE', async () => {
@@ -233,6 +235,9 @@ describe('AssistantPage', () => {
         }),
       )
     })
+
+    expect(await screen.findByText('What is our current balance?')).toBeInTheDocument()
+    expect(await screen.findByText(/Current balance is IDR 50,000,000/)).toBeInTheDocument()
   })
 
   it('allows user to forget remembered preferences', async () => {

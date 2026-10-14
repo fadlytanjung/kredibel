@@ -1,9 +1,10 @@
 /** `header.topbar`: mark or back button, title (compact), breadcrumbs, search, bell, Upload. */
 
-import { Fragment } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { Badge } from './Badge'
+import { CommandPalette } from './CommandPalette'
 import { Icon } from './Icon'
 import type { AppShellTrial, PageChrome } from './appShellNav'
 
@@ -43,63 +44,87 @@ export function AppShellTopBar({
     crumb.literal ? crumb.label : t(crumb.label)
   const title = chrome.crumbs.length ? crumbText(chrome.crumbs[chrome.crumbs.length - 1]!) : ''
   const open = riskCount ?? 0
+  const [paletteOpen, setPaletteOpen] = useState(false)
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setPaletteOpen((prev) => !prev)
+      } else if (
+        e.key === '/' &&
+        !(
+          e.target instanceof HTMLInputElement ||
+          e.target instanceof HTMLTextAreaElement ||
+          (e.target as HTMLElement)?.isContentEditable
+        )
+      ) {
+        e.preventDefault()
+        setPaletteOpen(true)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   return (
-    <header className="topbar">
-      {chrome.back ? (
-        <Link
-          className="icon-button only-compact"
-          to={chrome.back.to}
-          aria-label={t('shell.backTo', { page: t(chrome.back.labelKey) })}
-        >
-          <Icon name="chevron-left" />
-        </Link>
-      ) : (
-        <Link className="only-compact" to="/" aria-label={t('app.home')}>
-          <img className="mark" src="/brand/kredibel-mark.svg" alt={t('app.name')} />
-        </Link>
-      )}
-      <p className="topbar-title only-compact">{title}</p>
-      <nav className="crumbs" aria-label={t('nav.breadcrumbs')}>
-        {chrome.crumbs.map((crumb, index) =>
-          index < chrome.crumbs.length - 1 && crumb.to ? (
-            <Fragment key={crumb.label}>
-              <Link to={crumb.to}>{crumbText(crumb)}</Link>
-              <Icon name="chevron-right" />
-            </Fragment>
-          ) : (
-            <span key={crumb.label} aria-current="page">
-              {crumbText(crumb)}
+    <>
+      <header className="topbar">
+        {chrome.back ? (
+          <Link
+            className="icon-button only-compact"
+            to={chrome.back.to}
+            aria-label={t('shell.backTo', { page: t(chrome.back.labelKey) })}
+          >
+            <Icon name="chevron-left" />
+          </Link>
+        ) : (
+          <Link className="only-compact" to="/" aria-label={t('app.home')}>
+            <img className="mark" src="/brand/kredibel-mark.svg" alt={t('app.name')} />
+          </Link>
+        )}
+        <p className="topbar-title only-compact">{title}</p>
+        <nav className="crumbs" aria-label={t('nav.breadcrumbs')}>
+          {chrome.crumbs.map((crumb, index) =>
+            index < chrome.crumbs.length - 1 && crumb.to ? (
+              <Fragment key={crumb.label}>
+                <Link to={crumb.to}>{crumbText(crumb)}</Link>
+                <Icon name="chevron-right" />
+              </Fragment>
+            ) : (
+              <span key={crumb.label} aria-current="page">
+                {crumbText(crumb)}
+              </span>
+            ),
+          )}
+        </nav>
+        <div className="topbar-actions">
+          {extra}
+          {/* Below 1200 px the sidebar's trial card is hidden, so the top bar carries it (AC-013-12). */}
+          {trial && (
+            <span className="hide-large">
+              <TrialBadge trial={trial} />
             </span>
-          ),
-        )}
-      </nav>
-      <div className="topbar-actions">
-        {extra}
-        {/* Below 1200 px the sidebar's trial card is hidden, so the top bar carries it (AC-013-12). */}
-        {trial && (
-          <span className="hide-large">
-            <TrialBadge trial={trial} />
-          </span>
-        )}
-        <button
-          type="button"
-          className="search-field border-0"
-          aria-disabled="true"
-          title={t('shell.searchSoon')}
-        >
-          <Icon name="search" size="sm" />
-          {t('shell.search')}
-          <span className="kbd">/</span>
-        </button>
-        <Link
-          className="icon-button"
-          to="/risk"
-          aria-label={open > 0 ? t('shell.notifications', { count: open }) : t('shell.notificationsNone')}
-        >
-          <Icon name="bell" />
-          {open > 0 && <span className="dot" />}
-        </Link>
+          )}
+          <button
+            type="button"
+            className="search-field border-0 cursor-pointer"
+            onClick={() => setPaletteOpen(true)}
+            title={t('shell.search')}
+            aria-label={t('shell.search')}
+          >
+            <Icon name="search" size="sm" />
+            {t('shell.search')}
+            <span className="kbd">/</span>
+          </button>
+          <Link
+            className="icon-button"
+            to="/risk"
+            aria-label={open > 0 ? t('shell.notifications', { count: open }) : t('shell.notificationsNone')}
+          >
+            <Icon name="bell" />
+            {open > 0 && <span className="dot" />}
+          </Link>
         <button
           type="button"
           className="button button-primary hide-compact"
@@ -118,5 +143,8 @@ export function AppShellTopBar({
         )}
       </div>
     </header>
+    <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+  </>
   )
 }
+

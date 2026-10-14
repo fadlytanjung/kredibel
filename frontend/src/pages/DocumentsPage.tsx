@@ -77,7 +77,18 @@ export function DocumentsPage() {
     </span>
   )
   const checkOf = (doc: Document) => {
-    if (doc.docType === 'LEDGER_EXPORT') return <span className="muted small">{t('documents:status.noPages')}</span>
+    if (doc.docType === 'LEDGER_EXPORT') {
+      const rows = doc.ledgerMeta?.rowsImported ?? doc.ledgerMeta?.rows
+      if (rows) {
+        return (
+          <Badge variant="clean">
+            <Icon name="check" size="sm" />
+            {t('documents:table.rows', { count: rows })}
+          </Badge>
+        )
+      }
+      return <span className="muted small">{t('documents:status.noPages')}</span>
+    }
     const verdict = doc.integrity?.verdict
     if (verdict === 'CLEAN')
       return <Badge variant="clean" icon={<Icon name="shield-check" size="sm" />}>{t('documents:verdict.clean')}</Badge>
@@ -91,12 +102,16 @@ export function DocumentsPage() {
     if (doc.status === 'DUPLICATE') return <span className="muted small">{t('documents:status.copyNotChecked')}</span>
     return <span className="muted small">{t('documents:status.notChecked')}</span>
   }
-  const riskOf = (doc: Document) =>
-    doc.risk?.level ? (
+  const riskOf = (doc: Document) => {
+    if (doc.docType === 'LEDGER_EXPORT') {
+      return <span className="muted small">—</span>
+    }
+    return doc.risk?.level ? (
       <Badge variant={doc.risk.level.toLowerCase() as 'critical' | 'high' | 'medium' | 'low'}>{doc.risk.level}</Badge>
     ) : (
       <span className="muted small">{t('documents:status.notYet')}</span>
     )
+  }
 
   const columns: DataTableColumn<Document>[] = [
     {

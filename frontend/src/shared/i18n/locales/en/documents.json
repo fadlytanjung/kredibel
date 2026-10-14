@@ -87,6 +87,8 @@
     "period": "Period",
     "to": "to",
     "rowsImported": "Rows imported",
+    "rowsSummary": "{{count}} general-ledger rows imported",
+    "viewProfitLoss": "View in Profit and loss",
     "showOnPage": "Show on page {{page}}",
     "columns": {
       "transaction": "Transaction",
@@ -199,6 +201,7 @@
       "transactions": "Transactions",
       "invoices": "Invoices",
       "receipts": "Receipts",
+      "ledger": "Ledger entries",
       "findings": "Findings",
       "details": "Details"
     },

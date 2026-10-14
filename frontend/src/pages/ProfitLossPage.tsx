@@ -48,7 +48,7 @@ export function ProfitLossContent({ canEdit }: { canEdit: boolean }) {
         <p>{t('pageHelp')}</p>
       </div>
       <form
-        className="row"
+        className="row items-end"
         onSubmit={(event) => {
           event.preventDefault()
           handleApply(input)

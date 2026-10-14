@@ -1,3 +1,5 @@
 export { ProfitLossPanel, ProfitLossView } from './ProfitLossPanel'
+export { ProfitLossFlow } from './ProfitLossFlow'
+export { ProfitLossEntriesSheet } from './ProfitLossEntriesSheet'
 export { ProfitLossSources } from './ProfitLossSources'
 export { AccountClassifications } from './AccountClassifications'

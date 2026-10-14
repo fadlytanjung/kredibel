@@ -32,6 +32,7 @@ export function ReviewPage() {
   const { data: opened } = useReviewItem(itemId)
   const [filter, setFilter] = useState('all')
   const [notice, setNotice] = useState<string>()
+  const [hasPreview, setHasPreview] = useState(false)
 
   const items = useMemo(() => data?.items ?? [], [data])
   const counts = data?.countsByKind ?? {}
@@ -90,7 +91,7 @@ export function ReviewPage() {
   ]
 
   const queue = (
-    <section className={`stack gap-3 ${current ? 'hide-compact' : ''}`} aria-label={t('open', { count: items.length })}>
+    <section className="stack gap-3" aria-label={t('open', { count: items.length })}>
       {notice && (
         <p className="flow-callout" role="status">
           <Icon name="check-circle" size="sm" />
@@ -123,20 +124,38 @@ export function ReviewPage() {
         <h1 className="type-title">{t('title')}</h1>
         <p className="muted">{t('subtitle')}</p>
       </header>
-      {current ? (
-        <div className="review-layout">
-          {queue}
-          <ItemPanel
-            key={current.itemId}
-            item={current}
-            position={{ index: Math.max(index, 0), total: Math.max(visible.length, 1) }}
-            onResolved={resolved}
-            onSkip={() => step(1)}
-            onClose={() => open(undefined)}
+      {queue}
+      {current && (
+        <div className="flow-sheet review-sheet">
+          <button
+            type="button"
+            className="scrim"
+            aria-label={t('common:actions.close', { defaultValue: 'Close' })}
+            onClick={() => {
+              setHasPreview(false)
+              open(undefined)
+            }}
           />
+          <section
+            className={`sheet review-drawer ${hasPreview ? 'has-preview' : ''}`}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="fix-h"
+          >
+            <ItemPanel
+              key={current.itemId}
+              item={current}
+              position={{ index: Math.max(index, 0), total: Math.max(visible.length, 1) }}
+              onResolved={resolved}
+              onSkip={() => step(1)}
+              onClose={() => {
+                setHasPreview(false)
+                open(undefined)
+              }}
+              onPreviewChange={setHasPreview}
+            />
+          </section>
         </div>
-      ) : (
-        queue
       )}
       {itemId && opened && opened.status !== 'OPEN' && !current && <p className="muted">{t('panel.missing')}</p>}
     </div>

@@ -43,6 +43,7 @@ export function DocumentPage() {
   const isStatement = read && doc?.docType === 'BANK_STATEMENT'
   const isInvoice = read && (doc?.docType === 'SALES_INVOICE' || doc?.docType === 'PURCHASE_INVOICE')
   const isReceipt = read && doc?.docType === 'RECEIPT'
+  const isLedger = doc?.docType === 'LEDGER_EXPORT'
   const { data: linePage, isLoading: linesLoading } = useBankLines(isStatement ? docId : undefined)
   const { data: invoicePage } = useInvoices(isInvoice ? docId : undefined)
   const { data: receiptPage } = useReceipts(isReceipt ? docId : undefined)
@@ -96,16 +97,23 @@ export function DocumentPage() {
     ? lines.length
     : isInvoice
       ? (invoicePage?.items.length ?? 0)
-      : (receiptPage?.items.length ?? 0)
-  const tabs: Tab[] = [...(isStatement || isInvoice || isReceipt ? (['records'] as const) : []), 'findings', 'details']
+      : isReceipt
+        ? (receiptPage?.items.length ?? 0)
+        : (doc.ledgerMeta?.rowsImported ?? doc.ledgerMeta?.rows ?? 0)
+  const tabs: Tab[] = [
+    ...(isStatement || isInvoice || isReceipt || isLedger ? (['records'] as const) : []),
+    ...(doc.integrity || findings.length > 0 ? (['findings'] as const) : []),
+    'details',
+  ]
   const active = tab && tabs.includes(tab) ? tab : tabs[0]
-  const recordsLabel = isStatement ? 'transactions' : isInvoice ? 'invoices' : 'receipts'
+  const recordsLabel = isStatement ? 'transactions' : isInvoice ? 'invoices' : isReceipt ? 'receipts' : 'ledger'
   const tabLabel = { records: t(`documents:detail.tabs.${recordsLabel}`), findings: t('documents:detail.tabs.findings'), details: t('documents:detail.tabs.details') }
-  const tabCount = { records: recordCount, findings: doc.integrity ? findings.length : undefined, details: undefined }
+  const tabCount = { records: recordCount, findings: doc.integrity || findings.length > 0 ? findings.length : undefined, details: undefined }
 
   const pane = (
     <section className="doc-pane" aria-label={t('documents:detail.pane')}>
       {isStatement && <StatementFigures doc={doc} lines={linesLoading ? undefined : lines} />}
+      {isLedger && <LedgerFigures doc={doc} />}
       <div className="tabs" role="tablist" aria-label={t('documents:detail.tabs.label')}>
         {tabs.map((key) => (
           <button
@@ -153,6 +161,32 @@ export function DocumentPage() {
           receiptPage?.items.map((rc) => (
             <ReceiptCard key={rc.receiptId} record={rc} focused={focus?.key} onFocus={showValue} />
           ))}
+        {active === 'records' && isLedger && (
+          <div className="card p-4 stack gap-4">
+            <div className="row spread items-center flex-wrap gap-2">
+              <div>
+                <strong>{t('documents:detail.spreadsheet')}</strong>
+                <p className="small muted">
+                  {t('documents:detail.rowsSummary', { count: doc.ledgerMeta?.rowsImported ?? doc.ledgerMeta?.rows ?? 0 })}
+                </p>
+              </div>
+              <Link to="/profit-loss" className="button button-secondary">
+                <Icon name="bar-chart" size="sm" />
+                <span>{t('documents:detail.viewProfitLoss')}</span>
+              </Link>
+            </div>
+            {doc.months?.length ? (
+              <div className="row gap-2 items-center flex-wrap">
+                <span className="muted small">{t('documents:detail.period')}:</span>
+                {doc.months.map((m) => (
+                  <Link key={m} to={`/months/${m}`} className="badge badge-brand">
+                    {m}
+                  </Link>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        )}
         {active === 'findings' &&
           (doc.integrity ? (
             <FindingList findings={findingPage?.items ?? []} focused={focus?.key} onFocus={showValue} />
@@ -315,6 +349,35 @@ function StatementFigures({ doc, lines }: { doc: Document; lines?: BankLine[] })
   )
 }
 
+function LedgerFigures({ doc }: { doc: Document }) {
+  const { t } = useTranslation('documents')
+  const meta = doc.ledgerMeta
+  const rows = meta?.rowsImported ?? meta?.rows ?? 0
+  return (
+    <dl className="ledger-figures">
+      <div>
+        <dt>{t('detail.rowsImported')}</dt>
+        <dd className="v">{rows}</dd>
+        <dd className="n">{t('status.imported')}</dd>
+      </div>
+      <div>
+        <dt>{t('detail.period')}</dt>
+        <dd className="v">
+          {meta?.dateFrom && meta?.dateTo
+            ? `${formatDate(meta.dateFrom)} – ${formatDate(meta.dateTo)}`
+            : '—'}
+        </dd>
+        {doc.months?.length ? <dd className="n">{doc.months.join(', ')}</dd> : null}
+      </div>
+      <div>
+        <dt>{t('detail.info.type')}</dt>
+        <dd className="v">{t('detail.spreadsheet')}</dd>
+        <dd className="n">{doc.contentType || 'CSV'}</dd>
+      </div>
+    </dl>
+  )
+}
+
 function DocumentDetails({ doc, pagesCount }: { doc: Document; pagesCount: number }) {
   const { t } = useTranslation('documents')
   const meta = doc.statementMeta
@@ -345,6 +408,12 @@ function DocumentDetails({ doc, pagesCount }: { doc: Document; pagesCount: numbe
   }
   if (doc.ledgerMeta) {
     rows.push([t('detail.rowsImported'), String(doc.ledgerMeta['rowsImported'] || doc.ledgerMeta['rows'] || '—')])
+    if (doc.ledgerMeta['dateFrom'] && doc.ledgerMeta['dateTo']) {
+      rows.push([
+        t('detail.period'),
+        `${formatDate(doc.ledgerMeta['dateFrom'])} ${t('detail.to')} ${formatDate(doc.ledgerMeta['dateTo'])}`,
+      ])
+    }
   }
   rows.push([t('detail.info.uploaded'), formatDate(doc.uploadedAt)])
   return (

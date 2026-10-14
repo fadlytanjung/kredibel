@@ -36,7 +36,7 @@ from app.domain.duplicates import (
 from app.domain.findings import Evidence, Finding, finding_id
 from app.domain.invoice_records import build_invoices, build_receipts, document_type_of
 from app.domain.layout import Chunk, chunk_page, chunks_from_json, chunks_to_json, render_chunks
-from app.domain.ledger_csv import parse_ledger_csv
+from app.domain.ledger_parse import parse_ledger_content
 from app.domain.models.bank_line import BankLine
 from app.domain.models.document import (
     DocStatus,
@@ -192,15 +192,48 @@ async def _classify_without_reader(
 def propose_ledger_mapping(deps: PipelineDeps):
     @stage(deps, "propose_ledger_mapping")
     async def _node(ctx: Context, node_input: dict[str, Any]) -> dict[str, Any]:
-        if not node_input.get("mappingConfirmed"):
-            org_id = node_input.get("orgId") or node_input.get("org_id") or ""
-            doc_id = node_input.get("docId") or node_input.get("doc_id") or ""
-            doc = await deps.doc_repo.get_document(org_id, doc_id)
-            if doc is not None:
-                updated = replace(doc, status=DocStatus.NEEDS_INPUT)
-                await deps.doc_repo.save_document(org_id, updated)
-            return {**node_input, "status": "NEEDS_INPUT", "summary": "Mapping confirmation needed"}
-        return {**node_input, "summary": "Ledger mapping proposed"}
+        if node_input.get("mappingConfirmed"):
+            return {**node_input, "summary": "Ledger mapping confirmed"}
+
+        org_id, doc_id = _ids(node_input)
+        doc = await deps.doc_repo.get_document(org_id, doc_id)
+        if doc is None or deps.storage is None:
+            return {**node_input, "summary": "Ledger mapping skipped"}
+
+        ext = PurePosixPath(doc.gcs_path).suffix if doc.gcs_path else ".csv"
+        content_bytes = await deps.storage.get_original(org_id, doc_id, ext)
+        if not content_bytes:
+            return {**node_input, "summary": "Empty ledger content"}
+
+        text = content_bytes.decode("utf-8", errors="replace")
+        lines = [ln for ln in text.splitlines() if not ln.startswith("#") and ln.strip()]
+        if not lines:
+            return {**node_input, "summary": "Empty ledger rows"}
+
+        import csv
+        reader = csv.DictReader(lines)
+        headers = [h.lower().strip() for h in (reader.fieldnames or []) if h]
+
+        has_date = any(k in headers for k in ("date", "posting date", "trans date"))
+        has_acct = any(k in headers for k in ("account", "account code", "acct", "code"))
+        has_debit_credit = "debit" in headers and "credit" in headers
+        has_signed_amount = any(k in headers for k in ("amount", "net"))
+
+        is_standard = has_date and has_acct and (has_debit_credit or has_signed_amount)
+        if is_standard:
+            return {
+                **node_input,
+                "mappingConfirmed": True,
+                "summary": "Standard ledger layout auto-confirmed",
+            }
+
+        updated = replace(
+            doc,
+            status=DocStatus.NEEDS_INPUT,
+            status_detail="Ledger mapping confirmation needed",
+        )
+        await deps.doc_repo.save_document(org_id, updated)
+        return {**node_input, "status": "NEEDS_INPUT", "summary": "Mapping confirmation needed"}
 
     return _node
 
@@ -216,10 +249,46 @@ def parse_ledger(deps: PipelineDeps):
                 content_bytes = await deps.storage.get_original(org_id, doc_id, ext)
                 if content_bytes:
                     text = content_bytes.decode("utf-8", errors="replace")
-                    rows = parse_ledger_csv(text, doc_id=doc_id, currency="IDR")
-                    if rows:
-                        await deps.ledger.save_rows(org_id, rows)
-                        return {**node_input, "summary": f"Ledger parsed: {len(rows)} entries"}
+
+                    currency = "IDR"
+                    if deps.workspaces is not None:
+                        ws = await deps.workspaces.get_workspace(org_id)
+                        if ws and ws.currency:
+                            currency = ws.currency
+
+                    res = parse_ledger_content(text, doc_id=doc_id, currency=currency)
+                    if res.too_many_bad_rows:
+                        msg = f"Over 2% invalid rows ({len(res.bad_rows)} bad rows)"
+                        updated = replace(
+                            doc,
+                            status=DocStatus.NEEDS_INPUT,
+                            status_detail=msg,
+                        )
+                        await deps.doc_repo.save_document(org_id, updated)
+                        return {
+                            **node_input,
+                            "status": "NEEDS_INPUT",
+                            "summary": "Excessive bad rows in ledger",
+                        }
+
+                    if res.rows:
+                        await deps.ledger.save_rows(org_id, res.rows)
+                        months = sorted({r.date.strftime("%Y-%m") for r in res.rows})
+                        ledger_meta = {
+                            "rowsImported": len(res.rows),
+                            "rows": len(res.rows),
+                            "dateFrom": min(r.date for r in res.rows).isoformat(),
+                            "dateTo": max(r.date for r in res.rows).isoformat(),
+                            "badRowsCount": len(res.bad_rows),
+                        }
+                        updated = replace(doc, months=months, ledger_meta=ledger_meta)
+                        await deps.doc_repo.save_document(org_id, updated)
+                        return {
+                            **node_input,
+                            "months": months,
+                            "ledgerMeta": ledger_meta,
+                            "summary": f"Ledger parsed: {len(res.rows)} entries",
+                        }
         return {**node_input, "summary": "Ledger parsed"}
 
     return _node

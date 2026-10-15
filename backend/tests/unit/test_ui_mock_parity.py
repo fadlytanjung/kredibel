@@ -3,7 +3,8 @@
 
 Verifies:
 - AC-019-1: The mock index and every screen display identifiable route and implementation status.
-  Planned screens (labels, runs) remain marked as design-only (P1); clients and suppliers is built (spec 014).
+  Planned screens (labels, runs) remain marked as design-only (P1); clients and suppliers is
+  built (spec 014).
 - AC-019-5: Implementation status and task claims match audited reality: incomplete acceptance
   criteria remain open with task IDs and dependencies.
 """

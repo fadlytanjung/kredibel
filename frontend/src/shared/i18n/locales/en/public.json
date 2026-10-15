@@ -118,7 +118,10 @@
       "calcPrev": "Balance before",
       "calcAmount": "Amount on the page",
       "calcExpected": "Balance that should follow",
-      "calcShown": "Balance printed"
+      "calcShown": "Balance printed",
+      "calcHeadOp": "Operation",
+      "calcHeadLine": "Line",
+      "calcHeadAmount": "Amount in IDR"
     },
     "review": {
       "eyebrow": "Review",

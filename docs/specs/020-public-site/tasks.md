@@ -40,8 +40,9 @@
 
 - [x] **T020-15** Vitest: pages render key headings and CTA targets; router redirects; the hero
   settles under reduced motion; the duplicate decision keeps or moves the total. (AC-020-1…10)
-- [ ] **T020-16** `tests/visual/public-pages.spec.ts` at 390/834/1440 for `/` and `/pricing` added;
-  baselines still to record on the CI image (`make test-visual`). (AC-020-11)
+- [x] **T020-16** `tests/visual/public-pages.spec.ts` at 390/834/1440 for `/` and `/pricing` added;
+  baselines recorded 15 Oct 2026 (`-darwin.png`, like every other screen's); the six checks pass
+  with the suite. (AC-020-11)
 
 ## Phase 6 — Docs
 
@@ -82,7 +83,10 @@
   `animations: 'disabled'` and fonts ready; record the baselines (closes T020-16). (AC-020-11)
   Tests extended and the spec updated; the stale landing mock is retired (spec 019, AC-019-1: an
   implemented screen never keeps a deprecated mock); the baselines are still to record on the CI image
-  (`make test-visual`), and the axe pass in Storybook is still to run (`make storybook-build`).
+  (`make test-visual`), and the axe pass in Storybook is still to run (`make storybook-build`). Lighthouse mobile on `/`
+  (15 Oct 2026, production build): performance 80, accessibility, best practices and SEO 100 after the
+  finding table got headers and a robots file was added; the open item is CLS 0.15 from the hero's
+  `.pub-stage` settling after the first paint.
 - [x] **T020-31** After merging main (specs 005, 010, 011, 018, 019): the product screenshots come
   from the app's synthetic preview routes (`npm run marketing:shots`, `tests/marketing/`, the parity
   fixtures of spec 019) instead of copies of the mock shots; copy follows the shipped product (ledger

@@ -1,0 +1,16 @@
+User-agent: *
+Allow: /
+# The workspace needs a sign-in; nothing behind it is for crawlers.
+Disallow: /dashboard
+Disallow: /documents
+Disallow: /months
+Disallow: /review
+Disallow: /risk
+Disallow: /counterparties
+Disallow: /profit-loss
+Disallow: /assistant
+Disallow: /labels
+Disallow: /runs
+Disallow: /settings
+Disallow: /onboarding
+Disallow: /login

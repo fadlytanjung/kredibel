@@ -118,6 +118,11 @@ export function LandingPage() {
             expected: '118,520,000',
             shownLabel: t('landing.risk.calcShown'),
             shown: '124,520,000',
+            headers: {
+              op: t('landing.risk.calcHeadOp'),
+              line: t('landing.risk.calcHeadLine'),
+              amount: t('landing.risk.calcHeadAmount'),
+            },
           }}
           nextLabel={t('landing.risk.nextLabel')}
           nextStep={t('landing.risk.findingNext')}

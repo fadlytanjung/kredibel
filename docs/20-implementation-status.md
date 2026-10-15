@@ -108,7 +108,7 @@ posted and classified ledger data means the report is unavailable.
 
 | Component | Spec | Status | Notes |
 |---|---|---|---|
-| Landing, Pricing, How it works, Security, FAQ, Contact, Privacy, Terms | 020 | In progress | Public React routes in the same SPA; dashboard moved from `/` to `/dashboard`; components, pages and tests built. **Revamped** (T020-18…29): 3D depth scenes on CSS transforms with `motion` hooks, the four-chapter reading room, every public page redesigned (docs/12 §12); the first load carries the shell, the dashboard, Auth and the public pages (AC-010-11), 232 KB gzip after merging main (budget 250 KB). The stale landing mock is retired (spec 019). Visual baselines and the Storybook axe pass still to run (T020-30) |
+| Landing, Pricing, How it works, Security, FAQ, Contact, Privacy, Terms | 020 | In progress | Public React routes in the same SPA; dashboard moved from `/` to `/dashboard`; components, pages and tests built. **Revamped** (T020-18…29): 3D depth scenes on CSS transforms with `motion` hooks, the four-chapter reading room, every public page redesigned (docs/12 §12); the first load carries the shell, the dashboard, Auth and the public pages (AC-010-11), 232 KB gzip after merging main (budget 250 KB). The stale landing mock is retired (spec 019). Visual baselines and the Storybook axe pass still to run (T020-30) Merged to main 15 Oct 2026 after a local check (gates green, 90 Playwright checks incl. the public pages' new baselines, no overflow at 390/834/1440, no console errors): Lighthouse mobile on `/` performance 80, accessibility, best practices and SEO 100 once the finding table had headers and `robots.txt` existed; CLS 0.15 from the hero stage and T020-17/T020-30 stay open
 
 ## Deviations from the docs
 

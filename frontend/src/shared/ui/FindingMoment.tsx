@@ -21,6 +21,8 @@ export interface FindingMomentProps {
     expected: string
     shownLabel: string
     shown: string
+    /** Column headers, read by assistive technology only: every amount has a header. */
+    headers?: { op: string; line: string; amount: string }
   }
   nextLabel: string
   nextStep: string
@@ -48,25 +50,34 @@ export function FindingMoment({
         <p className="lead">{consequence}</p>
         <div className="calc">
           <table>
+            {calc.headers && (
+              <thead className="sr-only">
+                <tr>
+                  <th scope="col">{calc.headers.op}</th>
+                  <th scope="col">{calc.headers.line}</th>
+                  <th scope="col">{calc.headers.amount}</th>
+                </tr>
+              </thead>
+            )}
             <tbody>
               <tr>
                 <td className="op" />
-                <td>{calc.prevLabel}</td>
+                <th scope="row">{calc.prevLabel}</th>
                 <td className="amt">{calc.prev}</td>
               </tr>
               <tr>
                 <td className="op">+</td>
-                <td>{calc.amountLabel}</td>
+                <th scope="row">{calc.amountLabel}</th>
                 <td className="amt">{calc.amount}</td>
               </tr>
               <tr className="total">
                 <td className="op" />
-                <td>{calc.expectedLabel}</td>
+                <th scope="row">{calc.expectedLabel}</th>
                 <td className="amt">{calc.expected}</td>
               </tr>
               <tr className="diff">
                 <td className="op" />
-                <td>{calc.shownLabel}</td>
+                <th scope="row">{calc.shownLabel}</th>
                 <td className="amt">{calc.shown}</td>
               </tr>
             </tbody>

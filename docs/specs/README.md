@@ -26,8 +26,9 @@ documents sit under `docs/`. Paths to other docs are relative (`../01-…`, `../
 | 015 | [Trust extensions](015-trust-extensions/spec.md) | P1 | A, B, C | 004, 006, 008, 009 | D6 |
 | 016 | [Labels and learning from people](016-labels-and-learning/spec.md) | P1 (writers early) · export later | A, B, C | 005, 007, 013 | D3 (writers) · D6 (page) |
 | 017 | [Agent observability](017-agent-observability/spec.md) | P0 (traces, dev UI) · P1 (BigQuery, Runs page) | A, D, C | 004, 016 | D2 (traces) · D6 |
-
 | 018 | [Company classifications and P&L](018-subledger-profit-and-loss/spec.md) | P1 | B + C + A | 010, 011; ledger population 005 | After P0 |
+
+| 019 | [Current UI and mock parity](019-ui-parity/spec.md) | P0 maintenance | C + D | Implemented screens 001–018 | Continuation |
 
 Spec numbers are identifiers, not the build order: 013 is built right after 001, because 003 and 004
 call its entitlement checks.
@@ -59,6 +60,8 @@ flowchart TB
     s010 --> s018["018 company P&L (P1)"]
     s011 --> s018
     s005 -. ledger population .-> s018
+    s001 --> s019["019 current UI and mock parity"]
+    s018 --> s019
 ```
 
 The frontend parts of 009 and 010 can start on D3 against MSW mocks generated from

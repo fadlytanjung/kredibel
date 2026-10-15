@@ -103,7 +103,7 @@ def clients() -> str:
     content = f"""
 <div class="page">
   <div class="page-head">
-    <h1 class="type-title">Clients and suppliers</h1>
+    <div class="spread"><h1 class="type-title">Clients and suppliers</h1><span class="badge badge-outline">Design only (P1, spec 014 · Placeholder at /counterparties)</span></div>
     <p>Who your money comes from and goes to, built from the bank lines, invoices and receipts. A supplier paid to an account not seen before is flagged.</p>
   </div>
   <div class="stack gap-3">
@@ -229,7 +229,7 @@ Reading: AI_TEXT_LAYER, agreement 0.99
     content = f"""
 <div class="page">
   <div class="page-head">
-    <div class="spread"><h1 class="type-title">Labels</h1><span class="badge badge-outline">Preview</span></div>
+    <div class="spread"><h1 class="type-title">Labels</h1><span class="badge badge-outline">Design only (P1, spec 016 · Placeholder at /labels)</span></div>
     <p><strong>212 of 1,284 labels checked by people; the AI was right on 94.8% of them.</strong> 37 need a check. A label a person confirms or corrects is verified by a person and is never overwritten by a later run.</p>
   </div>
   <div class="stack gap-3">
@@ -374,7 +374,7 @@ context: account ••4821, period 01–31 Mar 2026</pre></details>
     content = f"""
 <div class="page">
   <div class="page-head">
-    <div class="spread"><h1 class="type-title">Runs</h1><span class="badge badge-outline">Owner only</span></div>
+    <div class="spread"><h1 class="type-title">Runs</h1><div class="row" style="gap:var(--k-space-2)"><span class="badge badge-outline">Design only (P1, spec 017 · Placeholder at /runs)</span><span class="badge badge-outline">Owner only</span></div></div>
     <p>Every document, month and assistant run, call by call: what ran, how long it took, what it cost, and what people corrected afterwards. Traces live in Cloud Trace; every call is a row in BigQuery.</p>
   </div>
   <div class="stack gap-5">

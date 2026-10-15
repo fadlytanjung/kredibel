@@ -1295,6 +1295,11 @@ button.tab { border: 0; background: transparent; cursor: pointer; font-family: i
 .index-text { display: flex; flex-direction: column; gap: var(--k-space-2); padding: var(--k-space-4) var(--k-space-5) var(--k-space-5); }
 .index-text h2 a { color: var(--k-color-text-default); text-decoration: none; }
 .index-text p { font-size: 14px; line-height: 20px; color: var(--k-color-text-muted); }
+.index-card-head { display: flex; align-items: center; justify-content: space-between; gap: var(--k-space-2); }
+.index-route { font-size: 13px; color: var(--k-color-text-muted); display: flex; align-items: center; gap: var(--k-space-2); flex-wrap: wrap; }
+.index-route code { font-family: var(--k-font-family-mono); font-size: 12px; background: var(--k-color-bg-sunken); padding: 1px 5px; border-radius: var(--k-radius-xs); border: 1px solid var(--k-color-border-default); color: var(--k-color-text-default); }
+.topbar-status { margin-left: auto; margin-right: var(--k-space-2); display: flex; align-items: center; }
+.topbar-status code { font-family: var(--k-font-family-mono); font-size: 11px; margin-left: 4px; }
 .index-sizes { display: flex; gap: var(--k-space-4); font-weight: 600; }
 
 .brand-crumbs { display: flex; }

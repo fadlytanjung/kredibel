@@ -69,7 +69,7 @@
 | NFR-11 | English UI, all strings externalized | ESLint `i18next/no-literal-string` in `make check`; AC-001-14 |
 | NFR-12 | Personal data minimization | `test_accounts.py`, log review, AC-003-4, AC-013-2 |
 | NFR-13 | Responsive and touch-friendly | Visual tests at 390/834/1440; 360 px check; AC-001-16 |
-| NFR-14 | UI quality gates | `make check` (tokens-check, no_raw_styles), Storybook axe, visual tests, Lighthouse; AC-001-15, AC-001-17, AC-001-18, AC-010-11 |
+| NFR-14 | UI quality gates | `make check` (tokens-check, no_raw_styles), Storybook axe, visual tests, Lighthouse; AC-001-15, AC-001-17, AC-001-18, AC-010-11; AC-019-1…5 mock/application parity and status audit |
 | NFR-15 | Safe data evolution | Upcaster and migration tests, schema drift gate; AC-001-19 – AC-001-22 |
 
 ## 3. Judging criteria → evidence

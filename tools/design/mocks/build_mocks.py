@@ -31,6 +31,7 @@ SCREENS = {**SCREENS, **SCREENS_MORE,
     "profit-loss-entries": ("Profit and loss: source entries", pnl_entries),
 }
 NOTES = {**NOTES, **NOTES_MORE, **{key: "Implemented P&L state, using the shared synthetic report." for key in SCREENS if key.startswith("profit-loss-")}}
+from inventory import SCREEN_INVENTORY  # noqa: E402
 from shell import page  # noqa: E402
 
 ROOT = HERE.parents[2]
@@ -41,12 +42,29 @@ def write_index() -> None:
     cards = []
     for slug, (title, _) in SCREENS.items():
         desk = f"../../docs/assets/mocks/{slug}-desktop.png"
+        info = SCREEN_INVENTORY.get(slug)
+        status_badge = (
+            f'<span class="badge {info.badge_class}">{info.badge_label}</span>'
+            if info
+            else ""
+        )
+        route_html = (
+            f'<p class="index-route"><strong>Route:</strong> <code>{info.route}</code> <span class="muted">(Spec {info.spec})</span></p>'
+            if info
+            else ""
+        )
+        note_text = info.notes if info else NOTES.get(slug, "")
+        design_attr = ' data-design-only="true"' if (info and info.is_design_only) else ""
         cards.append(f"""
-    <li class="index-card">
+    <li class="index-card"{design_attr}>
       <a class="index-shot" href="{slug}.html"><img src="{desk}" alt="" loading="lazy"/></a>
       <div class="index-text">
-        <h2 class="type-h3"><a href="{slug}.html">{title}</a></h2>
-        <p>{NOTES[slug]}</p>
+        <div class="index-card-head">
+          <h2 class="type-h3"><a href="{slug}.html">{title}</a></h2>
+          {status_badge}
+        </div>
+        {route_html}
+        <p>{note_text}</p>
         <p class="index-sizes"><a href="../../docs/assets/mocks/{slug}-mobile.png">Phone</a>
         <a href="../../docs/assets/mocks/{slug}-tablet.png">Tablet</a>
         <a href="{desk}">Desktop</a></p>
@@ -72,6 +90,15 @@ def write_index() -> None:
 def main() -> int:
     for slug, (title, fn) in SCREENS.items():
         html = page(title, fn())
+        info = SCREEN_INVENTORY.get(slug)
+        if info:
+            status_pill = f'<div class="topbar-status hide-compact"><span class="badge {info.badge_class}" title="Route: {info.route}">{info.badge_label} · <code>{info.route}</code></span></div>'
+            if '<div class="topbar-actions">' in html:
+                html = html.replace('<div class="topbar-actions">', f'{status_pill}<div class="topbar-actions">', 1)
+            elif '<div class="onboard">' in html:
+                html = html.replace('<div class="onboard">', f'<div class="onboard"><div class="topbar-status hide-compact" style="grid-column:1/-1;text-align:right">{status_pill}</div>', 1)
+            elif '<div class="drawer-head">' in html:
+                html = html.replace('<div class="row">', f'<div class="row">{status_pill}', 1)
         # In the prototype, filters, tabs and suggestions stay on their own page instead of "#".
         html = re.sub(r'(<a class="(?:chip|tab|month-prev|month-next)"[^>]*?)href="#"', rf'\1href="{slug}.html"', html)
         html = re.sub(r'(<div class="suggested"[^>]*>.*?</div>)', lambda m: m.group(1).replace('href="#"', f'href="{slug}.html"'), html, flags=re.S)

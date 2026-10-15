@@ -346,6 +346,55 @@ def propose_mapping(headers: list[str], rows: list[list[str]]) -> LedgerMapping:
     )
 
 
+def merge_model_proposal(proposal: LedgerMapping, model: Any, headers: list[str]) -> LedgerMapping:
+    """AC-005-11: the model's answer fills only the fields code left empty, and only with columns
+    that exist in the header; code keeps the date format and decimal separator it read from the
+    shapes. The model never overrides a column code recognized."""
+    by_lower = {h.lower().strip(): h for h in headers}
+
+    def column(value: object) -> str | None:
+        if not isinstance(value, str) or not value.strip():
+            return None
+        return by_lower.get(value.lower().strip())
+
+    fields = {
+        "date": "date",
+        "description": "description",
+        "account_code": "account_code",
+        "account_name": "account_name",
+        "reference": "reference",
+        "debit": "debit",
+        "credit": "credit",
+        "amount": "amount",
+    }
+    taken = set(proposal.columns())
+    updates: dict[str, Any] = {}
+    for attr in fields:
+        if getattr(proposal, attr):
+            continue
+        chosen = column(getattr(model, attr, None))
+        if chosen and chosen not in taken:
+            updates[attr] = chosen
+            taken.add(chosen)
+    debit = updates.get("debit", proposal.debit)
+    credit = updates.get("credit", proposal.credit)
+    amount = updates.get("amount", proposal.amount)
+    if debit and credit:
+        updates["amount"] = None
+    elif amount:
+        updates["debit"] = updates["credit"] = None
+        if not proposal.sign_convention and getattr(model, "sign_convention", None) in (
+            "DEBIT_POSITIVE",
+            "CREDIT_POSITIVE",
+        ):
+            updates["sign_convention"] = model.sign_convention
+        elif not proposal.sign_convention:
+            updates["sign_convention"] = "DEBIT_POSITIVE"
+    if not updates:
+        return proposal
+    return LedgerMapping(**{**proposal.__dict__, **updates})
+
+
 def is_auto_confirmable(mapping: LedgerMapping, headers: list[str]) -> bool:
     """A complete proposal whose every mapped column has a standard English name is confirmed by
     code (the layouts the parser always read); anything else waits for a person."""

@@ -22,6 +22,7 @@ from tests.fakes.document_reader import FakeDocumentReader
 from tests.fakes.document_repository import FakeDocumentRepository
 from tests.fakes.document_storage import FakeDocumentStorage
 from tests.fakes.identity_admin import FakeIdentityAdmin
+from tests.fakes.ledger_repository import FakeLedgerRepository
 from tests.fakes.month_repository import FakeMonthRepository
 from tests.fakes.record_repository import fake_invoices
 from tests.fakes.run_repository import FakeRunRepository
@@ -100,6 +101,7 @@ def _deps():
         clock=FixedClock(datetime(2026, 4, 2, tzinfo=UTC)),
         reader=reader,
         invoices=invoices,
+        ledger=FakeLedgerRepository(),
         token_verifier=FakeTokenVerifier(
             {"owner": {"uid": "u-1", "orgId": "org_1", "role": "owner"}}
         ),

@@ -42,6 +42,27 @@ class DocClassification(BaseModel):
     reasons: list[str] = Field(default_factory=list)
 
 
+class LedgerMappingProposal(BaseModel):
+    """map_ledger_columns.md (AC-005-11): which header holds each field, decided from the header
+    words and the value shapes only. Code validates every column against the header."""
+
+    date: str | None = None
+    description: str | None = None
+    account_code: str | None = None
+    account_name: str | None = None
+    reference: str | None = None
+    debit: str | None = None
+    credit: str | None = None
+    amount: str | None = None
+    sign_convention: Literal["DEBIT_POSITIVE", "CREDIT_POSITIVE"] | None = None
+    date_format: (
+        Literal["DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD", "DD-MM-YYYY", "DD.MM.YYYY"] | None
+    ) = None
+    decimal_separator: Literal[".", ","] | None = None
+    confidence: float = Field(ge=0, le=1, default=0)
+    reasons: list[str] = Field(default_factory=list)
+
+
 class StatementHeader(BaseModel):
     bank_name: str | None = None
     account_holder: str | None = None

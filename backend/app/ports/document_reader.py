@@ -8,6 +8,7 @@ from app.domain.reading import (
     CategorizeResult,
     DocClassification,
     InvoicePageReading,
+    LedgerMappingProposal,
     ReceiptPageReading,
     StatementPageReading,
     TransactionItem,
@@ -55,6 +56,13 @@ class DocumentReader(Protocol):
         self, items: list[TransactionItem], vocabulary: str
     ) -> ReaderCall[CategorizeResult]:
         """Categories for up to 100 bank lines the keyword rules left (docs/08 §4.1)."""
+        ...
+
+    async def map_ledger_columns(
+        self, header: list[str], shapes: list[list[str]]
+    ) -> ReaderCall[LedgerMappingProposal]:
+        """Which column of a ledger export holds each field, from the header words and the value
+        shapes only (AC-005-11); the fallback for headers the code's synonyms miss."""
         ...
 
     async def explain_month(

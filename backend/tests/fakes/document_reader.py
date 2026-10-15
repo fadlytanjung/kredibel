@@ -8,6 +8,7 @@ from app.domain.reading import (
     CategoryChoice,
     DocClassification,
     InvoicePageReading,
+    LedgerMappingProposal,
     ReceiptPageReading,
     StatementPageReading,
     TransactionItem,
@@ -24,7 +25,9 @@ class FakeDocumentReader(DocumentReader):
         receipt_pages: Callable[[int], ReceiptPageReading] | None = None,
         categories: Callable[[TransactionItem], tuple[str, float]] | None = None,
         month_explanation: Any | None = None,
+        mapping: LedgerMappingProposal | Callable[[list[str]], LedgerMappingProposal] | None = None,
     ) -> None:
+        self.mapping = mapping or LedgerMappingProposal()
         self.classification = classification or DocClassification(
             doc_type="BANK_STATEMENT", confidence=0.97
         )
@@ -37,6 +40,13 @@ class FakeDocumentReader(DocumentReader):
 
     def version(self, task: str) -> tuple[str, str]:
         return "fake-model", f"{task}@test"
+
+    async def map_ledger_columns(
+        self, header: list[str], shapes: list[list[str]]
+    ) -> ReaderCall[LedgerMappingProposal]:
+        self.calls.append(("map_ledger", len(header)))
+        value = self.mapping(header) if callable(self.mapping) else self.mapping
+        return ReaderCall(value, "fake-model", "map_ledger_columns@test", 80, 30)
 
     async def classify(self, image_png: bytes, text: str) -> ReaderCall[DocClassification]:
         self.calls.append(("classify", 1))

@@ -152,14 +152,16 @@ def test_ac019_5_task_claims_and_implementation_status_audit():
     )
     status_doc = (ROOT / "docs" / "20-implementation-status.md").read_text(encoding="utf-8")
     # T005-11 (the mapping confirmation) is ticked only because it is built: the review drawer,
-    # its API and its mocks exist, and the status records how the proposal deviates from the spec.
+    # its API and its mocks exist, and the status records how the proposal is made (code first,
+    # the MODEL_LITE mapper only for headers the synonyms miss).
     assert "- [x] **T005-11**" in reading_tasks
     assert (ROOT / "frontend" / "src" / "features" / "review" / "MappingEditor.tsx").exists()
     assert (ROOT / "design" / "mocks" / "review-mapping.html").exists()
     documents_api = (ROOT / "backend" / "app" / "api" / "documents.py").read_text(encoding="utf-8")
     assert "ledger-mapping" in documents_api
     assert "019" in status_doc
-    assert "heuristic" in status_doc and "MODEL_LITE" in status_doc, "the deviation is recorded"
+    assert "map_ledger_columns.md" in status_doc and "MODEL_LITE" in status_doc, "mapper recorded"
+    assert (ROOT / "backend" / "app" / "agents" / "prompts" / "map_ledger_columns.md").exists()
     # Tasks that stay open keep their owners (AC-019-5).
     open_tasks = (("010-dashboard-and-money-flow", "T010-06"), ("009-review-queue", "T009-07"))
     for spec, task in open_tasks:

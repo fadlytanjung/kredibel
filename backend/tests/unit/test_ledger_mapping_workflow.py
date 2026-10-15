@@ -17,7 +17,9 @@ from app.core.settings import Settings
 from app.domain.ledger_parse import compute_layout_signature
 from app.domain.models.document import DocStatus, DocType, Document
 from app.domain.models.run import Run, RunKind, RunStatus
+from app.domain.reading import LedgerMappingProposal
 from tests.fakes.clock import FixedClock
+from tests.fakes.document_reader import FakeDocumentReader
 from tests.fakes.document_repository import FakeDocumentRepository
 from tests.fakes.document_storage import FakeDocumentStorage
 from tests.fakes.ledger_repository import FakeLedgerRepository
@@ -57,7 +59,7 @@ MAPPING = {
 }
 
 
-def _deps():
+def _deps(reader=None):
     workspaces = FakeWorkspaceRepository()
     workspaces.workspaces[ORG] = demo_workspace(ORG)
     deps = PipelineDeps(
@@ -71,6 +73,7 @@ def _deps():
         clock=FixedClock(NOW),
         workspaces=workspaces,
         review_items=FakeReviewItemRepository(),
+        reader=reader,
     )
     return deps, workspaces
 
@@ -185,3 +188,39 @@ async def test_ac005_12_more_than_two_percent_bad_rows_reopen_the_mapping_item()
     assert item.kind == "CONFIRM_LEDGER_MAPPING"
     assert item.title == "6 rows of GL_2026_Q1.csv could not be read: check the columns"
     assert (item.suggestion.mapping or {})["badRows"] == [1, 2, 3, 4, 5, 6]
+
+
+UNKNOWN_HEADER = INDONESIAN.replace(b"Keterangan", b"Uraian Transaksi")
+
+
+@pytest.mark.asyncio
+async def test_ac005_11_the_model_maps_the_column_code_did_not_know_and_a_person_still_confirms():
+    reader = FakeDocumentReader(
+        mapping=LedgerMappingProposal(description="Uraian Transaksi", confidence=0.9)
+    )
+    deps, _ = _deps(reader=reader)
+    doc = await _run(deps, UNKNOWN_HEADER)
+
+    assert doc.status == DocStatus.NEEDS_INPUT
+    assert ("map_ledger", 6) in reader.calls, "the model is asked only for what code missed"
+    proposal = (doc.ledger_meta or {})["mapping"]
+    assert proposal["description"] == "Uraian Transaksi" and proposal["decimalSeparator"] == ","
+    items, _, _ = await deps.review_items.list_review_items(ORG, status="OPEN")  # type: ignore[union-attr]
+    assert [i.kind for i in items] == ["CONFIRM_LEDGER_MAPPING"]
+
+
+@pytest.mark.asyncio
+async def test_ac005_11_known_layouts_skip_the_model_and_a_failing_model_never_fails_the_run():
+    def boom(header: list[str]) -> LedgerMappingProposal:
+        raise RuntimeError("model unavailable")
+
+    reader = FakeDocumentReader(mapping=boom)
+    deps, _ = _deps(reader=reader)
+    known = await _run(deps, INDONESIAN)
+    assert known.status == DocStatus.NEEDS_INPUT and reader.calls == [], "code knew every column"
+
+    deps2, _ = _deps(reader=reader)
+    doc = await _run(deps2, UNKNOWN_HEADER)
+    assert doc.status == DocStatus.NEEDS_INPUT
+    assert not (doc.ledger_meta or {})["mapping"]["description"], "left for the person"
+    assert ("map_ledger", 6) in reader.calls

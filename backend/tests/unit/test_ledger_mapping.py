@@ -171,6 +171,40 @@ def test_ac005_11_a_mapping_a_person_sends_back_is_validated_before_anything_is_
     assert good.complete and good.to_dict()["signConvention"] == "DEBIT_POSITIVE"
 
 
+def test_ac005_11_the_model_fills_only_what_code_missed_and_only_with_real_columns():
+    from app.domain.ledger_parse import merge_model_proposal
+    from app.domain.reading import LedgerMappingProposal
+
+    headers = ["Tanggal", "Uraian Transaksi", "Kode Akun", "Nama Akun", "Debet", "Kredit"]
+    code = propose_mapping(
+        headers, [["02/03/2026", "Penjualan kopi", "4000", "Penjualan", "0,00", "1.000,00"]]
+    )
+    assert not code.complete and code.description == ""
+    model = LedgerMappingProposal(
+        description="uraian transaksi",  # a header code's synonyms do not know, case-insensitive
+        date="Keterangan",  # code already chose Tanggal: ignored
+        reference="Nomor Bukti",  # not in the header: ignored
+        decimal_separator=".",  # code read a comma from the shapes: kept
+        confidence=0.8,
+    )
+    merged = merge_model_proposal(code, model, headers)
+    assert merged.complete
+    assert merged.description == "Uraian Transaksi" and merged.date == "Tanggal"
+    assert merged.reference is None and merged.decimal_separator == ","
+    assert merge_model_proposal(code, LedgerMappingProposal(), headers) == code
+
+    signed = propose_mapping(
+        ["Tgl", "Memo", "Akun", "Nilai"], [["2026-03-02", "x", "4000", "-5.00"]]
+    )
+    assert signed.amount == "Nilai" and signed.sign_convention == "DEBIT_POSITIVE"
+    flipped = merge_model_proposal(
+        LedgerMapping.from_dict({**signed.to_dict(), "amount": None, "signConvention": None}),
+        LedgerMappingProposal(amount="Nilai", sign_convention="CREDIT_POSITIVE"),
+        ["Tgl", "Memo", "Akun", "Nilai"],
+    )
+    assert (flipped.amount, flipped.sign_convention) == ("Nilai", "CREDIT_POSITIVE")
+
+
 def test_ac005_11_the_review_item_names_the_file_and_carries_the_proposal_and_sample_rows():
     headers, rows = read_table(INDONESIAN)
     mapping = propose_mapping(headers, rows)

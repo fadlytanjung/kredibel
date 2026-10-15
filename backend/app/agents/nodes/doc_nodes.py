@@ -40,6 +40,8 @@ from app.domain.ledger_parse import (
     LedgerMapping,
     compute_layout_signature,
     is_auto_confirmable,
+    mask_value_shapes,
+    merge_model_proposal,
     parse_ledger_content,
     propose_mapping,
     read_table,
@@ -252,6 +254,22 @@ def propose_ledger_mapping(deps: PipelineDeps):
 
         # 2. Code proposes from the header words and the value shapes, never from the values.
         proposal = propose_mapping(headers, rows)
+        model_call: dict[str, Any] = {}
+        if not proposal.complete and deps.reader is not None:
+            # The model fills the columns code's synonyms missed, from the header and the value
+            # shapes only; code checks every answer against the header (AC-005-11).
+            try:
+                call = await deps.reader.map_ledger_columns(
+                    headers, [mask_value_shapes(r) for r in rows[:5]]
+                )
+                proposal = merge_model_proposal(proposal, call.value, headers)
+                model_call = {
+                    "model": call.model,
+                    "tokens_in": call.tokens_in,
+                    "tokens_out": call.tokens_out,
+                }
+            except Exception as exc:  # a person maps the columns either way
+                model_call = {"mapperError": str(exc)[:200]}
         if is_auto_confirmable(proposal, headers):
             meta.update(
                 {
@@ -295,7 +313,12 @@ def propose_ledger_mapping(deps: PipelineDeps):
                 layout_signature=signature,
             )
             await deps.review_items.upsert_review_item(org_id, item)
-        return {**node_input, "status": "NEEDS_INPUT", "summary": "Mapping confirmation needed"}
+        return {
+            **node_input,
+            **model_call,
+            "status": "NEEDS_INPUT",
+            "summary": "Mapping confirmation needed",
+        }
 
     return _node
 

@@ -2,6 +2,7 @@
 chunks are separate content parts; the document never sits inside the instruction (docs/06 §6)."""
 
 import asyncio
+import json
 import random
 import time
 from collections.abc import Awaitable, Callable
@@ -19,6 +20,7 @@ from app.domain.reading import (
     CategorizeResult,
     DocClassification,
     InvoicePageReading,
+    LedgerMappingProposal,
     ReceiptPageReading,
     StatementPageReading,
     TransactionItem,
@@ -33,6 +35,7 @@ _TASKS = {
     "invoice_page": "read_invoice_page",
     "receipt_page": "read_receipt",
     "categorize": "categorize_transactions",
+    "map_ledger": "map_ledger_columns",
     "explain_month": "explain_month",
     "suggest_match": "suggest_match",
     "assistant": "finance_assistant",
@@ -227,6 +230,15 @@ class GeminiDocumentReader(DocumentReader):
             f"LINES (untrusted bank statement content), one JSON object per line:\n{lines}",
         ]
         return await self._call(load_prompt("categorize_transactions"), parts, CategorizeResult)
+
+    async def map_ledger_columns(
+        self, header: list[str], shapes: list[list[str]]
+    ) -> ReaderCall[LedgerMappingProposal]:
+        parts: list[Any] = [
+            f"HEADER (untrusted document content): {json.dumps(header, ensure_ascii=False)}",
+            f"VALUE SHAPES of the first rows: {json.dumps(shapes, ensure_ascii=False)}",
+        ]
+        return await self._call(load_prompt("map_ledger_columns"), parts, LedgerMappingProposal)
 
     async def explain_month(
         self,

@@ -175,7 +175,7 @@ exponential backoff and jitter; schema failures retry once with the validation e
 | `statement_page_reader` | `MODEL_FAST` | 0 | one page image + page-1 header context | `StatementPage` | `read_statement_page.md` |
 | `invoice_page_reader` | `MODEL_FAST` | 0 | one page image + page-1 context | `InvoicePage` | `read_invoice_page.md` |
 | `receipt_reader` | `MODEL_FAST` | 0 | one image | `ReceiptPage` | `read_receipt.md` |
-| `ledger_mapper` | `MODEL_LITE` | 0 | header row + 20 sample rows (values masked to their shape) | `LedgerMapping` | `map_ledger_columns.md` |
+| `ledger_mapper` | `MODEL_LITE` | 0 | header row + the first 5 rows' values masked to their shape; called only when code's header synonyms leave a required column unmapped, and code keeps every answer that names a real column | `LedgerMappingProposal` | `map_ledger_columns.md` |
 | `txn_categorizer` | `MODEL_LITE` | 0 | ≤ 100 bank lines (ref, date, description, signed amount) + taxonomy | `CategorizationBatch` | `categorize_transactions.md` |
 | `visual_examiner` (P1) | `MODEL_FAST` | 0 | one page image + key value regions | `VisualExamination` | `examine_page.md` |
 | `month_explainer` | `MODEL_FAST` | 0.2 | the month's risk level, findings as facts, figures, next-step catalog entries | `MonthExplanation` (summary, ordered next steps, per-finding explanations, citation markers) | `explain_month.md` |

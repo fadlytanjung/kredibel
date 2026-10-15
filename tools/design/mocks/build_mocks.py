@@ -24,8 +24,13 @@ from brand import brand_body  # noqa: E402
 from screens import NOTES, SCREENS  # noqa: E402
 from screens_more import NOTES_MORE, SAMPLES, SCREENS_MORE  # noqa: E402
 
-SCREENS = {**SCREENS, **SCREENS_MORE}
-NOTES = {**NOTES, **NOTES_MORE}
+from profit_loss import page as pnl_page, entries as pnl_entries
+
+SCREENS = {**SCREENS, **SCREENS_MORE,
+    **{f"profit-loss-{state}": (f"Profit and loss: {state}", lambda state=state: pnl_page(state)) for state in ("empty", "partial", "loading", "error")},
+    "profit-loss-entries": ("Profit and loss: source entries", pnl_entries),
+}
+NOTES = {**NOTES, **NOTES_MORE, **{key: "Implemented P&L state, using the shared synthetic report." for key in SCREENS if key.startswith("profit-loss-")}}
 from shell import page  # noqa: E402
 
 ROOT = HERE.parents[2]

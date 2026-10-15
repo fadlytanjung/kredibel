@@ -388,10 +388,17 @@ Top to bottom:
 
 The dashboard adds a full-width **Profit and loss** panel before the cash-flow framework section.
 The IFRS/US GAAP toggle applies only to cash flow. **Accounts and sources** opens `/profit-loss`
-with the same period. The report page offers Chart/Table, coverage, exclusions and journal gaps,
+with the same period. The report page offers Flow/Bars/Table, a month picker and period input, coverage, exclusions and journal gaps,
 account P&L/subledger selectors with **Confirm classification**, and source document/row links.
-Owners/accountants can confirm; other roles read. Empty means ledger import is not yet available,
-not zero profit. A failed request has **Try again**. All words use `profitLoss.json`.
+Owners/accountants can confirm; other roles read. Empty means usable classified ledger entries are
+not available, not zero profit. A failed request has **Try again**. All words use `profitLoss.json`.
+
+The Flow joins revenue accounts and separate other income at total income, then shows cost of sales,
+operating subledgers, finance costs, tax and net profit. It uses the report totals and exact decimal
+aggregation, never clamps losses or reversals. Negative groups/losses use signed clickable rows.
+At narrow panel widths the same source-linked rows replace the diagram. A selected node, band or
+row opens the source-entry drawer with the selected reported total; mixed income and expense
+source rows are never naively added into a second, conflicting subtotal.
 
 Bars use HTML at their actual font size rather than scaling SVG text. At compact widths each bar
 sits below its label and signed amount; controls wrap, source links wrap, tables scroll within their

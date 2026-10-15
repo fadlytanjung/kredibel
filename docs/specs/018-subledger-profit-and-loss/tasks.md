@@ -10,3 +10,7 @@
 - [x] **T018-05** Mocks first, dashboard panel, report/detail and classification UI, assistant links,
   strings, stories, responsive screenshots, visual and behaviour checks. (AC-018-5, AC-018-6)
 - [x] **T018-06** UI synchronization rule and generated-mock gate; full checks and status. (AC-018-7)
+- [x] **T018-07** **TDD** Correct flow/table drift: preserve signed amounts and cents in the report and assistant chart, separate
+  revenue from other income, show losses/reversals with a signed alternative, and make flow nodes
+  open their exact contributing entries. Refresh populated/empty/partial mocks, shared synthetic
+  fixture, source drawer and responsive visual baselines. (AC-018-3…7)

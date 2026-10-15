@@ -43,6 +43,17 @@ P9 explicit user-requested P1 continuation, no additional P0 scope; P10 domain/A
 
 ## Risks
 
+### 15 October UI parity correction
+
+The original flow recomputed profit with floating-point values, clamped reversals/losses to zero,
+and counted other income as revenue. Replace it with a presentation graph using the report's exact
+decimal totals and exact string aggregation for account/subledger detail. Revenue and other income
+remain separate sources, joining at total income; costs, operating subledgers, finance costs, tax
+and net profit are separate uses. A negative group or loss uses signed, clickable report rows
+instead of a misleading positive-only Sankey. Both presentations open source entries. Compact
+labels are presentation only; Exact labels, tooltips and drawers preserve currency precision.
+The mock, stories and browser tests use one synthetic report fixture. No new dependency.
+
 Incomplete GL imports, direct journals bypassing subledgers, missing accruals, inventory/COGS,
 depreciation, tax and opening/closing entries need accounting review. Report includes imported
 activity only and names gaps; it never equates payment status with recognition. A subledger family

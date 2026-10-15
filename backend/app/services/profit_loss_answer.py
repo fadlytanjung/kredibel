@@ -1,6 +1,7 @@
 """Deterministic read-only P&L answer; no generated numbers are published (AC-018-6)."""
 
 import re
+from decimal import Decimal
 
 from app.domain.models.assistant import AnswerPart, CitationRef, GroundingRef, MessageAnswer
 from app.domain.profit_loss import ProfitLoss
@@ -45,16 +46,15 @@ def profit_loss_answer(report: ProfitLoss) -> MessageAnswer:
     chart_rows: list[list[str]] = []
     if any(line.amount is not None for line in report.lines):
         rows = []
-        amounts = [abs(float(line.amount)) for line in report.lines if line.amount is not None]
-        max_val = max(amounts, default=1.0) or 1.0
+        amounts = [abs(line.amount) for line in report.lines if line.amount is not None]
+        max_val = max(amounts, default=Decimal(1)) or Decimal(1)
         for line in report.lines:
             label = line.id.replace("_", " ").capitalize()
             if line.amount is not None:
-                amt = float(line.amount)
                 rows.append([label, f"{line.amount:.2f} {report.currency} [[{line.fact_id}]]"])
                 citations.append(CitationRef(ref=line.fact_id, label=label))
-                pct = f"{min(100, max(8, int((abs(amt) / max_val) * 100)))}%"
-                chart_rows.append([label, f"{amt:,.0f} {report.currency}", pct])
+                pct = f"{int(abs(line.amount) / max_val * 100)}%"
+                chart_rows.append([label, f"{line.amount:,.2f} {report.currency}", pct])
         parts.append(AnswerPart(type="table", columns=["P&L line", "Amount"], rows=rows))
     parts.append(
         AnswerPart(

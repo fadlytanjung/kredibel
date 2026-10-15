@@ -35,7 +35,7 @@ it('AC-018-5: a failed request can be retried', async () => {
   expect(screen.getByRole('status')).toHaveTextContent('Loading')
   await screen.findByRole('alert')
   fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
-  expect(await screen.findByText('Net profit')).toBeInTheDocument()
+  expect((await screen.findAllByText('Net profit'))[0]).toBeInTheDocument()
 })
 it('AC-018-1: confirmation is explicit, persisted and refreshes the report', async () => {
   vi.mocked(apiClient).mockResolvedValue(PNL_ACCOUNTS)
@@ -66,5 +66,33 @@ it('P&L flow renders Sankey and opens entries sheet on click', () => {
   expect(screen.getByText('Row 1')).toBeInTheDocument()
   fireEvent.click(screen.getAllByLabelText('Close entries')[0])
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+})
+
+it('AC-018-3: flow keeps revenue, other income, finance costs and tax separate', () => {
+  setup(<ProfitLossView report={PNL} />)
+  expect(screen.getByRole('button', { name: /4000 Sales IDR.*120,000,000/ })).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: /^Other income IDR.*1,000,000/ })).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: /^Finance costs IDR.*2,000,000/ })).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: /^Income tax IDR.*3,000,000/ })).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: /^Net profit IDR.*26,000,000/ })).toBeInTheDocument()
+})
+
+it('AC-018-5: a loss stays signed and opens only the contributing sources', () => {
+  const loss = { ...PNL, currency: 'USD', lines: PNL.lines.map((line) => line.id === 'NET_PROFIT' ? { ...line, amount: '-10.25' } : line) }
+  setup(<ProfitLossView report={loss} />)
+  const button = screen.getByRole('button', { name: /Net profit.*10.25/ })
+  expect(button).toHaveTextContent(/-.*10.25/)
+  fireEvent.click(button)
+  expect(screen.getByRole('dialog')).toHaveTextContent(/-.*10.25/)
+  // A subtotal drawer must not add revenue and costs with the same sign.
+  expect(screen.getByRole('dialog')).not.toHaveTextContent(/Total.*216,000,000/)
+})
+
+it('AC-018-5: Exact labels retain cents and large integer precision', () => {
+  const amount = '9007199254740993.25'
+  const report = { ...PNL, currency: 'USD', entries: [{ ...PNL.entries[0], amount }], lines: PNL.lines.map((line) => ({ ...line, amount: ['REVENUE', 'GROSS_PROFIT', 'OPERATING_PROFIT', 'NET_PROFIT'].includes(line.id) ? amount : '0' })) }
+  setup(<ProfitLossView report={report} />)
+  fireEvent.click(screen.getByRole('button', { name: 'Exact' }))
+  expect(screen.getByRole('button', { name: /Net profit USD.*9,007,199,254,740,993.25/ })).toBeInTheDocument()
 })
 

@@ -31,3 +31,13 @@ def test_ac018_6_tool_facts_match_api_report_and_include_coverage():
     assert any("Revenue" in r[0] for r in answer.parts[-1].rows)
     assert answer.parts[-1].query is not None
     assert answer.parts[-1].query["period"] == "2026-03"
+
+
+def test_ac018_6_chart_keeps_signed_cents_and_zero_bars():
+    result = report([row("sales", credit="100.15"), row("cost", debit="110.40")])
+    answer = profit_loss_answer(result)
+    chart = next(part for part in answer.parts if part.type == "chart")
+    rows = {label: (amount, width) for label, amount, width in chart.rows or []}
+    assert rows["Revenue"][0] == "100.15 IDR"
+    assert rows["Net profit"][0] == "-10.25 IDR"
+    assert rows["Other income"][1] == "0%"

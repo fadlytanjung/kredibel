@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { type Accounts, useConfirmClassification, useProfitLossAccounts } from '../../entities/profit-loss'
-import { OptionSelect } from '../../shared/ui'
 
 type Account = Accounts['accounts'][number]
 
@@ -31,42 +30,26 @@ function AccountRow({ account, catalog, canEdit }: { account: Account; catalog: 
       <td>
         <label className="field m-0">
           <span className="sr-only">{t('line')}</span>
-          <OptionSelect
-            ariaLabel={t('line')}
-            value={line}
-            disabled={!canEdit || confirm.isPending}
-            placeholder={t('choose')}
-            options={pnlOptions}
-            required
-            onChange={(val) => {
-              setLine(val)
-              confirm.reset()
-            }}
-          />
+          <select className="input" aria-label={t('line')} value={line} disabled={!canEdit || confirm.isPending} required onChange={(event) => { setLine(event.target.value); confirm.reset() }}>
+            <option value="">{t('choose')}</option>
+            {pnlOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </select>
         </label>
       </td>
       <td>
         <label className="field m-0">
           <span className="sr-only">{t('subledger')}</span>
-          <OptionSelect
-            ariaLabel={t('subledger')}
-            value={subledger}
-            disabled={!canEdit || confirm.isPending}
-            placeholder={t('choose')}
-            options={subledgerOptions}
-            required
-            onChange={(val) => {
-              setSubledger(val)
-              confirm.reset()
-            }}
-          />
+          <select className="input" aria-label={t('subledger')} value={subledger} disabled={!canEdit || confirm.isPending} required onChange={(event) => { setSubledger(event.target.value); confirm.reset() }}>
+            <option value="">{t('choose')}</option>
+            {subledgerOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </select>
         </label>
       </td>
       {canEdit && (
         <td className="r">
           <div className="row items-center justify-end gap-2">
             <button
-              className="button button-primary button-sm"
+              className="button button-primary"
               type="button"
               disabled={!line || !subledger || confirm.isPending}
               onClick={handleConfirm}
@@ -117,14 +100,14 @@ export function AccountClassifications({ canEdit }: { canEdit: boolean }) {
       {query.data &&
         (query.data.accounts.length ? (
           <div className="table-panel">
-            <table className="data-table">
+            <table className="data-table pnl-accounts">
               <thead>
                 <tr>
-                  <th style={{ width: '30%' }} /* allow-raw-style: account column width */>{t('colAccount', { defaultValue: 'Account' })}</th>
-                  <th style={{ width: '32%' }} /* allow-raw-style: line column width */>{t('line')}</th>
-                  <th style={{ width: '25%' }} /* allow-raw-style: subledger column width */>{t('subledger')}</th>
+                  <th>{t('colAccount', { defaultValue: 'Account' })}</th>
+                  <th>{t('line')}</th>
+                  <th>{t('subledger')}</th>
                   {canEdit && (
-                    <th className="r" style={{ width: '13%' }} /* allow-raw-style: action column width */>
+                    <th className="r">
                       {t('action', { defaultValue: 'Action' })}
                     </th>
                   )}

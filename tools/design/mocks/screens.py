@@ -78,28 +78,7 @@ def by_fw(render) -> str:
             f'<div data-show-group="fw" data-show-value="US_GAAP" hidden>{render("US_GAAP")}</div>')
 
 
-def profit_loss_panel(detail: bool = False) -> str:
-    values = [("Revenue", 120), ("Cost of sales", 72), ("Gross profit", 48),
-              ("Operating expenses", 18), ("Operating profit", 30), ("Other income", 1),
-              ("Finance costs", 2), ("Income tax", 3), ("Net profit", 26)]
-    bars = "".join(f'<div class="pnl-row"><span>{label}</span><strong class="num">IDR {value:,},000,000</strong><span class="pnl-track" aria-hidden="true"><span class="pnl-bar" style="width:{value / 120 * 100:.2f}%"></span></span></div>' for label, value in values)
-    table = '<table class="table"><thead><tr><th scope="col">P&amp;L line</th><th scope="col" class="num">Amount</th></tr></thead><tbody>' + ''.join(f'<tr><th scope="row">{label}</th><td class="num">IDR {value:,},000,000</td></tr>' for label, value in values) + '</tbody></table>'
-    details_link = '<a class="button button-secondary" href="profit-loss.html">Accounts and sources</a>' if not detail else ''
-    return f"""<section class="chart-panel panel-pad stack gap-4" aria-label="Profit and loss">
-      <div class="chart-head"><div><h2 class="type-h2">Profit and loss</h2><p>Accrual management report for 2026-03</p></div>{details_link}</div>
-      <p class="muted">Imported posted ledger entries only. This does not certify that the company books are complete.</p>
-      {seg("pnlview", [("chart", "Chart"), ("table", "Table")], "chart", "Profit and loss view")}
-      <div class="pnl-bars" data-show-group="pnlview" data-show-value="chart">{bars}</div>
-      <div class="table-wrap" data-show-group="pnlview" data-show-value="table" hidden>{table}</div>
-    </section>"""
-
-
-def profit_loss() -> str:
-    controls = """<section class="panel panel-pad stack gap-4"><h2 class="type-h2">Account classifications</h2><p>Confirm how each company account appears in profit and loss. Subledgers group the supporting detail.</p>
-    <div class="table-panel"><table class="data-table"><thead><tr><th style="width:30%">Account</th><th style="width:32%">P&amp;L line</th><th style="width:25%">Subledger</th><th class="r" style="width:13%">Action</th></tr></thead><tbody><tr><td><div class="doc-cell"><div><strong>4000</strong><span class="sub">Sales</span></div></div></td><td><select class="input"><option>Revenue</option><option>Balance sheet (excluded from profit)</option></select></td><td><select class="input"><option>Receivables</option><option>General journals</option></select></td><td class="r"><button type="button" class="button button-primary button-sm">Confirm classification</button></td></tr></tbody></table></div></section>
-    <section class="panel panel-pad stack gap-4"><h2 class="type-h2">Source entries</h2><h3 class="type-h3">Receivables</h3><a class="pnl-source link" href="document.html">4000 Sales, 2 Mar 2026, row 1: IDR 120,000,000</a><p class="muted">Synthetic reporting example. Subledger families group accounts; they do not certify a control-account reconciliation.</p></section>"""
-    content = f'<div class="page stack gap-5"><div class="page-head"><h1 class="type-title">Company profit and loss</h1><p>Company account classifications, with the ledger rows behind every total.</p></div><form class="row items-end"><label class="field">Period<input class="input" value="2026-03"/></label><button class="button button-secondary" type="button">Apply period</button></form><p class="muted">Use recent, all, a year (2026), quarter (2026-Q1), month (2026-03), or range (2026-01..2026-03).</p>{profit_loss_panel(True)}{controls}</div>'
-    return shell("dashboard", topbar("Profit and loss", (("Dashboard", "dashboard.html"), "Profit and loss"), back=("Dashboard", "dashboard.html")), content, fab=False)
+from profit_loss import panel as profit_loss_panel, page as profit_loss
 
 
 def dashboard() -> str:

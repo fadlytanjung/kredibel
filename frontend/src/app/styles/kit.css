@@ -1760,3 +1760,26 @@ button.tab { border: 0; background: transparent; cursor: pointer; font-family: i
 .pnl-account > .field { flex: 1; min-width: 0; }
 .pnl-account > strong { flex-basis: 100%; overflow-wrap: anywhere; }
 .pnl-source { display: block; padding-block: var(--k-space-3); overflow-wrap: anywhere; }
+
+/* P&L uses signed report rows on narrow screens and for losses/reversals. */
+.pnl-flow-compact { display: none; }
+.pnl-source-button { background: transparent; color: var(--k-color-text-default); border: 0; text-decoration: none; text-align: left; padding: var(--k-space-3); cursor: pointer; width: 100%; font: inherit; }
+.pnl-source-button:hover, .pnl-source-button:focus-visible { background: var(--k-color-bg-sunken); }
+.pnl-flow-wide .chart { width: 100%; height: auto; }
+.pnl-accounts .input { width: 100%; }
+@media (max-width: 759px) {
+  .pnl-flow-wide { display: none; }
+  .pnl-flow-compact { display: grid; }
+  .pnl-accounts, .pnl-accounts tbody, .pnl-accounts tr, .pnl-accounts td { display: block; width: 100%; }
+  .pnl-accounts thead { display: none; }
+  .pnl-accounts td { padding: var(--k-space-2) var(--k-space-3); }
+  .pnl-accounts td .row { justify-content: start; }
+  .pnl-accounts .sr-only { position: static; width: auto; height: auto; clip: auto; white-space: normal; }
+}
+
+.pnl-flow-wrapper { container-type: inline-size; }
+@container (max-width: 759px) {
+  .pnl-flow-wide { display: none; }
+  .pnl-flow-compact { display: block; }
+  .pnl-flow-wrapper > .chart-head > .seg { display: none; }
+}

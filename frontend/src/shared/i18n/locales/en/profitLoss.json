@@ -5,19 +5,19 @@
   "basis": "Accrual management report for {{period}}",
   "details": "Accounts and sources",
   "coverage": "Imported posted ledger entries only. This does not certify that the company books are complete.",
-  "empty": "Profit and loss needs posted general-ledger entries and confirmed account classifications. Ledger import is not available yet; bank cash movements cannot establish profit.",
+  "empty": "Profit and loss needs posted general-ledger entries and confirmed account classifications. Bank cash movements cannot establish profit.",
   "partial": "This is a partial report. Review excluded entries and ledger gaps before using its totals.",
   "view": "Profit and loss view",
   "flow": "Flow",
   "bars": "Bars",
   "chart": "Chart",
   "table": "Table",
-  "flowSubtitle": "From revenue sources, through gross profit, to cost of goods sold and operating expenses.",
+  "flowSubtitle": "Revenue and other income, with expenses and net profit. Select a band or row to inspect its ledger entries.",
   "flowColumns": {
-    "sources": "Revenue Sources",
+    "sources": "Income sources",
     "turnover": "Revenue",
     "costs": "Costs & Margin",
-    "breakdown": "Subledgers & Net Profit"
+    "breakdown": "Expenses and profit"
   },
   "unitLabel": "Amounts",
   "unitCompact": "Compact",
@@ -33,9 +33,11 @@
   "compactAmounts": "Amounts formatted compactly; click any node or band for itemized rows.",
   "entriesSheet": {
     "close": "Close entries",
-    "total": "{{count}} entries · Total {{total}}",
+    "total": "{{count}} entries \u00b7 Total {{total}}",
     "noEntries": "No entries found for this selection.",
-    "row": "Row {{row}}"
+    "row": "Row {{row}}",
+    "count_one": "{{count}} contributing entry",
+    "count_other": "{{count}} contributing entries"
   },
   "line": "P&L line",
   "amount": "Amount",
@@ -61,7 +63,7 @@
   "period": "Period",
   "apply": "Apply period",
   "selectMonth": "Filter month",
-  "chooseMonth": "Select a month…",
+  "chooseMonth": "Select a month\u2026",
   "subledgersView": "Subledgers",
   "periodHelp": "Use recent, all, a year (2026), quarter (2026-Q1), month (2026-03), or range (2026-01..2026-03).",
   "open": "Open profit and loss",
@@ -97,5 +99,8 @@
   "gaps": {
     "MISSING_JOURNAL_ID": "Some entries have no journal ID.",
     "UNBALANCED_JOURNAL": "Some imported journals do not balance."
-  }
+  },
+  "totalIncome": "Total income",
+  "bandLabel": "Inspect {{label}}: {{amount}}",
+  "signedFlow": "Signed report rows preserve losses and reversals. Select a row to inspect its sources."
 }

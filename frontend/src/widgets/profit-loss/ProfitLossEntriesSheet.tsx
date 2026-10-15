@@ -3,7 +3,7 @@
  * Allows drilling down into supporting subledger rows, accounts, amounts, and source documents.
  */
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import type { ProfitLoss } from '../../entities/profit-loss'
@@ -29,14 +29,29 @@ export function ProfitLossEntriesSheet({
   onClose,
 }: ProfitLossEntriesSheetProps) {
   const { t } = useTranslation('profitLoss')
+  const dialog = useRef<HTMLElement>(null)
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    const previous = document.activeElement as HTMLElement | null
+    const focusable = () => Array.from(dialog.current?.querySelectorAll<HTMLElement>('button, a[href]') ?? [])
+    focusable()[0]?.focus()
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+      if (e.key !== 'Tab') return
+      const items = focusable()
+      const next = e.shiftKey ? items.at(-1) : items[0]
+      if (document.activeElement === (e.shiftKey ? items[0] : items.at(-1))) {
+        e.preventDefault()
+        next?.focus()
+      }
+    }
     document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      previous?.focus()
+    }
   }, [onClose])
 
-  const totalAmount = entries.reduce((acc, e) => acc + (Number(e.amount) || 0), 0)
 
   return (
     <div className="flow-sheet">
@@ -46,18 +61,13 @@ export function ProfitLossEntriesSheet({
         aria-label={t('entriesSheet.close', { defaultValue: 'Close entries' })}
         onClick={onClose}
       />
-      <section className="sheet" role="dialog" aria-modal="true" aria-labelledby="pnl-sheet-h">
+      <section ref={dialog} className="sheet" role="dialog" aria-modal="true" aria-labelledby="pnl-sheet-h">
         <div className="sheet-head">
           <div>
             <h2 id="pnl-sheet-h">{title}</h2>
             {subtitle && <p className="text-xs text-muted mb-1">{subtitle}</p>}
             <p className="muted small">
-              {t('entriesSheet.total', {
-                count: entries.length,
-                total: formatMoney(String(totalAmount), { currency, code: true }),
-                currency,
-                defaultValue: `${entries.length} entries · Total ${formatMoney(String(totalAmount), { currency, code: true })}`,
-              })}
+              {t('entriesSheet.count', { count: entries.length })}
             </p>
           </div>
           <button
@@ -80,7 +90,7 @@ export function ProfitLossEntriesSheet({
                 key={entry.entryId}
                 className="line-row"
                 to={`/documents/${entry.docId}`}
-                title={`Row ${entry.rowNumber} · Document ${entry.docId}`}
+                title={t('entriesSheet.row', { row: entry.rowNumber })}
               >
                 <div>
                   <div className="font-semibold text-ink">

@@ -78,12 +78,13 @@ _Last updated: 12 Oct 2026 — Local OTLP tracing and generated invoice/receipt 
 
 ## P1
 
-Spec 018 adds company P&L independently of the cash-flow framework selector. Ledger import (005)
-remains open; no posted ledger data means the report is unavailable.
+Spec 018 adds company P&L independently of the cash-flow framework selector. CSV rows can now
+populate the ledger (005), but the mapping-confirmation workflow remains incomplete; no eligible
+posted and classified ledger data means the report is unavailable.
 
 | Component | Spec | Status | Notes |
 |---|---|---|---|
-| Company account/subledger classifications and P&L | 018 | Built | ADR-027; management accrual report from posted GL entries; dashboard and assistant share totals |
+| Company account/subledger classifications and P&L | 018 | Built | ADR-027; management accrual report from posted GL entries; dashboard and assistant share totals. T018-07 corrects flow/table drift, signed losses, separate other income/tax, cents and source subtotals. Shared synthetic mock/story fixture; 15 browser checks include mock/React content parity, three-width baselines, 360/1600 bounds, keyboard drawer and scoped axe. Full repository gates verified before commit. |
 | Model Armor screening + quarantine | 015 | Specified | Depends on spike S4 |
 | Run graph | 015 | Specified | ADK traces, docs/17 §5 |
 | Finance Assistant (tools, Firestore vector retrieval, Sessions, Memory Bank) | 011 | In progress | ADR-014; Assistant API (threads with cursor pagination, messages, memories list/purge, AI match suggestions) built; `AssistantPage` markup and kit CSS aligned with official mock; `AnswerParts` widget (citations, tables, interactive chart links & mini-bars, markdown app links) and "Ask about this" buttons on Dashboard/Month/Findings built and tested (T011-06, T011-07, AC-011-4, AC-011-10, AC-011-11, AC-011-12) |

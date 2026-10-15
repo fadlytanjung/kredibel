@@ -24,3 +24,5 @@ export const FailedRequest: Story = { name: 'Error', render: () => {
   query.setState({ status: 'error', error: new Error('offline') })
   return <QueryClientProvider client={client}><ProfitLossPanel period="all" /></QueryClientProvider>
 } }
+
+export const Loss: Story = { args: { report: { ...PNL, currency: 'USD', lines: PNL.lines.map((line) => line.id === 'NET_PROFIT' ? { ...line, amount: '-10.25' } : line) } } }

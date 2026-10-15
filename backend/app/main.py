@@ -482,6 +482,7 @@ class AppDeps:
                 invoices=self.invoices,
                 receipts=self.receipts,
                 clock=self.clock,
+                ledger=self.ledger_repo,
                 workspaces=self.workspace_repo,
                 task_queue=self.task_queue,
             ),

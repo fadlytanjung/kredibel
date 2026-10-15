@@ -20,6 +20,7 @@ import pytest
 from app.adapters.cloud_tasks import InlineTaskQueue
 from app.domain.accounts import mask_tax_id
 from app.domain.categorize import by_rules
+from app.domain.duplicates import ledger_entry_duplicates
 from app.domain.models.bank_line import BankLine
 from app.domain.models.document import (
     DocStatus,
@@ -228,7 +229,8 @@ def ledger_rows(entry: dict[str, Any], doc_id: str) -> list[LedgerRow]:
             credit=Decimal(row["credit"] or "0"),
             currency="IDR",
             posting_status="POSTED",
-            journal_id=row["journal"],
+            journal_id=row.get("reference")
+            or None,  # the reference column, as parse_ledger keeps it
         )
         for number, row in enumerate(entry["entries"], start=1)
     ]
@@ -288,7 +290,25 @@ async def seed(deps, scenario: str, truth: dict[str, Any], *, copies: bool = Fal
                 await deps.doc_repo.save_document(
                     ORG, _document(scenario, entry, DocType.LEDGER_EXPORT, MONTHS, meta=meta)
                 )
-                await deps.ledger_repo.save_rows(ORG, ledger_rows(entry, doc_id))
+                rows = ledger_rows(entry, doc_id)
+                ledger_copies = {c.entry_id: c for c in ledger_entry_duplicates(rows)}
+                rows = [
+                    r.model_copy(
+                        update={
+                            "held_as_duplicate": True,
+                            "duplicate": {
+                                "code": "D06_LEDGER_ENTRY_DUPLICATE",
+                                "ofEntryId": ledger_copies[r.entry_id].of_entry_id,
+                                "ofDocId": doc_id,
+                                "decision": "PENDING",
+                            },
+                        }
+                    )
+                    if r.entry_id in ledger_copies
+                    else r
+                    for r in rows
+                ]
+                await deps.ledger_repo.save_rows(ORG, rows)
     if not copies:
         return
     for entry in truth["documents"]:

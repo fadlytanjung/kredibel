@@ -17,3 +17,14 @@ class LedgerRepository(Protocol):
         self, org_id: str, classification: Classification, event: AuditEvent
     ) -> None: ...
 
+    async def decide_duplicate(
+        self,
+        org_id: str,
+        entry_ids: list[str],
+        *,
+        held: bool,
+        decision: str,
+        event: AuditEvent,
+    ) -> None:
+        """A person's decision on held entries (D06): kept out or released, with its event."""
+        ...

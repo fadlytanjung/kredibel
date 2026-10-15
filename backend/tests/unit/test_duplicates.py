@@ -12,9 +12,11 @@ from app.domain.duplicates import (
     ReceiptKey,
     StatementKey,
     invoice_duplicate,
+    ledger_entry_duplicates,
     receipt_duplicate,
     statement_duplicate,
 )
+from app.domain.profit_loss import LedgerRow
 
 POLICY = Duplicates()
 EARLIER, LATER = datetime(2026, 4, 1, tzinfo=UTC), datetime(2026, 4, 2, tzinfo=UTC)
@@ -184,3 +186,55 @@ def test_image_fallback_with_missing_fields_and_total_at_tolerance_still_holds()
     old = _rc("doc_a", "5.50", when=EARLIER, p_hash="ff00ff00ff00ff00")
     new = replace(old, doc_id="doc_b", uploaded_at=LATER, merchant=None, total=Decimal("6.50"))
     assert receipt_duplicate(new, [old], POLICY) is not None
+
+
+def _row(
+    entry: str,
+    doc: str,
+    n: int,
+    account: str,
+    *,
+    debit="0",
+    credit="0",
+    ref="PP/26/0516",
+    day=date(2026, 5, 19),
+) -> LedgerRow:
+    return LedgerRow(
+        entry_id=entry, doc_id=doc, row_number=n, date=day, account_code=account, account_name="",
+        debit=Decimal(debit), credit=Decimal(credit), journal_id=ref,
+    )  # fmt: skip
+
+
+def test_ac006_4_a_journal_entered_twice_in_one_file_holds_the_later_legs():
+    rows = [
+        _row("e1", "doc_gl", 1, "2100", debit="7037234"),
+        _row("e2", "doc_gl", 2, "1110", credit="7037234"),
+        _row("e3", "doc_gl", 3, "6150", debit="2160000", ref=""),  # no reference: never a copy
+        _row("e4", "doc_gl", 4, "1110", credit="2160000", ref=""),
+        _row("e5", "doc_gl", 5, "2100", debit="7037234"),
+        _row("e6", "doc_gl", 6, "1110", credit="7037234"),
+    ]
+    copies = ledger_entry_duplicates(rows)
+    assert [(c.entry_id, c.of_entry_id) for c in copies] == [("e5", "e1"), ("e6", "e2")]
+    assert copies[0].key == "2026-05-19|2100|7037234.00|0.00|PP/26/0516"
+
+
+def test_ac006_4_across_files_the_newer_file_s_entry_is_the_copy_whatever_the_row_order():
+    older = [_row("a1", "doc_old", 9, "2100", debit="100")]
+    newer = [_row("b1", "doc_new", 1, "2100", debit="100")]
+    [copy] = ledger_entry_duplicates(newer + older, doc_order={"doc_old": 1, "doc_new": 2})
+    assert (copy.entry_id, copy.of_entry_id, copy.doc_id, copy.of_doc_id) == (
+        "b1",
+        "a1",
+        "doc_new",
+        "doc_old",
+    )
+    # A different amount, account or date is a different entry.
+    assert ledger_entry_duplicates(older + [_row("b2", "doc_new", 2, "2100", debit="101")]) == []
+    assert ledger_entry_duplicates(older + [_row("b3", "doc_new", 3, "2110", debit="100")]) == []
+    assert (
+        ledger_entry_duplicates(
+            older + [_row("b4", "doc_new", 4, "2100", debit="100", day=date(2026, 5, 20))]
+        )
+        == []
+    )

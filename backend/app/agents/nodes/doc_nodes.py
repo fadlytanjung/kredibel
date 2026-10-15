@@ -27,10 +27,12 @@ from app.domain.checks.base import CheckContext, DeclaredAccount, PdfInfo, run_d
 from app.domain.corrections import keep_corrections
 from app.domain.duplicates import (
     InvoiceKey,
+    LedgerCopy,
     Match,
     ReceiptKey,
     StatementKey,
     invoice_duplicate,
+    ledger_entry_duplicates,
     receipt_duplicate,
     statement_duplicate,
 )
@@ -58,6 +60,7 @@ from app.domain.models.document import (
 )
 from app.domain.page_triage import TextLayerStatus
 from app.domain.profile_suggestions import StatementFacts, build_profile_suggestions
+from app.domain.profit_loss import LedgerRow
 from app.domain.reading import (
     CategorizeResult,
     InvoicePageReading,
@@ -325,6 +328,82 @@ def propose_ledger_mapping(deps: PipelineDeps):
     return _node
 
 
+def _hold_ledger_copies(
+    fresh: list[LedgerRow], stored: list[LedgerRow], doc_id: str
+) -> tuple[list[LedgerRow], list[LedgerCopy]]:
+    """D06: the file's rows that repeat an earlier entry (in this file or one stored before) are
+    held pending a decision; a decision already taken on the same entry (a re-read) is kept."""
+    decided = {
+        r.entry_id: (r.duplicate or {}).get("decision")
+        for r in stored
+        if r.doc_id == doc_id and (r.duplicate or {}).get("decision") in ("CONFIRMED", "REJECTED")
+    }
+    others = [r for r in stored if r.doc_id != doc_id]
+    order = {r.doc_id: 0 for r in others}
+    order[doc_id] = 1  # whatever was stored before came first
+    copies = [
+        c for c in ledger_entry_duplicates([*others, *fresh], doc_order=order) if c.doc_id == doc_id
+    ]
+    by_id = {c.entry_id: c for c in copies}
+    rows: list[LedgerRow] = []
+    for r in fresh:
+        c = by_id.get(r.entry_id)
+        if c is None:
+            rows.append(r)
+            continue
+        decision = decided.get(r.entry_id) or "PENDING"
+        rows.append(
+            r.model_copy(
+                update={
+                    "held_as_duplicate": decision != "REJECTED",
+                    "duplicate": {
+                        "code": "D06_LEDGER_ENTRY_DUPLICATE",
+                        "ofEntryId": c.of_entry_id,
+                        "ofDocId": c.of_doc_id,
+                        "decision": decision,
+                    },
+                }
+            )
+        )
+    return rows, copies
+
+
+def _ledger_copy_findings(
+    doc_id: str, copies: list[LedgerCopy], rows: list[LedgerRow]
+) -> list[Finding]:
+    by_id = {r.entry_id: r for r in rows}
+    out: list[Finding] = []
+    for c in copies:
+        row = by_id[c.entry_id]
+        out.append(
+            Finding(
+                finding_id=finding_id("D06_LEDGER_ENTRY_DUPLICATE", f"{doc_id}|{c.entry_id}"),
+                code="D06_LEDGER_ENTRY_DUPLICATE",
+                category="DUPLICATE",
+                severity="MEDIUM",
+                title="This ledger entry appears twice",
+                facts={
+                    "date": row.date.isoformat(),
+                    "accountCode": row.account_code,
+                    "reference": row.journal_id or "",
+                    "amount": f"{row.debit - row.credit:.2f}",
+                    "entryId": c.entry_id,
+                    "ofEntryId": c.of_entry_id,
+                },
+                evidence=[
+                    Evidence(doc_id=doc_id, ledger_entry_id=c.entry_id, label="This entry"),
+                    Evidence(
+                        doc_id=c.of_doc_id, ledger_entry_id=c.of_entry_id, label="Earlier entry"
+                    ),
+                ],
+                scope="DOCUMENT",
+                doc_id=doc_id,
+                month=f"{row.date:%Y-%m}",
+            )
+        )
+    return out
+
+
 def parse_ledger(deps: PipelineDeps):
     """AC-005-12: every row becomes a ledger entry through the mapping; more than 2% bad rows
     reopen the mapping item."""
@@ -389,7 +468,19 @@ def parse_ledger(deps: PipelineDeps):
                         }
 
                     if res.rows:
-                        await deps.ledger.save_rows(org_id, res.rows)
+                        rows, copies = _hold_ledger_copies(
+                            res.rows, await deps.ledger.list_rows(org_id), doc_id
+                        )
+                        res.rows[:] = rows
+                        await deps.ledger.save_rows(org_id, rows)
+                        if deps.findings is not None:
+                            await deps.findings.replace_document_findings(
+                                org_id,
+                                doc_id,
+                                _ledger_copy_findings(doc_id, copies, rows),
+                                run_id=str(node_input.get("runId") or "") or None,
+                                categories={"DUPLICATE"},
+                            )
                         months = sorted({r.date.strftime("%Y-%m") for r in res.rows})
                         meta.update(
                             {

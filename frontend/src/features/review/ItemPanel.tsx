@@ -473,7 +473,22 @@ export function ItemPanel({
               activePreviewDocId={previewDocId}
             />
           ))}
+          {item.kind === 'POSSIBLE_DUPLICATE' && (item.subject.ledgerEntryIds?.length ?? 0) > 0 && (
+            <>
+              {(item.subject.docIds ?? []).slice(0, 1).map((docId) => (
+                <DocumentSubject key={docId} docId={docId} label={t('panel.ledgerFile')} />
+              ))}
+              <ul className="stack gap-1 m-0" aria-label={t('panel.ledgerEntries')}>
+                {(item.suggestion?.evidence ?? []).map((ref, i) => (
+                  <li key={`${ref.ledgerEntryId ?? i}`} className="small">
+                    <span className="muted">{ref.label}</span> {ref.ledgerEntryId}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
           {item.kind === 'POSSIBLE_DUPLICATE' &&
+            !(item.subject.ledgerEntryIds?.length ?? 0) &&
             (item.subject.docIds ?? []).map((docId, i) => (
               <DocumentSubject
                 key={docId}

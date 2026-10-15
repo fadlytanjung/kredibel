@@ -16,10 +16,18 @@ class FakeLedgerRepository:
     async def save_rows(self, org_id: str, rows: list[LedgerRow]) -> None:
         self.rows[org_id].extend(rows)
 
-
     async def classifications(self, org_id: str) -> dict[str, Classification]:
         return self.mappings[org_id]
 
     async def confirm(self, org_id: str, classification: Classification, event: AuditEvent) -> None:
         self.mappings[org_id][classification.account_code] = classification
+        self.events.append(event)
+
+    async def decide_duplicate(
+        self, org_id: str, entry_ids: list[str], *, held: bool, decision: str, event: AuditEvent
+    ) -> None:
+        for row in self.rows[org_id]:
+            if row.entry_id in entry_ids:
+                row.held_as_duplicate = held
+                row.duplicate = {**(row.duplicate or {}), "decision": decision}
         self.events.append(event)

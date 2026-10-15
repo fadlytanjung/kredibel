@@ -2,11 +2,11 @@
 
 ## Phase 1 — Duplicates
 
-- [x] **T006-01** **TDD** `duplicates.py`: `D02` overlap vs adjacent periods and identical vs different rows; `D03` vs `D04`; `D05` total tolerance and pHash 8 vs 9. (AC-006-1…3) `D06` within and across files (AC-006-4) is not built: it waits with the ledger copy's item (docs/20).
+- [x] **T006-01** **TDD** `duplicates.py`: `D02` overlap vs adjacent periods and identical vs different rows; `D03` vs `D04`; `D05` total tolerance and pHash 8 vs 9; `D06` within and across files (same date, amount, account and reference; the later entry is the copy). (AC-006-1…4)
 - [x] **T006-01a** **TDD** D05 image fallback respects contradictory receipt readings; unrelated
   S1 till rolls remain eligible, while missing-field duplicate photos still hold. (AC-006-3)
 - [ ] **T006-02** **TDD** holding: held records excluded from a figures function and from matching inputs; `DuplicateService` decisions flip and mark months dirty. (AC-006-5, AC-006-6) (holding done: document and records flagged, released when the earlier copy goes; exclusion from figures and matching comes with spec 007, decisions with spec 009)
-- [ ] **T006-03** `detect_content_duplicates` node and `POSSIBLE_DUPLICATE` items. (AC-006-5) (node done for `D02`, `D03`, `D04`, `D05` incl. the page-1 image hash; the review item comes with spec 009; `D06` with ledger import)
+- [x] **T006-03** `detect_content_duplicates` node and `POSSIBLE_DUPLICATE` items. (AC-006-5) `D02`–`D05` in the duplicate node; `D06` in `parse_ledger` (the file's rows that repeat an earlier entry are held with a `D06` finding, a decision on a re-read is kept); the review items of spec 009 cover both, one item per copied journal entry, decided through `CONFIRM_DUPLICATE` / `NOT_DUPLICATE` on the entries. Built 15 Oct 2026.
 
 ## Phase 2 — Integrity
 

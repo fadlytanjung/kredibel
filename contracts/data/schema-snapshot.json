@@ -280,6 +280,7 @@
       "date": "str",
       "debit_minor": "int",
       "doc_id": "str",
+      "duplicate": "dict[str, Any] | None",
       "entry_id": "str",
       "entry_kind": "Literal[ACTIVITY, OPENING, CLOSING]",
       "held_as_duplicate": "bool",

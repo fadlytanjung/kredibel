@@ -229,6 +229,18 @@ class HeldCopy:
     title: str  # the duplicate finding's title
 
 
+@dataclass(frozen=True)
+class HeldEntry:
+    """A ledger journal entry held as a copy (D06): its legs, and the legs it repeats."""
+
+    doc_id: str
+    entry_ids: tuple[str, ...]
+    of_entry_ids: tuple[str, ...]
+    of_doc_id: str
+    title: str
+    key: str  # one item per copied journal entry
+
+
 _UNPAID = ("UNPAID", "NO_BANK_MATCH")
 _LABEL = {"amount": "amount", "total": "total", "date": "date", "issueDate": "date"}
 
@@ -269,6 +281,7 @@ def month_items(
     records: list[RecordFacts],
     proposals: list[ProposalFacts],
     held: list[HeldCopy],
+    held_entries: list[HeldEntry] | None = None,
 ) -> list[ReviewItem]:
     """The month's open items (docs/08 §7). One problem, one item: a held copy's records get no
     item of their own, and a record with an uncertain value gets that item, not an unpaid one."""
@@ -311,6 +324,27 @@ def month_items(
                 evidence=[
                     {"docId": copy.doc_id, "page": 1, "label": "This document"},
                     {"docId": copy.of_doc_id, "page": 1, "label": "Earlier document"},
+                ]
+            ),
+        )
+
+    for entry in held_entries or []:
+        add(
+            "POSSIBLE_DUPLICATE",
+            entry.key,
+            doc_id=entry.doc_id,
+            title=entry.title,
+            subject=ReviewSubject(ledger_entry_ids=list(entry.entry_ids), doc_ids=[entry.doc_id]),
+            suggestion=ReviewSuggestion(
+                evidence=[
+                    *(
+                        {"docId": entry.doc_id, "ledgerEntryId": e, "label": "This entry"}
+                        for e in entry.entry_ids
+                    ),
+                    *(
+                        {"docId": entry.of_doc_id, "ledgerEntryId": e, "label": "Earlier entry"}
+                        for e in entry.of_entry_ids
+                    ),
                 ]
             ),
         )

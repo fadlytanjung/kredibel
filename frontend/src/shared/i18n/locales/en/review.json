@@ -60,7 +60,9 @@
     "missing": "This item is no longer open.",
     "enterKey": "Enter",
     "correctLabel": "The {{field}} as printed",
-    "correctHint": "Amounts as digits (476976.00), dates as YYYY-MM-DD. What was read is kept beside it."
+    "correctHint": "Amounts as digits (476976.00), dates as YYYY-MM-DD. What was read is kept beside it.",
+    "ledgerFile": "Ledger file",
+    "ledgerEntries": "The entries"
   },
   "actions": {
     "CONFIRM_MATCH": "Confirm the match",

@@ -33,6 +33,7 @@ from app.domain.models.invoice import Invoice, Receipt
 from app.domain.review_items import ResolveAction, ReviewItem, ReviewItemResolution
 from app.ports.bank_line_repository import BankLineRepository
 from app.ports.document_repository import DocumentRepository
+from app.ports.ledger_repository import LedgerRepository
 from app.ports.record_repository import DocumentRecords
 from app.ports.review_item_repository import ReviewItemRepository
 from app.ports.task_queue import TaskQueue
@@ -82,6 +83,7 @@ class ReviewService:
         clock: Clock,
         workspaces: WorkspaceRepository | None = None,
         task_queue: TaskQueue | None = None,
+        ledger: LedgerRepository | None = None,
     ) -> None:
         self._items = review_items
         self._matches = matches
@@ -90,6 +92,7 @@ class ReviewService:
         self._months = months
         self._docs = doc_repo
         self._holders = (bank_lines, invoices, receipts)
+        self._ledger = ledger
         self._bank_lines = bank_lines
         self._invoices = invoices
         self._receipts = receipts
@@ -306,6 +309,9 @@ class ReviewService:
     async def _decide_duplicate(self, principal: Principal, item: ReviewItem, copy: bool) -> None:
         """AC-006-6: "duplicate" keeps the copy's values out; "not a duplicate" releases them."""
         org_id = _org(principal)
+        if item.subject.ledger_entry_ids:
+            await self._decide_ledger_copy(principal, item, copy)
+            return
         doc = await self._docs.get_document(org_id, item.doc_id or "")
         if doc is None or doc.duplicate is None:
             raise NotFoundError("The held document is gone")
@@ -335,3 +341,25 @@ class ReviewService:
             for holder in self._holders:
                 await holder.set_held(org_id, doc.doc_id, False)
         await self._months.mark_dirty(org_id, list(doc.months), reason="duplicate_decided")
+
+    async def _decide_ledger_copy(self, principal: Principal, item: ReviewItem, copy: bool) -> None:
+        """D06: the held journal entry's legs stay out (copy) or come back (not a copy)."""
+        if self._ledger is None:
+            raise NotFoundError("The ledger store is not configured")
+        org_id = _org(principal)
+        entry_ids = list(item.subject.ledger_entry_ids)
+        event = AuditEvent(
+            event_id=new_id("evt"),
+            type="DUPLICATE_CONFIRMED" if copy else "DUPLICATE_REJECTED",
+            actor_uid=principal.uid,
+            actor_role=principal.role or "owner",
+            at=self._clock.now(),
+            subject={"ledgerEntryId": entry_ids[0], "docId": item.doc_id or ""},
+            details={"code": "D06_LEDGER_ENTRY_DUPLICATE", "entries": len(entry_ids)},
+        )
+        await self._ledger.decide_duplicate(
+            org_id, entry_ids, held=copy, decision="CONFIRMED" if copy else "REJECTED", event=event
+        )
+        await self._months.mark_dirty(
+            org_id, [item.month] if item.month else [], reason="duplicate_decided"
+        )

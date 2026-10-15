@@ -4,7 +4,7 @@ from collections import Counter, defaultdict
 from datetime import date
 from decimal import Decimal
 from hashlib import sha256
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic.alias_generators import to_camel
@@ -32,6 +32,8 @@ class LedgerRow(ReportModel):
     journal_id: str | None = None
     entry_kind: Literal["ACTIVITY", "OPENING", "CLOSING"] = "ACTIVITY"
     held_as_duplicate: bool = False
+    # D06: {code, ofEntryId, decision} once the row repeats an earlier entry (docs/09 §3.8)
+    duplicate: dict[str, Any] | None = None
 
     @field_validator("debit", "credit", mode="before")
     @classmethod

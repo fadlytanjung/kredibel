@@ -47,6 +47,7 @@ class FirestoreLedgerRepository:
                     journal_id=doc.journal_id,
                     entry_kind=doc.entry_kind,
                     held_as_duplicate=doc.held_as_duplicate,
+                    duplicate=doc.duplicate,
                 )
             )
         return result
@@ -74,6 +75,7 @@ class FirestoreLedgerRepository:
                     journal_id=row.journal_id,
                     entry_kind=row.entry_kind,
                     held_as_duplicate=row.held_as_duplicate,
+                    duplicate=row.duplicate,
                 )
                 batch.set(doc_ref, dump(data))
             await batch.commit()
@@ -106,6 +108,22 @@ class FirestoreLedgerRepository:
                 )
             ),
         )
+        batch.set(
+            org.collection("events").document(event.event_id),
+            dump(EventDoc(org_id=org_id, **event.model_dump())),
+        )
+        await batch.commit()
+
+    async def decide_duplicate(
+        self, org_id: str, entry_ids: list[str], *, held: bool, decision: str, event: AuditEvent
+    ) -> None:
+        org = self._org(org_id)
+        batch = self._db.batch()
+        for entry_id in entry_ids:
+            batch.update(
+                org.collection("ledgerEntries").document(entry_id),
+                {"heldAsDuplicate": held, "duplicate.decision": decision},
+            )
         batch.set(
             org.collection("events").document(event.event_id),
             dump(EventDoc(org_id=org_id, **event.model_dump())),

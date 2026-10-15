@@ -1,7 +1,7 @@
 """Additive v1 reporting shapes, conservative legacy defaults (docs/09 §3.8)."""
 
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import Field
 
@@ -23,6 +23,7 @@ class LedgerEntryDoc(FirestoreModel):
     journal_id: str | None = None
     entry_kind: Literal["ACTIVITY", "OPENING", "CLOSING"] = "ACTIVITY"
     held_as_duplicate: bool = False
+    duplicate: dict[str, Any] | None = None
 
 
 class AccountClassificationDoc(FirestoreModel):

@@ -46,6 +46,7 @@ from app.domain.reconcile import assign_matches
 from app.domain.review_items import (
     Check,
     HeldCopy,
+    HeldEntry,
     LineFacts,
     ProposalFacts,
     RecordFacts,
@@ -752,6 +753,35 @@ def sync_review_items(deps: PipelineDeps, pending: PendingMonths | None = None):
             )
             held.append(HeldCopy(d.doc_id, dup.code, dup.of_doc_id, title))
 
+        held_entries: list[HeldEntry] = []
+        if deps.ledger is not None:
+            names = {d.doc_id: d.file_name for d in docs}
+            groups: dict[tuple[str, str, str], list[Any]] = {}
+            for row in await deps.ledger.list_rows(org_id):
+                dup = row.duplicate or {}
+                if not row.held_as_duplicate or dup.get("decision") != "PENDING":
+                    continue
+                if f"{row.date:%Y-%m}" != month:
+                    continue
+                reference = " ".join((row.journal_id or "").split())
+                groups.setdefault((row.doc_id, row.date.isoformat(), reference), []).append(row)
+            for (doc_id, day, reference), rows in sorted(groups.items()):
+                rows.sort(key=lambda r: r.row_number)
+                when = date.fromisoformat(day)
+                held_entries.append(
+                    HeldEntry(
+                        doc_id=doc_id,
+                        entry_ids=tuple(r.entry_id for r in rows),
+                        of_entry_ids=tuple((r.duplicate or {}).get("ofEntryId", "") for r in rows),
+                        of_doc_id=(rows[0].duplicate or {}).get("ofDocId") or doc_id,
+                        title=(
+                            f"Ledger entry {reference} of {when.day} {when:%b %Y} appears twice "
+                            f"in {names.get(doc_id, doc_id)}"
+                        ),
+                        key=rows[0].entry_id,
+                    )
+                )
+
         cited: dict[str, set[str]] = {}
         if deps.findings is not None:
             for f in await _live_month_findings(deps, pending, node_input, month):
@@ -849,6 +879,7 @@ def sync_review_items(deps: PipelineDeps, pending: PendingMonths | None = None):
             records=records,
             proposals=proposals,
             held=held,
+            held_entries=held_entries,
         )
         written = await deps.review_items.replace_month_review_items(
             org_id, month, fresh, now=deps.clock.now()

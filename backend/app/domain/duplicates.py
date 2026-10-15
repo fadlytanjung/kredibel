@@ -11,6 +11,7 @@ from rapidfuzz import fuzz
 
 from app.domain.checks.policy import Duplicates
 from app.domain.findings import Severity
+from app.domain.profit_loss import LedgerRow
 
 
 def _fold(text: str | None) -> str:
@@ -184,3 +185,45 @@ def receipt_duplicate(
             }
             return Match("D05_RECEIPT_DUPLICATE", old.doc_id, "MEDIUM", facts, hold=True)
     return None
+
+
+@dataclass(frozen=True)
+class LedgerCopy:
+    """D06: a ledger entry that repeats an earlier one (docs/08 §2.1): the later entry is held."""
+
+    entry_id: str
+    of_entry_id: str
+    doc_id: str
+    of_doc_id: str
+    key: str  # date|account|debit|credit|reference
+
+
+def ledger_entry_key(row: LedgerRow) -> str | None:
+    """Same date, amount, account and reference; a row without a reference is never a copy."""
+    reference = " ".join((row.journal_id or "").split()).upper()
+    if not reference:
+        return None
+    return f"{row.date.isoformat()}|{row.account_code}|{row.debit:.2f}|{row.credit:.2f}|{reference}"
+
+
+def ledger_entry_duplicates(
+    rows: list[LedgerRow], *, doc_order: dict[str, int] | None = None
+) -> list[LedgerCopy]:
+    """Every later row that repeats an earlier one, within one file (by row) or across files (the
+    newer file's rows are the copies; `doc_order` ranks files by upload, else by document ID)."""
+    order = doc_order or {}
+    ordered = sorted(
+        rows, key=lambda r: (order.get(r.doc_id, 0), r.doc_id, r.row_number, r.entry_id)
+    )
+    first: dict[str, LedgerRow] = {}
+    out: list[LedgerCopy] = []
+    for row in ordered:
+        key = ledger_entry_key(row)
+        if key is None:
+            continue
+        earlier = first.get(key)
+        if earlier is None:
+            first[key] = row
+            continue
+        out.append(LedgerCopy(row.entry_id, earlier.entry_id, row.doc_id, earlier.doc_id, key))
+    return out

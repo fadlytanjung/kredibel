@@ -132,9 +132,8 @@ def _copies(truth: dict) -> dict[str, dict]:
 
 
 async def test_ac009_9_s3_held_copies_keep_the_figures_equal_to_s1_until_one_is_released():
-    """Three of S3's four copies are documents (D02, D03, D05); the ledger entry copy (D06) is not
-    built yet (docs/20), so its item is not expected here. The exact copy (D01) is refused at upload
-    and never read, so it gets no item."""
+    """S3's four copies: three documents (D02, D03, D05) and a journal entry entered twice in the
+    ledger (D06). The exact copy (D01) is refused at upload and never read, so it gets no item."""
     import io
 
     s1_figures = await _s1_figures()
@@ -172,23 +171,29 @@ async def test_ac009_9_s3_held_copies_keep_the_figures_equal_to_s1_until_one_is_
         await books.run_months(deps)
         items = await _queue(client)
         held = [i for i in items if i["kind"] == "POSSIBLE_DUPLICATE"]
-        assert sorted((i["month"], i["docId"]) for i in held) == sorted(
-            (
-                c["original"]
-                .get("period", {})
-                .get("start", c["original"].get("issueDate", c["original"].get("issuedAt", "")))[
-                    :7
-                ],
-                doc_id,
-            )
-            for doc_id, c in copies.items()
+        ledger = next(d for d in truth["documents"] if d.get("docType") == "LEDGER_EXPORT")
+        ledger_month = next(
+            e["date"][:7] for e in ledger["entries"] if e["key"] in ledger["duplicateEntries"]
         )
+
+        def first_month(original: dict) -> str:
+            when = original.get("period", {}).get("start") or original.get("issueDate") or ""
+            return (when or original.get("issuedAt", ""))[:7]
+
+        expected_held = sorted(
+            [(first_month(c["original"]), doc_id) for doc_id, c in copies.items()]
+            + [(ledger_month, books.doc_id_of(ledger["key"]))]
+        )
+        assert sorted((i["month"], i["docId"]) for i in held) == expected_held
         for item in held:
             assert item["allowedActions"] == ["CONFIRM_DUPLICATE", "NOT_DUPLICATE"]
+            if item["subject"]["ledgerEntryIds"]:
+                assert len(item["subject"]["ledgerEntryIds"]) == len(ledger["duplicateEntries"])
+                assert "appears twice" in item["title"]
+                continue
             assert item["subject"]["docIds"] == [
                 item["docId"],
-                copies[item["docId"]]["expected"]["duplicate"]
-                and books.doc_id_of(copies[item["docId"]]["original"]["key"]),
+                books.doc_id_of(copies[item["docId"]]["original"]["key"]),
             ]
         assert [
             i
@@ -215,6 +220,7 @@ async def test_ac009_9_s3_held_copies_keep_the_figures_equal_to_s1_until_one_is_
             i
             for i in await _queue(client)
             if i["kind"] == "POSSIBLE_DUPLICATE"
+            and i["docId"] in copies
             and copies[i["docId"]]["expected"]["duplicate"]["code"].startswith("D02")
         ]
         await _resolve(client, statement_copy, "NOT_DUPLICATE")

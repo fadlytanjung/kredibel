@@ -1,0 +1,658 @@
+{
+  "_comment": "Synthetic runs of the Sunrise Coffee Roasters demo workspace (IDR): GET /api/runs and the first run's events, as the mock and the browser check show them.",
+  "items": [
+    {
+      "runId": "doc-doc_mar-1",
+      "kind": "DOCUMENT",
+      "target": "ACB_Mar_2026.pdf",
+      "status": "DONE",
+      "stages": [
+        {
+          "node": "inspect_file",
+          "parent": null,
+          "status": "DONE",
+          "startedAt": "2026-07-02T09:14:00.200000Z",
+          "endedAt": "2026-07-02T09:14:01.100000Z",
+          "model": null,
+          "tokensIn": null,
+          "tokensOut": null,
+          "summary": "pikepdf, 2 revisions",
+          "traceSpanId": "a1c0"
+        },
+        {
+          "node": "classify_document",
+          "parent": null,
+          "status": "DONE",
+          "startedAt": "2026-07-02T09:14:01.100000Z",
+          "endedAt": "2026-07-02T09:14:03Z",
+          "model": "gemini-2.5-flash-lite",
+          "tokensIn": 2100,
+          "tokensOut": 100,
+          "summary": "BANK_STATEMENT (0.99)",
+          "traceSpanId": "b2d1"
+        },
+        {
+          "node": "read_pages",
+          "parent": null,
+          "status": "DONE",
+          "startedAt": "2026-07-02T09:14:03Z",
+          "endedAt": "2026-07-02T09:14:36.800000Z",
+          "model": null,
+          "tokensIn": null,
+          "tokensOut": null,
+          "summary": "page 1 first, then 2 and 3 in parallel",
+          "traceSpanId": "c3e2"
+        },
+        {
+          "node": "read_page",
+          "parent": "read_pages",
+          "status": "DONE",
+          "startedAt": "2026-07-02T09:14:03Z",
+          "endedAt": "2026-07-02T09:14:12.400000Z",
+          "model": "gemini-2.5-flash",
+          "tokensIn": 3400,
+          "tokensOut": 900,
+          "summary": "page 1: STATEMENT_SUMMARY 0.99",
+          "traceSpanId": "c3e3"
+        },
+        {
+          "node": "witness_pages",
+          "parent": "read_pages",
+          "status": "DONE",
+          "startedAt": "2026-07-02T09:14:03Z",
+          "endedAt": "2026-07-02T09:14:03.600000Z",
+          "model": null,
+          "tokensIn": null,
+          "tokensOut": null,
+          "summary": "1,204 words with boxes",
+          "traceSpanId": "c3e4"
+        },
+        {
+          "node": "read_page",
+          "parent": "read_pages",
+          "status": "DONE",
+          "startedAt": "2026-07-02T09:14:12.500000Z",
+          "endedAt": "2026-07-02T09:14:24.900000Z",
+          "model": "gemini-2.5-flash",
+          "tokensIn": 3600,
+          "tokensOut": 1400,
+          "summary": "page 2: STATEMENT_TRANSACTIONS 0.98",
+          "traceSpanId": "c3e5"
+        },
+        {
+          "node": "read_page",
+          "parent": "read_pages",
+          "status": "DONE",
+          "startedAt": "2026-07-02T09:14:12.500000Z",
+          "endedAt": "2026-07-02T09:14:19.100000Z",
+          "model": "gemini-2.5-flash",
+          "tokensIn": 3300,
+          "tokensOut": 300,
+          "summary": "page 3: TERMS_OR_COVER 0.62",
+          "traceSpanId": "9f41"
+        },
+        {
+          "node": "verify_pages",
+          "parent": null,
+          "status": "DONE",
+          "startedAt": "2026-07-02T09:14:36.800000Z",
+          "endedAt": "2026-07-02T09:14:37.900000Z",
+          "model": null,
+          "tokensIn": null,
+          "tokensOut": null,
+          "summary": "agreement 0.97, 0 conflicts",
+          "traceSpanId": "d4f5"
+        },
+        {
+          "node": "detect_content_duplicates",
+          "parent": null,
+          "status": "DONE",
+          "startedAt": "2026-07-02T09:14:37.900000Z",
+          "endedAt": "2026-07-02T09:14:38.200000Z",
+          "model": null,
+          "tokensIn": null,
+          "tokensOut": null,
+          "summary": "no copy",
+          "traceSpanId": "e5a6"
+        },
+        {
+          "node": "check_document",
+          "parent": null,
+          "status": "DONE",
+          "startedAt": "2026-07-02T09:14:38.200000Z",
+          "endedAt": "2026-07-02T09:14:39.600000Z",
+          "model": null,
+          "tokensIn": null,
+          "tokensOut": null,
+          "summary": "A01, M03, M04",
+          "traceSpanId": "f6b7"
+        },
+        {
+          "node": "categorize_bank_lines",
+          "parent": null,
+          "status": "DONE",
+          "startedAt": "2026-07-02T09:14:39.600000Z",
+          "endedAt": "2026-07-02T09:14:41Z",
+          "model": "gemini-2.5-flash-lite",
+          "tokensIn": 4600,
+          "tokensOut": 400,
+          "summary": "31 by rule, 14 by model",
+          "traceSpanId": "a7c8"
+        }
+      ],
+      "traceId": "4be04be04be04be04be04be04be04be0",
+      "traceUrl": "https://console.cloud.google.com/traces/list?tid=4be04be04be04be04be04be04be04be0",
+      "models": [
+        "gemini-2.5-flash",
+        "gemini-2.5-flash-lite"
+      ],
+      "promptVersions": {
+        "classify": "classify v2",
+        "read_page": "read_page v3",
+        "categorize": "categorize v4"
+      },
+      "labels": {
+        "proposed": 4,
+        "verified": 2,
+        "corrected": 0
+      },
+      "usage": {
+        "pagesRead": 3,
+        "pagesCached": 0,
+        "ocrPages": 0,
+        "tokensIn": 18400,
+        "tokensOut": 3100,
+        "estimatedUsd": "0.021"
+      },
+      "createdAt": "2026-07-02T09:14:00Z",
+      "endedAt": "2026-07-02T09:14:41.200000Z"
+    },
+    {
+      "runId": "month-2026-03-7",
+      "kind": "MONTH",
+      "target": "2026-03, generation 7",
+      "status": "DONE",
+      "stages": [],
+      "traceId": "5cf15cf15cf15cf15cf15cf15cf15cf1",
+      "traceUrl": "https://console.cloud.google.com/traces/list?tid=5cf15cf15cf15cf15cf15cf15cf15cf1",
+      "models": [
+        "gemini-2.5-flash"
+      ],
+      "promptVersions": {
+        "explain": "explain v2"
+      },
+      "labels": {
+        "proposed": 45,
+        "verified": 0,
+        "corrected": 1
+      },
+      "usage": {
+        "pagesRead": 0,
+        "pagesCached": 0,
+        "ocrPages": 0,
+        "tokensIn": 4200,
+        "tokensOut": 600,
+        "estimatedUsd": "0.004"
+      },
+      "createdAt": "2026-07-12T10:02:00Z",
+      "endedAt": "2026-07-12T10:02:07Z"
+    },
+    {
+      "runId": "month-2026-03-6",
+      "kind": "MONTH",
+      "target": "2026-03, generation 6",
+      "status": "SUPERSEDED",
+      "stages": [],
+      "traceId": "5cf05cf05cf05cf05cf05cf05cf05cf0",
+      "traceUrl": "https://console.cloud.google.com/traces/list?tid=5cf05cf05cf05cf05cf05cf05cf05cf0",
+      "models": [],
+      "promptVersions": {},
+      "labels": {
+        "proposed": 0,
+        "verified": 0,
+        "corrected": 0
+      },
+      "usage": {
+        "pagesRead": 0,
+        "pagesCached": 0,
+        "ocrPages": 0,
+        "tokensIn": 0,
+        "tokensOut": 0,
+        "estimatedUsd": "0.000"
+      },
+      "createdAt": "2026-07-12T10:01:00Z",
+      "endedAt": "2026-07-12T10:01:02Z"
+    },
+    {
+      "runId": "asst-thr_01-3",
+      "kind": "ASSISTANT",
+      "target": "Why is March critical?",
+      "status": "DONE",
+      "stages": [],
+      "traceId": "6d026d026d026d026d026d026d026d02",
+      "traceUrl": "https://console.cloud.google.com/traces/list?tid=6d026d026d026d026d026d026d026d02",
+      "models": [
+        "gemini-2.5-flash"
+      ],
+      "promptVersions": {
+        "assistant": "assistant v1"
+      },
+      "labels": {
+        "proposed": 0,
+        "verified": 0,
+        "corrected": 0
+      },
+      "usage": {
+        "pagesRead": 0,
+        "pagesCached": 0,
+        "ocrPages": 0,
+        "tokensIn": 6100,
+        "tokensOut": 400,
+        "estimatedUsd": "0.003"
+      },
+      "createdAt": "2026-07-12T10:20:00Z",
+      "endedAt": "2026-07-12T10:20:04Z"
+    },
+    {
+      "runId": "doc-doc_ledger_h1-1",
+      "kind": "DOCUMENT",
+      "target": "ledger-2026-H1.csv",
+      "status": "DONE",
+      "stages": [],
+      "traceId": "7e137e137e137e137e137e137e137e13",
+      "traceUrl": "https://console.cloud.google.com/traces/list?tid=7e137e137e137e137e137e137e137e13",
+      "models": [
+        "gemini-2.5-flash-lite"
+      ],
+      "promptVersions": {
+        "classify": "classify v2",
+        "map_ledger_columns": "map_ledger_columns v1"
+      },
+      "labels": {
+        "proposed": 1,
+        "verified": 1,
+        "corrected": 0
+      },
+      "usage": {
+        "pagesRead": 3,
+        "pagesCached": 0,
+        "ocrPages": 0,
+        "tokensIn": 1900,
+        "tokensOut": 300,
+        "estimatedUsd": "0.001"
+      },
+      "createdAt": "2026-07-02T09:11:00Z",
+      "endedAt": "2026-07-02T09:11:04Z"
+    },
+    {
+      "runId": "doc-doc_jun-1",
+      "kind": "DOCUMENT",
+      "target": "ACB_Jun_2026.pdf",
+      "status": "RUNNING",
+      "stages": [],
+      "traceId": "8f248f248f248f248f248f248f248f24",
+      "traceUrl": "https://console.cloud.google.com/traces/list?tid=8f248f248f248f248f248f248f248f24",
+      "models": [
+        "gemini-2.5-flash"
+      ],
+      "promptVersions": {
+        "read_page": "read_page v3"
+      },
+      "labels": {
+        "proposed": 2,
+        "verified": 0,
+        "corrected": 0
+      },
+      "usage": {
+        "pagesRead": 3,
+        "pagesCached": 0,
+        "ocrPages": 0,
+        "tokensIn": 7000,
+        "tokensOut": 1200,
+        "estimatedUsd": "0.008"
+      },
+      "createdAt": "2026-07-16T10:31:00Z",
+      "endedAt": null
+    },
+    {
+      "runId": "doc-doc_rcp_0617_2-1",
+      "kind": "DOCUMENT",
+      "target": "Receipt 0617 (2).jpg",
+      "status": "DONE",
+      "stages": [],
+      "traceId": "9a359a359a359a359a359a359a359a35",
+      "traceUrl": "https://console.cloud.google.com/traces/list?tid=9a359a359a359a359a359a359a359a35",
+      "models": [
+        "gemini-2.5-flash"
+      ],
+      "promptVersions": {
+        "read_page": "read_page v3"
+      },
+      "labels": {
+        "proposed": 2,
+        "verified": 0,
+        "corrected": 0
+      },
+      "usage": {
+        "pagesRead": 3,
+        "pagesCached": 0,
+        "ocrPages": 0,
+        "tokensIn": 3300,
+        "tokensOut": 400,
+        "estimatedUsd": "0.003"
+      },
+      "createdAt": "2026-07-10T16:40:00Z",
+      "endedAt": "2026-07-10T16:40:07Z"
+    }
+  ],
+  "nextCursor": null,
+  "events": {
+    "doc-doc_mar-1": {
+      "items": [
+        {
+          "eventId": "doc-doc_mar-1:0:inspect_file",
+          "eventType": "NODE_OUTPUT",
+          "node": "inspect_file",
+          "agent": "DOCUMENT",
+          "at": "2026-07-02T09:14:00.200000Z",
+          "latencyMs": 900,
+          "status": "DONE",
+          "spanId": "a1c0",
+          "parentSpanId": null,
+          "content": null,
+          "summary": "pikepdf, 2 revisions",
+          "labelIds": [],
+          "model": null,
+          "tokensIn": null,
+          "tokensOut": null,
+          "error": null
+        },
+        {
+          "eventId": "doc-doc_mar-1:1:classify_document",
+          "eventType": "NODE_OUTPUT",
+          "node": "classify_document",
+          "agent": "DOCUMENT",
+          "at": "2026-07-02T09:14:01.100000Z",
+          "latencyMs": 1900,
+          "status": "DONE",
+          "spanId": "b2d1",
+          "parentSpanId": null,
+          "content": null,
+          "summary": "BANK_STATEMENT (0.99)",
+          "labelIds": [
+            "lbl_0000000000000009"
+          ],
+          "model": null,
+          "tokensIn": null,
+          "tokensOut": null,
+          "error": null
+        },
+        {
+          "eventId": "doc-doc_mar-1:1:classify_document:llm",
+          "eventType": "LLM_RESPONSE",
+          "node": "classify_document",
+          "agent": "DOCUMENT",
+          "at": "2026-07-02T09:14:01.100000Z",
+          "latencyMs": 1900,
+          "status": "DONE",
+          "spanId": "b2d1",
+          "parentSpanId": "b2d1",
+          "content": null,
+          "summary": "BANK_STATEMENT (0.99)",
+          "labelIds": [
+            "lbl_0000000000000009"
+          ],
+          "model": "gemini-2.5-flash-lite",
+          "tokensIn": 2100,
+          "tokensOut": 100,
+          "error": null
+        },
+        {
+          "eventId": "doc-doc_mar-1:2:read_pages",
+          "eventType": "NODE_OUTPUT",
+          "node": "read_pages",
+          "agent": "DOCUMENT",
+          "at": "2026-07-02T09:14:03Z",
+          "latencyMs": 33800,
+          "status": "DONE",
+          "spanId": "c3e2",
+          "parentSpanId": null,
+          "content": null,
+          "summary": "page 1 first, then 2 and 3 in parallel",
+          "labelIds": [],
+          "model": null,
+          "tokensIn": null,
+          "tokensOut": null,
+          "error": null
+        },
+        {
+          "eventId": "doc-doc_mar-1:3:read_page",
+          "eventType": "NODE_OUTPUT",
+          "node": "read_page",
+          "agent": "DOCUMENT",
+          "at": "2026-07-02T09:14:03Z",
+          "latencyMs": 9400,
+          "status": "DONE",
+          "spanId": "c3e3",
+          "parentSpanId": "read_pages",
+          "content": null,
+          "summary": "page 1: STATEMENT_SUMMARY 0.99",
+          "labelIds": [],
+          "model": null,
+          "tokensIn": null,
+          "tokensOut": null,
+          "error": null
+        },
+        {
+          "eventId": "doc-doc_mar-1:3:read_page:llm",
+          "eventType": "LLM_RESPONSE",
+          "node": "read_page",
+          "agent": "DOCUMENT",
+          "at": "2026-07-02T09:14:03Z",
+          "latencyMs": 9400,
+          "status": "DONE",
+          "spanId": "c3e3",
+          "parentSpanId": "c3e3",
+          "content": null,
+          "summary": "page 1: STATEMENT_SUMMARY 0.99",
+          "labelIds": [],
+          "model": "gemini-2.5-flash",
+          "tokensIn": 3400,
+          "tokensOut": 900,
+          "error": null
+        },
+        {
+          "eventId": "doc-doc_mar-1:4:witness_pages",
+          "eventType": "NODE_OUTPUT",
+          "node": "witness_pages",
+          "agent": "DOCUMENT",
+          "at": "2026-07-02T09:14:03Z",
+          "latencyMs": 600,
+          "status": "DONE",
+          "spanId": "c3e4",
+          "parentSpanId": "read_pages",
+          "content": null,
+          "summary": "1,204 words with boxes",
+          "labelIds": [],
+          "model": null,
+          "tokensIn": null,
+          "tokensOut": null,
+          "error": null
+        },
+        {
+          "eventId": "doc-doc_mar-1:5:read_page",
+          "eventType": "NODE_OUTPUT",
+          "node": "read_page",
+          "agent": "DOCUMENT",
+          "at": "2026-07-02T09:14:12.500000Z",
+          "latencyMs": 12400,
+          "status": "DONE",
+          "spanId": "c3e5",
+          "parentSpanId": "read_pages",
+          "content": null,
+          "summary": "page 2: STATEMENT_TRANSACTIONS 0.98",
+          "labelIds": [],
+          "model": null,
+          "tokensIn": null,
+          "tokensOut": null,
+          "error": null
+        },
+        {
+          "eventId": "doc-doc_mar-1:5:read_page:llm",
+          "eventType": "LLM_RESPONSE",
+          "node": "read_page",
+          "agent": "DOCUMENT",
+          "at": "2026-07-02T09:14:12.500000Z",
+          "latencyMs": 12400,
+          "status": "DONE",
+          "spanId": "c3e5",
+          "parentSpanId": "c3e5",
+          "content": null,
+          "summary": "page 2: STATEMENT_TRANSACTIONS 0.98",
+          "labelIds": [],
+          "model": "gemini-2.5-flash",
+          "tokensIn": 3600,
+          "tokensOut": 1400,
+          "error": null
+        },
+        {
+          "eventId": "doc-doc_mar-1:6:read_page",
+          "eventType": "NODE_OUTPUT",
+          "node": "read_page",
+          "agent": "DOCUMENT",
+          "at": "2026-07-02T09:14:12.500000Z",
+          "latencyMs": 6600,
+          "status": "DONE",
+          "spanId": "9f41",
+          "parentSpanId": "read_pages",
+          "content": null,
+          "summary": "page 3: TERMS_OR_COVER 0.62",
+          "labelIds": [],
+          "model": null,
+          "tokensIn": null,
+          "tokensOut": null,
+          "error": null
+        },
+        {
+          "eventId": "doc-doc_mar-1:6:read_page:llm",
+          "eventType": "LLM_RESPONSE",
+          "node": "read_page",
+          "agent": "DOCUMENT",
+          "at": "2026-07-02T09:14:12.500000Z",
+          "latencyMs": 6600,
+          "status": "DONE",
+          "spanId": "9f41",
+          "parentSpanId": "9f41",
+          "content": null,
+          "summary": "page 3: TERMS_OR_COVER 0.62",
+          "labelIds": [],
+          "model": "gemini-2.5-flash",
+          "tokensIn": 3300,
+          "tokensOut": 300,
+          "error": null
+        },
+        {
+          "eventId": "doc-doc_mar-1:7:verify_pages",
+          "eventType": "NODE_OUTPUT",
+          "node": "verify_pages",
+          "agent": "DOCUMENT",
+          "at": "2026-07-02T09:14:36.800000Z",
+          "latencyMs": 1100,
+          "status": "DONE",
+          "spanId": "d4f5",
+          "parentSpanId": null,
+          "content": null,
+          "summary": "agreement 0.97, 0 conflicts",
+          "labelIds": [
+            "lbl_0000000000000002",
+            "lbl_0000000000000008",
+            "lbl_000000000000000d"
+          ],
+          "model": null,
+          "tokensIn": null,
+          "tokensOut": null,
+          "error": null
+        },
+        {
+          "eventId": "doc-doc_mar-1:8:detect_content_duplicates",
+          "eventType": "NODE_OUTPUT",
+          "node": "detect_content_duplicates",
+          "agent": "DOCUMENT",
+          "at": "2026-07-02T09:14:37.900000Z",
+          "latencyMs": 300,
+          "status": "DONE",
+          "spanId": "e5a6",
+          "parentSpanId": null,
+          "content": null,
+          "summary": "no copy",
+          "labelIds": [],
+          "model": null,
+          "tokensIn": null,
+          "tokensOut": null,
+          "error": null
+        },
+        {
+          "eventId": "doc-doc_mar-1:9:check_document",
+          "eventType": "NODE_OUTPUT",
+          "node": "check_document",
+          "agent": "DOCUMENT",
+          "at": "2026-07-02T09:14:38.200000Z",
+          "latencyMs": 1400,
+          "status": "DONE",
+          "spanId": "f6b7",
+          "parentSpanId": null,
+          "content": null,
+          "summary": "A01, M03, M04",
+          "labelIds": [],
+          "model": null,
+          "tokensIn": null,
+          "tokensOut": null,
+          "error": null
+        },
+        {
+          "eventId": "doc-doc_mar-1:10:categorize_bank_lines",
+          "eventType": "NODE_OUTPUT",
+          "node": "categorize_bank_lines",
+          "agent": "DOCUMENT",
+          "at": "2026-07-02T09:14:39.600000Z",
+          "latencyMs": 1400,
+          "status": "DONE",
+          "spanId": "a7c8",
+          "parentSpanId": null,
+          "content": null,
+          "summary": "31 by rule, 14 by model",
+          "labelIds": [
+            "lbl_0000000000000006",
+            "lbl_0000000000000007"
+          ],
+          "model": null,
+          "tokensIn": null,
+          "tokensOut": null,
+          "error": null
+        },
+        {
+          "eventId": "doc-doc_mar-1:10:categorize_bank_lines:llm",
+          "eventType": "LLM_RESPONSE",
+          "node": "categorize_bank_lines",
+          "agent": "DOCUMENT",
+          "at": "2026-07-02T09:14:39.600000Z",
+          "latencyMs": 1400,
+          "status": "DONE",
+          "spanId": "a7c8",
+          "parentSpanId": "a7c8",
+          "content": null,
+          "summary": "31 by rule, 14 by model",
+          "labelIds": [
+            "lbl_0000000000000006",
+            "lbl_0000000000000007"
+          ],
+          "model": "gemini-2.5-flash-lite",
+          "tokensIn": 4600,
+          "tokensOut": 400,
+          "error": null
+        }
+      ],
+      "contentCaptured": false
+    }
+  }
+}

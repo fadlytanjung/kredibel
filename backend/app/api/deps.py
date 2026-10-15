@@ -15,6 +15,7 @@ from app.services.document_service import DocumentService
 from app.services.entitlement_service import EntitlementService
 from app.services.finding_service import FindingService
 from app.services.insight_service import InsightService
+from app.services.label_service import LabelService
 from app.services.match_service import MatchService
 from app.services.month_service import MonthService
 from app.services.profit_loss_service import ProfitLossService
@@ -85,6 +86,9 @@ class ServiceProvider(Protocol):
 
     @property
     def suggestion_service(self) -> SuggestionService: ...
+
+    @property
+    def label_service(self) -> LabelService: ...
 
 
 def org_of(principal: Principal) -> str:

@@ -328,7 +328,8 @@ a:hover { color: var(--k-color-brand-hover); }
 }
 .chip:hover { color: var(--k-color-text-default); border-color: var(--k-color-border-strong); }
 .chip[aria-pressed="true"] { background: var(--k-color-text-default); border-color: var(--k-color-text-default); color: var(--k-color-bg-surface); }
-.chip .n { font-variant-numeric: tabular-nums; opacity: 0.75; }
+.chip .n { font-variant-numeric: tabular-nums; font-weight: 500; } /* a lighter weight, not a lighter colour: the count stays readable (AA) */
+.chip[aria-pressed="true"] .n { opacity: 0.85; }
 .chip .icon { width: 16px; height: 16px; }
 
 .citation {
@@ -1705,7 +1706,7 @@ button.tab { border: 0; background: transparent; cursor: pointer; font-family: i
 .ds { font-size: 12.5px; font-weight: 600; }
 .ds.train { color: var(--k-color-brand-default); }
 .ds.eval { color: var(--k-color-severity-low-fg); }
-.ds.excluded { color: var(--k-color-text-subtle); }
+.ds.excluded { color: var(--k-color-text-muted); }
 .lbl-panel, .ev-inspector { container: lp / inline-size; display: grid; grid-template-columns: 1fr; gap: var(--k-space-5); padding: var(--k-space-5); }
 .lp-main, .lp-side { display: flex; flex-direction: column; gap: var(--k-space-3); min-width: 0; }
 @container lp (width >= 860px) { .lp-main, .lp-side { grid-row: 1; } .lbl-panel, .ev-inspector { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); } }

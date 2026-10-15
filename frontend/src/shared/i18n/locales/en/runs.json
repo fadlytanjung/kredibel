@@ -1,0 +1,89 @@
+{
+  "title": "Runs",
+  "ownerOnly": "Owner only",
+  "intro": "Every document, month and assistant run, call by call: what ran, how long it took, what it cost, and what people corrected afterwards. Traces live in Cloud Trace.",
+  "notOwner": "Only the owner of this workspace can see its runs.",
+  "filter": "Filter runs",
+  "chips": {
+    "all": "All",
+    "DOCUMENT": "Document",
+    "MONTH": "Month",
+    "ASSISTANT": "Assistant",
+    "failed": "Failed",
+    "corrected": "Corrected by a person"
+  },
+  "columns": {
+    "run": "Run",
+    "status": "Status",
+    "started": "Started",
+    "duration": "Duration",
+    "calls": "LLM calls",
+    "tokens": "Tokens in / out",
+    "usd": "USD",
+    "models": "Models",
+    "labels": "Labels"
+  },
+  "kindRun": "{{kind}} run",
+  "kinds": {
+    "DOCUMENT": "Document",
+    "MONTH": "Month",
+    "ASSISTANT": "Assistant"
+  },
+  "status": {
+    "QUEUED": "Queued",
+    "RUNNING": "Running",
+    "DONE": "Done",
+    "FAILED": "Failed",
+    "SUPERSEDED": "Superseded",
+    "CANCELLED": "Cancelled"
+  },
+  "none": "none",
+  "labelsCell": {
+    "proposed_one": "{{count}} proposed",
+    "proposed_other": "{{count}} proposed",
+    "verified_one": "{{count}} verified",
+    "verified_other": "{{count}} verified",
+    "corrected_one": "{{count}} corrected",
+    "corrected_other": "{{count}} corrected"
+  },
+  "detail": {
+    "title": "{{workflow}} on {{target}}",
+    "workflow": {
+      "DOCUMENT": "document_workflow",
+      "MONTH": "month_workflow",
+      "ASSISTANT": "assistant"
+    },
+    "summary": "{{started}}. {{duration}}, {{calls}} LLM calls, {{tokensIn}} tokens in, {{tokensOut}} out, about USD {{usd}}. Prompts: {{prompts}}.",
+    "noPrompts": "no model calls",
+    "waterfall": "Span waterfall",
+    "legend": {
+      "llm": "Model call",
+      "code": "Code",
+      "node": "Workflow and nodes"
+    },
+    "root": "workflow:{{workflow}}",
+    "seconds": "{{seconds}} s",
+    "inspector": "Selected call",
+    "kind": {
+      "llm": "LLM call",
+      "code": "Code step",
+      "node": "Node"
+    },
+    "labelNeedsCheck": "Label needs a check",
+    "model": "Model",
+    "prompt": "Prompt",
+    "latency": "Latency",
+    "tokens": "Tokens",
+    "tokensValue": "{{tokensIn}} in, {{tokensOut}} out",
+    "span": "Span",
+    "spanValue": "{{span}} in trace {{trace}}",
+    "openLabel": "Open the label",
+    "cloudTrace": "Cloud Trace",
+    "notCaptured": "Content is not captured in this deployment.",
+    "selectHint": "Select a row of the waterfall to inspect its call."
+  },
+  "empty": "No runs yet. Upload a document to start one.",
+  "loading": "Loading runs…",
+  "error": "Runs could not be loaded.",
+  "retry": "Try again"
+}

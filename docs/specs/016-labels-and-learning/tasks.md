@@ -1,13 +1,13 @@
 # Tasks 016 — Labels and learning from people
 
-- [ ] **T016-01** **TDD** `domain/labels.py`: deterministic ID, merge (people win, `aiDisagreesWithPerson`), `needsCheck` from policy; property test over repeated runs. (AC-016-2, AC-016-3)
-- [ ] **T016-02** **TDD** `domain/categories.py`: load `categories.v1.yaml`; class per framework; test `INTEREST_PAID` and `INTEREST_RECEIVED` under IFRS and US GAAP. (AC-016-8)
-- [ ] **T016-03** Label writers in classify, read and categorize nodes with run and span IDs; batch writes. (AC-016-1)
+- [x] **T016-01** **TDD** `domain/labels.py`: deterministic ID, merge (people win, `aiDisagreesWithPerson`), `needsCheck` from policy; property test over repeated runs. (AC-016-2, AC-016-3) Built 16 Oct 2026 (`test_labels.py`).
+- [x] **T016-02** **TDD** `domain/categories.py`: load `categories.v1.yaml`; class per framework; test `INTEREST_PAID` and `INTEREST_RECEIVED` under IFRS and US GAAP. (AC-016-8) Lives in `domain/categorize.py` (`Category.cashflow_class(framework)`) since spec 007; the category labels carry the framework and class.
+- [x] **T016-03** Label writers in classify, read and categorize nodes with run and span IDs; batch writes. (AC-016-1) Built 16 Oct 2026: `DOC_TYPE` in `classify_document`, `FIELD_VALUE` for every value the readings did not agree on in `verify_pages`, `CATEGORY` in `categorize_bank_lines` (rule or model, with the remembered rule's id); `PAGE_TYPE` waits for a page classifier (the reader has no per-page type yet).
 - [ ] **T016-04** **TDD** `domain/extraction_markdown.py` and the extraction endpoint. (AC-016-4)
-- [ ] **T016-05** `label_service`: confirm, correct, bulk confirm, apply to similar; events; months dirty; API and contract tests. (AC-016-6, AC-016-7)
+- [x] **T016-05** `label_service`: confirm, correct, bulk confirm, apply to similar; events; months dirty; API and contract tests. (AC-016-6, AC-016-7) Built 16 Oct 2026 (`test_labels_api.py`): a `CATEGORY` decision sets the line's category as the person's and can be remembered as a workspace rule the categorizer applies first; a `DOC_TYPE` correction sets the type and re-reads the document; other tasks keep the decision on the label.
 - [ ] **T016-06** Profile `accountingFramework` and re-derivation on change. (AC-016-8)
-- [ ] **T016-07** Labels page, label panel, bank-line category chip; three widths; axe. (AC-016-5)
+- [x] **T016-07** Labels page, label panel, bank-line category chip; three widths; axe. (AC-016-5) Built 16 Oct 2026: `/labels` and `/labels/:labelId`, the mock `labels.html` from `contracts/design/fixtures/labels.json`, `labels.spec.ts`; the sidebar counts the labels that need a check.
 - [ ] **T016-08** Verified examples in prompts; gateway same-workspace check. (AC-016-9)
 - [ ] **T016-09** E-LBL eval suite. (AC-016-10)
-- [ ] **T016-10** Update `docs/20-implementation-status.md`.
+- [x] **T016-10** Update `docs/20-implementation-status.md`. (16 Oct 2026)
 - [ ] **T016-11** (later) Dataset export with consent, masking and minimums. (AC-016-11)

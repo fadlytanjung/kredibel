@@ -13,6 +13,7 @@ from google.adk import Context
 from pydantic import BaseModel
 
 from app.agents.deps import PipelineDeps
+from app.agents.labels import decision, page_image, write_labels
 from app.agents.stages import stage
 from app.domain.accounts import account_hash
 from app.domain.categorize import (
@@ -25,6 +26,7 @@ from app.domain.categorize import (
 )
 from app.domain.checks.base import CheckContext, DeclaredAccount, PdfInfo, run_document_checks
 from app.domain.corrections import keep_corrections
+from app.domain.counterparties import fold_name
 from app.domain.duplicates import (
     InvoiceKey,
     LedgerCopy,
@@ -38,6 +40,7 @@ from app.domain.duplicates import (
 )
 from app.domain.findings import Evidence, Finding, finding_id
 from app.domain.invoice_records import build_invoices, build_receipts, document_type_of
+from app.domain.labels import LabelSubject, propose
 from app.domain.layout import Chunk, chunk_page, chunks_from_json, chunks_to_json, render_chunks
 from app.domain.ledger_parse import (
     LedgerMapping,
@@ -179,6 +182,29 @@ def classify_document(deps: PipelineDeps):
         await deps.doc_repo.save_document(org_id, updated)
         if not confident:
             await _ask_for_type(deps, updated, result.doc_type, result.confidence, node_input)
+        if deps.learning is not None:
+            model, prompt_version = deps.reader.version("classify")
+            await write_labels(
+                deps,
+                org_id,
+                [
+                    propose(
+                        "DOC_TYPE",
+                        LabelSubject(display=doc.file_name, doc_id=doc_id, page_no=1),
+                        decision(
+                            result.doc_type,
+                            source="MODEL",
+                            at=deps.clock.now(),
+                            confidence=result.confidence,
+                            model=model,
+                            prompt_version=prompt_version,
+                            run_id=node_input.get("runId"),
+                        ),
+                        policy=deps.learning,
+                        page_image_url=page_image(doc_id, 1),
+                    )
+                ],
+            )
         return {
             **node_input,
             "docType": result.doc_type,
@@ -732,6 +758,7 @@ def verify_pages(deps: PipelineDeps):
         await deps.doc_repo.save_document(org_id, updated)
         if outcome.statement_meta and outcome.account_hash:
             await _suggest_account(deps, org_id, updated.doc_id, outcome)
+        await _value_labels(deps, org_id, updated, task, model, prompt_version, node_input)
         return {
             **doc_data,
             "months": outcome.months,
@@ -740,6 +767,98 @@ def verify_pages(deps: PipelineDeps):
         }
 
     return _node
+
+
+def _first_line(text: str | None) -> str:
+    return text.splitlines()[0] if text else ""
+
+
+async def _value_labels(
+    deps: PipelineDeps,
+    org_id: str,
+    doc: Document,
+    task: str,
+    model: str,
+    prompt_version: str,
+    node_input: dict[str, Any],
+) -> None:
+    """AC-016-1: each value the two readings did not agree on (CONFLICT, SINGLE_SOURCE) is a label
+    that asks a person; agreed values are grounded already and get none."""
+    if deps.learning is None or deps.labels is None:
+        return
+    at = deps.clock.now()
+    run_id = node_input.get("runId")
+    labels = []
+
+    def add(subject: LabelSubject, value: Any, month: str | None, page_no: int) -> None:
+        labels.append(
+            propose(
+                "FIELD_VALUE",
+                subject,
+                decision(
+                    str(value),
+                    source="MODEL",
+                    at=at,
+                    model=model,
+                    prompt_version=prompt_version,
+                    run_id=run_id,
+                ),
+                policy=deps.learning,  # type: ignore[arg-type]
+                month=month,
+                page_image_url=page_image(doc.doc_id, page_no),
+            )
+        )
+
+    if task == "statement_page" and deps.bank_lines is not None:
+        for line in await deps.bank_lines.list_lines(org_id, doc_id=doc.doc_id, limit=5000):
+            for name, info in (line.consensus or {}).items():
+                if not isinstance(info, dict) or info.get("status") not in (
+                    "CONFLICT",
+                    "SINGLE_SOURCE",
+                ):
+                    continue
+                value = getattr(line, name, None) or info.get("ai") or info.get("value") or ""
+                add(
+                    LabelSubject(
+                        display=f"{_first_line(line.description) or line.tx_id} · {name}",
+                        doc_id=doc.doc_id,
+                        page_no=line.page,
+                        field=name,
+                        tx_id=line.tx_id,
+                    ),
+                    value,
+                    line.month,
+                    line.page,
+                )
+    else:
+        records: list[Any] = []
+        if task == "invoice_page" and deps.invoices is not None:
+            records = list(await deps.invoices.list_records(org_id, doc_id=doc.doc_id))
+        elif task == "receipt_page" and deps.receipts is not None:
+            records = list(await deps.receipts.list_records(org_id, doc_id=doc.doc_id))
+        for record in records:
+            page_no = (record.pages[0] if getattr(record, "pages", None) else 1) or 1
+            title = (
+                getattr(record, "number", None)
+                or getattr(record, "merchant_name", None)
+                or doc.file_name
+            )
+            for name, info in (getattr(record, "consensus", None) or {}).items():
+                if not isinstance(info, dict) or info.get("status") not in (
+                    "CONFLICT",
+                    "SINGLE_SOURCE",
+                ):
+                    continue
+                value = getattr(record, name, None) or info.get("ai") or info.get("value") or ""
+                add(
+                    LabelSubject(
+                        display=f"{title} · {name}", doc_id=doc.doc_id, page_no=page_no, field=name
+                    ),
+                    value,
+                    getattr(record, "month", None),
+                    page_no,
+                )
+    await write_labels(deps, org_id, labels)
 
 
 @dataclass
@@ -1184,8 +1303,21 @@ def categorize_bank_lines(deps: PipelineDeps):
         framework = await _framework(deps, org_id)
         decided: dict[str, Categorized] = {}
         left: list[tuple[BankLine, list[str]]] = []
+        # AC-016-7: what a person remembered for a party and direction decides before any rule.
+        remembered = {
+            (r.counterparty_key, r.direction): r
+            for r in (await deps.labels.list_rules(org_id) if deps.labels is not None else [])
+        }
         for line in lines:
             if line.categorized_by == "USER":
+                continue
+            way = "in" if line.amount > 0 else "out"
+            party_key = line.counterparty_id or (
+                fold_name(line.counterparty_name) if line.counterparty_name else ""
+            )
+            kept = remembered.get((party_key, way)) if party_key else None
+            if kept is not None:
+                decided[line.tx_id] = Categorized(kept.category, "RULE", None, [], kept.rule_id)
                 continue
             rule, tags = by_rules(line.description, line.counterparty_name, line.amount, policy)
             if rule is not None:
@@ -1214,6 +1346,45 @@ def categorize_bank_lines(deps: PipelineDeps):
             line.category_confidence, line.risk_tags = c.confidence, c.risk_tags
             line.cashflow_class = policy.categories[c.category].cashflow_class(framework)
         await deps.bank_lines.replace_document_lines(org_id, doc_id, lines)
+        if deps.learning is not None:
+            version = deps.reader.version("categorize") if deps.reader else (None, None)
+            at = deps.clock.now()
+            labels = []
+            for line in lines:
+                c = decided.get(line.tx_id)
+                if c is None or c.categorized_by == "NONE":
+                    continue
+                by_model = c.categorized_by == "MODEL"
+                labels.append(
+                    propose(
+                        "CATEGORY",
+                        LabelSubject(
+                            display=line.description.splitlines()[0]
+                            if line.description
+                            else line.tx_id,
+                            doc_id=doc_id,
+                            page_no=line.page,
+                            tx_id=line.tx_id,
+                            counterparty_id=line.counterparty_id,
+                        ),
+                        decision(
+                            c.category,
+                            source="MODEL" if by_model else "RULE",
+                            at=at,
+                            confidence=c.confidence,
+                            model=version[0] if by_model else None,
+                            prompt_version=version[1] if by_model else None,
+                            run_id=node_input.get("runId"),
+                            rule_id=c.rule_id,
+                        ),
+                        policy=deps.learning,
+                        month=line.month,
+                        framework=framework,
+                        cashflow_class=line.cashflow_class,
+                        page_image_url=page_image(doc_id, line.page),
+                    )
+                )
+            await write_labels(deps, org_id, labels)
         by = Counter(line.categorized_by for line in lines)
         asked = deps.reader is not None and tokens[0] > 0  # cache hits call no model
         return {

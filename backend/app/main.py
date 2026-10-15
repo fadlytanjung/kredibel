@@ -17,6 +17,7 @@ from app.adapters.firestore.counterparty_repo import FirestoreCounterpartyReposi
 from app.adapters.firestore.decision_repo import FirestoreDecisionRepository
 from app.adapters.firestore.document_repo import FirestoreDocumentRepository
 from app.adapters.firestore.finding_repo import FirestoreFindingRepository
+from app.adapters.firestore.label_repo import FirestoreLabelRepository
 from app.adapters.firestore.ledger_repo import FirestoreLedgerRepository
 from app.adapters.firestore.match_repo import FirestoreMatchRepository
 from app.adapters.firestore.month_repo import FirestoreMonthRepository
@@ -33,6 +34,7 @@ from app.adapters.pdf_inspector import PdfInspector
 from app.adapters.policy_files import (
     load_category_policy,
     load_forensics,
+    load_learning_policy,
     load_plans,
     load_profit_loss_policy,
     load_reconciliation_policy,
@@ -53,6 +55,7 @@ from app.api.documents import create_documents_router
 from app.api.findings import create_findings_router
 from app.api.health import create_health_router
 from app.api.insights import create_insights_router
+from app.api.labels import create_labels_router
 from app.api.matches import create_matches_router
 from app.api.me import create_me_router
 from app.api.months import create_months_router
@@ -82,6 +85,7 @@ from app.core.security_headers import SecurityHeadersMiddleware
 from app.core.settings import Settings
 from app.domain.categorize import CategoryPolicy
 from app.domain.checks.policy import ForensicsPolicy
+from app.domain.labels import LearningPolicy
 from app.domain.models.invoice import Invoice, Receipt
 from app.domain.plans import PlanCatalog
 from app.domain.reconciliation_policy import ReconciliationPolicy
@@ -97,6 +101,7 @@ from app.ports.document_storage import DocumentStorage
 from app.ports.file_inspector import FileInspector
 from app.ports.finding_repository import FindingRepository
 from app.ports.identity_admin import IdentityAdmin
+from app.ports.label_repository import LabelRepository
 from app.ports.ledger_repository import LedgerRepository
 from app.ports.match_repository import MatchRepository
 from app.ports.month_repository import MonthRepository
@@ -117,6 +122,7 @@ from app.services.document_service import DocumentService
 from app.services.entitlement_service import EntitlementService
 from app.services.finding_service import FindingService
 from app.services.insight_service import InsightService
+from app.services.label_service import LabelService
 from app.services.match_service import MatchService
 from app.services.month_service import MonthService
 from app.services.profit_loss_service import ProfitLossService
@@ -167,6 +173,7 @@ class AppDeps:
         ledger: LedgerRepository | None = None,
         counterparties: CounterpartyRepository | None = None,
         suggestions: SuggestionRepository | None = None,
+        labels: LabelRepository | None = None,
     ) -> None:
         self.settings = settings
         self._plans = plans
@@ -197,6 +204,7 @@ class AppDeps:
         self._ledger = ledger
         self._counterparties = counterparties
         self._suggestions = suggestions
+        self._labels = labels
         self._built: dict[str, Any] = {}
 
     def _once(self, name: str, build: Callable[[], T]) -> T:
@@ -566,6 +574,36 @@ class AppDeps:
         )
 
     @property
+    def label_repo(self) -> LabelRepository:
+        return self._once(
+            "label_repo", lambda: self._labels or FirestoreLabelRepository(self.firestore)
+        )
+
+    @property
+    def learning(self) -> LearningPolicy:
+        return self._once(
+            "learning",
+            lambda: load_learning_policy(self.settings.contract_path(self.settings.policy_dir)),
+        )
+
+    @property
+    def label_service(self) -> LabelService:
+        return self._once(
+            "label_service",
+            lambda: LabelService(
+                labels=self.label_repo,
+                policy=self.learning,
+                categories=self.categories,
+                clock=self.clock,
+                bank_lines=self.bank_line_service,
+                lines=self.bank_lines,
+                documents=self.doc_repo,
+                months=self.month_service,
+                task_queue=self.task_queue,
+            ),
+        )
+
+    @property
     def suggestion_service(self) -> SuggestionService:
         return self._once(
             "suggestion_service",
@@ -602,6 +640,8 @@ class AppDeps:
                 ledger=self.ledger_repo,
                 review_items=self.review_items,
                 suggestions=self.suggestion_repo,
+                labels=self.label_repo,
+                learning=self.learning,
             )
             await run_workflow(
                 build_document_workflow(pipeline_deps),
@@ -641,6 +681,8 @@ class AppDeps:
                 ledger=self.ledger_repo,  # X09 and the ledger figures read the imported rows
                 counterparties=self.counterparty_repo,
                 suggestions=self.suggestion_repo,
+                labels=self.label_repo,
+                learning=self.learning,
                 reader=self.reader,  # explain_month words the month's risk (spec 008)
             )
             return await run_workflow(
@@ -833,6 +875,7 @@ def create_app(
         app.include_router(create_review_items_router(deps, workspace_dep))
         app.include_router(create_counterparties_router(deps, workspace_dep))
         app.include_router(create_suggestions_router(deps, workspace_dep))
+        app.include_router(create_labels_router(deps, workspace_dep))
         app.include_router(create_assistant_router(deps, workspace_dep))
 
     # 3. Worker role endpoints

@@ -3,12 +3,14 @@
 Normative reference: spec 013 plan (adapters/policy_files.py), AC-013-5.
 """
 
+from decimal import Decimal
 from pathlib import Path
 
 import yaml
 
 from app.domain.categorize import CategoryPolicy, parse_category_policy
 from app.domain.checks.policy import ForensicsPolicy, parse_forensics
+from app.domain.labels import LearningPolicy
 from app.domain.plans import PlanCatalog, parse_plans
 from app.domain.profit_loss import ProfitLossPolicy
 from app.domain.reconciliation_policy import ReconciliationPolicy
@@ -54,3 +56,20 @@ def load_reconciliation_policy(policy_dir: Path) -> ReconciliationPolicy:
 def load_profit_loss_policy(policy_dir: Path) -> ProfitLossPolicy:
     with (policy_dir / "profit-loss.v1.yaml").open(encoding="utf-8") as handle:
         return ProfitLossPolicy.model_validate(yaml.safe_load(handle))
+
+
+def load_learning_policy(policy_dir: Path) -> LearningPolicy:
+    """contracts/policy/learning.v1.yaml (spec 016): thresholds per task and the dataset split."""
+    with (policy_dir / "learning.v1.yaml").open(encoding="utf-8") as handle:
+        raw = yaml.safe_load(handle)
+    examples = raw.get("examples") or {}
+    dataset = raw.get("dataset") or {}
+    return LearningPolicy(
+        needs_check_below={
+            k: Decimal(str(v)) for k, v in (raw.get("needsCheckBelow") or {}).items()
+        },
+        eval_share=Decimal(str(dataset.get("evalShare", "0.20"))),
+        examples_per_call=int(examples.get("perCall", 5)),
+        min_similarity=Decimal(str(examples.get("minSimilarity", "0.80"))),
+        remembered_corrections=bool((raw.get("rememberedCorrections") or {}).get("enabled", True)),
+    )

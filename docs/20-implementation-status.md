@@ -98,9 +98,9 @@ posted and classified ledger data means the report is unavailable.
 | Split and upload | 015 | Specified | |
 | Aliases and related parties | 014 | Specified | |
 | Evals + README results | 012 | Specified | P0 suites always on D6 |
-| Labels: writers, Labels page, decisions, verified examples, E-LBL | 016 | Specified | ADR-016; `learning.v1.yaml` |
+| Labels: writers, Labels page, decisions, verified examples, E-LBL | 016 | In progress | ADR-016; `learning.v1.yaml`. Built 16 Oct 2026: `domain/labels.py` (deterministic IDs, people win over re-runs, `needsCheck` from the policy, the dataset split), label writers in `classify_document` (`DOC_TYPE`), `verify_pages` (`FIELD_VALUE`) and `categorize_bank_lines` (`CATEGORY`, with remembered corrections applied first), `GET/POST /api/labels…` (list with summary, decision, bulk confirm, viewers read only), the Labels page with its panel from `labels.json`. Open: `PAGE_TYPE` labels (no page classifier yet), the extraction Markdown (T016-04), the framework re-derivation on change (T016-06), verified examples in prompts (T016-08), E-LBL (T016-09), the dataset export (T016-11) |
 | Page extraction Markdown | 016 | Specified | GCS `extractions/` |
-| Run history in BigQuery (ADK plugin), Runs page, Looker Studio report | 017 | Specified | ADR-017 |
+| Run history in BigQuery (ADK plugin), Runs page, Looker Studio report | 017 | In progress | ADR-017. Built 16 Oct 2026: `GET /api/runs/{runId}/events` from the run's stages with the label join (owner only), label counts on every run, the Runs page (owner only) with the span waterfall and the call inspector from `runs.json`. Open: the BigQuery Agent Analytics plugin and content capture (T017-03), the Looker Studio report (T017-06) |
 | Dataset export for tuning (consent, masking) | 016 | Later | Not in the hackathon |
 
 ## Public site

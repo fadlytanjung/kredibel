@@ -278,135 +278,176 @@ def counterparty() -> str:
 
 
 # ------------------------------------------------------------------------------------------------
-# Labels (spec 016)
+# Labels (spec 016): drawn from contracts/design/fixtures/labels.json with the app's own words
 # ------------------------------------------------------------------------------------------------
 
-PAGES = {
-    "ACB_Mar_2026.pdf": [("p1", "Summary", 0.99, "ACB_Mar_2026-p2.md"), ("p2", "Transactions", 0.98, "ACB_Mar_2026-p2.md"), ("p3", "Terms or cover", 0.62, "ACB_Mar_2026-p3.md")],
-    "Receipt 0617.jpg": [("p1", "Receipt", 0.71, "Receipt-0617-p1.md")],
-    "RES-0045.pdf": [("p1", "Invoice", 0.98, "RES-0045-p1.md")],
-    "BLU-2026-118.pdf": [("p1", "Invoice", 0.95, "BLU-2026-118-p1.md")],
-    "INV-SCR-2026-06-0024.pdf": [("p1", "Invoice", 0.97, "INV-SCR-2026-06-0024-p1.md")],
-}
+LABELS_FIX = json.loads((ROOT / "contracts/design/fixtures/labels.json").read_text(encoding="utf-8"))
+LABEL_WORDS = json.loads((LOCALES / "labels.json").read_text(encoding="utf-8"))
+MONTHS_WORDS = json.loads((LOCALES / "months.json").read_text(encoding="utf-8"))
+DOCS_WORDS = json.loads((LOCALES / "documents.json").read_text(encoding="utf-8"))
+MONTH_LONG = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
 
 
-def page_chips(subject: str) -> str:
-    doc = subject.split(",")[0]
-    pages = PAGES.get(doc)
-    if not pages:
+def lw(key: str, **params) -> str:
+    return words(LABEL_WORDS, key, **params)
+
+
+def value_word(task: str, value: str) -> str:
+    table = {"CATEGORY": MONTHS_WORDS["categories"], "DOC_TYPE": DOCS_WORDS["detail"]["docType"],
+             "PAGE_TYPE": LABEL_WORDS["pageTypes"], "COUNTERPARTY_ROLE": LABEL_WORDS["roles"]}.get(task)
+    return escape(table.get(value, value) if table else value)
+
+
+def short_model(model: str | None) -> str:
+    if not model:
         return ""
-    chips = "".join(
-        f'<a class="pchip {"lo" if c < 0.7 else "mid" if c < 0.9 else "hi"}" href="samples/{f}" title="Page type {t}, confidence {c:.2f}">{n} {t} <b>{c:.2f}</b></a>'
-        for n, t, c, f in pages)
-    return f'<span class="page-chips" aria-label="Per-page types">{chips}</span>'
+    low = model.lower()
+    return "Flash-Lite" if "flash-lite" in low else "Flash" if "flash" in low else "Pro" if "pro" in low else model
 
 
-# subject, sub, task, ai value, confidence, status, decided, source, extraction (file, page label), run, dataset, selected
-LABELS = [
-    ("TRANSFER OUT ROASTLINE EQUIPMENT", "6 May, −24,500,000, ACB_May_2026.pdf p1", "Category", "Repairs and services", 0.66, "needs", "", "Flash-Lite, categorize v4", ("ACB_May_2026-p1.md", "p1.md"), "run …8M", "Excluded", True),
-    ("ACB_Mar_2026.pdf, page 3", "Statement, 3 pages", "Page type", "Terms or cover", 0.62, "needs", "", "Flash, read_page v3", ("ACB_Mar_2026-p3.md", "p3.md"), "run …7K", "Excluded", False),
-    ("CASH DEPOSIT", "21 Jun, +2,150,000, ACB_Jun_2026.pdf p2", "Category", "Sales receipts", 0.58, "needs", "", "Flash-Lite, categorize v4", ("ACB_Jun_2026-p2.md", "p2.md"), "run …9C", "Excluded", False),
-    ("INV-SCR-2026-06-0024.pdf", "Sales invoice, total", "Value", "4,200,000.00", None, "needs", "", "One reading only", ("INV-SCR-2026-06-0024-p1.md", "p1.md"), "run …9D", "Excluded", False),
-    ("Receipt 0617.jpg, page 1", "Photo", "Page type", "Receipt", 0.71, "needs", "", "Flash, read_page v3", ("Receipt-0617-p1.md", "p1.md"), "run …9A", "Excluded", False),
-    ("TRANSFER OUT GREEN VALLEY FARMS 0912", "12 Mar, −9,850,000, ACB_Mar_2026.pdf p2", "Category", "Purchases (cost of sales)", 0.81, "corrected", "Maya, 12 Jul. Was: Other suppliers. Rule: similar lines", "Person", ("ACB_Mar_2026-p2.md", "p2.md"), "run …7K", "Train", False),
-    ("DEBIT INTEREST LOAN", "25 Mar, −2,000,000, ACB_Mar_2026.pdf p3", "Category", "Interest paid (financing, IFRS)", 0.74, "verified", "Maya, 12 Jul", "Flash-Lite, categorize v4", ("ACB_Mar_2026-p3.md", "p3.md"), "run …7K", "Eval", False),
-    ("ACB_Mar_2026.pdf, page 2", "Statement, 3 pages", "Page type", "Statement transactions", 0.98, "verified", "Maya, 12 Jul", "Flash, read_page v3", ("ACB_Mar_2026-p2.md", "p2.md"), "run …7K", "Train", False),
-    ("ledger-2026-H1.csv", "Ledger export, 1,184 rows", "Document type", "Ledger export", 0.99, "verified", "Maya, 2 Jul", "Flash-Lite, classify v2", None, "run …6Z", "Train", False),
-    ("RES-0045.pdf", "Purchase invoice, Roastline Equipment Service", "Document type", "Purchase invoice", 0.97, "proposed", "", "Code: buyer is this workspace", ("RES-0045-p1.md", "p1.md"), "run …8L", "Excluded", False),
-    ("BLU-2026-118.pdf, page 1", "Purchase invoice", "Page type", "Invoice", 0.95, "proposed", "", "Flash, read_page v3", ("BLU-2026-118-p1.md", "p1.md"), "run …8N", "Excluded", False),
-    ("Hillside Coffee Bar", "Counterparty", "Counterparty role", "Client", 0.97, "proposed", "", "Code: buyer on 12 sales invoices", None, "run …9F", "Excluded", False),
-]
-STATUS = {
-    "needs": ('<span class="lbl-status needs">' + "Needs a check" + "</span>"),
-    "proposed": '<span class="lbl-status proposed">AI proposed</span>',
-    "verified": '<span class="lbl-status verified">{ic}Verified by a person</span>',
-    "corrected": '<span class="lbl-status corrected">{ic}Corrected by a person</span>',
-}
+def source_word(label: dict) -> str:
+    ai = label["ai"]
+    if ai["source"] == "MODEL":
+        return lw("sources.MODEL", model=short_model(ai["model"]), prompt=ai["promptVersion"]) if ai.get("model") and ai.get("promptVersion") else lw("sources.MODEL_NO_VERSION")
+    return lw(f"sources.{ai['source']}")
+
+
+def status_key(label: dict) -> str:
+    return {"VERIFIED": "verified", "CORRECTED": "corrected"}.get(label["status"], "needs" if label["needsCheck"] else "proposed")
+
+
+def status_pill(label: dict) -> str:
+    key = status_key(label)
+    ic = icon("check", "icon icon-sm") if key in ("verified", "corrected") else ""
+    word = lw("status.needs") if key == "needs" else lw(f"status.{label['status']}")
+    return f'<span class="lbl-status {key}">{ic}{word}</span>'
 
 
 def conf(v: float | None) -> str:
     if v is None:
-        return '<span class="conf none">no score</span>'
+        return f'<span class="conf none">{lw("noScore")}</span>'
     lvl = "lo" if v < 0.7 else "mid" if v < 0.9 else "hi"
-    return f'<span class="conf {lvl}"><span class="conf-bar"><i style="width:{v * 100:.0f}%"></i></span><span>{v:.2f}</span></span>'
+    return f'<span class="conf {lvl}"><span class="conf-bar"><i style="width:{round(v * 100)}%"></i></span><span>{v:.2f}</span></span>'
 
 
-def labels() -> str:
-    trs = []
-    for subj, sub, task, val, c, st, dec, src, ext, run, ds, sel in LABELS:
-        status = STATUS[st].replace("{ic}", icon("check", "icon icon-sm"))
-        ext_html = f'<a class="md-link" href="samples/{ext[0]}">{icon("markdown", "icon icon-sm")}{ext[1]}</a>' if ext else '<span class="muted">none</span>'
-        dec_html = f'<span class="sub">{dec}</span>' if dec else ""
-        trs.append(f"""<tr data-row{" class=\"is-selected\"" if sel else ""}>
-  <td class="chk hide-rt"><input type="checkbox" aria-label="Select {subj}"{" checked" if st == "needs" and sel else ""}/></td>
-  <td data-cell="wide"><span class="lbl-subj"><strong>{subj}</strong><span class="sub">{sub}</span>{page_chips(subj)}</span></td>
-  <td data-cell="wide"><span class="task">{task}</span><span class="lbl-val">{val}</span>{dec_html}</td>
-  <td>{conf(c)}</td>
-  <td>{status}</td>
-  <td class="hide-rt small muted">{src}</td>
-  <td class="hide-rt">{ext_html}</td>
-  <td class="hide-rt"><a class="run-link" href="runs.html">{run}</a></td>
-  <td class="hide-rt"><span class="ds {ds.lower()}">{ds}</span></td>
-</tr>""")
-    tasks = seg("task", [("all", "All 1,284"), ("doc", "Document type 92"), ("page", "Page type 214"), ("cat", "Category 812"), ("role", "Role 14"), ("value", "Value 152")], "all", "Task")
-    status = "".join(f'<a class="chip" href="labels.html"{" aria-pressed=\"true\"" if i == 0 else ""}>{t} <span class="n">{n}</span></a>'
-                     for i, (t, n) in enumerate([("Needs a check", 37), ("AI proposed", 1035), ("Verified", 201), ("Corrected", 11)]))
-    md = """# ACB_May_2026.pdf, page 1 of 3
-Page type: STATEMENT_TRANSACTIONS (0.97)
-Reading: AI_TEXT_LAYER, agreement 0.99
+def fmt_day(iso: str | None) -> str:
+    return fmt_date(iso[:10]) if iso else ""
 
-| Row | Date  | Description                      | Debit         | Balance       | Readings |
-|-----|-------|----------------------------------|---------------|---------------|----------|
-| 6   | 06/05 | TRANSFER OUT ROASTLINE EQUIPMENT | 24,500,000.00 | 31,940,000.00 | agreed   |
-|     |       | to MERIDIAN SAVINGS ••7720       |               |               |          |"""
-    panel = f"""
+
+def page_chips(label: dict, items: list[dict]) -> str:
+    doc = label["subject"].get("docId")
+    if not doc:
+        return ""
+    pages = sorted((l for l in items if l["task"] == "PAGE_TYPE" and l["subject"].get("docId") == doc and l["subject"].get("pageNo")), key=lambda l: l["subject"]["pageNo"])
+    if not pages:
+        return ""
+    chips = []
+    for l in pages:
+        c = l["ai"]["confidence"] or 0
+        lvl = "lo" if c < 0.7 else "mid" if c < 0.9 else "hi"
+        chips.append(f'<a class="pchip {lvl}" href="labels.html" title="{lw("pageChip", type=value_word("PAGE_TYPE", l["final"]["value"]), confidence=f"{c:.2f}")}">p{l["subject"]["pageNo"]} {value_word("PAGE_TYPE", l["final"]["value"])} <b>{c:.2f}</b></a>')
+    return f'<span class="page-chips" aria-label="{lw("pageChips")}">{"".join(chips)}</span>'
+
+
+def label_panel(label: dict) -> str:
+    task, ai = label["task"], label["ai"]
+    details = [lw("panel.month", month=MONTH_LONG[int(label["month"][5:7]) - 1]) if label.get("month") else None,
+               f'p{label["subject"]["pageNo"]}' if label["subject"].get("pageNo") else None,
+               lw("panel.cashflow", framework=(label.get("framework") or "").replace("_", " "), cashflow=words(MONTHS_WORDS, f"cashflow.{label['cashflowClass']}")) if label.get("framework") and label.get("cashflowClass") else None]
+    details = [d for d in details if d]
+    options = {"CATEGORY": list(MONTHS_WORDS["categories"]), "DOC_TYPE": ["BANK_STATEMENT", "SALES_INVOICE", "PURCHASE_INVOICE", "RECEIPT", "LEDGER_EXPORT", "OTHER"],
+               "PAGE_TYPE": list(LABEL_WORDS["pageTypes"]), "COUNTERPARTY_ROLE": list(LABEL_WORDS["roles"])}.get(task)
+    if options:
+        field = f'<select class="select" id="lp-value">' + "".join(f'<option value="{o}"{" selected" if o == label["final"]["value"] else ""}>{value_word(task, o)}</option>' for o in options) + "</select>"
+    else:
+        field = f'<input class="input" id="lp-value" value="{escape(label["final"]["value"])}"/>'
+    decided = f'<span class="sub">{lw("panel.decidedBy", status=lw(f"status.{label['status']}"), by=label.get("decidedBy") or "", when=fmt_day(label.get("decidedAt")))}</span>' if label["status"] != "AI_PROPOSED" else ""
+    similar = f'<label class="check-row"><input type="checkbox" checked/> {lw("panel.applySimilar")}</label>' if task == "CATEGORY" and label["subject"].get("txId") else ""
+    run = f'<a href="runs.html">{label["ai"]["runId"]}</a>{", " + lw("panel.span", span=ai["spanId"]) if ai.get("spanId") else ""}' if ai.get("runId") else "—"
+    dataset = lw("panel.datasetExcluded") if label["dataset"]["use"] == "EXCLUDED" else lw(f"dataset.{label['dataset']['use']}")
+    return f"""
 <aside class="lbl-panel panel" aria-labelledby="lp-h">
   <div class="lp-main">
-  <div class="lp-head"><span class="task">Category</span><span class="lbl-status needs">Needs a check</span></div>
-  <h2 id="lp-h" class="type-h3">TRANSFER OUT ROASTLINE EQUIPMENT</h2>
-  <p class="muted small">6 May 2026, −IDR 24,500,000, ACB ••4821. Counterparty: Roastline Equipment Service.</p>
+  <div class="lp-head"><span class="task">{lw(f"tasks.{task}")}</span>{status_pill(label)}<a class="icon-button icon-button-sm ml-auto" href="labels.html" aria-label="{lw("panel.close")}">{icon("x", "icon icon-sm")}</a></div>
+  <h2 id="lp-h" class="type-h3">{escape(label["subject"]["display"])}</h2>
+  {f'<p class="muted small">{" · ".join(details)}</p>' if details else ""}
   <div class="lp-ai">
-    <div><span class="k">AI proposed</span><strong>Repairs and services</strong><span class="sub">Operating expenses, operating activity (IFRS)</span></div>
-    {conf(0.66)}
+    <div><span class="k">{lw("panel.aiProposed")}</span><strong>{value_word(task, ai["value"])}</strong>{decided}</div>
+    {conf(ai["confidence"])}
   </div>
-  <p class="lp-why">{icon("sparkles", "icon icon-sm")}<span>Looks like equipment maintenance; the matching invoice RES-0045 says "service visit and parts". Confidence is low because this payment went to a new account.</span></p>
-  <div class="field"><label for="lp-cat">Category</label>
-    <select class="select" id="lp-cat"><option>Repairs and services (Operating expenses)</option><option>Equipment bought (Investing)</option><option>Purchases for sale or production (Cost of sales)</option><option>Other spending</option></select></div>
-  <label class="check-row"><input type="checkbox" checked/> Apply to similar lines from Roastline Equipment Service</label>
-  <div class="field"><label for="lp-note">Note <span class="muted">(optional)</span></label><input class="input" id="lp-note" placeholder="Why, for whoever checks next"/></div>
-  <div class="row lp-actions"><a class="button button-primary" href="labels.html">{icon("check", "icon icon-sm")}Confirm</a><a class="button button-secondary" href="labels.html">Save correction</a></div>
+  <div class="field"><label for="lp-value">{lw(f"panel.correctLabel.{task}")}</label>{field}</div>
+  {similar}
+  <div class="field"><label for="lp-note">{lw("panel.note")} <span class="muted">{lw("panel.noteOptional")}</span></label><input class="input" id="lp-note" placeholder="{lw("panel.notePlaceholder")}"/></div>
+  <div class="row lp-actions"><a class="button button-primary" href="labels.html">{icon("check", "icon icon-sm")}{lw("panel.confirm")}</a><a class="button button-secondary" href="labels.html">{lw("panel.saveCorrection")}</a></div>
   </div>
   <div class="lp-side">
-  <details class="lp-md" open><summary>{icon("markdown", "icon icon-sm")}Extraction, ACB_May_2026.pdf page 1</summary><pre>{md}</pre><a class="link small" href="samples/ACB_May_2026-p1.md">Open p1.md</a></details>
+  <details class="lp-md" open><summary>{icon("markdown", "icon icon-sm")}{lw("panel.extraction")}</summary><p class="muted small">{lw("panel.noExtraction")}</p>{f'<a class="link small" href="document.html">{lw("openPage")}</a>' if label["subject"].get("docId") else ""}</details>
   <dl class="lp-prov">
-    <div><dt>Model</dt><dd>Gemini Flash-Lite</dd></div>
-    <div><dt>Prompt</dt><dd>categorize v4, 5 verified examples</dd></div>
-    <div><dt>Run</dt><dd><a href="runs.html">run_01JB8M…</a>, span 7c2e</dd></div>
-    <div><dt>Dataset</dt><dd>Excluded until a person decides</dd></div>
+    <div><dt>{lw("panel.model")}</dt><dd>{short_model(ai.get("model")) or "—"}</dd></div>
+    <div><dt>{lw("panel.prompt")}</dt><dd>{escape(ai.get("promptVersion") or "—")}</dd></div>
+    <div><dt>{lw("panel.run")}</dt><dd>{run}</dd></div>
+    <div><dt>{lw("panel.datasetUse")}</dt><dd>{dataset}</dd></div>
   </dl>
   </div>
 </aside>"""
+
+
+def labels() -> str:
+    items = LABELS_FIX["items"]
+    summary = LABELS_FIX["summary"]
+    selected = items[3]
+    trs = []
+    for label in items:
+        s = label["subject"]
+        sub = " · ".join(x for x in [MONTH_LONG[int(label["month"][5:7]) - 1] if label.get("month") else None, f'p{s["pageNo"]}' if s.get("pageNo") else None, s.get("field")] if x)
+        decided = ""
+        if label["status"] != "AI_PROPOSED":
+            parts = [lw("decided", by=label.get("decidedBy") or "", when=fmt_day(label.get("decidedAt")))]
+            if label["status"] == "CORRECTED":
+                parts.append(lw("was", value=value_word(label["task"], label["ai"]["value"])))
+            decided = f'<span class="sub">{". ".join(parts)}</span>'
+        ext = f'<a class="md-link" href="#">{icon("markdown", "icon icon-sm")}p{s.get("pageNo") or 1}.md</a>' if label.get("extractionUrl") else f'<span class="muted">{lw("noExtraction")}</span>'
+        run = f'<a class="run-link" href="runs.html">run …{label["ai"]["runId"][-4:]}</a>' if label["ai"].get("runId") else '<span class="muted">—</span>'
+        trs.append(f"""<tr class="is-clickable{" is-selected" if label is selected else ""}">
+  <td class="chk hide-rt"><input type="checkbox" aria-label="{lw("selectRow", subject=s["display"])}"{" disabled" if label["status"] != "AI_PROPOSED" else ""}/></td>
+  <td data-cell="wide"><span class="lbl-subj"><strong>{escape(s["display"])}</strong>{f'<span class="sub">{sub}</span>' if sub else ""}{page_chips(label, items)}</span></td>
+  <td data-cell="wide"><span class="task">{lw(f"tasks.{label['task']}")}</span><span class="lbl-val">{value_word(label["task"], label["final"]["value"])}</span>{decided}</td>
+  <td>{conf(label["ai"]["confidence"])}</td>
+  <td>{status_pill(label)}</td>
+  <td class="hide-rt small muted">{source_word(label)}</td>
+  <td class="hide-rt">{ext}</td>
+  <td class="hide-rt">{run}</td>
+  <td class="hide-rt"><span class="ds {label['dataset']['use'].lower()}">{lw(f"dataset.{label['dataset']['use']}")}</span></td>
+</tr>""")
+    total = summary["total"]
+    n = lambda v: f"{v:,}"  # noqa: E731
+    tasks = seg("task", [("all", f'{lw("tasks.all")} {n(total)}')] + [(k, f'{lw(f"tasks.{k}")} {n(summary["byTask"][k])}') for k in ("DOC_TYPE", "PAGE_TYPE", "CATEGORY", "COUNTERPARTY_ROLE", "FIELD_VALUE")], "all", lw("taskLabel"))
+    needs = summary["needsCheck"]
+    counts = [("needs", needs), ("proposed", max(summary["byStatus"]["AI_PROPOSED"] - needs, 0)), ("verified", summary["byStatus"]["VERIFIED"]), ("corrected", summary["byStatus"]["CORRECTED"])]
+    chips = "".join(f'<a class="chip" href="labels.html" aria-pressed="false">{lw(f"statuses.{k}")} <span class="n">{n(v)}</span></a>' for k, v in counts)
+    checked = summary["verified"] + summary["corrected"]
+    lead = lw("lead", checked=n(checked), total=n(total), agreement=f'{summary["aiAgreementOnChecked"] * 100:.1f}%') if checked and summary.get("aiAgreementOnChecked") is not None else lw("leadNoneChecked")
     content = f"""
 <div class="page">
   <div class="page-head">
-    <div class="spread"><h1 class="type-title">Labels</h1><span class="badge badge-outline">Design only (P1, spec 016 · Placeholder at /labels)</span></div>
-    <p><strong>212 of 1,284 labels checked by people; the AI was right on 94.8% of them.</strong> 37 need a check. A label a person confirms or corrects is verified by a person and is never overwritten by a later run.</p>
+    <h1 class="type-title">{lw("title")}</h1>
+    <p><strong>{lead} {lw("needCheck", count=needs)}</strong> {lw("intro")}</p>
   </div>
   <div class="stack gap-3">
-    <div class="spread lbl-tools">{tasks}<span class="fw-pill">{icon("book", "icon icon-sm")}Categories follow IFRS. <a href="plan-usage.html">Change</a></span></div>
-    <div class="chips" role="group" aria-label="Filter by status">{status}</div>
-    <div class="bulk-bar"><span><strong>1 selected</strong></span><a class="button button-secondary button-sm" href="labels.html">{icon("check", "icon icon-sm")}Confirm as proposed</a><span class="muted small">Corrections are one at a time.</span></div>
+    <div class="spread lbl-tools">{tasks}<span class="fw-pill">{icon("book", "icon icon-sm")}{lw("framework", framework="IFRS")} <a href="plan-usage.html">{lw("changeFramework")}</a></span></div>
+    <div class="chips" role="group" aria-label="{lw("statusFilter")}">{chips}</div>
+    <div class="bulk-bar"><span><strong>{lw("selected", count=0)}</strong></span><button class="button button-secondary button-sm" type="button" disabled>{icon("check", "icon icon-sm")}{lw("confirmSelected")}</button><span class="muted small">{lw("bulkHint")}</span></div>
     <div class="lbl-layout">
       <div class="table-panel rt-wrap"><table class="data-table rt lbl-table">
-        <thead><tr><th class="chk hide-rt"><span class="sr-only">Select</span></th><th>Subject and per-page types</th><th>Label</th><th>Confidence</th><th>Status</th><th class="hide-rt">Source</th><th class="hide-rt">Extraction</th><th class="hide-rt">Run</th><th class="hide-rt">Dataset</th></tr></thead>
+        <thead><tr><th class="chk hide-rt"><span class="sr-only">{lw("columns.select")}</span></th><th>{lw("columns.subject")}</th><th>{lw("columns.label")}</th><th>{lw("columns.confidence")}</th><th>{lw("columns.status")}</th><th class="hide-rt">{lw("columns.source")}</th><th class="hide-rt">{lw("columns.extraction")}</th><th class="hide-rt">{lw("columns.run")}</th><th class="hide-rt">{lw("columns.dataset")}</th></tr></thead>
         <tbody>{''.join(trs)}</tbody></table></div>
-      {panel}
+      {label_panel(selected)}
     </div>
-    <div class="spread lbl-foot"><p class="muted small">Showing 12 of 1,284, lowest confidence first. Training consent is off: verified labels are used only as examples and evals inside this workspace.</p>
-      <button class="button button-secondary button-sm" type="button" disabled>{icon("download", "icon icon-sm")}Export dataset (later)</button></div>
+    <div class="spread lbl-foot"><p class="muted small">{lw("foot", shown=n(len(items)), total=n(total))}</p>
+      <button class="button button-secondary button-sm" type="button" disabled>{icon("download", "icon icon-sm")}{lw("exportLater")}</button></div>
   </div>
 </div>"""
-    return shell("labels", topbar("Labels", ("Labels",)), content)
+    return shell("labels", topbar(lw("title"), (lw("title"),)), content)
 
 
 # per-page classifier strip for the docs page of each document (used in the samples index)
@@ -450,113 +491,150 @@ for _name in ["ACB_May_2026-p1.md", "ACB_Jun_2026-p2.md", "INV-SCR-2026-06-0024-
 
 
 # ------------------------------------------------------------------------------------------------
-# Runs (spec 017)
+# Runs (spec 017): drawn from contracts/design/fixtures/runs.json with the app's own words
 # ------------------------------------------------------------------------------------------------
 
-RUNS = [
-    ("files", "Document", "ACB_Mar_2026.pdf", "ok", "Done", "2 Jul, 09:14", "41.2 s", 5, "18.4k / 3.1k", "0.021", "Flash, Flash-Lite", "4 proposed, 2 verified", True),
-    ("reconcile", "Month", "2026-03, generation 7", "ok", "Done", "12 Jul, 10:02", "6.8 s", 1, "4.2k / 0.6k", "0.004", "Flash", "45 proposed, 1 corrected", False),
-    ("reconcile", "Month", "2026-03, generation 6", "wait", "Superseded", "12 Jul, 10:01", "2.1 s", 0, "none", "0.000", "none", "none", False),
-    ("sparkles", "Assistant", "Why is March critical?", "ok", "Done", "12 Jul, 10:20", "3.9 s", 2, "6.1k / 0.4k", "0.003", "Flash", "none", False),
-    ("table", "Document", "ledger-2026-H1.csv", "ok", "Done", "2 Jul, 09:11", "4.4 s", 2, "1.9k / 0.3k", "0.001", "Flash-Lite", "1 proposed, 1 verified", False),
-    ("files", "Document", "ACB_Jun_2026.pdf", "busy", "Reading page 2 of 3", "Today, 10:31", "18.0 s", 2, "7.0k / 1.2k", "0.008", "Flash", "2 proposed", False),
-    ("files", "Document", "Receipt 0617 (2).jpg", "wait", "Held as a possible copy", "10 Jul, 16:40", "7.2 s", 2, "3.3k / 0.4k", "0.003", "Flash, OCR", "2 proposed", False),
-]
-# name, depth, start s, end s, kind, detail
-SPANS = [
-    ("workflow:document_workflow", 0, 0.0, 41.2, "wf", "ACB_Mar_2026.pdf, 3 pages"),
-    ("node:inspect", 1, 0.2, 1.1, "code", "pikepdf, 2 revisions"),
-    ("node:classify", 1, 1.1, 3.0, "llm", "Flash-Lite, 2.1k in, 0.1k out: BANK_STATEMENT 0.99"),
-    ("node:read_pages", 1, 3.0, 36.8, "node", "page 1 first, then 2 and 3 in parallel"),
-    ("read_page p1", 2, 3.0, 12.4, "llm", "Flash, 3.4k in, 0.9k out: STATEMENT_SUMMARY 0.99"),
-    ("witness p1 to p3 (text layer)", 2, 3.0, 3.6, "code", "1,204 words with boxes"),
-    ("read_page p2", 2, 12.5, 24.9, "llm", "Flash, 3.6k in, 1.4k out: STATEMENT_TRANSACTIONS 0.98"),
-    ("read_page p3", 2, 12.5, 19.1, "llm sel", "Flash, 3.3k in, 0.3k out: TERMS_OR_COVER 0.62"),
-    ("node:verify", 1, 36.8, 37.9, "code", "agreement 0.97, 0 conflicts"),
-    ("node:duplicates", 1, 37.9, 38.2, "code", "no copy"),
-    ("node:forensics", 1, 38.2, 39.6, "code", "A01, M03, M04"),
-    ("node:categorize", 1, 39.6, 41.0, "llm", "Flash-Lite, 45 CATEGORY labels"),
-]
+RUNS_FIX = json.loads((ROOT / "contracts/design/fixtures/runs.json").read_text(encoding="utf-8"))
+RUN_WORDS = json.loads((LOCALES / "runs.json").read_text(encoding="utf-8"))
+RUN_ICON = {"DOCUMENT": "files", "MONTH": "reconcile", "ASSISTANT": "sparkles"}
+RUN_TONE = {"DONE": "ok", "RUNNING": "busy", "QUEUED": "wait", "SUPERSEDED": "wait", "FAILED": "bad"}
+PROMPT_OF = {"classify_document": "classify", "read_page": "read_page", "categorize_bank_lines": "categorize",
+             "propose_ledger_mapping": "map_ledger_columns", "explain_month": "explain", "assistant": "assistant"}
+
+
+def rnw(key: str, **params) -> str:
+    return words(RUN_WORDS, key, **params)
+
+
+def _ts(iso: str | None) -> float:
+    from datetime import datetime
+    return datetime.fromisoformat(iso.replace("Z", "+00:00")).timestamp() if iso else 0.0
+
+
+def k_tokens(n: int | None) -> str:
+    return f"{n / 1000:.1f}k" if n else "0"
+
+
+def seconds(ms: float) -> str:
+    return f"{ms / 1000:.1f} s"
+
+
+def started_at(iso: str | None) -> str:
+    from datetime import datetime
+    if not iso:
+        return "—"
+    d = datetime.fromisoformat(iso.replace("Z", "+00:00"))
+    return f"{d.day} {MONTH_LONG[d.month - 1][:3]}, {d.hour:02d}:{d.minute:02d}"
+
+
+def duration_ms(run: dict) -> float:
+    return max(0.0, (_ts(run.get("endedAt")) - _ts(run.get("createdAt"))) * 1000) if run.get("endedAt") else 0.0
+
+
+def span_rows(run: dict) -> list[dict]:
+    t0 = _ts(run["createdAt"])
+    total = duration_ms(run)
+    stages = run.get("stages") or []
+    parents = {s["parent"] for s in stages if s.get("parent")}
+    rows = [{"name": rnw("detail.root", workflow=rnw(f"detail.workflow.{run['kind']}")), "depth": 0, "kind": "wf", "start": 0.0, "end": total, "detail": escape(run["target"]), "stage": None}]
+    for s in sorted(stages, key=lambda s: _ts(s.get("startedAt"))):
+        start = (_ts(s.get("startedAt")) - t0) * 1000 if s.get("startedAt") else 0.0
+        end = (_ts(s.get("endedAt")) - t0) * 1000 if s.get("endedAt") else start
+        kind = "llm" if s.get("model") else "node" if s["node"] in parents else "code"
+        detail = ": ".join(x for x in [f'{short_model(s["model"])}, {k_tokens(s.get("tokensIn"))} in, {k_tokens(s.get("tokensOut"))} out' if s.get("model") else None, s.get("summary")] if x)
+        rows.append({"name": f'node:{s["node"]}', "depth": 2 if s.get("parent") else 1, "kind": kind, "start": start, "end": end, "detail": escape(detail), "stage": s})
+    return rows
 
 
 def runs() -> str:
+    items = RUNS_FIX["items"]
+    run = items[0]
+    def llm_calls(r: dict) -> int:
+        return sum(1 for s in (r.get("stages") or []) if s.get("model"))
+    def labels_cell(r: dict) -> str:
+        lb = r.get("labels") or {}
+        parts = [rnw(f"labelsCell.{k}", count=lb[k]) for k in ("proposed", "verified", "corrected") if lb.get(k)]
+        return ", ".join(parts) if parts else rnw("none")
     trs = []
-    for ic, kind, target, st, stl, when, dur, calls, tok, usd, models, lbls, sel in RUNS:
-        trs.append(f"""<tr data-row{" class=\"is-selected\"" if sel else ""}>
-  <td data-cell="wide"><span class="doc-cell"><span class="thumb">{icon(ic)}</span><span><strong>{target}</strong><span class="sub">{kind} run</span></span></span></td>
-  <td><span class="status-line {st}">{stl}</span></td>
-  <td class="hide-rt">{when}</td>
-  <td class="r">{dur}</td>
-  <td class="r hide-rt">{calls}</td>
-  <td class="r hide-rt">{tok}</td>
-  <td class="r hide-rt">{usd}</td>
+    for r in items:
+        usage = r.get("usage") or {}
+        tokens = f'{k_tokens(usage.get("tokensIn"))} / {k_tokens(usage.get("tokensOut"))}' if usage.get("tokensIn") else rnw("none")
+        models = ", ".join(short_model(m) for m in r.get("models") or []) or rnw("none")
+        trs.append(f"""<tr class="is-clickable{" is-selected" if r is run else ""}">
+  <td data-cell="wide"><span class="doc-cell"><span class="thumb">{icon(RUN_ICON.get(r["kind"], "files"))}</span><span><strong>{escape(r["target"])}</strong><span class="sub">{rnw("kindRun", kind=rnw(f"kinds.{r['kind']}"))}</span></span></span></td>
+  <td><span class="status-line {RUN_TONE.get(r["status"], "")}">{rnw(f"status.{r['status']}")}</span></td>
+  <td class="hide-rt">{started_at(r.get("createdAt"))}</td>
+  <td class="r">{seconds(duration_ms(r)) if r.get("endedAt") else "—"}</td>
+  <td class="r hide-rt">{llm_calls(r)}</td>
+  <td class="r hide-rt">{tokens}</td>
+  <td class="r hide-rt">{usage.get("estimatedUsd") or "0.000"}</td>
   <td class="hide-rt small">{models}</td>
-  <td class="hide-rt small">{lbls}</td>
+  <td class="hide-rt small">{labels_cell(r)}</td>
 </tr>""")
-    T = 41.2
-    rows = []
-    for name, depth, a, b, kind, detail in SPANS:
-        left, width = a / T * 100, max((b - a) / T * 100, 0.6)
-        rows.append(f"""<li class="span-row d{depth} {kind}">
-  <span class="span-name">{name}</span>
+    counts = [("all", len(items))] + [(k, sum(1 for r in items if r["kind"] == k)) for k in ("DOCUMENT", "MONTH", "ASSISTANT")]
+    counts += [("failed", sum(1 for r in items if r["status"] == "FAILED")), ("corrected", sum(1 for r in items if (r.get("labels") or {}).get("corrected")))]
+    chips = "".join(f'<a class="chip" href="runs.html" aria-pressed="{str(k == "all").lower()}">{rnw(f"chips.{k}")} <span class="n">{n}</span></a>' for k, n in counts)
+    rows = span_rows(run)
+    total = max(rows[0]["end"], 1)
+    chosen = next((r for r in rows if r["kind"] == "llm"), rows[0])
+    lis = []
+    for r in rows:
+        left, width = r["start"] / total * 100, max((r["end"] - r["start"]) / total * 100, 0.6)
+        lis.append(f"""<li class="span-row d{r["depth"]} {r["kind"]}{" sel" if r is chosen else ""}">
+  <button type="button" class="span-name" aria-pressed="{str(r is chosen).lower()}">{r["name"]}</button>
   <span class="span-track"><i style="left:{left:.2f}%;width:{width:.2f}%"></i></span>
-  <span class="span-dur">{b - a:.1f} s</span>
-  <span class="span-detail">{detail}</span>
+  <span class="span-dur">{seconds(r["end"] - r["start"])}</span>
+  <span class="span-detail">{r["detail"]}</span>
 </li>""")
-    axis = "".join(f'<span style="left:{t / T * 100:.1f}%">{t} s</span>' for t in (0, 10, 20, 30, 40))
-    chips = "".join(f'<a class="chip" href="runs.html"{" aria-pressed=\"true\"" if i == 0 else ""}>{t} <span class="n">{n}</span></a>'
-                    for i, (t, n) in enumerate([("All", 214), ("Document", 182), ("Month", 26), ("Assistant", 6), ("Failed", 0), ("Corrected by a person", 9)]))
+    ticks = "".join(f'<span style="left:{s * 1000 / total * 100}%">{s} s</span>' for s in range(0, int(total // 1000) + 1, 10) if s * 1000 < total)
+    stage = chosen["stage"]
+    events = (RUNS_FIX.get("events") or {}).get(run["runId"], {}).get("items", [])
+    label_ids = next((e["labelIds"] for e in events if stage and e["node"] == stage["node"] and e.get("spanId") == stage.get("traceSpanId") and e["eventType"] == ("LLM_RESPONSE" if stage.get("model") else "NODE_OUTPUT")), [])
+    prompt = (run.get("promptVersions") or {}).get(PROMPT_OF.get(stage["node"], stage["node"])) if stage else None
+    kind_word = rnw(f"detail.kind.{'node' if chosen['kind'] == 'wf' else chosen['kind']}")
     inspector = f"""
 <aside class="ev-inspector panel" aria-labelledby="ev-h">
   <div class="lp-main">
-  <div class="lp-head"><span class="task">LLM call</span><span class="lbl-status needs">Label needs a check</span></div>
-  <h2 id="ev-h" class="type-h3">read_page p3</h2>
+  <div class="lp-head"><span class="task">{kind_word}</span></div>
+  <h2 id="ev-h" class="type-h3">{chosen["name"]}</h2>
   <dl class="lp-prov">
-    <div><dt>Model</dt><dd>Gemini Flash</dd></div>
-    <div><dt>Prompt</dt><dd>read_page v3</dd></div>
-    <div><dt>Latency</dt><dd>6.6 s</dd></div>
-    <div><dt>Tokens</dt><dd>3,312 in, 286 out</dd></div>
-    <div><dt>Span</dt><dd>9f41 in trace 4be0…</dd></div>
+    <div><dt>{rnw("detail.model")}</dt><dd>{short_model(stage.get("model")) if stage and stage.get("model") else "—"}</dd></div>
+    <div><dt>{rnw("detail.prompt")}</dt><dd>{escape(prompt) if prompt else "—"}</dd></div>
+    <div><dt>{rnw("detail.latency")}</dt><dd>{seconds(chosen["end"] - chosen["start"])}</dd></div>
+    <div><dt>{rnw("detail.tokens")}</dt><dd>{rnw("detail.tokensValue", tokensIn=f"{stage.get('tokensIn') or 0:,}", tokensOut=f"{stage.get('tokensOut') or 0:,}") if stage and stage.get("model") else "—"}</dd></div>
+    <div><dt>{rnw("detail.span")}</dt><dd>{rnw("detail.spanValue", span=stage["traceSpanId"], trace=(run.get("traceId") or "")[:4] + "…") if stage and stage.get("traceSpanId") else "—"}</dd></div>
   </dl>
-  <div class="row"><a class="button button-secondary button-sm" href="labels.html">{icon("tag", "icon icon-sm")}Open the label</a><a class="button button-quiet button-sm" href="#" data-external>{icon("external", "icon icon-sm")}Cloud Trace</a><a class="button button-quiet button-sm" href="#" data-external>{icon("table", "icon icon-sm")}BigQuery rows</a></div>
+  <div class="row">{f'<a class="button button-secondary button-sm" href="labels.html">{icon("tag", "icon icon-sm")}{rnw("detail.openLabel")}</a>' if label_ids else ""}{f'<a class="button button-quiet button-sm" href="{run["traceUrl"]}" target="_blank" rel="noreferrer">{icon("external", "icon icon-sm")}{rnw("detail.cloudTrace")}</a>' if run.get("traceUrl") else ""}</div>
   </div>
-  <div class="lp-side">
-  <details open><summary>Request</summary><pre>system: read_page v3 (values as printed, no arithmetic)
-input: page image ACB_Mar_2026.pdf p3 (1,120 tokens)
-context: account ••4821, period 01–31 Mar 2026</pre></details>
-  <details open><summary>Response</summary><pre>{{"page_type": "TERMS_OR_COVER",
- "page_type_confidence": 0.62,
- "rows": [{{"row_on_page": 0, "date_text": "25/03",
-   "description": "DEBIT INTEREST LOAN", "debit_text": "2,000,000.00"}}, …]}}</pre></details>
-  <p class="muted small">Content is captured because this workspace holds synthetic data (AI_CONTENT_CAPTURE=synthetic). Account numbers are masked.</p>
-  </div>
+  <div class="lp-side"><p class="muted small">{rnw("detail.notCaptured")}</p></div>
 </aside>"""
+    usage = run.get("usage") or {}
+    summary = rnw("detail.summary", started=started_at(run.get("createdAt")), duration=seconds(duration_ms(run)), calls=llm_calls(run), tokensIn=k_tokens(usage.get("tokensIn")), tokensOut=k_tokens(usage.get("tokensOut")), usd=usage.get("estimatedUsd") or "0.000", prompts=", ".join((run.get("promptVersions") or {}).values()) or rnw("detail.noPrompts"))
     content = f"""
 <div class="page">
   <div class="page-head">
-    <div class="spread"><h1 class="type-title">Runs</h1><div class="row" style="gap:var(--k-space-2)"><span class="badge badge-outline">Design only (P1, spec 017 · Placeholder at /runs)</span><span class="badge badge-outline">Owner only</span></div></div>
-    <p>Every document, month and assistant run, call by call: what ran, how long it took, what it cost, and what people corrected afterwards. Traces live in Cloud Trace; every call is a row in BigQuery.</p>
+    <div class="spread"><h1 class="type-title">{rnw("title")}</h1><span class="badge badge-outline">{rnw("ownerOnly")}</span></div>
+    <p>{rnw("intro")}</p>
   </div>
   <div class="stack gap-5">
-    <div class="chips" role="group" aria-label="Filter runs">{chips}</div>
+    <div class="chips" role="group" aria-label="{rnw("filter")}">{chips}</div>
     <div class="table-panel rt-wrap"><table class="data-table rt runs-table">
-      <thead><tr><th>Run</th><th>Status</th><th class="hide-rt">Started</th><th class="r">Duration</th><th class="r hide-rt">LLM calls</th><th class="r hide-rt">Tokens in / out</th><th class="r hide-rt">USD</th><th class="hide-rt">Models</th><th class="hide-rt">Labels</th></tr></thead>
+      <thead><tr><th>{rnw("columns.run")}</th><th>{rnw("columns.status")}</th><th class="hide-rt">{rnw("columns.started")}</th><th class="r">{rnw("columns.duration")}</th><th class="r hide-rt">{rnw("columns.calls")}</th><th class="r hide-rt">{rnw("columns.tokens")}</th><th class="r hide-rt">{rnw("columns.usd")}</th><th class="hide-rt">{rnw("columns.models")}</th><th class="hide-rt">{rnw("columns.labels")}</th></tr></thead>
       <tbody>{''.join(trs)}</tbody></table></div>
     <section class="run-detail" aria-labelledby="rd-h">
-      <div class="spread"><div><h2 class="type-h2" id="rd-h">document_workflow on ACB_Mar_2026.pdf</h2><p class="muted small">2 Jul 2026, 09:14. 41.2 s, 5 LLM calls, 18.4k tokens in, 3.1k out, about USD 0.021. Prompts: classify v2, read_page v3, categorize v4.</p></div>
-        <span class="row"><a class="link" href="evidence-viewer.html">Findings A01, M03, M04</a></span></div>
+      <div class="spread"><div><h2 class="type-h2" id="rd-h">{rnw("detail.title", workflow=rnw(f"detail.workflow.{run['kind']}"), target=run["target"])}</h2><p class="muted small">{summary}</p></div></div>
       <div class="run-layout">
         <div class="panel waterfall-panel">
-          <div class="span-axis" aria-hidden="true"><span class="span-name"></span><span class="span-track">{axis}</span></div>
-          <ol class="spans">{''.join(rows)}</ol>
-          <p class="span-legend"><span class="llm"><i></i>Model call</span><span class="code"><i></i>Code</span><span class="node"><i></i>Workflow and nodes</span></p>
+          <div class="span-axis" aria-hidden="true"><span class="span-name"></span><span class="span-track">{ticks}</span></div>
+          <ol class="spans">{''.join(lis)}</ol>
+          <p class="span-legend"><span class="llm"><i></i>{rnw("detail.legend.llm")}</span><span class="code"><i></i>{rnw("detail.legend.code")}</span><span class="node"><i></i>{rnw("detail.legend.node")}</span></p>
         </div>
         {inspector}
       </div>
     </section>
   </div>
 </div>"""
-    return shell("runs", topbar("Runs", ("Runs",)), content, fab=False)
+    return shell("runs", topbar(rnw("title"), (rnw("title"),)), content, fab=False)
 
 
 SCREENS_MORE = {

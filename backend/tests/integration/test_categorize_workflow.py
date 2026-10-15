@@ -69,6 +69,14 @@ async def test_lines_are_categorized_by_rules_then_the_model():
         "NONE",
         "UNCLASSIFIED",
     )
+    # AC-016-1: every category the run decided is a label, with its source and confidence.
+    labels = await deps.label_repo.list_labels("org_1", task="CATEGORY", limit=None)
+    by_tx = {lb.subject.tx_id: lb for lb in labels}
+    assert by_tx[sale.tx_id].ai.source == "MODEL" and by_tx[sale.tx_id].ai.model == "fake-model"
+    assert by_tx[sale.tx_id].ai.run_id and by_tx[sale.tx_id].final_value == "SALES_RECEIPT"
+    assert by_tx[payroll.tx_id].ai.source == "RULE" and by_tx[payroll.tx_id].ai.model is None
+    assert unsure.tx_id not in by_tx, "an undecided line is no label yet"
+    assert all(lb.status == "AI_PROPOSED" and lb.month == "2026-03" for lb in labels)
     api_sale = next(i for i in body["items"] if i["txId"] == sale.tx_id)
     assert (api_sale["category"], api_sale["cashflowClass"], api_sale["categorizedBy"]) == (
         "SALES_RECEIPT",

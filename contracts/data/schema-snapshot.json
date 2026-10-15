@@ -271,6 +271,29 @@
     "file": "invoice.py",
     "schemaVersion": null
   },
+  "LabelDoc": {
+    "fields": {
+      "ai": "dict[str, Any]",
+      "ai_disagrees_with_person": "bool",
+      "cashflow_class": "str | None",
+      "dataset": "dict[str, Any]",
+      "decided_at": "datetime | None",
+      "decided_by": "str | None",
+      "extraction_url": "str | None",
+      "final": "dict[str, Any]",
+      "framework": "str | None",
+      "label_id": "str",
+      "month": "str | None",
+      "needs_check": "bool",
+      "note": "str | None",
+      "page_image_url": "str | None",
+      "status": "str",
+      "subject": "dict[str, Any]",
+      "task": "str"
+    },
+    "file": "label.py",
+    "schemaVersion": null
+  },
   "LedgerEntryDoc": {
     "fields": {
       "account_code": "str",
@@ -528,6 +551,20 @@
       "parser_pages": "int"
     },
     "file": "workspace.py",
+    "schemaVersion": null
+  },
+  "WorkspaceRuleDoc": {
+    "fields": {
+      "active": "bool",
+      "category": "str",
+      "counterparty_key": "str",
+      "created_at": "datetime",
+      "created_by": "str",
+      "direction": "str",
+      "rule_id": "str",
+      "source_label_id": "str"
+    },
+    "file": "label.py",
     "schemaVersion": null
   }
 }

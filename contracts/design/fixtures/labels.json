@@ -1,0 +1,551 @@
+{
+  "_comment": "Synthetic labels of the Sunrise Coffee Roasters demo workspace (IDR): the first page of GET /api/labels as the mock and the browser check show it.",
+  "items": [
+    {
+      "labelId": "lbl_0000000000000004",
+      "task": "FIELD_VALUE",
+      "subject": {
+        "display": "INV-SCR-2026-06-0024.pdf",
+        "docId": "doc_inv_0024",
+        "pageNo": 1,
+        "field": "total"
+      },
+      "month": "2026-06",
+      "ai": {
+        "value": "4200000.00",
+        "confidence": null,
+        "source": "MODEL",
+        "model": "gemini-2.5-flash",
+        "promptVersion": "read_page v3",
+        "runId": "doc-doc_inv_0024-1",
+        "traceId": "4be04be04be04be04be04be04be04be0",
+        "spanId": "9d10",
+        "ruleId": null,
+        "at": "2026-07-02T09:14:00Z"
+      },
+      "final": {
+        "value": "4200000.00",
+        "source": "MODEL"
+      },
+      "status": "AI_PROPOSED",
+      "needsCheck": true,
+      "framework": null,
+      "cashflowClass": null,
+      "decidedBy": null,
+      "decidedAt": null,
+      "note": null,
+      "aiDisagreesWithPerson": false,
+      "extractionUrl": null,
+      "pageImageUrl": "/api/documents/doc_inv_0024/pages/1",
+      "dataset": {
+        "use": "EXCLUDED",
+        "reason": "not checked by a person"
+      }
+    },
+    {
+      "labelId": "lbl_0000000000000003",
+      "task": "CATEGORY",
+      "subject": {
+        "display": "CASH DEPOSIT",
+        "docId": "doc_jun",
+        "pageNo": 2,
+        "txId": "tx_cash_0621"
+      },
+      "month": "2026-06",
+      "ai": {
+        "value": "SALES_RECEIPT",
+        "confidence": 0.58,
+        "source": "MODEL",
+        "model": "gemini-2.5-flash-lite",
+        "promptVersion": "categorize v4",
+        "runId": "doc-doc_jun-1",
+        "traceId": "4be04be04be04be04be04be04be04be0",
+        "spanId": "9c01",
+        "ruleId": null,
+        "at": "2026-07-02T09:14:00Z"
+      },
+      "final": {
+        "value": "SALES_RECEIPT",
+        "source": "MODEL"
+      },
+      "status": "AI_PROPOSED",
+      "needsCheck": true,
+      "framework": "IFRS",
+      "cashflowClass": "OPERATING",
+      "decidedBy": null,
+      "decidedAt": null,
+      "note": null,
+      "aiDisagreesWithPerson": false,
+      "extractionUrl": null,
+      "pageImageUrl": "/api/documents/doc_jun/pages/2",
+      "dataset": {
+        "use": "EXCLUDED",
+        "reason": "not checked by a person"
+      }
+    },
+    {
+      "labelId": "lbl_0000000000000002",
+      "task": "PAGE_TYPE",
+      "subject": {
+        "display": "ACB_Mar_2026.pdf, page 3",
+        "docId": "doc_mar",
+        "pageNo": 3
+      },
+      "month": null,
+      "ai": {
+        "value": "TERMS_OR_COVER",
+        "confidence": 0.62,
+        "source": "MODEL",
+        "model": "gemini-2.5-flash",
+        "promptVersion": "read_page v3",
+        "runId": "doc-doc_mar-1",
+        "traceId": "4be04be04be04be04be04be04be04be0",
+        "spanId": "9f41",
+        "ruleId": null,
+        "at": "2026-07-02T09:14:00Z"
+      },
+      "final": {
+        "value": "TERMS_OR_COVER",
+        "source": "MODEL"
+      },
+      "status": "AI_PROPOSED",
+      "needsCheck": true,
+      "framework": null,
+      "cashflowClass": null,
+      "decidedBy": null,
+      "decidedAt": null,
+      "note": null,
+      "aiDisagreesWithPerson": false,
+      "extractionUrl": null,
+      "pageImageUrl": "/api/documents/doc_mar/pages/3",
+      "dataset": {
+        "use": "EXCLUDED",
+        "reason": "not checked by a person"
+      }
+    },
+    {
+      "labelId": "lbl_0000000000000001",
+      "task": "CATEGORY",
+      "subject": {
+        "display": "TRANSFER OUT ROASTLINE EQUIPMENT",
+        "docId": "doc_may",
+        "pageNo": 1,
+        "txId": "tx_roastline_0506",
+        "counterpartyId": "cp_roastline"
+      },
+      "month": "2026-05",
+      "ai": {
+        "value": "SUPPLIER_PAYMENT",
+        "confidence": 0.66,
+        "source": "MODEL",
+        "model": "gemini-2.5-flash-lite",
+        "promptVersion": "categorize v4",
+        "runId": "doc-doc_may-1",
+        "traceId": "4be04be04be04be04be04be04be04be0",
+        "spanId": "7c2e",
+        "ruleId": null,
+        "at": "2026-07-02T09:14:00Z"
+      },
+      "final": {
+        "value": "SUPPLIER_PAYMENT",
+        "source": "MODEL"
+      },
+      "status": "AI_PROPOSED",
+      "needsCheck": true,
+      "framework": "IFRS",
+      "cashflowClass": "OPERATING",
+      "decidedBy": null,
+      "decidedAt": null,
+      "note": null,
+      "aiDisagreesWithPerson": false,
+      "extractionUrl": null,
+      "pageImageUrl": "/api/documents/doc_may/pages/1",
+      "dataset": {
+        "use": "EXCLUDED",
+        "reason": "not checked by a person"
+      }
+    },
+    {
+      "labelId": "lbl_0000000000000005",
+      "task": "PAGE_TYPE",
+      "subject": {
+        "display": "Receipt 0617.jpg, page 1",
+        "docId": "doc_rcp_0617",
+        "pageNo": 1
+      },
+      "month": null,
+      "ai": {
+        "value": "RECEIPT",
+        "confidence": 0.71,
+        "source": "MODEL",
+        "model": "gemini-2.5-flash",
+        "promptVersion": "read_page v3",
+        "runId": "doc-doc_rcp_0617-1",
+        "traceId": "4be04be04be04be04be04be04be04be0",
+        "spanId": "9a22",
+        "ruleId": null,
+        "at": "2026-07-02T09:14:00Z"
+      },
+      "final": {
+        "value": "RECEIPT",
+        "source": "MODEL"
+      },
+      "status": "AI_PROPOSED",
+      "needsCheck": true,
+      "framework": null,
+      "cashflowClass": null,
+      "decidedBy": null,
+      "decidedAt": null,
+      "note": null,
+      "aiDisagreesWithPerson": false,
+      "extractionUrl": null,
+      "pageImageUrl": "/api/documents/doc_rcp_0617/pages/1",
+      "dataset": {
+        "use": "EXCLUDED",
+        "reason": "not checked by a person"
+      }
+    },
+    {
+      "labelId": "lbl_0000000000000007",
+      "task": "CATEGORY",
+      "subject": {
+        "display": "DEBIT INTEREST LOAN",
+        "docId": "doc_mar",
+        "pageNo": 3,
+        "txId": "tx_interest_0325"
+      },
+      "month": "2026-03",
+      "ai": {
+        "value": "INTEREST_PAID",
+        "confidence": 0.74,
+        "source": "MODEL",
+        "model": "gemini-2.5-flash-lite",
+        "promptVersion": "categorize v4",
+        "runId": "doc-doc_mar-1",
+        "traceId": "4be04be04be04be04be04be04be04be0",
+        "spanId": "7b11",
+        "ruleId": null,
+        "at": "2026-07-02T09:14:00Z"
+      },
+      "final": {
+        "value": "INTEREST_PAID",
+        "source": "PERSON"
+      },
+      "status": "VERIFIED",
+      "needsCheck": false,
+      "framework": "IFRS",
+      "cashflowClass": "FINANCING",
+      "decidedBy": "Maya Sari",
+      "decidedAt": "2026-07-12T10:05:00Z",
+      "note": null,
+      "aiDisagreesWithPerson": false,
+      "extractionUrl": null,
+      "pageImageUrl": "/api/documents/doc_mar/pages/3",
+      "dataset": {
+        "use": "EVAL",
+        "reason": null
+      }
+    },
+    {
+      "labelId": "lbl_0000000000000006",
+      "task": "CATEGORY",
+      "subject": {
+        "display": "TRANSFER OUT GREEN VALLEY FARMS 0912",
+        "docId": "doc_mar",
+        "pageNo": 2,
+        "txId": "tx_gvf_0312",
+        "counterpartyId": "cp_green_valley"
+      },
+      "month": "2026-03",
+      "ai": {
+        "value": "SUPPLIER_PAYMENT",
+        "confidence": 0.81,
+        "source": "MODEL",
+        "model": "gemini-2.5-flash-lite",
+        "promptVersion": "categorize v4",
+        "runId": "doc-doc_mar-1",
+        "traceId": "4be04be04be04be04be04be04be04be0",
+        "spanId": "7a90",
+        "ruleId": null,
+        "at": "2026-07-02T09:14:00Z"
+      },
+      "final": {
+        "value": "INVENTORY_PURCHASE",
+        "source": "PERSON"
+      },
+      "status": "CORRECTED",
+      "needsCheck": false,
+      "framework": "IFRS",
+      "cashflowClass": "OPERATING",
+      "decidedBy": "Maya Sari",
+      "decidedAt": "2026-07-12T10:04:00Z",
+      "note": "Beans for roasting: cost of sales. Rule: similar lines.",
+      "aiDisagreesWithPerson": false,
+      "extractionUrl": null,
+      "pageImageUrl": "/api/documents/doc_mar/pages/2",
+      "dataset": {
+        "use": "TRAIN",
+        "reason": null
+      }
+    },
+    {
+      "labelId": "lbl_000000000000000b",
+      "task": "PAGE_TYPE",
+      "subject": {
+        "display": "BLU-2026-118.pdf, page 1",
+        "docId": "doc_blu_118",
+        "pageNo": 1
+      },
+      "month": null,
+      "ai": {
+        "value": "INVOICE",
+        "confidence": 0.95,
+        "source": "MODEL",
+        "model": "gemini-2.5-flash",
+        "promptVersion": "read_page v3",
+        "runId": "doc-doc_blu_118-1",
+        "traceId": "4be04be04be04be04be04be04be04be0",
+        "spanId": "8n02",
+        "ruleId": null,
+        "at": "2026-07-02T09:14:00Z"
+      },
+      "final": {
+        "value": "INVOICE",
+        "source": "MODEL"
+      },
+      "status": "AI_PROPOSED",
+      "needsCheck": false,
+      "framework": null,
+      "cashflowClass": null,
+      "decidedBy": null,
+      "decidedAt": null,
+      "note": null,
+      "aiDisagreesWithPerson": false,
+      "extractionUrl": null,
+      "pageImageUrl": "/api/documents/doc_blu_118/pages/1",
+      "dataset": {
+        "use": "EXCLUDED",
+        "reason": "not checked by a person"
+      }
+    },
+    {
+      "labelId": "lbl_000000000000000a",
+      "task": "DOC_TYPE",
+      "subject": {
+        "display": "RES-0045.pdf",
+        "docId": "doc_res_0045",
+        "pageNo": 1
+      },
+      "month": null,
+      "ai": {
+        "value": "PURCHASE_INVOICE",
+        "confidence": 0.97,
+        "source": "RULE",
+        "model": null,
+        "promptVersion": null,
+        "runId": "doc-doc_res_0045-1",
+        "traceId": "4be04be04be04be04be04be04be04be0",
+        "spanId": "8l03",
+        "ruleId": null,
+        "at": "2026-07-02T09:14:00Z"
+      },
+      "final": {
+        "value": "PURCHASE_INVOICE",
+        "source": "RULE"
+      },
+      "status": "AI_PROPOSED",
+      "needsCheck": false,
+      "framework": null,
+      "cashflowClass": null,
+      "decidedBy": null,
+      "decidedAt": null,
+      "note": null,
+      "aiDisagreesWithPerson": false,
+      "extractionUrl": null,
+      "pageImageUrl": "/api/documents/doc_res_0045/pages/1",
+      "dataset": {
+        "use": "EXCLUDED",
+        "reason": "not checked by a person"
+      }
+    },
+    {
+      "labelId": "lbl_000000000000000c",
+      "task": "COUNTERPARTY_ROLE",
+      "subject": {
+        "display": "Hillside Coffee Bar",
+        "counterpartyId": "cp_hillside"
+      },
+      "month": null,
+      "ai": {
+        "value": "CLIENT",
+        "confidence": 0.97,
+        "source": "RULE",
+        "model": null,
+        "promptVersion": null,
+        "runId": "month-2026-06-3",
+        "traceId": "4be04be04be04be04be04be04be04be0",
+        "spanId": "9f55",
+        "ruleId": null,
+        "at": "2026-07-02T09:14:00Z"
+      },
+      "final": {
+        "value": "CLIENT",
+        "source": "RULE"
+      },
+      "status": "AI_PROPOSED",
+      "needsCheck": false,
+      "framework": null,
+      "cashflowClass": null,
+      "decidedBy": null,
+      "decidedAt": null,
+      "note": null,
+      "aiDisagreesWithPerson": false,
+      "extractionUrl": null,
+      "pageImageUrl": null,
+      "dataset": {
+        "use": "EXCLUDED",
+        "reason": "not checked by a person"
+      }
+    },
+    {
+      "labelId": "lbl_0000000000000008",
+      "task": "PAGE_TYPE",
+      "subject": {
+        "display": "ACB_Mar_2026.pdf, page 2",
+        "docId": "doc_mar",
+        "pageNo": 2
+      },
+      "month": null,
+      "ai": {
+        "value": "STATEMENT_TRANSACTIONS",
+        "confidence": 0.98,
+        "source": "MODEL",
+        "model": "gemini-2.5-flash",
+        "promptVersion": "read_page v3",
+        "runId": "doc-doc_mar-1",
+        "traceId": "4be04be04be04be04be04be04be04be0",
+        "spanId": "7k20",
+        "ruleId": null,
+        "at": "2026-07-02T09:14:00Z"
+      },
+      "final": {
+        "value": "STATEMENT_TRANSACTIONS",
+        "source": "PERSON"
+      },
+      "status": "VERIFIED",
+      "needsCheck": false,
+      "framework": null,
+      "cashflowClass": null,
+      "decidedBy": "Maya Sari",
+      "decidedAt": "2026-07-12T10:03:00Z",
+      "note": null,
+      "aiDisagreesWithPerson": false,
+      "extractionUrl": null,
+      "pageImageUrl": "/api/documents/doc_mar/pages/2",
+      "dataset": {
+        "use": "TRAIN",
+        "reason": null
+      }
+    },
+    {
+      "labelId": "lbl_0000000000000009",
+      "task": "DOC_TYPE",
+      "subject": {
+        "display": "ledger-2026-H1.csv",
+        "docId": "doc_ledger_h1",
+        "pageNo": 1
+      },
+      "month": null,
+      "ai": {
+        "value": "LEDGER_EXPORT",
+        "confidence": 0.99,
+        "source": "MODEL",
+        "model": "gemini-2.5-flash-lite",
+        "promptVersion": "classify v2",
+        "runId": "doc-doc_ledger_h1-1",
+        "traceId": "4be04be04be04be04be04be04be04be0",
+        "spanId": "6z01",
+        "ruleId": null,
+        "at": "2026-07-02T09:14:00Z"
+      },
+      "final": {
+        "value": "LEDGER_EXPORT",
+        "source": "PERSON"
+      },
+      "status": "VERIFIED",
+      "needsCheck": false,
+      "framework": null,
+      "cashflowClass": null,
+      "decidedBy": "Maya Sari",
+      "decidedAt": "2026-07-02T09:30:00Z",
+      "note": null,
+      "aiDisagreesWithPerson": false,
+      "extractionUrl": null,
+      "pageImageUrl": "/api/documents/doc_ledger_h1/pages/1",
+      "dataset": {
+        "use": "TRAIN",
+        "reason": null
+      }
+    },
+    {
+      "labelId": "lbl_000000000000000d",
+      "task": "PAGE_TYPE",
+      "subject": {
+        "display": "ACB_Mar_2026.pdf, page 1",
+        "docId": "doc_mar",
+        "pageNo": 1
+      },
+      "month": null,
+      "ai": {
+        "value": "STATEMENT_SUMMARY",
+        "confidence": 0.99,
+        "source": "MODEL",
+        "model": "gemini-2.5-flash",
+        "promptVersion": "read_page v3",
+        "runId": "doc-doc_mar-1",
+        "traceId": "4be04be04be04be04be04be04be04be0",
+        "spanId": "7k19",
+        "ruleId": null,
+        "at": "2026-07-02T09:14:00Z"
+      },
+      "final": {
+        "value": "STATEMENT_SUMMARY",
+        "source": "MODEL"
+      },
+      "status": "AI_PROPOSED",
+      "needsCheck": false,
+      "framework": null,
+      "cashflowClass": null,
+      "decidedBy": null,
+      "decidedAt": null,
+      "note": null,
+      "aiDisagreesWithPerson": false,
+      "extractionUrl": null,
+      "pageImageUrl": "/api/documents/doc_mar/pages/1",
+      "dataset": {
+        "use": "EXCLUDED",
+        "reason": "not checked by a person"
+      }
+    }
+  ],
+  "nextCursor": null,
+  "summary": {
+    "total": 1284,
+    "needsCheck": 37,
+    "verified": 201,
+    "corrected": 11,
+    "aiAgreementOnChecked": 0.948,
+    "byTask": {
+      "DOC_TYPE": 92,
+      "PAGE_TYPE": 214,
+      "CATEGORY": 812,
+      "COUNTERPARTY_ROLE": 14,
+      "FIELD_VALUE": 152
+    },
+    "byStatus": {
+      "AI_PROPOSED": 1072,
+      "VERIFIED": 201,
+      "CORRECTED": 11
+    }
+  }
+}

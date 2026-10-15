@@ -2754,6 +2754,8 @@ components:
         verified: { type: integer }
         corrected: { type: integer }
         aiAgreementOnChecked: { type: [number, "null"], description: "Share of person-checked labels where the AI was right" }
+        byTask: { type: object, additionalProperties: { type: integer }, description: "Labels per task, for the task switch" }
+        byStatus: { type: object, additionalProperties: { type: integer }, description: "Labels per status" }
     LabelPage:
       type: object
       required: [items, summary]
@@ -2792,6 +2794,7 @@ components:
         spanId: { type: [string, "null"] }
         parentSpanId: { type: [string, "null"] }
         content: { type: [string, "null"], description: "Prompt or response text, only where content capture is on (ADR-017)" }
+        summary: { type: [string, "null"], description: "The stage's one-line outcome, never document content" }
         labelIds: { type: array, items: { type: string } }
     AgentEventPage:
       type: object

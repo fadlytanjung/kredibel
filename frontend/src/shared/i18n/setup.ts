@@ -12,7 +12,9 @@ import onboardingEn from './locales/en/onboarding.json'
 import counterpartiesEn from './locales/en/counterparties.json'
 import publicEn from './locales/en/public.json'
 import reviewEn from './locales/en/review.json'
+import labelsEn from './locales/en/labels.json'
 import riskEn from './locales/en/risk.json'
+import runsEn from './locales/en/runs.json'
 import settingsEn from './locales/en/settings.json'
 
 void i18n.use(initReactI18next).init({
@@ -30,6 +32,10 @@ void i18n.use(initReactI18next).init({
       counterparties: counterpartiesEn,
       review: reviewEn,
       risk: riskEn,
+
+      labels: labelsEn,
+
+      runs: runsEn,
       settings: settingsEn,
     },
   },

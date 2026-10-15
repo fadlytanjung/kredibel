@@ -41,21 +41,14 @@ def test_ac019_1_screen_inventory_covers_all_screens():
         assert info.badge_label, f"Screen {slug} must have a badge label"
 
 
-def test_ac019_1_planned_screens_marked_design_only():
-    """AC-019-1: Planned Labels and Runs remain marked as design-only."""
-    design_only_slugs = {"labels", "runs"}
-    for slug in design_only_slugs:
-        assert slug in SCREEN_INVENTORY, f"{slug} must be in inventory"
+def test_ac019_1_labels_and_runs_are_implemented_from_their_fixtures():
+    """AC-019-1: the Labels and Runs screens are built (specs 016 and 017); their mocks draw from
+    the same synthetic fixtures as the browser checks."""
+    for slug, fixture in (("labels", "labels.json"), ("runs", "runs.json")):
         info = SCREEN_INVENTORY[slug]
-        assert info.status == "DESIGN_ONLY", f"{slug} must be marked DESIGN_ONLY"
-        assert "Design only" in info.badge_label
-        assert "P1" in info.badge_label
-
-    # Verify that in the React app, these routes are placeholders
-    router_ts = (ROOT / "frontend" / "src" / "app" / "router.tsx").read_text(encoding="utf-8")
-    assert "CounterpartiesPage" in router_ts
-    assert "LabelsPage" in router_ts
-    assert "RunsPage" in router_ts
+        assert info.status == "IMPLEMENTED", f"{slug} is built"
+        assert info.badge_label == "Implemented"
+        assert (ROOT / "contracts" / "design" / "fixtures" / fixture).exists()
 
 
 def test_ac019_1_mock_index_renders_route_and_status():
@@ -66,7 +59,7 @@ def test_ac019_1_mock_index_renders_route_and_status():
 
     # Index must show status badges and route tags
     assert "badge" in content
-    assert "Design only (P1)" in content
+    assert "Implemented" in content
     assert "Implemented" in content
     assert "/counterparties" in content
     assert "/labels" in content
@@ -77,17 +70,17 @@ def test_ac019_1_opened_screens_identify_status_and_route():
     """AC-019-1: Opened screens display implementation status and route in markup."""
     mocks_dir = ROOT / "design" / "mocks"
 
-    # Check key design-only screens
-    for slug in ("labels", "runs"):
-        html_file = mocks_dir / f"{slug}.html"
-        assert html_file.exists(), f"{html_file} must exist"
-        html = html_file.read_text(encoding="utf-8")
-        assert "Design only (P1)" in html, f"{slug}.html must display Design only (P1)"
-        info = SCREEN_INVENTORY[slug]
-        assert info.route in html, f"{slug}.html must display route {info.route}"
-
     # Check implemented screens
-    for slug in ("dashboard", "documents", "review", "profit-loss", "clients", "counterparty"):
+    for slug in (
+        "dashboard",
+        "documents",
+        "review",
+        "profit-loss",
+        "clients",
+        "counterparty",
+        "labels",
+        "runs",
+    ):
         html_file = mocks_dir / f"{slug}.html"
         assert html_file.exists(), f"{html_file} must exist"
         html = html_file.read_text(encoding="utf-8")

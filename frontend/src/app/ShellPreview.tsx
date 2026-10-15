@@ -13,7 +13,9 @@ import { DocumentPage } from '../pages/DocumentPage'
 import { MonthPage } from '../pages/MonthPage'
 import { MonthsPage } from '../pages/MonthsPage'
 import { ReviewPage } from '../pages/ReviewPage'
+import { LabelsPage } from '../pages/LabelsPage'
 import { RiskPage } from '../pages/RiskPage'
+import { RunsContent } from '../pages/RunsPage'
 import { SettingsPage } from '../pages/SettingsPage'
 import { AppShell } from '../shared/ui'
 
@@ -84,6 +86,24 @@ export function RiskPreview() {
   return (
     <AppShell {...PREVIEW_PROPS} activePath="/risk" onUpload={() => undefined}>
       <RiskPage />
+    </AppShell>
+  )
+}
+
+/** The labels page inside the shell; Playwright serves the fixture's labels (spec 016). */
+export function LabelsPreview() {
+  return (
+    <AppShell {...PREVIEW_PROPS} activePath="/labels" onUpload={() => undefined}>
+      <LabelsPage />
+    </AppShell>
+  )
+}
+
+/** The runs page inside the shell; Playwright serves the fixture's runs and events (spec 017). */
+export function RunsPreview() {
+  return (
+    <AppShell {...PREVIEW_PROPS} activePath="/runs" onUpload={() => undefined}>
+      <RunsContent role={new URLSearchParams(window.location.search).get('role') ?? 'owner'} />
     </AppShell>
   )
 }

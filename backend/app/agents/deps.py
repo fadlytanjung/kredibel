@@ -6,6 +6,7 @@ from app.core.clock import Clock, SystemClock
 from app.core.settings import Settings
 from app.domain.categorize import CategoryPolicy
 from app.domain.checks.policy import ForensicsPolicy
+from app.domain.labels import LearningPolicy
 from app.domain.models.invoice import Invoice, Receipt
 from app.domain.reconciliation_policy import ReconciliationPolicy
 from app.domain.risk import RiskPolicy
@@ -17,6 +18,7 @@ from app.ports.document_repository import DocumentRepository
 from app.ports.document_storage import DocumentStorage
 from app.ports.file_inspector import FileInspector
 from app.ports.finding_repository import FindingRepository
+from app.ports.label_repository import LabelRepository
 from app.ports.ledger_repository import LedgerRepository
 from app.ports.match_repository import MatchRepository
 from app.ports.month_repository import MonthRepository
@@ -66,3 +68,6 @@ class PipelineDeps:
     # Clients and suppliers, profile suggestions (spec 014).
     counterparties: CounterpartyRepository | None = None
     suggestions: SuggestionRepository | None = None
+    # Labels and learning (spec 016): where every automatic decision goes, and the thresholds.
+    labels: LabelRepository | None = None
+    learning: LearningPolicy | None = None

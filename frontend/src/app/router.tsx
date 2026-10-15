@@ -24,6 +24,7 @@ import { SecurityPage } from '../pages/public/SecurityPage'
 import { TermsPage } from '../pages/public/TermsPage'
 import { AppShell, Button } from '../shared/ui'
 import { TrialBanner } from '../widgets/TrialBanner'
+import { useLabels } from '../entities/label'
 
 // Every app page but the dashboard is its own chunk (AC-010-11): the first paint ships the shell only.
 // The public pages load eagerly too: the landing is the first paint at `/` (spec 020).
@@ -39,8 +40,8 @@ const RiskPage = lazy(() => import('../pages/RiskPage').then((m) => ({ default: 
 const SettingsPage = lazy(() => import('../pages/SettingsPage').then((m) => ({ default: m.SettingsPage })))
 const CounterpartiesPage = lazy(() => import('../pages/CounterpartiesPage').then((m) => ({ default: m.CounterpartiesPage })))
 const CounterpartyPage = lazy(() => import('../pages/CounterpartyPage').then((m) => ({ default: m.CounterpartyPage })))
-const LabelsPage = lazy(() => import('../pages/Placeholders').then((m) => ({ default: m.LabelsPage })))
-const RunsPage = lazy(() => import('../pages/Placeholders').then((m) => ({ default: m.RunsPage })))
+const LabelsPage = lazy(() => import('../pages/LabelsPage').then((m) => ({ default: m.LabelsPage })))
+const RunsPage = lazy(() => import('../pages/RunsPage').then((m) => ({ default: m.RunsPage })))
 const OnboardingPreview = lazy(() => import('./OnboardingPreview').then((m) => ({ default: m.OnboardingPreview })))
 const AssistantPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.AssistantPreview })))
 const DocumentPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.DocumentPreview })))
@@ -50,6 +51,8 @@ const ProfitLossPreview = lazy(() => import('./ShellPreview').then((m) => ({ def
 const CounterpartiesPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.CounterpartiesPreview })))
 const CounterpartyPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.CounterpartyPreview })))
 const RiskPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.RiskPreview })))
+const LabelsPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.LabelsPreview })))
+const RunsPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.RunsPreview })))
 const ReviewPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.ReviewPreview })))
 const SettingsPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.SettingsPreview })))
 const ShellPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.ShellPreview })))
@@ -92,6 +95,7 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
   const navigate = useNavigate()
   const workspaceQuery = useWorkspace(Boolean(user && me?.orgId))
   const reviewQuery = useReviewItems(Boolean(user && me?.orgId))
+  const labelsQuery = useLabels({ needsCheck: true, limit: 1 })
 
   if (loading) return <FullPageLoading />
   if (!user) return <Navigate to="/login" replace />
@@ -111,7 +115,7 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
   return (
     <AppShell
       user={{ name, role: me?.role }}
-      counts={{ review: reviewQuery.data?.items.length }}
+      counts={{ review: reviewQuery.data?.items.length, labels: labelsQuery.data?.summary.needsCheck }}
       workspace={shell?.workspace}
       trial={shell?.trial}
       banner={shell?.trial && <TrialBanner trial={shell.trial} />}
@@ -151,8 +155,7 @@ const PUBLIC_ROUTES: { path: string; element: ReactNode }[] = [
   { path: '/terms', element: <TermsPage /> },
 ]
 
-// docs/11 §4.2; the dashboard is at /dashboard so `/` can be the public landing (spec 020); labels
-// and runs show placeholders until their specs.
+// docs/11 §4.2; the dashboard is at /dashboard so `/` can be the public landing (spec 020).
 const PROTECTED_ROUTES: { path: string; element: ReactNode }[] = [
   { path: '/dashboard', element: <DashboardPage /> },
   { path: '/documents', element: <DocumentsPage /> },
@@ -211,6 +214,10 @@ export function AppRouter() {
         {PREVIEW_ROUTES && <Route path="/preview/review/:itemId" element={<ReviewPreview />} />}
         {PREVIEW_ROUTES && <Route path="/preview/risk" element={<RiskPreview />} />}
         {PREVIEW_ROUTES && <Route path="/preview/risk/:findingId" element={<RiskPreview />} />}
+        {PREVIEW_ROUTES && <Route path="/preview/labels" element={<LabelsPreview />} />}
+        {PREVIEW_ROUTES && <Route path="/preview/labels/:labelId" element={<LabelsPreview />} />}
+        {PREVIEW_ROUTES && <Route path="/preview/runs" element={<RunsPreview />} />}
+        {PREVIEW_ROUTES && <Route path="/preview/runs/:runId" element={<RunsPreview />} />}
         {PREVIEW_ROUTES && <Route path="/preview/profit-loss" element={<ProfitLossPreview />} />}
         {PREVIEW_ROUTES && <Route path="/preview/counterparties" element={<CounterpartiesPreview />} />}
         {PREVIEW_ROUTES && (

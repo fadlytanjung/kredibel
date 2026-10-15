@@ -683,6 +683,8 @@ a:hover { color: var(--k-color-brand-hover); }
 .subject .ico { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: var(--k-color-bg-surface); color: var(--k-color-text-default); grid-row: span 2; }
 .subject .t { font-size: 14px; font-weight: 620; }
 .subject .s { font-size: 12.5px; color: var(--k-color-text-muted); }
+.subject > .s { grid-column: 2; } /* under the title, never beside it (a document's label row in a narrow panel) */
+.subject > .amt { grid-column: 3; grid-row: 1 / span 2; }
 .subject .amt { grid-row: span 2; font-size: 20px; font-weight: 660; font-stretch: 108%; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .candidates { display: flex; flex-direction: column; gap: var(--k-space-3); }
 @container review (width < 560px) {

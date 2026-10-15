@@ -53,6 +53,7 @@ from app.domain.models.bank_line import BankLine
 from app.domain.models.document import (
     DocStatus,
     DocType,
+    Document,
     DuplicateDecision,
     DuplicateInfo,
     DuplicateKind,
@@ -69,7 +70,7 @@ from app.domain.reading import (
     TransactionItem,
     build_statement,
 )
-from app.domain.review_items import confirm_mapping_item
+from app.domain.review_items import confirm_mapping_item, confirm_type_item
 from app.domain.risk import assess_document_risk
 from app.domain.verdict import integrity_verdict
 
@@ -159,6 +160,8 @@ def classify_document(deps: PipelineDeps):
         doc = await deps.doc_repo.get_document(org_id, doc_id)
         if doc is None or deps.reader is None or deps.storage is None:
             return await _classify_without_reader(deps, node_input)
+        if doc.type_set_by:
+            return _type_chosen(node_input, doc)
         image = await deps.storage.get_page_image(org_id, doc_id, 1)
         if image is None:
             return await _classify_without_reader(deps, node_input)
@@ -174,6 +177,8 @@ def classify_document(deps: PipelineDeps):
             status_detail=None if confident else "E03_UNCERTAIN_TYPE",
         )
         await deps.doc_repo.save_document(org_id, updated)
+        if not confident:
+            await _ask_for_type(deps, updated, result.doc_type, result.confidence, node_input)
         return {
             **node_input,
             "docType": result.doc_type,
@@ -196,12 +201,58 @@ async def _classify_without_reader(
     doc_type = node_input.get("docType", "BANK_STATEMENT")
     conf = float(node_input.get("typeConfidence") or 1.0)
     org_id, doc_id = _ids(node_input)
+    doc = await deps.doc_repo.get_document(org_id, doc_id)
+    if doc is not None and doc.type_set_by:
+        return _type_chosen(node_input, doc)
     if doc_type == DocType.UNKNOWN.value or conf < _MIN_TYPE_CONFIDENCE:
-        doc = await deps.doc_repo.get_document(org_id, doc_id)
         if doc is not None:
-            await deps.doc_repo.save_document(org_id, replace(doc, status=DocStatus.NEEDS_INPUT))
+            updated = replace(doc, status=DocStatus.NEEDS_INPUT, status_detail="E03_UNCERTAIN_TYPE")
+            await deps.doc_repo.save_document(org_id, updated)
+            guess = "" if doc_type == DocType.UNKNOWN.value else doc_type
+            await _ask_for_type(deps, updated, guess, conf, node_input)
         return {**node_input, "status": "NEEDS_INPUT", "summary": "Type confirmation needed"}
     return {**node_input, "docType": doc_type, "summary": "Classified document"}
+
+
+def _type_chosen(node_input: dict[str, Any], doc: Document) -> dict[str, Any]:
+    """A person chose the type (AC-005-2): the classifier never overrides it."""
+    return {
+        **node_input,
+        "docType": doc.doc_type.value,
+        "typeConfidence": 1.0,
+        "summary": f"{doc.doc_type.value} (chosen by a person)",
+    }
+
+
+async def _ask_for_type(
+    deps: PipelineDeps, doc: Document, guess: str, confidence: float, node_input: dict[str, Any]
+) -> None:
+    """E03 as a finding and the CONFIRM_TYPE item that resolves it (AC-005-2, AC-006-9)."""
+    org_id = node_input["orgId"]
+    shown = f"{confidence:.2f}"
+    if deps.findings is not None:
+        finding = Finding(
+            finding_id=finding_id("E03_UNCERTAIN_TYPE", doc.doc_id),
+            code="E03_UNCERTAIN_TYPE",
+            category="EXTRACTION",
+            severity="LOW",
+            title="Kredibel is not sure what kind of document this is",
+            facts={"docType": guess, "confidence": shown},
+            evidence=[Evidence(doc_id=doc.doc_id, page=1, label="Page 1")],
+            scope="DOCUMENT",
+            doc_id=doc.doc_id,
+        )
+        await deps.findings.replace_document_findings(
+            org_id,
+            doc.doc_id,
+            [finding],
+            run_id=str(node_input.get("runId") or "") or None,
+            categories={"EXTRACTION"},
+        )
+    if deps.review_items is not None:
+        await deps.review_items.upsert_review_item(
+            org_id, confirm_type_item(doc.doc_id, doc.file_name, guess=guess, confidence=shown)
+        )
 
 
 def propose_ledger_mapping(deps: PipelineDeps):

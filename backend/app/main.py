@@ -483,6 +483,7 @@ class AppDeps:
                 receipts=self.receipts,
                 clock=self.clock,
                 ledger=self.ledger_repo,
+                findings=self.findings,
                 workspaces=self.workspace_repo,
                 task_queue=self.task_queue,
             ),

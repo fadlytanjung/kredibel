@@ -112,7 +112,7 @@ The salted hash of the full number lives in `orgPrivate/{orgId}/accountHashes/{a
 | `sha256` | string | Exact-duplicate key (unique per workspace among non-duplicates) |
 | `pHash` | string? | 64-bit perceptual hash of page 1 (images, receipts) |
 | `gcsPath` | string | Never a public URL |
-| `docType`, `typeConfidence` | `BANK_STATEMENT` \| `SALES_INVOICE` \| `PURCHASE_INVOICE` \| `RECEIPT` \| `LEDGER_EXPORT` \| `OTHER` \| `UNKNOWN`; decimal | |
+| `docType`, `typeConfidence`, `typeSetBy?` | `BANK_STATEMENT` \| `SALES_INVOICE` \| `PURCHASE_INVOICE` \| `RECEIPT` \| `LEDGER_EXPORT` \| `OTHER` \| `UNKNOWN`; decimal; the uid of the person who chose the type through the `CONFIRM_TYPE` item | The classifier never overrides a type a person set (AC-005-2) |
 | `status`, `statusDetail?` | `UPLOADED` \| `SCREENING` \| `READING` \| `CHECKING` \| `DONE` \| `DUPLICATE` \| `NEEDS_INPUT` \| `FAILED` \| `QUARANTINED`; plain-language reason | **Realtime channel.** `NEEDS_INPUT` = type or ledger mapping to confirm |
 | `duplicate` | map? | `kind` (`EXACT`, `CONTENT`), `ofDocId`, `code` (`D01`…`D06`), `decision` (`PENDING`, `CONFIRMED`, `REJECTED`), `decidedBy?`, `decidedAt?` |
 | `heldAsDuplicate` | bool | true while a content duplicate is `PENDING` or `CONFIRMED` |

@@ -10,6 +10,7 @@ import { mockUrl, pageImageFromMock, REVIEW, texts, WORKSPACE } from './fixtures
 const require = createRequire(import.meta.url)
 const PROPOSAL = 'itm_0000000000000001'
 const MAPPING = 'itm_0000000000000004'
+const TYPE = REVIEW.items.find((i) => i.kind === 'CONFIRM_TYPE')!.itemId
 const VALUE = 'itm_0000000000000009'
 
 async function serve(page: Page, png?: Buffer) {
@@ -139,6 +140,27 @@ test.describe('Review (spec 009, T009-06; spec 019, T019-03)', () => {
     await expect(confirm).toBeEnabled()
     await page.goto(mockUrl('review-mapping'))
     expect(await mappingOutline()).toEqual(implementation)
+  })
+
+  test('AC-005-2: a document whose kind is unclear asks for its type, with the page beside', async ({ page }) => {
+    const { png } = await pageImageFromMock(page, 'review-type', '.doc-receipt')
+    await serve(page, png)
+    await page.goto(`/preview/review/${TYPE}`)
+    const drawer = page.getByRole('dialog')
+    await expect(drawer.getByText('What kind of document is IMG_4471.jpg?')).toBeVisible()
+    await expect(drawer.locator('.page-zoom img')).toBeVisible()
+    await expect(drawer.getByLabel('Document type', { exact: true })).toHaveValue('RECEIPT')
+    await expect(drawer.getByRole('button', { name: 'Use this type' })).toBeEnabled()
+    await expect(page).toHaveScreenshot('review-type.png', { fullPage: true, mask: [page.locator('select')] })
+    await axeClean(page)
+    const typeOutline = async () => ({
+      ...(await drawerOutline(page)),
+      options: await texts(page, '#content [role="dialog"] select option'),
+      hint: await texts(page, '#content [role="dialog"] .field .muted'),
+    })
+    const implementation = await typeOutline()
+    await page.goto(mockUrl('review-type'))
+    expect(await typeOutline()).toEqual(implementation)
   })
 
   test('AC-019-4: the queue and the drawer stay inside 360 and 1600 px', async ({ page }) => {

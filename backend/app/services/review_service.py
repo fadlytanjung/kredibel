@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import dataclasses
 from dataclasses import replace
+from decimal import Decimal
 from typing import Any
 
 from app.core.auth import Principal
@@ -26,13 +27,15 @@ from app.domain.errors import (
     ValidationProblem,
     WorkspaceRequiredError,
 )
+from app.domain.findings import finding_id
 from app.domain.ledger_parse import LedgerMapping
-from app.domain.models.document import DocStatus, DuplicateDecision
+from app.domain.models.document import DocStatus, DocType, DuplicateDecision
 from app.domain.models.events import AuditEvent
 from app.domain.models.invoice import Invoice, Receipt
 from app.domain.review_items import ResolveAction, ReviewItem, ReviewItemResolution
 from app.ports.bank_line_repository import BankLineRepository
 from app.ports.document_repository import DocumentRepository
+from app.ports.finding_repository import FindingRepository
 from app.ports.ledger_repository import LedgerRepository
 from app.ports.record_repository import DocumentRecords
 from app.ports.review_item_repository import ReviewItemRepository
@@ -84,6 +87,7 @@ class ReviewService:
         workspaces: WorkspaceRepository | None = None,
         task_queue: TaskQueue | None = None,
         ledger: LedgerRepository | None = None,
+        findings: FindingRepository | None = None,
     ) -> None:
         self._items = review_items
         self._matches = matches
@@ -93,6 +97,7 @@ class ReviewService:
         self._docs = doc_repo
         self._holders = (bank_lines, invoices, receipts)
         self._ledger = ledger
+        self._findings = findings
         self._bank_lines = bank_lines
         self._invoices = invoices
         self._receipts = receipts
@@ -162,6 +167,8 @@ class ReviewService:
                 await self._decide_duplicate(principal, item, request.action == "CONFIRM_DUPLICATE")
             case "CONFIRM_MAPPING":
                 await self._confirm_mapping(principal, item, request)
+            case "SET_TYPE":
+                await self._set_type(principal, item, request)
             case _:
                 rerun = False  # NOT_YET_PAID, IGNORE, ACCEPT_AS_READ: the item is the decision
 
@@ -303,6 +310,39 @@ class ReviewService:
         await self._docs.save_document(
             org_id, replace(doc, status=DocStatus.READING, status_detail=None, ledger_meta=meta)
         )
+        if self._task_queue is not None:
+            await self._task_queue.enqueue_document_task(org_id, doc_id, new_id("run"))
+
+    async def _set_type(
+        self, principal: Principal, item: ReviewItem, request: ResolveRequest
+    ) -> None:
+        """AC-005-2: the person's choice of type is kept over the classifier's, the E03 finding is
+        resolved, and the document continues through the workflow."""
+        org_id = _org(principal)
+        allowed = {t.value for t in DocType} - {DocType.UNKNOWN.value}
+        if not request.doc_type or request.doc_type not in allowed:
+            raise ValidationProblem(field="docType", message="Choose a document type")
+        doc_id = item.doc_id or (item.subject.doc_ids or [""])[0]
+        doc = await self._docs.get_document(org_id, doc_id)
+        if doc is None:
+            raise NotFoundError(f"Document {doc_id} not found")
+        await self._docs.save_document(
+            org_id,
+            replace(
+                doc,
+                doc_type=DocType(request.doc_type),
+                type_confidence=Decimal("1"),
+                type_set_by=principal.uid,
+                status=DocStatus.READING,
+                status_detail=None,
+            ),
+        )
+        if self._findings is not None:
+            finding = await self._findings.get_finding(
+                org_id, finding_id("E03_UNCERTAIN_TYPE", doc_id)
+            )
+            if finding is not None and finding.status != "RESOLVED":
+                await self._findings.save_finding(org_id, replace(finding, status="RESOLVED"))
         if self._task_queue is not None:
             await self._task_queue.enqueue_document_task(org_id, doc_id, new_id("run"))
 

@@ -108,6 +108,7 @@ def test_ac019_3_refreshed_references_have_states_drawers_and_planned_markers():
         "review-match": "IMPLEMENTED_DRAWER",
         "review-correction": "IMPLEMENTED_DRAWER",
         "review-mapping": "IMPLEMENTED_DRAWER",
+        "review-type": "IMPLEMENTED_DRAWER",
         "document-ledger-columns": "IMPLEMENTED_STATE",
         "assistant-welcome": "IMPLEMENTED_STATE",
         "assistant-history": "IMPLEMENTED_DRAWER",
@@ -122,6 +123,9 @@ def test_ac019_3_refreshed_references_have_states_drawers_and_planned_markers():
     assert "T005-11" not in ledger
     mapping = (ROOT / "design" / "mocks" / "review-mapping.html").read_text(encoding="utf-8")
     assert "Confirm columns" in mapping and 'aria-label="Description"' in mapping
+    # The type choice is built (AC-005-2): its drawer shows the chooser and the guess.
+    chooser = (ROOT / "design" / "mocks" / "review-type.html").read_text(encoding="utf-8")
+    assert "Use this type" in chooser and "best guess is Receipt" in chooser
     dashboard = (ROOT / "design" / "mocks" / "dashboard.html").read_text(encoding="utf-8")
     assert "Planned, spec 014" in dashboard
 

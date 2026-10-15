@@ -22,7 +22,7 @@ const PREVIEW_PROPS = {
   user: { name: 'Maya Sari', role: 'owner' },
   workspace: { name: 'Sunrise Coffee Roasters', subtitle: 'Company, IDR, IFRS' },
   trial: { status: 'TRIALING' as const, daysLeft: 23, pagesUsed: 286, pagesMax: 400 },
-  counts: { documents: 92, review: 9, risk: 2, labels: 37 },
+  counts: { documents: 92, review: 10, risk: 2, labels: 37 },
 }
 
 export function ShellPreview() {

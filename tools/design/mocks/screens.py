@@ -876,13 +876,9 @@ def receipt_page() -> str:
 </figure>"""
 
 
-def review_correction() -> str:
-    """A value to check: the receipt beside the panel, with the correction form open (T009-03a)."""
-    item = next(i for i in REVIEW_FIX["items"] if i["kind"] == "LOW_CONFIDENCE_VALUE")
-    receipt = next(r for r in REVIEW_FIX["receipts"] if r["receiptId"] == item["subject"]["receiptIds"][0])
-    doc = REVIEW_FIX["documents"][item["subject"]["docIds"][0]]
-    position = REVIEW_FIX["items"].index(item) + 1
-    preview = f"""
+def doc_preview(doc: dict, page_html: str) -> str:
+    """The page beside the panel: the file, its viewer and the synthetic page."""
+    return f"""
 <aside class="review-split-preview" aria-label="{rw("panel.documentPreview")}">
   <div class="review-preview-header">
     <span class="file">{icon("file-text", "icon icon-sm")}<span>{escape(doc["fileName"])}</span></span>
@@ -896,11 +892,20 @@ def review_correction() -> str:
         <span class="pages" role="group" aria-label="{dw("detail.viewer.pages")}"><button type="button" aria-label="{dw("detail.viewer.previous")}" disabled>{icon("chevron-left", "icon icon-sm")}</button><span>{dw("detail.viewer.pageOf", page=1, total=1)}</span><button type="button" aria-label="{dw("detail.viewer.next")}" disabled>{icon("chevron-right", "icon icon-sm")}</button></span>
         <span class="zoom" role="group" aria-label="{dw("detail.viewer.zoom")}"><button type="button" aria-label="{dw("detail.viewer.zoomOut")}">{icon("zoom-out", "icon icon-sm")}</button><span>{dw("detail.viewer.zoomLevel", zoom=100)}</span><button type="button" aria-label="{dw("detail.viewer.zoomIn")}">{icon("zoom-in", "icon icon-sm")}</button></span>
       </div>
-      <div class="doc-window is-image" tabindex="0">{receipt_page()}</div>
+      <div class="doc-window is-image" tabindex="0">{page_html}</div>
       <p class="muted small">{dw("detail.viewer.hint")}</p>
     </section>
   </div>
 </aside>"""
+
+
+def review_correction() -> str:
+    """A value to check: the receipt beside the panel, with the correction form open (T009-03a)."""
+    item = next(i for i in REVIEW_FIX["items"] if i["kind"] == "LOW_CONFIDENCE_VALUE")
+    receipt = next(r for r in REVIEW_FIX["receipts"] if r["receiptId"] == item["subject"]["receiptIds"][0])
+    doc = REVIEW_FIX["documents"][item["subject"]["docIds"][0]]
+    position = REVIEW_FIX["items"].index(item) + 1
+    preview = doc_preview(doc, receipt_page())
     field = item["subject"]["field"]
     form = f"""
 <form class="field" action="review.html" method="get">
@@ -978,6 +983,28 @@ def mapping_editor_markup(view: dict) -> str:
     <div class="table-panel rt-wrap"><table class="data-table mapping-sample"><thead><tr>{sample_head}<th scope="col">{rw("mapping.sampleRead")}</th></tr></thead><tbody>{"".join(sample_rows)}</tbody></table></div>
   </section>
 </div>"""
+
+
+DOC_TYPES = ["BANK_STATEMENT", "SALES_INVOICE", "PURCHASE_INVOICE", "RECEIPT", "LEDGER_EXPORT", "OTHER"]
+
+
+def review_type() -> str:
+    """A document whose kind the classifier is not sure of: choose it, the page beside (AC-005-2)."""
+    item = next(i for i in REVIEW_FIX["items"] if i["kind"] == "CONFIRM_TYPE")
+    doc = REVIEW_FIX["documents"][item["subject"]["docIds"][0]]
+    position = REVIEW_FIX["items"].index(item) + 1
+    guess = item["suggestion"]["docType"]
+    confidence = f'{round(float(item["suggestion"]["confidence"]) * 100)}%'
+    options = "".join(f'<option value="{t}"{" selected" if t == guess else ""}>{dw(f"detail.docType.{t}")}</option>' for t in DOC_TYPES)
+    form = f"""
+<div class="field">
+  <label class="label" for="doc-type">{rw("panel.docType")}</label>
+  <select id="doc-type" class="input">{options}</select>
+  <p class="muted small">{rw("panel.docTypeHint", type=dw(f"detail.docType.{guess}"), confidence=confidence)}</p>
+</div>"""
+    body = document_subject(doc, rw("panel.document"), "document.html") + form
+    drawer = review_drawer(item, body, rw("actions.SET_TYPE"), [], position, doc_preview(doc, receipt_page()))
+    return shell("review", topbar(rw("title"), (rw("title"),)), review_queue(item["itemId"]) + drawer, fab=False)
 
 
 def review_mapping() -> str:
@@ -1581,6 +1608,7 @@ SCREENS = {
     "review-match": ("Review: choose a match", review_match),
     "review-correction": ("Review: check a value", review_correction),
     "review-mapping": ("Review: check columns", review_mapping),
+    "review-type": ("Review: choose the type", review_type),
     "evidence-viewer": ("Evidence viewer", evidence_viewer),
     "assistant": ("Finance Assistant", assistant),
     "assistant-welcome": ("Finance Assistant: welcome", assistant_welcome),

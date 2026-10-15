@@ -53,6 +53,7 @@ def _document_body(doc: Document) -> dict[str, Any]:
         "pageCount": doc.page_count,
         "docType": doc.doc_type.value if hasattr(doc.doc_type, "value") else str(doc.doc_type),
         "typeConfidence": str(doc.type_confidence) if doc.type_confidence is not None else None,
+        "typeSetBy": doc.type_set_by,
         "status": doc.status.value if hasattr(doc.status, "value") else str(doc.status),
         "statusDetail": doc.status_detail,
         "months": doc.months,

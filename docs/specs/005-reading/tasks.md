@@ -11,7 +11,7 @@
 
 - [ ] **T005-05** Spike S1 and S3; record results in `docs/02`. (S1 done 12 Oct 2026, incl. ADR-023 grounding; S3 OCR open)
 - [x] **T005-06** Prompts and schemas; `GeminiGateway` with cache and usage accounting. (AC-005-3, AC-005-9)
-- [x] **T005-07** `classify_document` node incl. `NEEDS_INPUT` + `CONFIRM_TYPE`. (AC-005-1, AC-005-2)
+- [x] **T005-07** `classify_document` node incl. `NEEDS_INPUT` + `CONFIRM_TYPE`. (AC-005-1, AC-005-2) The `E03` finding, the item and `SET_TYPE` (the choice is kept on the document as `typeSetBy`, the workflow continues) built 15 Oct 2026.
 - [x] **T005-08** `read_page` and `witness_pages` (text layer and OCR); `verify_pages` writing records. (AC-005-4…8)
   The OCR witness is not built yet: no adapter reads `DOCAI_OCR_PROCESSOR_ID`, so scans and photos
   have no witness (every value single-source, `E01`). It comes with T005-05 S3.

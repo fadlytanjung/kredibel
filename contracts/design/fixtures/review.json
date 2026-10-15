@@ -263,6 +263,27 @@
         "CORRECT_VALUE",
         "ACCEPT_AS_READ"
       ]
+    },
+    {
+      "itemId": "itm_0000000000000010",
+      "kind": "CONFIRM_TYPE",
+      "month": null,
+      "docId": "doc_photo",
+      "status": "OPEN",
+      "priority": 60,
+      "title": "What kind of document is IMG_4471.jpg?",
+      "subject": {
+        "docIds": [
+          "doc_photo"
+        ]
+      },
+      "suggestion": {
+        "docType": "RECEIPT",
+        "confidence": "0.42"
+      },
+      "allowedActions": [
+        "SET_TYPE"
+      ]
     }
   ],
   "lines": [
@@ -492,6 +513,25 @@
         "mappingStatus": "PROPOSED"
       },
       "uploadedAt": "2026-07-03T10:00:00Z"
+    },
+    "doc_photo": {
+      "docId": "doc_photo",
+      "fileName": "IMG_4471.jpg",
+      "contentType": "image/jpeg",
+      "docType": "UNKNOWN",
+      "typeConfidence": "0.42",
+      "status": "NEEDS_INPUT",
+      "statusDetail": "E03_UNCERTAIN_TYPE",
+      "pageCount": 1,
+      "pages": [
+        {
+          "pageNo": 1,
+          "status": "DONE",
+          "textLayer": false,
+          "witness": "OCR"
+        }
+      ],
+      "uploadedAt": "2026-06-18T08:05:00Z"
     }
   },
   "ledgerMapping": {

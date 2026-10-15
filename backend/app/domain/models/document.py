@@ -91,6 +91,7 @@ class Document:
     uploaded_at: datetime
     doc_type: DocType = DocType.UNKNOWN
     type_confidence: Decimal | None = None
+    type_set_by: str | None = None  # the uid of the person who chose the type (AC-005-2)
     status: DocStatus = DocStatus.UPLOADED
     status_detail: str | None = None
     p_hash: str | None = None

@@ -106,6 +106,7 @@ class ReviewSuggestion:
     candidates: list[ReviewCandidate] = field(default_factory=list)
     reading: dict[str, Any] | None = None
     doc_type: str | None = None
+    confidence: str | None = None  # the classifier's confidence in doc_type (CONFIRM_TYPE)
     mapping: dict[str, Any] | None = None
     difference: Decimal | None = None
     evidence: list[dict[str, Any]] = field(default_factory=list)
@@ -136,6 +137,24 @@ class ReviewItem:
 
 
 # ------------------------------------------------------------------- ledger column mapping
+
+
+def confirm_type_item(doc_id: str, file_name: str, *, guess: str, confidence: str) -> ReviewItem:
+    """AC-005-2: a document whose kind the classifier is not sure of asks a person; the guess is
+    the suggestion. The item is the document's (no month yet) and continues the workflow."""
+    return ReviewItem(
+        item_id=compute_item_id("CONFIRM_TYPE", doc_id),
+        kind="CONFIRM_TYPE",
+        month=None,
+        doc_id=doc_id,
+        status="OPEN",
+        priority=calculate_item_priority("CONFIRM_TYPE"),
+        title=f"What kind of document is {file_name}?",
+        subject=ReviewSubject(doc_ids=[doc_id]),
+        suggestion=ReviewSuggestion(doc_type=guess or None, confidence=confidence),
+        allowed_actions=list(ALLOWED_ACTIONS_BY_KIND["CONFIRM_TYPE"]),
+        key=f"type:{doc_id}",
+    )
 
 
 def confirm_mapping_item(

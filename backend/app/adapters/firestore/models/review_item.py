@@ -35,6 +35,7 @@ class ReviewSuggestionDoc(BaseModel):
     candidates: list[ReviewCandidateDoc] = Field(default_factory=list)
     reading: dict[str, Any] | None = None
     doc_type: str | None = None
+    confidence: str | None = None
     mapping: dict[str, Any] | None = None
     difference: str | None = None
     evidence: list[dict[str, Any]] = Field(default_factory=list)

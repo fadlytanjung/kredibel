@@ -1957,6 +1957,7 @@ components:
         pageCount: { type: integer }
         docType: { $ref: "#/components/schemas/DocType" }
         typeConfidence: { $ref: "#/components/schemas/Decimal" }
+        typeSetBy: { type: [string, "null"], description: "The uid of the person who chose the type (AC-005-2); the classifier never overrides it" }
         status: { $ref: "#/components/schemas/DocStatus" }
         statusDetail: { type: string, description: "Plain-language reason for NEEDS_INPUT or FAILED" }
         months: { type: array, items: { $ref: "#/components/schemas/YearMonth" } }
@@ -2326,6 +2327,7 @@ components:
             candidates: { type: array, items: { $ref: "#/components/schemas/ReviewCandidate" } }
             reading: { $ref: "#/components/schemas/ValueReading" }
             docType: { $ref: "#/components/schemas/DocType" }
+            confidence: { $ref: "#/components/schemas/Decimal", description: "The classifier's confidence in docType (CONFIRM_TYPE)" }
             mapping: { $ref: "#/components/schemas/LedgerMapping" }
             difference: { $ref: "#/components/schemas/Money" }
             evidence: { type: array, items: { $ref: "#/components/schemas/EvidenceRef" } }

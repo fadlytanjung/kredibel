@@ -88,6 +88,7 @@ def _to_domain(data: dict[str, Any]) -> Document:
             if upcasted.get("typeConfidence") is not None
             else None
         ),
+        type_set_by=upcasted.get("typeSetBy"),
         status=DocStatus(upcasted.get("status", "UPLOADED")),
         status_detail=upcasted.get("statusDetail"),
         p_hash=upcasted.get("pHash"),
@@ -150,6 +151,7 @@ def _to_firestore_dict(org_id: str, doc: Document) -> dict[str, Any]:
         "uploadedAt": doc.uploaded_at.isoformat(),
         "docType": doc.doc_type.value,
         "typeConfidence": str(doc.type_confidence) if doc.type_confidence is not None else None,
+        "typeSetBy": doc.type_set_by,
         "status": doc.status.value,
         "statusDetail": doc.status_detail,
         "pHash": doc.p_hash,

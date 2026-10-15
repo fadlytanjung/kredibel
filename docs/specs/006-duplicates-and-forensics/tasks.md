@@ -13,7 +13,7 @@
 - [x] **T006-04** **TDD** `A01`/`A02` incl. property test and the witness-only rule. (AC-006-7)
 - [x] **T006-05** [P] **TDD** `A04` for invoices and receipts. (AC-006-7)
 - [x] **T006-06** **TDD** `M01`–`M04`, `M06` on fixture PDFs. (AC-006-8)
-- [ ] **T006-07** `E0x`, `X05`, `X06`; verdict; finding upsert rules. (AC-006-9…11) (done except `E03` as a finding, which comes with the `CONFIRM_TYPE` item of spec 009)
+- [x] **T006-07** `E0x`, `X05`, `X06`; verdict; finding upsert rules. (AC-006-9…11) `E03` as a finding is written by `classify_document` with the `CONFIRM_TYPE` item (15 Oct 2026).
 - [x] **T006-08** `inspect_file` and `check_document` nodes.
 
 ## Phase 3 — Scenarios

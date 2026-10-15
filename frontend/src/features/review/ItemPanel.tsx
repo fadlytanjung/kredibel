@@ -5,6 +5,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import type { components } from '../../shared/api/schema'
 import { Link } from 'react-router-dom'
 import { type BankLine, CASHFLOW_BADGE, useMonthBankLines } from '../../entities/bank-line'
 import { type LedgerMapping, PageViewer, useDocument, useLedgerMapping } from '../../entities/document'
@@ -18,6 +19,10 @@ import { isComplete } from './mapping'
 import { MappingEditor } from './MappingEditor'
 import { linesThatCouldPay, subjectsOf } from './subjects'
 import { useQueueKeys } from './useQueueKeys'
+
+type DocType = components['schemas']['DocType']
+/** The kinds a person can choose for a document (docs/09 §3.1); never "unknown". */
+const DOC_TYPES = ['BANK_STATEMENT', 'SALES_INVOICE', 'PURCHASE_INVOICE', 'RECEIPT', 'LEDGER_EXPORT', 'OTHER']
 
 export interface ItemPanelProps {
   item: ReviewItem
@@ -42,7 +47,7 @@ function LineSubject({
   onSeePage?: (docId: string) => void
   activePreviewDocId?: string | null
 }) {
-  const { t } = useTranslation(['review', 'months'])
+  const { t } = useTranslation(['review', 'months', 'documents'])
   const isPreviewing = activePreviewDocId === line.docId
   return (
     <div className="subject">
@@ -97,7 +102,7 @@ function RecordSubject({
   onSeePage?: (docId: string) => void
   activePreviewDocId?: string | null
 }) {
-  const { t } = useTranslation(['review', 'months'])
+  const { t } = useTranslation(['review', 'months', 'documents'])
   const isReceipt = 'receiptId' in record
   const name = isReceipt
     ? record.number
@@ -208,7 +213,7 @@ function DocumentSubject({
 }
 
 function Proposal({ item }: { item: ReviewItem }) {
-  const { t } = useTranslation(['review', 'months'])
+  const { t } = useTranslation(['review', 'months', 'documents'])
   const candidate = item.suggestion?.candidates?.[0]
   if (!candidate) return null
   const score = Number(candidate.score ?? 0)
@@ -291,6 +296,11 @@ export function ItemPanel({
   const [reason, setReason] = useState('')
   const [correcting, setCorrecting] = useState(false)
   const [correction, setCorrection] = useState('')
+  // A document whose kind is unclear (AC-005-2): the classifier's guess, then what the person chose.
+  const [docType, setDocType] = useState('')
+  const guess = item.suggestion?.docType && DOC_TYPES.includes(item.suggestion.docType) ? item.suggestion.docType : ''
+  const chosenType = docType || guess
+  const guessConfidence = item.suggestion?.confidence
   // A ledger export's column mapping (T005-11): the proposal, then what the person changed.
   const isMapping = item.kind === 'CONFIRM_LEDGER_MAPPING'
   const mappingDocId = isMapping ? item.docId || item.subject.docIds?.[0] : undefined
@@ -324,10 +334,12 @@ export function ItemPanel({
   const [prevItemId, setPrevItemId] = useState(item.itemId)
   if (prevItemId !== item.itemId) {
     setPrevItemId(item.itemId)
+    setDocType('')
     setUserToggledDocId(null)
   }
 
-  const isAutoPreview = item.kind === 'LOW_CONFIDENCE_VALUE' || item.kind === 'POSSIBLE_DUPLICATE'
+  const isAutoPreview =
+    item.kind === 'LOW_CONFIDENCE_VALUE' || item.kind === 'POSSIBLE_DUPLICATE' || item.kind === 'CONFIRM_TYPE'
   const previewDocId =
     userToggledDocId !== null
       ? userToggledDocId === ''
@@ -354,7 +366,9 @@ export function ItemPanel({
 
   // The primary action of each kind (docs/11 §6.5), named after what it does.
   const primary: { label: string; request: ResolveRequest; disabled?: boolean } | undefined =
-    isMapping && allowed.has('CONFIRM_MAPPING') && mapping
+    item.kind === 'CONFIRM_TYPE' && allowed.has('SET_TYPE')
+      ? { label: t('actions.SET_TYPE'), request: { action: 'SET_TYPE', docType: chosenType as DocType }, disabled: !chosenType }
+      : isMapping && allowed.has('CONFIRM_MAPPING') && mapping
       ? { label: t('mapping.confirm'), request: { action: 'CONFIRM_MAPPING', mapping }, disabled: !isComplete(mapping) }
       : item.kind === 'PROPOSED_MATCH' && allowed.has('CONFIRM_MATCH')
       ? { label: t('actions.CONFIRM_MATCH'), request: { action: 'CONFIRM_MATCH', matchId: item.subject.matchId } }
@@ -514,6 +528,40 @@ export function ItemPanel({
               <p className="muted small">{t('mapping.unavailable')}</p>
             ))}
           {isMapping && mapping && !isComplete(mapping) && <p className="muted small">{t('mapping.incomplete')}</p>}
+          {item.kind === 'CONFIRM_TYPE' && (
+            <>
+              {(item.subject.docIds ?? []).slice(0, 1).map((docId) => (
+                <DocumentSubject
+                  key={docId}
+                  docId={docId}
+                  label={t('panel.document')}
+                  onSeePage={handleOpenSeePage}
+                  activePreviewDocId={previewDocId}
+                />
+              ))}
+              <div className="field">
+                <label className="label" htmlFor="doc-type">
+                  {t('panel.docType')}
+                </label>
+                <select id="doc-type" className="input" value={chosenType} onChange={(e) => setDocType(e.target.value)}>
+                  {!guess && <option value="">{t('panel.chooseType')}</option>}
+                  {DOC_TYPES.map((type) => (
+                    <option key={type} value={type}>
+                      {t(`documents:detail.docType.${type}`)}
+                    </option>
+                  ))}
+                </select>
+                <p className="muted small">
+                  {guess
+                    ? t('panel.docTypeHint', {
+                        type: t(`documents:detail.docType.${guess}`),
+                        confidence: `${Math.round(Number(guessConfidence ?? 0) * 100)}%`,
+                      })
+                    : t('panel.docTypeNoGuess')}
+                </p>
+              </div>
+            </>
+          )}
           {item.kind === 'PROPOSED_MATCH' && <Proposal item={item} />}
           {item.kind === 'UNMATCHED_DOCUMENT' && <LinePicker lines={candidates} picked={pickedLine?.txId} onPick={setPicked} />}
 

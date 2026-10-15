@@ -74,6 +74,7 @@ def _to_doc(item: ReviewItem) -> ReviewItemDoc:
             candidates=candidates,
             reading=item.suggestion.reading,
             doc_type=item.suggestion.doc_type,
+            confidence=item.suggestion.confidence,
             mapping=item.suggestion.mapping,
             difference=(
                 str(item.suggestion.difference) if item.suggestion.difference is not None else None
@@ -127,6 +128,7 @@ def _to_domain(doc: ReviewItemDoc) -> ReviewItem:
             candidates=candidates,
             reading=doc.suggestion.reading,
             doc_type=doc.suggestion.doc_type,
+            confidence=doc.suggestion.confidence,
             mapping=doc.suggestion.mapping,
             difference=(
                 Decimal(doc.suggestion.difference)

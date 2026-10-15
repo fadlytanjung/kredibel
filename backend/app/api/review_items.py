@@ -77,6 +77,7 @@ def review_item_body(it: ReviewItem) -> dict[str, Any]:
             "candidates": candidates,
             "reading": it.suggestion.reading,
             "docType": it.suggestion.doc_type,
+            "confidence": it.suggestion.confidence,
             "mapping": it.suggestion.mapping,
             "difference": (
                 str(it.suggestion.difference) if it.suggestion.difference is not None else None

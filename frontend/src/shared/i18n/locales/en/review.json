@@ -62,7 +62,11 @@
     "correctLabel": "The {{field}} as printed",
     "correctHint": "Amounts as digits (476976.00), dates as YYYY-MM-DD. What was read is kept beside it.",
     "ledgerFile": "Ledger file",
-    "ledgerEntries": "The entries"
+    "ledgerEntries": "The entries",
+    "docType": "Document type",
+    "chooseType": "Choose a type",
+    "docTypeHint": "Kredibel's best guess is {{type}} ({{confidence}} sure). Choose what you see on the page.",
+    "docTypeNoGuess": "Choose what you see on the page."
   },
   "actions": {
     "CONFIRM_MATCH": "Confirm the match",
@@ -76,7 +80,8 @@
     "NO_DOCUMENT_NEEDED": "No document needed",
     "saveIgnore": "Leave it",
     "CORRECT_VALUE": "Correct it",
-    "saveCorrection": "Save the correction"
+    "saveCorrection": "Save the correction",
+    "SET_TYPE": "Use this type"
   },
   "fields": {
     "total": "total",

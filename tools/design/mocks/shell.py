@@ -11,7 +11,7 @@ NAV_MAIN = [("dashboard", "dashboard", "Dashboard", "Dashboard", "dashboard.html
 NAV_BOOKS = [
     ("documents", "files", "Documents", "Documents", "documents.html", ("92", True)),
     ("months", "reconcile", "Reconciliation", "Reconcile", "month.html", None),
-    ("review", "inbox", "Review", "Review", "review.html", ("9", False)),
+    ("review", "inbox", "Review", "Review", "review.html", ("10", False)),
     ("risk", "shield-alert", "Risk", "Risk", "risk.html", ("2", False)),
 ]
 NAV_INSIGHT = [
@@ -60,7 +60,7 @@ def bottom_nav(active: str) -> str:
     items = [
         ("dashboard", "dashboard", "Dashboard", "dashboard.html", None),
         ("documents", "files", "Documents", "documents.html", None),
-        ("review", "inbox", "Review", "review.html", "9"),
+        ("review", "inbox", "Review", "review.html", "10"),
         ("risk", "shield-alert", "Risk", "risk.html", "2"),
         ("more", "menu", "More", "#more", None),
     ]

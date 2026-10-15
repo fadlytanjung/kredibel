@@ -450,6 +450,7 @@
   "ReviewSuggestionDoc": {
     "fields": {
       "candidates": "list[ReviewCandidateDoc]",
+      "confidence": "str | None",
       "difference": "str | None",
       "doc_type": "str | None",
       "evidence": "list[dict[str, Any]]",

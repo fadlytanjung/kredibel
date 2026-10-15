@@ -3,7 +3,7 @@
 ## Phase 1 — Items
 
 - [x] **T009-01** **TDD** `review_items.py`: creation and closing per kind; priority; keys; waiting-for-statement rule. (AC-009-1, AC-009-3)
-  `CONFIRM_TYPE` comes with `E03` as a finding (T006-07); `LEDGER_DIFFERENCE`, `CONFIRM_LEDGER_MAPPING`
+  `CONFIRM_TYPE` with its `E03` finding and `SET_TYPE` built 15 Oct 2026 (T006-07); `LEDGER_DIFFERENCE`, `CONFIRM_LEDGER_MAPPING`
   and ledger-cited bank lines with ledger import (T005-04).
 - [x] **T009-02** `sync_review_items` node. (AC-009-1)
 

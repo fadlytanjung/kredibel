@@ -214,6 +214,16 @@ SCREEN_INVENTORY: dict[str, ScreenInfo] = {
         spec="005, 009",
         notes="A ledger export with a new layout: which column of the file holds each field, the first rows as read, confirmed once per layout (T005-11).",
     ),
+    "review-type": ScreenInfo(
+        slug="review-type",
+        title="Review: choose the type",
+        route="/review/:itemId",
+        status="IMPLEMENTED_DRAWER",
+        badge_label="Implemented drawer",
+        badge_class="badge-low",
+        spec="005, 009",
+        notes="A document whose kind the classifier is not sure of: the page beside a type chooser defaulting to the guess (AC-005-2).",
+    ),
     "evidence-viewer": ScreenInfo(
         slug="evidence-viewer",
         title="Evidence viewer",

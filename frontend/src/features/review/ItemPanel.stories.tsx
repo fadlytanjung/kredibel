@@ -108,6 +108,20 @@ export const PossibleCopy: Story = {
   },
 }
 
+export const ChooseTheType: Story = {
+  args: {
+    item: item({
+      itemId: 'itm_0000000000000010',
+      kind: 'CONFIRM_TYPE',
+      priority: 60,
+      title: 'What kind of document is IMG_4471.jpg?',
+      subject: { docIds: ['doc_photo'] },
+      suggestion: { docType: 'RECEIPT', confidence: '0.42' },
+      allowedActions: ['SET_TYPE'],
+    }),
+  },
+}
+
 export const CheckAValue: Story = {
   args: {
     item: item({

@@ -7,7 +7,7 @@
     { "id": "NET", "value": { "amount": "69000000.00", "currency": "IDR" }, "previous": null },
     { "id": "AUTO_MATCH_RATE", "value": "0.8960", "previous": "0.8700" },
     { "id": "DOCUMENTS_WAITING", "value": 4, "previous": null },
-    { "id": "OPEN_REVIEW_ITEMS", "value": 9, "previous": null }
+    { "id": "OPEN_REVIEW_ITEMS", "value": 10, "previous": null }
   ],
   "months": [
     { "month": "2026-01", "state": "RECONCILED", "statementsPresent": 1, "statementsExpected": 1, "autoMatchRate": "0.9400", "riskLevel": "LOW" },

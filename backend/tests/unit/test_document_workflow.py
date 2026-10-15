@@ -13,13 +13,16 @@ from opentelemetry.sdk.trace import TracerProvider
 from app.agents.deps import PipelineDeps
 from app.agents.workflows.document_workflow import build_document_workflow
 from app.core.settings import Settings
+from app.domain.findings import finding_id
 from app.domain.models.document import DocStatus, DocType, Document
 from app.domain.models.run import Run, RunKind, RunStatus
 from tests.fakes.clock import FixedClock
 from tests.fakes.document_repository import FakeDocumentRepository
 from tests.fakes.document_storage import FakeDocumentStorage
+from tests.fakes.finding_repository import FakeFindingRepository
 from tests.fakes.ledger_repository import FakeLedgerRepository
 from tests.fakes.month_repository import FakeMonthRepository
+from tests.fakes.review_item_repository import FakeReviewItemRepository
 from tests.fakes.run_repository import FakeRunRepository
 from tests.fakes.task_queue import FakeTaskQueue
 
@@ -39,6 +42,8 @@ def workflow_deps():
     clock = FixedClock(NOW)
 
     deps = PipelineDeps(
+        findings=FakeFindingRepository(),
+        review_items=FakeReviewItemRepository(),
         settings=settings,
         run_repo=run_repo,
         doc_repo=doc_repo,
@@ -178,6 +183,16 @@ async def test_ac004_2_document_workflow_needs_input_stops_without_failing(workf
     updated_doc = await doc_repo.get_document(org_id, doc_id)
     assert updated_doc is not None
     assert updated_doc.status == DocStatus.NEEDS_INPUT
+    assert updated_doc.status_detail == "E03_UNCERTAIN_TYPE"
+    # AC-005-2, AC-006-9: E03 is a finding, and the CONFIRM_TYPE item asks a person.
+    assert deps.findings is not None and deps.review_items is not None
+    e03 = await deps.findings.get_finding(org_id, finding_id("E03_UNCERTAIN_TYPE", doc_id))
+    assert e03 is not None and e03.severity == "LOW" and e03.category == "EXTRACTION"
+    items, _, _ = await deps.review_items.list_review_items(
+        org_id, status="OPEN", kind=None, month=None, limit=10, cursor=None
+    )
+    [item] = items
+    assert item.kind == "CONFIRM_TYPE" and item.allowed_actions == ["SET_TYPE"]
 
     # Workflow did not execute read_page or finalize_document
     run = await run_repo.get(org_id, run_id)
@@ -343,4 +358,3 @@ async def test_ledger_export_workflow_auto_confirms_standard_layout(workflow_dep
     assert len(stored_rows) == 2
     assert stored_rows[0].account_code == "6050"
     assert stored_rows[1].account_code == "1110"
-

@@ -1,0 +1,1076 @@
+{
+  "period": "2026-01..2026-06",
+  "counterparties": [
+    {
+      "counterpartyId": "cp_1a2b3c4d5e6f7a81",
+      "name": "Harborview Hotel Group",
+      "aliases": [
+        "HARBORVIEW HOTEL GROUP"
+      ],
+      "kind": "BUSINESS",
+      "roles": [
+        "CLIENT"
+      ],
+      "totalIn": {
+        "amount": "412500000.00",
+        "currency": "IDR"
+      },
+      "totalOut": {
+        "amount": "0.00",
+        "currency": "IDR"
+      },
+      "totalsByMonth": {
+        "2026-01": {
+          "in": {
+            "amount": "68750000.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "count": 3
+        },
+        "2026-02": {
+          "in": {
+            "amount": "68750000.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "count": 3
+        },
+        "2026-03": {
+          "in": {
+            "amount": "68750000.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "count": 3
+        },
+        "2026-04": {
+          "in": {
+            "amount": "68750000.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "count": 3
+        },
+        "2026-05": {
+          "in": {
+            "amount": "68750000.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "count": 3
+        },
+        "2026-06": {
+          "in": {
+            "amount": "68750000.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "count": 3
+        }
+      },
+      "accountsSeen": [],
+      "openInvoices": 0,
+      "firstDate": "2026-01-06",
+      "lastDate": "2026-06-24",
+      "sampleEvidence": [],
+      "bucket": false
+    },
+    {
+      "counterpartyId": "cp_1a2b3c4d5e6f7a82",
+      "name": "Highland Resort & Spa",
+      "aliases": [],
+      "kind": "BUSINESS",
+      "roles": [
+        "CLIENT"
+      ],
+      "totalIn": {
+        "amount": "318000000.00",
+        "currency": "IDR"
+      },
+      "totalOut": {
+        "amount": "0.00",
+        "currency": "IDR"
+      },
+      "totalsByMonth": {
+        "2026-01": {
+          "in": {
+            "amount": "53000000.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "count": 2
+        },
+        "2026-02": {
+          "in": {
+            "amount": "53000000.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "count": 2
+        },
+        "2026-03": {
+          "in": {
+            "amount": "53000000.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "count": 2
+        },
+        "2026-04": {
+          "in": {
+            "amount": "53000000.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "count": 2
+        },
+        "2026-05": {
+          "in": {
+            "amount": "53000000.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "count": 2
+        },
+        "2026-06": {
+          "in": {
+            "amount": "53000000.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "count": 2
+        }
+      },
+      "accountsSeen": [],
+      "openInvoices": 0,
+      "firstDate": "2026-01-12",
+      "lastDate": "2026-06-18",
+      "sampleEvidence": [],
+      "bucket": false
+    },
+    {
+      "counterpartyId": "cp_1a2b3c4d5e6f7a83",
+      "name": "Daybreak Café",
+      "aliases": [
+        "DAYBREAK CAFE"
+      ],
+      "kind": "BUSINESS",
+      "roles": [
+        "CLIENT"
+      ],
+      "totalIn": {
+        "amount": "196400000.00",
+        "currency": "IDR"
+      },
+      "totalOut": {
+        "amount": "0.00",
+        "currency": "IDR"
+      },
+      "totalsByMonth": {
+        "2026-01": {
+          "in": {
+            "amount": "32733333.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "count": 4
+        },
+        "2026-02": {
+          "in": {
+            "amount": "32733333.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "count": 4
+        },
+        "2026-03": {
+          "in": {
+            "amount": "32733333.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "count": 4
+        },
+        "2026-04": {
+          "in": {
+            "amount": "32733333.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "count": 4
+        },
+        "2026-05": {
+          "in": {
+            "amount": "32733333.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "count": 4
+        },
+        "2026-06": {
+          "in": {
+            "amount": "32733333.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "count": 4
+        }
+      },
+      "accountsSeen": [],
+      "openInvoices": 0,
+      "firstDate": "2026-01-09",
+      "lastDate": "2026-06-27",
+      "sampleEvidence": [],
+      "bucket": false
+    },
+    {
+      "counterpartyId": "cp_1a2b3c4d5e6f7a84",
+      "name": "Spice Route Restaurant",
+      "aliases": [],
+      "kind": "BUSINESS",
+      "roles": [
+        "CLIENT"
+      ],
+      "totalIn": {
+        "amount": "154800000.00",
+        "currency": "IDR"
+      },
+      "totalOut": {
+        "amount": "0.00",
+        "currency": "IDR"
+      },
+      "totalsByMonth": {
+        "2026-01": {
+          "in": {
+            "amount": "25800000.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "count": 1
+        },
+        "2026-02": {
+          "in": {
+            "amount": "25800000.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "count": 1
+        },
+        "2026-03": {
+          "in": {
+            "amount": "25800000.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "count": 1
+        },
+        "2026-04": {
+          "in": {
+            "amount": "25800000.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "count": 1
+        },
+        "2026-05": {
+          "in": {
+            "amount": "25800000.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "count": 1
+        },
+        "2026-06": {
+          "in": {
+            "amount": "25800000.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "count": 1
+        }
+      },
+      "accountsSeen": [],
+      "openInvoices": 1,
+      "firstDate": "2026-02-03",
+      "lastDate": "2026-06-20",
+      "sampleEvidence": [],
+      "bucket": false
+    },
+    {
+      "counterpartyId": "cp_1a2b3c4d5e6f7a85",
+      "name": "Hillside Coffee Bar",
+      "aliases": [],
+      "kind": "BUSINESS",
+      "roles": [
+        "CLIENT"
+      ],
+      "totalIn": {
+        "amount": "121600000.00",
+        "currency": "IDR"
+      },
+      "totalOut": {
+        "amount": "0.00",
+        "currency": "IDR"
+      },
+      "totalsByMonth": {
+        "2026-01": {
+          "in": {
+            "amount": "20266667.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "count": 2
+        },
+        "2026-02": {
+          "in": {
+            "amount": "20266667.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "count": 2
+        },
+        "2026-03": {
+          "in": {
+            "amount": "20266667.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "count": 2
+        },
+        "2026-04": {
+          "in": {
+            "amount": "20266667.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "count": 2
+        },
+        "2026-05": {
+          "in": {
+            "amount": "20266667.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "count": 2
+        },
+        "2026-06": {
+          "in": {
+            "amount": "20266667.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "count": 2
+        }
+      },
+      "accountsSeen": [],
+      "openInvoices": 0,
+      "firstDate": "2026-01-21",
+      "lastDate": "2026-06-11",
+      "sampleEvidence": [],
+      "bucket": false
+    },
+    {
+      "counterpartyId": "cp_1a2b3c4d5e6f7a86",
+      "name": "Green Valley Farms",
+      "aliases": [],
+      "kind": "BUSINESS",
+      "roles": [
+        "SUPPLIER"
+      ],
+      "totalIn": {
+        "amount": "0.00",
+        "currency": "IDR"
+      },
+      "totalOut": {
+        "amount": "318200000.00",
+        "currency": "IDR"
+      },
+      "totalsByMonth": {
+        "2026-01": {
+          "in": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "53033333.00",
+            "currency": "IDR"
+          },
+          "count": 1
+        },
+        "2026-02": {
+          "in": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "53033333.00",
+            "currency": "IDR"
+          },
+          "count": 1
+        },
+        "2026-03": {
+          "in": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "53033333.00",
+            "currency": "IDR"
+          },
+          "count": 1
+        },
+        "2026-04": {
+          "in": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "53033333.00",
+            "currency": "IDR"
+          },
+          "count": 1
+        },
+        "2026-05": {
+          "in": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "53033333.00",
+            "currency": "IDR"
+          },
+          "count": 1
+        },
+        "2026-06": {
+          "in": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "53033333.00",
+            "currency": "IDR"
+          },
+          "count": 1
+        }
+      },
+      "accountsSeen": [
+        {
+          "accountMasked": "••••7312",
+          "firstSeen": "2026-01-03",
+          "lastSeen": "2026-06-02"
+        }
+      ],
+      "openInvoices": 0,
+      "firstDate": "2026-01-03",
+      "lastDate": "2026-06-02",
+      "sampleEvidence": [],
+      "bucket": false
+    },
+    {
+      "counterpartyId": "cp_1a2b3c4d5e6f7a87",
+      "name": "PrimePack Packaging",
+      "aliases": [],
+      "kind": "BUSINESS",
+      "roles": [
+        "SUPPLIER"
+      ],
+      "totalIn": {
+        "amount": "0.00",
+        "currency": "IDR"
+      },
+      "totalOut": {
+        "amount": "142300000.00",
+        "currency": "IDR"
+      },
+      "totalsByMonth": {
+        "2026-01": {
+          "in": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "23716667.00",
+            "currency": "IDR"
+          },
+          "count": 1
+        },
+        "2026-02": {
+          "in": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "23716667.00",
+            "currency": "IDR"
+          },
+          "count": 1
+        },
+        "2026-03": {
+          "in": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "23716667.00",
+            "currency": "IDR"
+          },
+          "count": 1
+        },
+        "2026-04": {
+          "in": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "23716667.00",
+            "currency": "IDR"
+          },
+          "count": 1
+        },
+        "2026-05": {
+          "in": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "23716667.00",
+            "currency": "IDR"
+          },
+          "count": 1
+        },
+        "2026-06": {
+          "in": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "23716667.00",
+            "currency": "IDR"
+          },
+          "count": 1
+        }
+      },
+      "accountsSeen": [
+        {
+          "accountMasked": "••••2210",
+          "firstSeen": "2026-01-15",
+          "lastSeen": "2026-06-16"
+        }
+      ],
+      "openInvoices": 0,
+      "firstDate": "2026-01-15",
+      "lastDate": "2026-06-16",
+      "sampleEvidence": [],
+      "bucket": false
+    },
+    {
+      "counterpartyId": "cp_1a2b3c4d5e6f7a88",
+      "name": "Roastline Equipment Service",
+      "aliases": [],
+      "kind": "BUSINESS",
+      "roles": [
+        "SUPPLIER"
+      ],
+      "totalIn": {
+        "amount": "0.00",
+        "currency": "IDR"
+      },
+      "totalOut": {
+        "amount": "48500000.00",
+        "currency": "IDR"
+      },
+      "totalsByMonth": {
+        "2026-02": {
+          "in": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "24250000.00",
+            "currency": "IDR"
+          },
+          "count": 1
+        },
+        "2026-05": {
+          "in": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "24250000.00",
+            "currency": "IDR"
+          },
+          "count": 1
+        }
+      },
+      "accountsSeen": [
+        {
+          "accountMasked": "••••3318",
+          "firstSeen": "2026-02-01",
+          "lastSeen": "2026-04-01"
+        },
+        {
+          "accountMasked": "••••3108",
+          "firstSeen": "2026-05-19",
+          "lastSeen": "2026-05-19"
+        }
+      ],
+      "openInvoices": 0,
+      "firstDate": "2026-02-01",
+      "lastDate": "2026-05-19",
+      "sampleEvidence": [],
+      "bucket": false
+    },
+    {
+      "counterpartyId": "cp_1a2b3c4d5e6f7a89",
+      "name": "Bluewater Trading Co.",
+      "aliases": [],
+      "kind": "BUSINESS",
+      "roles": [
+        "SUPPLIER"
+      ],
+      "totalIn": {
+        "amount": "0.00",
+        "currency": "IDR"
+      },
+      "totalOut": {
+        "amount": "0.00",
+        "currency": "IDR"
+      },
+      "totalsByMonth": {},
+      "accountsSeen": [],
+      "openInvoices": 2,
+      "firstDate": "2026-04-02",
+      "lastDate": "2026-04-16",
+      "sampleEvidence": [],
+      "bucket": false
+    },
+    {
+      "counterpartyId": "cp_1a2b3c4d5e6f7a90",
+      "name": "Loan payments",
+      "aliases": [],
+      "kind": "BANK",
+      "roles": [
+        "LENDER"
+      ],
+      "totalIn": {
+        "amount": "0.00",
+        "currency": "IDR"
+      },
+      "totalOut": {
+        "amount": "60000000.00",
+        "currency": "IDR"
+      },
+      "totalsByMonth": {
+        "2026-01": {
+          "in": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "10000000.00",
+            "currency": "IDR"
+          },
+          "count": 1
+        },
+        "2026-02": {
+          "in": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "10000000.00",
+            "currency": "IDR"
+          },
+          "count": 1
+        },
+        "2026-03": {
+          "in": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "10000000.00",
+            "currency": "IDR"
+          },
+          "count": 1
+        },
+        "2026-04": {
+          "in": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "10000000.00",
+            "currency": "IDR"
+          },
+          "count": 1
+        },
+        "2026-05": {
+          "in": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "10000000.00",
+            "currency": "IDR"
+          },
+          "count": 1
+        },
+        "2026-06": {
+          "in": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "10000000.00",
+            "currency": "IDR"
+          },
+          "count": 1
+        }
+      },
+      "accountsSeen": [],
+      "openInvoices": 0,
+      "firstDate": "2026-01-09",
+      "lastDate": "2026-06-09",
+      "sampleEvidence": [],
+      "bucket": true
+    },
+    {
+      "counterpartyId": "cp_1a2b3c4d5e6f7a91",
+      "name": "Maya Sari",
+      "aliases": [],
+      "kind": "PERSON",
+      "roles": [
+        "OWNER"
+      ],
+      "totalIn": {
+        "amount": "0.00",
+        "currency": "IDR"
+      },
+      "totalOut": {
+        "amount": "72000000.00",
+        "currency": "IDR"
+      },
+      "totalsByMonth": {
+        "2026-01": {
+          "in": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "12000000.00",
+            "currency": "IDR"
+          },
+          "count": 1
+        },
+        "2026-02": {
+          "in": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "12000000.00",
+            "currency": "IDR"
+          },
+          "count": 1
+        },
+        "2026-03": {
+          "in": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "12000000.00",
+            "currency": "IDR"
+          },
+          "count": 1
+        },
+        "2026-04": {
+          "in": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "12000000.00",
+            "currency": "IDR"
+          },
+          "count": 1
+        },
+        "2026-05": {
+          "in": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "12000000.00",
+            "currency": "IDR"
+          },
+          "count": 1
+        },
+        "2026-06": {
+          "in": {
+            "amount": "0.00",
+            "currency": "IDR"
+          },
+          "out": {
+            "amount": "12000000.00",
+            "currency": "IDR"
+          },
+          "count": 1
+        }
+      },
+      "accountsSeen": [],
+      "openInvoices": 0,
+      "firstDate": "2026-01-28",
+      "lastDate": "2026-06-28",
+      "sampleEvidence": [],
+      "bucket": false
+    }
+  ],
+  "suggestions": [
+    {
+      "suggestionId": "sug_0f1e2d3c4b5a6978",
+      "field": "TAX_ID",
+      "value": {
+        "taxIdMasked": "••••.000"
+      },
+      "display": "••••.000",
+      "confidence": "HIGH",
+      "basis": "Printed as the issuer's tax ID on 24 of the workspace's sales invoices",
+      "evidence": [
+        {
+          "docId": "doc_inv_sales_01",
+          "page": 1
+        },
+        {
+          "docId": "doc_inv_sales_02",
+          "page": 1
+        }
+      ],
+      "status": "PENDING",
+      "conflictWith": null
+    },
+    {
+      "suggestionId": "sug_0f1e2d3c4b5a6979",
+      "field": "ADDRESS",
+      "value": {
+        "line1": "12 Roastery Lane",
+        "city": "Bandung",
+        "postalCode": "40135"
+      },
+      "display": "12 Roastery Lane, Bandung 40135",
+      "confidence": "MEDIUM",
+      "basis": "Printed under the holder's name on the statement or as the issuer address on the sales invoices",
+      "evidence": [
+        {
+          "docId": "doc_stmt_feb",
+          "page": 1
+        }
+      ],
+      "status": "PENDING",
+      "conflictWith": null
+    }
+  ],
+  "detail": {
+    "counterpartyId": "cp_1a2b3c4d5e6f7a88",
+    "lines": [
+      {
+        "txId": "tx_roastline_feb",
+        "docId": "doc_stmt_feb",
+        "page": 2,
+        "rowIndex": 14,
+        "date": "2026-02-18",
+        "month": "2026-02",
+        "description": "TRANSFER OUT ROASTLINE EQUIPMENT SERVICE 3318",
+        "amount": {
+          "amount": "-24250000.00",
+          "currency": "IDR"
+        },
+        "balance": null,
+        "counterpartyId": "cp_1a2b3c4d5e6f7a88",
+        "counterpartyName": "ROASTLINE EQUIPMENT SERVICE",
+        "category": "SUPPLIER_PAYMENT",
+        "cashflowClass": "OPERATING",
+        "riskTags": [],
+        "categorizedBy": "RULE",
+        "readings": {},
+        "source": "AI",
+        "notes": [],
+        "match": {
+          "state": "AUTO",
+          "matchIds": [
+            "mat_roastline_feb"
+          ]
+        },
+        "support": "MATCHED",
+        "heldAsDuplicate": false,
+        "corrected": false
+      },
+      {
+        "txId": "tx_roastline_may",
+        "docId": "doc_stmt_may",
+        "page": 1,
+        "rowIndex": 9,
+        "date": "2026-05-19",
+        "month": "2026-05",
+        "description": "TRANSFER OUT ROASTLINE EQUIPMENT SERVICE 3108",
+        "amount": {
+          "amount": "-24250000.00",
+          "currency": "IDR"
+        },
+        "balance": null,
+        "counterpartyId": "cp_1a2b3c4d5e6f7a88",
+        "counterpartyName": "ROASTLINE EQUIPMENT SERVICE",
+        "category": "SUPPLIER_PAYMENT",
+        "cashflowClass": "OPERATING",
+        "riskTags": [],
+        "categorizedBy": "RULE",
+        "readings": {},
+        "source": "AI",
+        "notes": [],
+        "match": {
+          "state": "AUTO",
+          "matchIds": [
+            "mat_roastline_may"
+          ]
+        },
+        "support": "MATCHED",
+        "heldAsDuplicate": false,
+        "corrected": false
+      }
+    ],
+    "invoices": [
+      {
+        "invoiceId": "inv_roastline_feb",
+        "docId": "doc_inv_roastline_feb",
+        "kind": "PURCHASE",
+        "number": "RES-0042",
+        "issuerName": "Roastline Equipment Service",
+        "buyerName": "Sunrise Coffee Roasters",
+        "issueDate": "2026-02-01",
+        "month": "2026-02",
+        "total": {
+          "amount": "24250000.00",
+          "currency": "IDR"
+        },
+        "currency": "IDR",
+        "payToMasked": "••••3318",
+        "evidence": {
+          "payment": "PAID_BANK"
+        }
+      },
+      {
+        "invoiceId": "inv_roastline_may",
+        "docId": "doc_inv_roastline_may",
+        "kind": "PURCHASE",
+        "number": "RES-0051",
+        "issuerName": "Roastline Equipment Service",
+        "buyerName": "Sunrise Coffee Roasters",
+        "issueDate": "2026-05-04",
+        "month": "2026-05",
+        "total": {
+          "amount": "24250000.00",
+          "currency": "IDR"
+        },
+        "currency": "IDR",
+        "payToMasked": "••••3108",
+        "evidence": {
+          "payment": "PAID_BANK"
+        }
+      }
+    ],
+    "receipts": []
+  }
+}

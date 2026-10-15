@@ -3,8 +3,12 @@ Same demo workspace as screens.py; counts agree with the dashboard and the revie
 
 from __future__ import annotations
 
+import json
+from decimal import Decimal
+from html import escape
+
 from icons import icon
-from screens import month_tabs, seg, sev_badge
+from screens import LOCALES, ROOT, fmt_date, money_code, month_name, month_tabs, seg, sev_badge, words
 from shell import shell, topbar
 
 # ------------------------------------------------------------------------------------------------
@@ -71,50 +75,170 @@ def risk() -> str:
 # Clients and suppliers
 # ------------------------------------------------------------------------------------------------
 
-PARTIES = [
-    ("Harborview Hotel Group", "building", "Client", "in", 412.5, 30.4, 18, "1 account", ""),
-    ("Highland Resort & Spa", "building", "Client", "in", 318.0, 23.5, 12, "1 account", ""),
-    ("Daybreak Café", "building", "Client", "in", 196.4, 14.5, 24, "1 account", ""),
-    ("Spice Route Restaurant", "building", "Client", "in", 154.8, 11.4, 11, "1 account", ""),
-    ("Hillside Coffee Bar", "building", "Client", "in", 121.6, 9.0, 12, "1 account", ""),
-    ("Green Valley Farms", "building", "Supplier", "out", 318.2, 24.7, 7, "1 account", ""),
-    ("PrimePack Packaging", "building", "Supplier", "out", 142.3, 11.1, 6, "1 account", ""),
-    ("Roastline Equipment Service", "building", "Supplier", "out", 48.5, 3.8, 2, "2 accounts", "New account in May (X08)"),
-    ("Bluewater Trading Co.", "building", "Supplier", "out", 0.0, 0.0, 0, "none", "2 invoices, never paid (R02)"),
-    ("Archipelago Commerce Bank", "bank", "Lender", "out", 60.0, 4.7, 6, "loan account", ""),
-    ("Maya Sari", "user", "Owner", "out", 72.0, 5.6, 6, "1 account", ""),
-]
+CP = json.loads((ROOT / "contracts/design/fixtures/counterparties.json").read_text(encoding="utf-8"))
+CP_WORDS = json.loads((LOCALES / "counterparties.json").read_text(encoding="utf-8"))
+MONTH_WORDS_CP = json.loads((LOCALES / "months.json").read_text(encoding="utf-8"))
+ROLE_ORDER = ("CLIENT", "SUPPLIER", "LENDER", "OWNER", "OWN_ACCOUNT", "GOVERNMENT", "RELATED_PARTY", "OTHER")
+KIND_ICON_CP = {"BUSINESS": "building", "BANK": "bank", "PERSON": "user", "GOVERNMENT": "building", "UNKNOWN": "users"}
+
+
+def _millions(amount: str) -> str:
+    return f"{Decimal(amount) / Decimal(1_000_000):,.1f}"
+
+
+def _transfers(party: dict) -> int:
+    return sum(int(t.get("count", 0)) for t in party.get("totalsByMonth", {}).values())
+
+
+def _money_in(party: dict) -> bool:
+    return Decimal(party["totalIn"]["amount"]) >= Decimal(party["totalOut"]["amount"])
+
+
+def _range(parties: list[dict]) -> str:
+    months = sorted(m for p in parties for m in p.get("totalsByMonth", {}))
+    if not months:
+        return ""
+    first, last = month_name(months[0], "short"), month_name(months[-1], "short")
+    return first if first == last else f"{first} to {last}"
 
 
 def clients() -> str:
+    """The app's CounterpartiesPage on the shared fixture (spec 014; parity: counterparties.spec.ts)."""
+    parties = CP["counterparties"]
+    total_in = sum(Decimal(p["totalIn"]["amount"]) for p in parties)
+    total_out = sum(Decimal(p["totalOut"]["amount"]) for p in parties)
     trs = []
-    for name, ic, role, d, v, share, n, acc, flag in PARTIES:
-        amt = f'<span class="{"amt-in" if d == "in" else "amt-out"}">{"+" if d == "in" else "−"}{v:,.1f}</span>' if v else '<span class="muted">0.0</span>'
-        flag_html = f'<span class="badge badge-high">{icon("triangle-alert")}{flag}</span>' if "X08" in flag else (f'<span class="badge badge-medium">{icon("circle-alert")}{flag}</span>' if flag else "")
-        trs.append(f"""<tr{" class=\"is-flagged\"" if "X08" in flag else ""}>
-  <td><span class="doc-cell"><span class="thumb">{icon(ic)}</span><span><strong>{name}</strong><span class="sub">{role}</span></span></span></td>
+    for p in parties:
+        inward = _money_in(p)
+        value = Decimal(p["totalIn"]["amount"] if inward else p["totalOut"]["amount"])
+        amt = (
+            f'<span class="{"amt-in" if inward else "amt-out"}">{"+" if inward else "−"}{_millions(str(value))}</span>'
+            if value
+            else '<span class="muted">0.0</span>'
+        )
+        total = total_in if inward else total_out
+        share = (value / total * 100) if total else Decimal(0)
+        accounts = sorted(p.get("accountsSeen", []), key=lambda a: a["firstSeen"])
+        transfers = _transfers(p)
+        flag = ""
+        if len(accounts) >= 2:
+            flag = (
+                f'<a class="badge badge-high" href="risk.html">{icon("triangle-alert", "icon icon-sm")}'
+                f'{words(CP_WORDS, "newAccount", month=month_name(accounts[-1]["firstSeen"][:7], "long"))}</a>'
+            )
+        elif p.get("openInvoices", 0) and transfers == 0:
+            flag = (
+                f'<a class="badge badge-medium" href="risk.html">{icon("circle-alert", "icon icon-sm")}'
+                f'{words(CP_WORDS, "unpaid", count=p["openInvoices"])}</a>'
+            )
+        roles = ", ".join(words(CP_WORDS, f"roles.{r}") for r in p["roles"])
+        trs.append(
+            f"""<tr{' class="is-flagged"' if len(accounts) >= 2 else ""}>
+  <td data-cell="wide"><span class="doc-cell"><span class="thumb">{icon(KIND_ICON_CP.get(p.get("kind", "UNKNOWN"), "users"), "icon icon-sm")}</span><span><strong>{escape(p["name"])}</strong><span class="sub">{escape(roles)}</span></span></span></td>
   <td class="r">{amt}</td>
-  <td class="hide-rt"><span class="share"><span class="meter-bar"><i style="width:{share * 3:.0f}%"></i></span><span>{share:.1f}%</span></span></td>
-  <td class="r hide-rt">{n}</td>
-  <td data-cell="wide">{acc} {flag_html}</td>
-</tr>""")
-    chips = "".join(f'<a class="chip" href="clients.html"{" aria-pressed=\"true\"" if i == 0 else ""}>{t} <span class="n">{n}</span></a>'
-                    for i, (t, n) in enumerate([("All", 11), ("Clients", 5), ("Suppliers", 4), ("Lenders", 1), ("Owner", 1)]))
+  <td class="hide-rt"><span class="share"><span class="meter-bar"><i style="width:{min(Decimal(100), share * 3):.0f}%"></i></span><span>{share:.1f}%</span></span></td>
+  <td class="r hide-rt">{transfers}</td>
+  <td>{words(CP_WORDS, "accounts", count=len(accounts))} {flag}</td>
+</tr>"""
+        )
+    counts = {r: sum(1 for p in parties if r in p["roles"]) for r in ROLE_ORDER}
+    chip_items = [(words(CP_WORDS, "all"), len(parties))] + [
+        (words(CP_WORDS, f"rolesPlural.{r}"), n) for r, n in counts.items() if n
+    ]
+    chips = "".join(
+        f'<button type="button" class="chip" aria-pressed="{"true" if i == 0 else "false"}">{escape(label)} <span class="n">{n}</span></button>'
+        for i, (label, n) in enumerate(chip_items)
+    )
+    columns = (
+        words(CP_WORDS, "colName"),
+        words(CP_WORDS, "colAmount", currency="IDR", range=_range(parties)),
+        words(CP_WORDS, "colShare"),
+        words(CP_WORDS, "colTransfers"),
+        words(CP_WORDS, "colAccounts"),
+    )
     content = f"""
-<div class="page">
-  <div class="page-head">
-    <div class="spread"><h1 class="type-title">Clients and suppliers</h1><span class="badge badge-outline">Design only (P1, spec 014 · Placeholder at /counterparties)</span></div>
-    <p>Who your money comes from and goes to, built from the bank lines, invoices and receipts. A supplier paid to an account not seen before is flagged.</p>
-  </div>
+<div class="page stack gap-6">
+  <header class="page-head stack gap-2">
+    <h1 class="type-title">{words(CP_WORDS, "title")}</h1>
+    <p class="muted">{words(CP_WORDS, "subtitle")}</p>
+  </header>
   <div class="stack gap-3">
-    <div class="chips" role="group" aria-label="Filter by role">{chips}</div>
+    <div class="table-actions"><div class="search"><input type="search" placeholder="{words(CP_WORDS, "search")}" aria-label="{words(CP_WORDS, "search")}"></div>
+      <div class="chips" role="group" aria-label="{words(CP_WORDS, "filterLabel")}">{chips}</div></div>
     <div class="table-panel rt-wrap"><table class="data-table rt">
-      <thead><tr><th>Name</th><th class="r">IDR M, Jan to Jun</th><th class="hide-rt">Share of money in or out</th><th class="r hide-rt">Transfers</th><th>Accounts seen</th></tr></thead>
-      <tbody>{''.join(trs)}</tbody></table></div>
-    <p class="muted small">Roles come from invoices, categories and matches. Correct a role on the Labels page.</p>
+      <thead><tr><th>{columns[0]}</th><th class="r">{columns[1]}</th><th class="hide-rt">{columns[2]}</th><th class="r hide-rt">{columns[3]}</th><th>{columns[4]}</th></tr></thead>
+      <tbody>{"".join(trs)}</tbody></table></div>
+    <p class="muted small">{words(CP_WORDS, "footnote")}</p>
   </div>
 </div>"""
-    return shell("clients", topbar("Clients and suppliers", ("Clients and suppliers",)), content)
+    return shell("clients", topbar(words(CP_WORDS, "title"), (words(CP_WORDS, "title"),)), content)
+
+
+def counterparty() -> str:
+    """One client or supplier (the app's CounterpartyPage) on the shared fixture."""
+    detail = CP["detail"]
+    party = next(p for p in CP["counterparties"] if p["counterpartyId"] == detail["counterpartyId"])
+    w = lambda key, **kw: words(CP_WORDS, f"detail.{key}", **kw)  # noqa: E731
+    roles = ", ".join(words(CP_WORDS, f"roles.{r}") for r in party["roles"])
+    aliases = f' · {w("aliases", aliases=", ".join(party["aliases"]))}' if party.get("aliases") else ""
+    figures = "".join(
+        f'<div class="figure"><dt>{label}</dt><dd class="v">{value}</dd></div>'
+        for label, value in (
+            (w("moneyIn"), money_code(party["totalIn"]["amount"])),
+            (w("moneyOut"), money_code(party["totalOut"]["amount"])),
+            (w("openInvoices"), str(party.get("openInvoices", 0))),
+            (w("firstSeen"), fmt_date(party["firstDate"])),
+            (w("lastSeen"), fmt_date(party["lastDate"])),
+        )
+    )
+    def cell(value: str, kind: str = "", right: bool = False) -> str:
+        attrs = f' data-cell="{kind}"' if kind else ""
+        cls = ' class="r"' if right else ""
+        return f"<td{cls}{attrs}>{value}</td>"
+
+    months = "".join(
+        f"<tr>{cell(month_name(m), 'wide')}{cell(f'<span class=\"amt-in\">{money_code(t['in']['amount'])}</span>', right=True)}"
+        f"{cell(f'<span class=\"amt-out\">{money_code(t['out']['amount'])}</span>', right=True)}{cell(str(t['count']), 'hide', right=True)}</tr>"
+        for m, t in sorted(party["totalsByMonth"].items())
+    )
+    accounts = "".join(
+        f"<tr>{cell(a['accountMasked'], 'wide')}{cell(fmt_date(a['firstSeen']))}{cell(fmt_date(a['lastSeen']), right=True)}</tr>"
+        for a in party["accountsSeen"]
+    )
+    lines = "".join(
+        f"<tr>{cell(escape(ln['description']), 'wide')}{cell(fmt_date(ln['date']))}"
+        f"{cell(f'<span class=\"{'amt-in' if not ln['amount']['amount'].startswith('-') else 'amt-out'}\">{money_code(ln['amount']['amount'])}</span>', right=True)}</tr>"
+        for ln in detail["lines"]
+    )
+    docs = "".join(
+        f"<tr>{cell(f'<a class=\"link\" href=\"document.html\">{escape(inv['number'])}</a>', 'wide')}{cell(fmt_date(inv['issueDate']))}"
+        f"{cell(money_code(inv['total']['amount']), right=True)}{cell(words(MONTH_WORDS_CP, f'monthDetail.payment.{inv['evidence']['payment']}'), 'wide')}</tr>"
+        for inv in detail["invoices"]
+    )
+
+    def panel(hid: str, title: str, head: tuple[tuple[str, str], ...], rows: str) -> str:
+        ths = "".join(
+            f'<th{" class=\"r\"" if kind == "r" else " class=\"hide-rt\"" if kind == "hide" else ""}'
+            f'{" data-cell=\"hide\"" if kind == "hide" else " data-cell=\"wide\"" if kind == "wide" else ""}>{label}</th>'
+            for label, kind in head
+        )
+        return f"""<section class="panel" aria-labelledby="{hid}"><div class="panel-head"><h2 id="{hid}">{title}</h2></div>
+  <div class="table-panel rt-wrap"><table class="data-table rt"><thead><tr>{ths}</tr></thead><tbody>{rows}</tbody></table></div></section>"""
+
+    content = f"""
+<div class="page stack gap-6">
+  <header class="page-head stack gap-2">
+    <a class="link small" href="clients.html">{icon("chevron-left", "icon icon-sm")}{w("back")}</a>
+    <h1 class="type-title">{escape(party["name"])}</h1>
+    <p class="muted">{escape(roles)}{escape(aliases)}</p>
+  </header>
+  <section class="ledger" aria-label="{w("moneyIn")}"><dl class="ledger-figures">{figures}</dl></section>
+  {panel("cp-months-h", w("months"), ((w("colMonth"), "wide"), (w("colIn"), "r"), (w("colOut"), "r"), (w("colCount"), "hide")), months)}
+  {panel("cp-accounts-h", w("accounts"), ((w("colAccount"), "wide"), (w("colFirst"), ""), (w("colLast"), "r")), accounts)}
+  {panel("cp-lines-h", w("lines"), ((w("colDescription"), "wide"), (w("colDate"), ""), (w("colAmountLine"), "r")), lines)}
+  {panel("cp-docs-h", w("documents"), ((w("colDocument"), "wide"), (w("colDate"), ""), (w("colTotal"), "r"), (w("colPayment"), "wide")), docs)}
+</div>"""
+    return shell("clients", topbar(party["name"], (words(CP_WORDS, "title"), party["name"]), back=(words(CP_WORDS, "title"), "clients.html")), content)
 
 
 # ------------------------------------------------------------------------------------------------
@@ -402,12 +526,14 @@ context: account ••4821, period 01–31 Mar 2026</pre></details>
 SCREENS_MORE = {
     "risk": ("Risk", risk),
     "clients": ("Clients and suppliers", clients),
+    "counterparty": ("Client or supplier", counterparty),
     "labels": ("Labels", labels),
     "runs": ("Runs", runs),
 }
 NOTES_MORE = {
     "risk": "Findings grouped by month with their severity and status; each opens the evidence viewer.",
     "clients": "Clients and suppliers built from the books; a supplier paid to a new account is flagged.",
+    "counterparty": "One client or supplier: totals by month, accounts seen with first and last use, its bank lines and documents.",
     "labels": "Every AI decision a person can check, lowest confidence first, with per-page types, extraction files, runs and dataset use.",
     "runs": "Run history like a tracing tool: runs, a span waterfall, and the selected model call with its request, response and label.",
 }

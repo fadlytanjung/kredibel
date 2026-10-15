@@ -7,6 +7,7 @@ import { createRequire } from 'node:module'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { DASHBOARD, WORKSPACE } from '../../src/widgets/dashboard/dashboard.fixture'
+import { COUNTERPARTIES } from './fixtures'
 import { CASH, FLOW_PARTIES, FLOW_STATEMENT, LINES } from '../../src/widgets/dashboard/charts.fixture'
 import { PNL } from '../../src/widgets/profit-loss/fixture'
 
@@ -22,6 +23,7 @@ async function serve(page: Page, dashboard: unknown = DASHBOARD) {
     if (path === '/api/money-flow') return route.fulfill({ json: url.searchParams.get('view') === 'COUNTERPARTIES' ? FLOW_PARTIES : FLOW_STATEMENT })
     if (path === '/api/cash-flow') return route.fulfill({ json: CASH })
     if (path === '/api/bank-lines') return route.fulfill({ json: LINES })
+    if (path === '/api/suggestions') return route.fulfill({ json: { items: COUNTERPARTIES.suggestions } })
     return route.fulfill({ json: { items: [] } })
   })
 }

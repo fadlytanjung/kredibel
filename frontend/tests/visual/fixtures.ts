@@ -6,10 +6,12 @@
 import { pathToFileURL } from 'node:url'
 import { resolve } from 'node:path'
 import type { Page } from '@playwright/test'
+import counterparties from '../../../contracts/design/fixtures/counterparties.json' with { type: 'json' }
 import document from '../../../contracts/design/fixtures/document.json' with { type: 'json' }
 import month from '../../../contracts/design/fixtures/month.json' with { type: 'json' }
 import review from '../../../contracts/design/fixtures/review.json' with { type: 'json' }
 
+export const COUNTERPARTIES = counterparties
 export const DOCUMENT = document
 export const MONTH = month
 export const REVIEW = review

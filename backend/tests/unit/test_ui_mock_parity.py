@@ -3,7 +3,7 @@
 
 Verifies:
 - AC-019-1: The mock index and every screen display identifiable route and implementation status.
-  Planned screens (clients, labels, runs) remain marked as design-only (P1).
+  Planned screens (labels, runs) remain marked as design-only (P1); clients and suppliers is built (spec 014).
 - AC-019-5: Implementation status and task claims match audited reality: incomplete acceptance
   criteria remain open with task IDs and dependencies.
 """
@@ -41,8 +41,8 @@ def test_ac019_1_screen_inventory_covers_all_screens():
 
 
 def test_ac019_1_planned_screens_marked_design_only():
-    """AC-019-1: Planned clients/suppliers, Labels, and Runs remain marked as design-only."""
-    design_only_slugs = {"clients", "labels", "runs"}
+    """AC-019-1: Planned Labels and Runs remain marked as design-only."""
+    design_only_slugs = {"labels", "runs"}
     for slug in design_only_slugs:
         assert slug in SCREEN_INVENTORY, f"{slug} must be in inventory"
         info = SCREEN_INVENTORY[slug]
@@ -77,7 +77,7 @@ def test_ac019_1_opened_screens_identify_status_and_route():
     mocks_dir = ROOT / "design" / "mocks"
 
     # Check key design-only screens
-    for slug in ("clients", "labels", "runs"):
+    for slug in ("labels", "runs"):
         html_file = mocks_dir / f"{slug}.html"
         assert html_file.exists(), f"{html_file} must exist"
         html = html_file.read_text(encoding="utf-8")
@@ -86,7 +86,7 @@ def test_ac019_1_opened_screens_identify_status_and_route():
         assert info.route in html, f"{slug}.html must display route {info.route}"
 
     # Check implemented screens
-    for slug in ("dashboard", "documents", "review", "profit-loss"):
+    for slug in ("dashboard", "documents", "review", "profit-loss", "clients", "counterparty"):
         html_file = mocks_dir / f"{slug}.html"
         assert html_file.exists(), f"{html_file} must exist"
         html = html_file.read_text(encoding="utf-8")
@@ -110,6 +110,8 @@ def test_ac019_3_refreshed_references_have_states_drawers_and_planned_markers():
         "document-ledger-columns": "IMPLEMENTED_STATE",
         "assistant-welcome": "IMPLEMENTED_STATE",
         "assistant-history": "IMPLEMENTED_DRAWER",
+        "clients": "IMPLEMENTED",
+        "counterparty": "IMPLEMENTED",
     }.items():
         assert SCREEN_INVENTORY[slug].status == status, slug
         assert (ROOT / "design" / "mocks" / f"{slug}.html").exists(), slug

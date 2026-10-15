@@ -37,7 +37,8 @@ const AssistantPage = lazy(() => import('../pages/AssistantPage').then((m) => ({
 const ReviewPage = lazy(() => import('../pages/ReviewPage').then((m) => ({ default: m.ReviewPage })))
 const RiskPage = lazy(() => import('../pages/RiskPage').then((m) => ({ default: m.RiskPage })))
 const SettingsPage = lazy(() => import('../pages/SettingsPage').then((m) => ({ default: m.SettingsPage })))
-const CounterpartiesPage = lazy(() => import('../pages/Placeholders').then((m) => ({ default: m.CounterpartiesPage })))
+const CounterpartiesPage = lazy(() => import('../pages/CounterpartiesPage').then((m) => ({ default: m.CounterpartiesPage })))
+const CounterpartyPage = lazy(() => import('../pages/CounterpartyPage').then((m) => ({ default: m.CounterpartyPage })))
 const LabelsPage = lazy(() => import('../pages/Placeholders').then((m) => ({ default: m.LabelsPage })))
 const RunsPage = lazy(() => import('../pages/Placeholders').then((m) => ({ default: m.RunsPage })))
 const OnboardingPreview = lazy(() => import('./OnboardingPreview').then((m) => ({ default: m.OnboardingPreview })))
@@ -46,6 +47,8 @@ const DocumentPreview = lazy(() => import('./ShellPreview').then((m) => ({ defau
 const MonthPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.MonthPreview })))
 const MonthsPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.MonthsPreview })))
 const ProfitLossPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.ProfitLossPreview })))
+const CounterpartiesPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.CounterpartiesPreview })))
+const CounterpartyPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.CounterpartyPreview })))
 const ReviewPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.ReviewPreview })))
 const SettingsPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.SettingsPreview })))
 const ShellPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.ShellPreview })))
@@ -161,7 +164,7 @@ const PROTECTED_ROUTES: { path: string; element: ReactNode }[] = [
   { path: '/risk', element: <RiskPage /> },
   { path: '/risk/:findingId', element: <RiskPage /> },
   { path: '/counterparties', element: <CounterpartiesPage /> },
-  { path: '/counterparties/:id', element: <CounterpartiesPage /> },
+  { path: '/counterparties/:id', element: <CounterpartyPage /> },
   { path: '/profit-loss', element: <ProfitLossPage /> },
   { path: '/assistant', element: <AssistantPage /> },
   { path: '/assistant/:threadId', element: <AssistantPage /> },
@@ -206,6 +209,10 @@ export function AppRouter() {
         {PREVIEW_ROUTES && <Route path="/preview/review" element={<ReviewPreview />} />}
         {PREVIEW_ROUTES && <Route path="/preview/review/:itemId" element={<ReviewPreview />} />}
         {PREVIEW_ROUTES && <Route path="/preview/profit-loss" element={<ProfitLossPreview />} />}
+        {PREVIEW_ROUTES && <Route path="/preview/counterparties" element={<CounterpartiesPreview />} />}
+        {PREVIEW_ROUTES && (
+          <Route path="/preview/counterparties/:id" element={<CounterpartyPreview />} />
+        )}
         {PREVIEW_ROUTES && <Route path="/preview/assistant" element={<AssistantPreview />} />}
         {PREVIEW_ROUTES && <Route path="/preview/assistant/:threadId" element={<AssistantPreview />} />}
         <Route path="*" element={<NotFoundPage />} />

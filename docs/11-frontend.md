@@ -677,6 +677,11 @@ citation chip).
   invoices and no transfers is flagged (`R02`); both rows link to Risk. A row opens its detail:
   totals by month, accounts seen with first and last dates, and its bank lines. A wrong role is
   corrected on the Labels page (`COUNTERPARTY_ROLE`).
+  Built 15 Oct 2026 (`CounterpartiesPage`, `CounterpartyPage`) on the shared fixture
+  `contracts/design/fixtures/counterparties.json`; the mocks `clients.html` and `counterparty.html` are
+  generated from it and compared in `tests/visual/counterparties.spec.ts`. Profile suggestions found
+  in the documents appear on the dashboard (`SuggestionCard`): what was found, its confidence and
+  evidence count, and Accept or Reject in place (spec 014, AC-014-7).
 
 ### 6.8 Finance Assistant (P1)
 

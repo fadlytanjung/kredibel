@@ -2577,3 +2577,8 @@ button.tab { border: 0; background: transparent; cursor: pointer; font-family: i
   .pnl-flow-compact { display: block; }
   .pnl-flow-wrapper > .chart-head > .seg { display: none; }
 }
+
+/* Profile suggestions on the dashboard (spec 014): an alert-list row with a decision. */
+.alert-list li.suggestion { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--k-space-3); align-items: start; padding: var(--k-space-3) var(--k-space-4); }
+.alert-list li.suggestion .actions { grid-column: 2; display: flex; gap: var(--k-space-2); flex-wrap: wrap; }
+.alert-list li.suggestion .kind { margin-top: 2px; }

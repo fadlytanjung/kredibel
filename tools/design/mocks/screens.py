@@ -28,6 +28,8 @@ ROOT = Path(__file__).resolve().parents[3]
 LOCALES = ROOT / "frontend/src/shared/i18n/locales/en"
 DASH = json.loads((ROOT / "contracts/design/fixtures/dashboard.json").read_text(encoding="utf-8"))
 DASH_WORDS = json.loads((LOCALES / "dashboard.json").read_text(encoding="utf-8"))
+CP_FIX = json.loads((ROOT / "contracts/design/fixtures/counterparties.json").read_text(encoding="utf-8"))
+CP_WORDS = json.loads((LOCALES / "counterparties.json").read_text(encoding="utf-8"))
 REVIEW_WORDS = json.loads((LOCALES / "review.json").read_text(encoding="utf-8"))
 RISK_WORDS = json.loads((LOCALES / "risk.json").read_text(encoding="utf-8"))
 
@@ -272,6 +274,13 @@ def dashboard() -> str:
         f'<li><a href="review.html"><span class="kind {KIND_TILE.get(i["kind"], "doc")}">{icon(KIND_ICON.get(i["kind"], "inbox"), "icon icon-sm")}</span>'
         f'<span><p class="a-t">{escape(i["title"])}</p><p class="a-s">{words(REVIEW_WORDS, f"kinds.{i['kind']}")}, {month_name(i["month"])}</p></span></a></li>'
         for i in DASH["reviewPreview"])
+    suggestion_items = "".join(
+        f'<li class="suggestion"><span class="kind doc">{icon("lightbulb", "icon icon-sm")}</span>'
+        f'<span><p class="a-t">{words(CP_WORDS, f"suggestions.fields.{s["field"]}")}: {escape(s["display"])}</p>'
+        f'<p class="a-s">{words(CP_WORDS, f"suggestions.confidence.{s["confidence"]}")}, {words(CP_WORDS, "suggestions.evidence", count=len(s["evidence"]))}</p></span>'
+        f'<span class="actions"><button type="button" class="button button-primary button-sm">{words(CP_WORDS, "suggestions.accept")}</button>'
+        f'<button type="button" class="button button-quiet button-sm">{words(CP_WORDS, "suggestions.reject")}</button></span></li>'
+        for s in CP_FIX["suggestions"])
     summary = DASH["moneyFlowSummary"]
     maximum = max(Decimal(n["value"]["amount"]) for n in summary["topSources"] + summary["topUses"])
     lists = f"""
@@ -283,6 +292,11 @@ def dashboard() -> str:
   <section class="panel" aria-labelledby="dash-review-h">
     <div class="panel-head"><h2 id="dash-review-h">{words(DASH_WORDS, "review")}</h2><a class="link" href="review.html">{words(DASH_WORDS, "allReview")}</a></div>
     <ul class="alert-list">{review_items}</ul>
+  </section>
+  <section class="panel" aria-labelledby="dash-suggest-h">
+    <div class="panel-head"><h2 id="dash-suggest-h">{words(CP_WORDS, "suggestions.title")}</h2></div>
+    <p class="small muted panel-pad" role="status">{words(CP_WORDS, "suggestions.found", count=len(CP_FIX["suggestions"]))}</p>
+    <ul class="alert-list">{suggestion_items}</ul>
   </section>
   <section class="panel" aria-labelledby="dash-flow-h">
     <div class="panel-head"><h2 id="dash-flow-h">{words(DASH_WORDS, "flowTitle")}</h2></div>

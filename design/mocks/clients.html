@@ -27,88 +27,89 @@
   <a class="only-compact" href="dashboard.html"><img class="mark" src="../brand/kredibel-mark.svg" alt="Kredibel"/></a>
   <p class="topbar-title only-compact">Clients and suppliers</p>
   <nav class="crumbs" aria-label="Breadcrumb"><span aria-current="page">Clients and suppliers</span></nav>
-  <div class="topbar-status hide-compact"><span class="badge badge-outline" title="Route: /counterparties">Design only (P1) · <code>/counterparties</code></span></div><div class="topbar-actions">
+  <div class="topbar-status hide-compact"><span class="badge badge-clean" title="Route: /counterparties">Implemented · <code>/counterparties</code></span></div><div class="topbar-actions">
     
     <a class="search-field" href="#"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>Search books<span class="kbd">/</span></a>
     <a class="icon-button" href="risk.html" aria-label="Notifications, 2 new"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z"/><path d="M10 20.5h4"/></svg><span class="dot"></span></a>
     <a class="button button-primary hide-compact" href="documents.html"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5"/><path d="M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15"/></svg>Upload</a>
   </div>
 </header><main id="content">
-<div class="page">
-  <div class="page-head">
-    <div class="spread"><h1 class="type-title">Clients and suppliers</h1><span class="badge badge-outline">Design only (P1, spec 014 · Placeholder at /counterparties)</span></div>
-    <p>Who your money comes from and goes to, built from the bank lines, invoices and receipts. A supplier paid to an account not seen before is flagged.</p>
-  </div>
+<div class="page stack gap-6">
+  <header class="page-head stack gap-2">
+    <h1 class="type-title">Clients and suppliers</h1>
+    <p class="muted">Who your money comes from and goes to, built from the bank lines, invoices and receipts. A supplier paid to an account not seen before is flagged.</p>
+  </header>
   <div class="stack gap-3">
-    <div class="chips" role="group" aria-label="Filter by role"><a class="chip" href="clients.html" aria-pressed="true">All <span class="n">11</span></a><a class="chip" href="clients.html">Clients <span class="n">5</span></a><a class="chip" href="clients.html">Suppliers <span class="n">4</span></a><a class="chip" href="clients.html">Lenders <span class="n">1</span></a><a class="chip" href="clients.html">Owner <span class="n">1</span></a></div>
+    <div class="table-actions"><div class="search"><input type="search" placeholder="Search by name" aria-label="Search by name"></div>
+      <div class="chips" role="group" aria-label="Filter by role"><button type="button" class="chip" aria-pressed="true">All <span class="n">11</span></button><button type="button" class="chip" aria-pressed="false">Clients <span class="n">5</span></button><button type="button" class="chip" aria-pressed="false">Suppliers <span class="n">4</span></button><button type="button" class="chip" aria-pressed="false">Lenders <span class="n">1</span></button><button type="button" class="chip" aria-pressed="false">Owner <span class="n">1</span></button></div></div>
     <div class="table-panel rt-wrap"><table class="data-table rt">
       <thead><tr><th>Name</th><th class="r">IDR M, Jan to Jun</th><th class="hide-rt">Share of money in or out</th><th class="r hide-rt">Transfers</th><th>Accounts seen</th></tr></thead>
       <tbody><tr>
-  <td><span class="doc-cell"><span class="thumb"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V5.5A1.5 1.5 0 0 1 5.5 4h8A1.5 1.5 0 0 1 15 5.5V21"/><path d="M15 10h3.5a1.5 1.5 0 0 1 1.5 1.5V21M3 21h18M8 8h3M8 12h3M8 16h3"/></svg></span><span><strong>Harborview Hotel Group</strong><span class="sub">Client</span></span></span></td>
+  <td data-cell="wide"><span class="doc-cell"><span class="thumb"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V5.5A1.5 1.5 0 0 1 5.5 4h8A1.5 1.5 0 0 1 15 5.5V21"/><path d="M15 10h3.5a1.5 1.5 0 0 1 1.5 1.5V21M3 21h18M8 8h3M8 12h3M8 16h3"/></svg></span><span><strong>Harborview Hotel Group</strong><span class="sub">Client</span></span></span></td>
   <td class="r"><span class="amt-in">+412.5</span></td>
-  <td class="hide-rt"><span class="share"><span class="meter-bar"><i style="width:91%"></i></span><span>30.4%</span></span></td>
+  <td class="hide-rt"><span class="share"><span class="meter-bar"><i style="width:100%"></i></span><span>34.3%</span></span></td>
   <td class="r hide-rt">18</td>
-  <td data-cell="wide">1 account </td>
+  <td>0 accounts </td>
 </tr><tr>
-  <td><span class="doc-cell"><span class="thumb"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V5.5A1.5 1.5 0 0 1 5.5 4h8A1.5 1.5 0 0 1 15 5.5V21"/><path d="M15 10h3.5a1.5 1.5 0 0 1 1.5 1.5V21M3 21h18M8 8h3M8 12h3M8 16h3"/></svg></span><span><strong>Highland Resort & Spa</strong><span class="sub">Client</span></span></span></td>
+  <td data-cell="wide"><span class="doc-cell"><span class="thumb"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V5.5A1.5 1.5 0 0 1 5.5 4h8A1.5 1.5 0 0 1 15 5.5V21"/><path d="M15 10h3.5a1.5 1.5 0 0 1 1.5 1.5V21M3 21h18M8 8h3M8 12h3M8 16h3"/></svg></span><span><strong>Highland Resort &amp; Spa</strong><span class="sub">Client</span></span></span></td>
   <td class="r"><span class="amt-in">+318.0</span></td>
-  <td class="hide-rt"><span class="share"><span class="meter-bar"><i style="width:70%"></i></span><span>23.5%</span></span></td>
+  <td class="hide-rt"><span class="share"><span class="meter-bar"><i style="width:79%"></i></span><span>26.4%</span></span></td>
   <td class="r hide-rt">12</td>
-  <td data-cell="wide">1 account </td>
+  <td>0 accounts </td>
 </tr><tr>
-  <td><span class="doc-cell"><span class="thumb"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V5.5A1.5 1.5 0 0 1 5.5 4h8A1.5 1.5 0 0 1 15 5.5V21"/><path d="M15 10h3.5a1.5 1.5 0 0 1 1.5 1.5V21M3 21h18M8 8h3M8 12h3M8 16h3"/></svg></span><span><strong>Daybreak Café</strong><span class="sub">Client</span></span></span></td>
+  <td data-cell="wide"><span class="doc-cell"><span class="thumb"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V5.5A1.5 1.5 0 0 1 5.5 4h8A1.5 1.5 0 0 1 15 5.5V21"/><path d="M15 10h3.5a1.5 1.5 0 0 1 1.5 1.5V21M3 21h18M8 8h3M8 12h3M8 16h3"/></svg></span><span><strong>Daybreak Café</strong><span class="sub">Client</span></span></span></td>
   <td class="r"><span class="amt-in">+196.4</span></td>
-  <td class="hide-rt"><span class="share"><span class="meter-bar"><i style="width:44%"></i></span><span>14.5%</span></span></td>
+  <td class="hide-rt"><span class="share"><span class="meter-bar"><i style="width:49%"></i></span><span>16.3%</span></span></td>
   <td class="r hide-rt">24</td>
-  <td data-cell="wide">1 account </td>
+  <td>0 accounts </td>
 </tr><tr>
-  <td><span class="doc-cell"><span class="thumb"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V5.5A1.5 1.5 0 0 1 5.5 4h8A1.5 1.5 0 0 1 15 5.5V21"/><path d="M15 10h3.5a1.5 1.5 0 0 1 1.5 1.5V21M3 21h18M8 8h3M8 12h3M8 16h3"/></svg></span><span><strong>Spice Route Restaurant</strong><span class="sub">Client</span></span></span></td>
+  <td data-cell="wide"><span class="doc-cell"><span class="thumb"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V5.5A1.5 1.5 0 0 1 5.5 4h8A1.5 1.5 0 0 1 15 5.5V21"/><path d="M15 10h3.5a1.5 1.5 0 0 1 1.5 1.5V21M3 21h18M8 8h3M8 12h3M8 16h3"/></svg></span><span><strong>Spice Route Restaurant</strong><span class="sub">Client</span></span></span></td>
   <td class="r"><span class="amt-in">+154.8</span></td>
-  <td class="hide-rt"><span class="share"><span class="meter-bar"><i style="width:34%"></i></span><span>11.4%</span></span></td>
-  <td class="r hide-rt">11</td>
-  <td data-cell="wide">1 account </td>
-</tr><tr>
-  <td><span class="doc-cell"><span class="thumb"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V5.5A1.5 1.5 0 0 1 5.5 4h8A1.5 1.5 0 0 1 15 5.5V21"/><path d="M15 10h3.5a1.5 1.5 0 0 1 1.5 1.5V21M3 21h18M8 8h3M8 12h3M8 16h3"/></svg></span><span><strong>Hillside Coffee Bar</strong><span class="sub">Client</span></span></span></td>
-  <td class="r"><span class="amt-in">+121.6</span></td>
-  <td class="hide-rt"><span class="share"><span class="meter-bar"><i style="width:27%"></i></span><span>9.0%</span></span></td>
-  <td class="r hide-rt">12</td>
-  <td data-cell="wide">1 account </td>
-</tr><tr>
-  <td><span class="doc-cell"><span class="thumb"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V5.5A1.5 1.5 0 0 1 5.5 4h8A1.5 1.5 0 0 1 15 5.5V21"/><path d="M15 10h3.5a1.5 1.5 0 0 1 1.5 1.5V21M3 21h18M8 8h3M8 12h3M8 16h3"/></svg></span><span><strong>Green Valley Farms</strong><span class="sub">Supplier</span></span></span></td>
-  <td class="r"><span class="amt-out">−318.2</span></td>
-  <td class="hide-rt"><span class="share"><span class="meter-bar"><i style="width:74%"></i></span><span>24.7%</span></span></td>
-  <td class="r hide-rt">7</td>
-  <td data-cell="wide">1 account </td>
-</tr><tr>
-  <td><span class="doc-cell"><span class="thumb"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V5.5A1.5 1.5 0 0 1 5.5 4h8A1.5 1.5 0 0 1 15 5.5V21"/><path d="M15 10h3.5a1.5 1.5 0 0 1 1.5 1.5V21M3 21h18M8 8h3M8 12h3M8 16h3"/></svg></span><span><strong>PrimePack Packaging</strong><span class="sub">Supplier</span></span></span></td>
-  <td class="r"><span class="amt-out">−142.3</span></td>
-  <td class="hide-rt"><span class="share"><span class="meter-bar"><i style="width:33%"></i></span><span>11.1%</span></span></td>
+  <td class="hide-rt"><span class="share"><span class="meter-bar"><i style="width:39%"></i></span><span>12.9%</span></span></td>
   <td class="r hide-rt">6</td>
-  <td data-cell="wide">1 account </td>
-</tr><tr class="is-flagged">
-  <td><span class="doc-cell"><span class="thumb"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V5.5A1.5 1.5 0 0 1 5.5 4h8A1.5 1.5 0 0 1 15 5.5V21"/><path d="M15 10h3.5a1.5 1.5 0 0 1 1.5 1.5V21M3 21h18M8 8h3M8 12h3M8 16h3"/></svg></span><span><strong>Roastline Equipment Service</strong><span class="sub">Supplier</span></span></span></td>
-  <td class="r"><span class="amt-out">−48.5</span></td>
-  <td class="hide-rt"><span class="share"><span class="meter-bar"><i style="width:11%"></i></span><span>3.8%</span></span></td>
-  <td class="r hide-rt">2</td>
-  <td data-cell="wide">2 accounts <span class="badge badge-high"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 4.2 2.8 17.5a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0z"/><path d="M12 9.5v4M12 17h.01"/></svg>New account in May (X08)</span></td>
+  <td>0 accounts </td>
 </tr><tr>
-  <td><span class="doc-cell"><span class="thumb"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V5.5A1.5 1.5 0 0 1 5.5 4h8A1.5 1.5 0 0 1 15 5.5V21"/><path d="M15 10h3.5a1.5 1.5 0 0 1 1.5 1.5V21M3 21h18M8 8h3M8 12h3M8 16h3"/></svg></span><span><strong>Bluewater Trading Co.</strong><span class="sub">Supplier</span></span></span></td>
+  <td data-cell="wide"><span class="doc-cell"><span class="thumb"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V5.5A1.5 1.5 0 0 1 5.5 4h8A1.5 1.5 0 0 1 15 5.5V21"/><path d="M15 10h3.5a1.5 1.5 0 0 1 1.5 1.5V21M3 21h18M8 8h3M8 12h3M8 16h3"/></svg></span><span><strong>Hillside Coffee Bar</strong><span class="sub">Client</span></span></span></td>
+  <td class="r"><span class="amt-in">+121.6</span></td>
+  <td class="hide-rt"><span class="share"><span class="meter-bar"><i style="width:30%"></i></span><span>10.1%</span></span></td>
+  <td class="r hide-rt">12</td>
+  <td>0 accounts </td>
+</tr><tr>
+  <td data-cell="wide"><span class="doc-cell"><span class="thumb"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V5.5A1.5 1.5 0 0 1 5.5 4h8A1.5 1.5 0 0 1 15 5.5V21"/><path d="M15 10h3.5a1.5 1.5 0 0 1 1.5 1.5V21M3 21h18M8 8h3M8 12h3M8 16h3"/></svg></span><span><strong>Green Valley Farms</strong><span class="sub">Supplier</span></span></span></td>
+  <td class="r"><span class="amt-out">−318.2</span></td>
+  <td class="hide-rt"><span class="share"><span class="meter-bar"><i style="width:100%"></i></span><span>49.6%</span></span></td>
+  <td class="r hide-rt">6</td>
+  <td>1 account </td>
+</tr><tr>
+  <td data-cell="wide"><span class="doc-cell"><span class="thumb"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V5.5A1.5 1.5 0 0 1 5.5 4h8A1.5 1.5 0 0 1 15 5.5V21"/><path d="M15 10h3.5a1.5 1.5 0 0 1 1.5 1.5V21M3 21h18M8 8h3M8 12h3M8 16h3"/></svg></span><span><strong>PrimePack Packaging</strong><span class="sub">Supplier</span></span></span></td>
+  <td class="r"><span class="amt-out">−142.3</span></td>
+  <td class="hide-rt"><span class="share"><span class="meter-bar"><i style="width:67%"></i></span><span>22.2%</span></span></td>
+  <td class="r hide-rt">6</td>
+  <td>1 account </td>
+</tr><tr class="is-flagged">
+  <td data-cell="wide"><span class="doc-cell"><span class="thumb"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V5.5A1.5 1.5 0 0 1 5.5 4h8A1.5 1.5 0 0 1 15 5.5V21"/><path d="M15 10h3.5a1.5 1.5 0 0 1 1.5 1.5V21M3 21h18M8 8h3M8 12h3M8 16h3"/></svg></span><span><strong>Roastline Equipment Service</strong><span class="sub">Supplier</span></span></span></td>
+  <td class="r"><span class="amt-out">−48.5</span></td>
+  <td class="hide-rt"><span class="share"><span class="meter-bar"><i style="width:23%"></i></span><span>7.6%</span></span></td>
+  <td class="r hide-rt">2</td>
+  <td>2 accounts <a class="badge badge-high" href="risk.html"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 4.2 2.8 17.5a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0z"/><path d="M12 9.5v4M12 17h.01"/></svg>New account in May (X08)</a></td>
+</tr><tr>
+  <td data-cell="wide"><span class="doc-cell"><span class="thumb"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V5.5A1.5 1.5 0 0 1 5.5 4h8A1.5 1.5 0 0 1 15 5.5V21"/><path d="M15 10h3.5a1.5 1.5 0 0 1 1.5 1.5V21M3 21h18M8 8h3M8 12h3M8 16h3"/></svg></span><span><strong>Bluewater Trading Co.</strong><span class="sub">Supplier</span></span></span></td>
   <td class="r"><span class="muted">0.0</span></td>
   <td class="hide-rt"><span class="share"><span class="meter-bar"><i style="width:0%"></i></span><span>0.0%</span></span></td>
   <td class="r hide-rt">0</td>
-  <td data-cell="wide">none <span class="badge badge-medium"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V13M12 16.5h.01"/></svg>2 invoices, never paid (R02)</span></td>
+  <td>0 accounts <a class="badge badge-medium" href="risk.html"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V13M12 16.5h.01"/></svg>2 invoices, never paid (R02)</a></td>
 </tr><tr>
-  <td><span class="doc-cell"><span class="thumb"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9.5 12 4l9 5.5M4.5 10v8M9.5 10v8M14.5 10v8M19.5 10v8M3 20.5h18"/></svg></span><span><strong>Archipelago Commerce Bank</strong><span class="sub">Lender</span></span></span></td>
+  <td data-cell="wide"><span class="doc-cell"><span class="thumb"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9.5 12 4l9 5.5M4.5 10v8M9.5 10v8M14.5 10v8M19.5 10v8M3 20.5h18"/></svg></span><span><strong>Loan payments</strong><span class="sub">Lender</span></span></span></td>
   <td class="r"><span class="amt-out">−60.0</span></td>
-  <td class="hide-rt"><span class="share"><span class="meter-bar"><i style="width:14%"></i></span><span>4.7%</span></span></td>
+  <td class="hide-rt"><span class="share"><span class="meter-bar"><i style="width:28%"></i></span><span>9.4%</span></span></td>
   <td class="r hide-rt">6</td>
-  <td data-cell="wide">loan account </td>
+  <td>0 accounts </td>
 </tr><tr>
-  <td><span class="doc-cell"><span class="thumb"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5c1-3.8 4-6 7.5-6s6.5 2.2 7.5 6"/></svg></span><span><strong>Maya Sari</strong><span class="sub">Owner</span></span></span></td>
+  <td data-cell="wide"><span class="doc-cell"><span class="thumb"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5c1-3.8 4-6 7.5-6s6.5 2.2 7.5 6"/></svg></span><span><strong>Maya Sari</strong><span class="sub">Owner</span></span></span></td>
   <td class="r"><span class="amt-out">−72.0</span></td>
-  <td class="hide-rt"><span class="share"><span class="meter-bar"><i style="width:17%"></i></span><span>5.6%</span></span></td>
+  <td class="hide-rt"><span class="share"><span class="meter-bar"><i style="width:34%"></i></span><span>11.2%</span></span></td>
   <td class="r hide-rt">6</td>
-  <td data-cell="wide">1 account </td>
+  <td>0 accounts </td>
 </tr></tbody></table></div>
     <p class="muted small">Roles come from invoices, categories and matches. Correct a role on the Labels page.</p>
   </div>

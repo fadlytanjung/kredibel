@@ -5,6 +5,8 @@
 
 import { useParams } from 'react-router-dom'
 import { AssistantPage } from '../pages/AssistantPage'
+import { CounterpartiesPage } from '../pages/CounterpartiesPage'
+import { CounterpartyPage } from '../pages/CounterpartyPage'
 import { ProfitLossContent } from '../pages/ProfitLossPage'
 import { DashboardPage } from '../pages/DashboardPage'
 import { DocumentPage } from '../pages/DocumentPage'
@@ -88,6 +90,24 @@ export function AssistantPreview() {
   return (
     <AppShell {...PREVIEW_PROPS} activePath="/assistant" onUpload={() => undefined}>
       <AssistantPage />
+    </AppShell>
+  )
+}
+
+/** Clients and suppliers inside the shell; the caller serves its API data (screenshots). */
+export function CounterpartiesPreview() {
+  return (
+    <AppShell {...PREVIEW_PROPS} activePath="/counterparties" onUpload={() => undefined}>
+      <CounterpartiesPage />
+    </AppShell>
+  )
+}
+
+/** One client or supplier inside the shell; the caller serves its API data (screenshots). */
+export function CounterpartyPreview() {
+  return (
+    <AppShell {...PREVIEW_PROPS} activePath="/counterparties" onUpload={() => undefined}>
+      <CounterpartyPage />
     </AppShell>
   )
 }

@@ -20,7 +20,7 @@
 | FR-013 | Documents library with live status and filters | 003 | AC-003-7…10 | `tests/integration/test_documents_api.py`, `pages/DocumentsPage.test.tsx` |
 | FR-020 | Classification; uncertain type asks the user | 005 | AC-005-1…3 | `tests/scenarios/test_reading.py` |
 | FR-021 | AI reader + witness + verifier with provenance | 005 | AC-005-4…9 | `tests/unit/test_verify.py`, `test_normalize.py`, `tests/scenarios/test_reading.py` |
-| FR-022 | Ledger import with a confirmed mapping | 005 | AC-005-10…12 | `tests/unit/test_ledger_parse.py`, `tests/scenarios/test_ledger.py` |
+| FR-022 | Ledger import with a confirmed mapping | 005 | AC-005-10…12 | `tests/unit/test_ledger_parse.py`, `tests/unit/test_ledger_mapping.py`, `tests/unit/test_ledger_mapping_workflow.py`, `tests/integration/test_ledger_mapping_api.py`, `frontend/tests/visual/review.spec.ts` (column check), `tests/scenarios/test_ledger.py` |
 | FR-023 | Integrity checks with evidence and verdicts | 006 | AC-006-7…12 | `tests/unit/checks/*`, `tests/scenarios/test_s2_tampered.py` |
 | FR-024 | Categorization with precedence | 007 | AC-007-1, AC-007-2 | `tests/unit/test_categorize.py` |
 | FR-030 | Months reconcile on every change, order-independent | 004, 007 | AC-004-4…7, AC-007-3, AC-007-7 | `tests/unit/test_reconcile_order.py` (hypothesis), `tests/scenarios/test_s5_reverse.py` |

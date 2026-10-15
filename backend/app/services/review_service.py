@@ -26,7 +26,8 @@ from app.domain.errors import (
     ValidationProblem,
     WorkspaceRequiredError,
 )
-from app.domain.models.document import DuplicateDecision
+from app.domain.ledger_parse import LedgerMapping
+from app.domain.models.document import DocStatus, DuplicateDecision
 from app.domain.models.events import AuditEvent
 from app.domain.models.invoice import Invoice, Receipt
 from app.domain.review_items import ResolveAction, ReviewItem, ReviewItemResolution
@@ -34,6 +35,8 @@ from app.ports.bank_line_repository import BankLineRepository
 from app.ports.document_repository import DocumentRepository
 from app.ports.record_repository import DocumentRecords
 from app.ports.review_item_repository import ReviewItemRepository
+from app.ports.task_queue import TaskQueue
+from app.ports.workspace_repository import WorkspaceRepository
 from app.services.bank_line_service import BankLineService
 from app.services.decision_service import DecisionService
 from app.services.match_service import MatchService
@@ -77,6 +80,8 @@ class ReviewService:
         invoices: DocumentRecords[Invoice],
         receipts: DocumentRecords[Receipt],
         clock: Clock,
+        workspaces: WorkspaceRepository | None = None,
+        task_queue: TaskQueue | None = None,
     ) -> None:
         self._items = review_items
         self._matches = matches
@@ -89,6 +94,8 @@ class ReviewService:
         self._invoices = invoices
         self._receipts = receipts
         self._clock = clock
+        self._workspaces = workspaces
+        self._task_queue = task_queue
 
     async def list_items(
         self,
@@ -150,6 +157,8 @@ class ReviewService:
                 await self._correct(principal, item, request)
             case "CONFIRM_DUPLICATE" | "NOT_DUPLICATE":
                 await self._decide_duplicate(principal, item, request.action == "CONFIRM_DUPLICATE")
+            case "CONFIRM_MAPPING":
+                await self._confirm_mapping(principal, item, request)
             case _:
                 rerun = False  # NOT_YET_PAID, IGNORE, ACCEPT_AS_READ: the item is the decision
 
@@ -245,6 +254,54 @@ class ReviewService:
         await store.save_correction(org_id, fixed, event)
         months = sorted({m for m in (before.month, fixed.month) if m})
         await self._months.mark_dirty(org_id, months, reason="value_corrected")
+
+    async def _confirm_mapping(
+        self, principal: Principal, item: ReviewItem, request: ResolveRequest
+    ) -> None:
+        """AC-005-11: the mapping as proposed or edited is validated, kept for the file's layout on
+        the workspace (docs/09 §3.8) and on the document, and the document is read again with it."""
+        org_id = _org(principal)
+        doc_id = item.doc_id or (item.subject.doc_ids or [""])[0]
+        doc = await self._docs.get_document(org_id, doc_id)
+        if doc is None:
+            raise NotFoundError(f"Document {doc_id} not found")
+        proposed = (
+            (item.suggestion.mapping or {}).get("mapping") if item.suggestion.mapping else None
+        )
+        mapping = LedgerMapping.from_dict(request.mapping or proposed or {})
+        if problems := mapping.problems():
+            raise ValidationProblem(field="mapping", message="; ".join(problems))
+        now = self._clock.now()
+        meta = dict(doc.ledger_meta or {})
+        signature = str(meta.get("layoutSignature") or "")
+        stored = {**mapping.to_dict(), "confirmedBy": principal.uid, "confirmedAt": now.isoformat()}
+        if self._workspaces is not None and signature:
+            await self._workspaces.save_ledger_mapping(
+                org_id,
+                signature,
+                stored,
+                AuditEvent(
+                    event_id=new_id("evt"),
+                    type="LEDGER_MAPPING_CONFIRMED",
+                    actor_uid=principal.uid,
+                    actor_role=principal.role or "owner",
+                    at=now,
+                    subject={"docId": doc_id, "layoutSignature": signature},
+                    details={
+                        "columns": ", ".join(mapping.columns()),
+                        "dateFormat": mapping.date_format,
+                        "decimalSeparator": mapping.decimal_separator,
+                        "layout": "amount" if mapping.amount else "debit_credit",
+                    },
+                ),
+            )
+        meta.update({"mappingStatus": "CONFIRMED", "mapping": mapping.to_dict()})
+        meta.pop("rowErrors", None)
+        await self._docs.save_document(
+            org_id, replace(doc, status=DocStatus.READING, status_detail=None, ledger_meta=meta)
+        )
+        if self._task_queue is not None:
+            await self._task_queue.enqueue_document_task(org_id, doc_id, new_id("run"))
 
     async def _decide_duplicate(self, principal: Principal, item: ReviewItem, copy: bool) -> None:
         """AC-006-6: "duplicate" keeps the copy's values out; "not a duplicate" releases them."""

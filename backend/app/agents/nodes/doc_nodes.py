@@ -36,7 +36,14 @@ from app.domain.duplicates import (
 from app.domain.findings import Evidence, Finding, finding_id
 from app.domain.invoice_records import build_invoices, build_receipts, document_type_of
 from app.domain.layout import Chunk, chunk_page, chunks_from_json, chunks_to_json, render_chunks
-from app.domain.ledger_parse import parse_ledger_content
+from app.domain.ledger_parse import (
+    LedgerMapping,
+    compute_layout_signature,
+    is_auto_confirmable,
+    parse_ledger_content,
+    propose_mapping,
+    read_table,
+)
 from app.domain.models.bank_line import BankLine
 from app.domain.models.document import (
     DocStatus,
@@ -55,6 +62,7 @@ from app.domain.reading import (
     TransactionItem,
     build_statement,
 )
+from app.domain.review_items import confirm_mapping_item
 from app.domain.risk import assess_document_risk
 from app.domain.verdict import integrity_verdict
 
@@ -190,9 +198,12 @@ async def _classify_without_reader(
 
 
 def propose_ledger_mapping(deps: PipelineDeps):
+    """AC-005-11: reuse a confirmed mapping, confirm a standard layout by code, or propose and
+    wait for a person (NEEDS_INPUT with a CONFIRM_LEDGER_MAPPING item)."""
+
     @stage(deps, "propose_ledger_mapping")
     async def _node(ctx: Context, node_input: dict[str, Any]) -> dict[str, Any]:
-        if node_input.get("mappingConfirmed"):
+        if node_input.get("mappingConfirmed") and node_input.get("mapping"):
             return {**node_input, "summary": "Ledger mapping confirmed"}
 
         org_id, doc_id = _ids(node_input)
@@ -204,41 +215,95 @@ def propose_ledger_mapping(deps: PipelineDeps):
         content_bytes = await deps.storage.get_original(org_id, doc_id, ext)
         if not content_bytes:
             return {**node_input, "summary": "Empty ledger content"}
-
-        text = content_bytes.decode("utf-8", errors="replace")
-        lines = [ln for ln in text.splitlines() if not ln.startswith("#") and ln.strip()]
-        if not lines:
+        headers, rows = read_table(content_bytes.decode("utf-8", errors="replace"))
+        if not headers or not rows:
             return {**node_input, "summary": "Empty ledger rows"}
+        signature = compute_layout_signature(headers)
+        meta = dict(doc.ledger_meta or {})
 
-        import csv
-        reader = csv.DictReader(lines)
-        headers = [h.lower().strip() for h in (reader.fieldnames or []) if h]
+        # 1. A mapping a person confirmed for this layout, on the workspace or on this document.
+        confirmed: dict[str, Any] | None = None
+        if deps.workspaces is not None:
+            workspace = await deps.workspaces.get_workspace(org_id)
+            confirmed = (workspace.ledger_mappings if workspace else {}).get(signature)
+        if (
+            confirmed is None
+            and meta.get("mappingStatus") == "CONFIRMED"
+            and meta.get("layoutSignature") == signature
+        ):
+            confirmed = meta.get("mapping")
+        if confirmed:
+            mapping = LedgerMapping.from_dict(confirmed)
+            if mapping.complete:
+                meta.update(
+                    {
+                        "layoutSignature": signature,
+                        "mappingStatus": "CONFIRMED",
+                        "mapping": mapping.to_dict(),
+                    }
+                )
+                await deps.doc_repo.save_document(org_id, replace(doc, ledger_meta=meta))
+                return {
+                    **node_input,
+                    "mappingConfirmed": True,
+                    "mapping": mapping.to_dict(),
+                    "summary": "Confirmed ledger mapping reused",
+                }
 
-        has_date = any(k in headers for k in ("date", "posting date", "trans date"))
-        has_acct = any(k in headers for k in ("account", "account code", "acct", "code"))
-        has_debit_credit = "debit" in headers and "credit" in headers
-        has_signed_amount = any(k in headers for k in ("amount", "net"))
-
-        is_standard = has_date and has_acct and (has_debit_credit or has_signed_amount)
-        if is_standard:
+        # 2. Code proposes from the header words and the value shapes, never from the values.
+        proposal = propose_mapping(headers, rows)
+        if is_auto_confirmable(proposal, headers):
+            meta.update(
+                {
+                    "layoutSignature": signature,
+                    "mappingStatus": "CONFIRMED",
+                    "mapping": proposal.to_dict(),
+                }
+            )
+            await deps.doc_repo.save_document(org_id, replace(doc, ledger_meta=meta))
             return {
                 **node_input,
                 "mappingConfirmed": True,
+                "mapping": proposal.to_dict(),
                 "summary": "Standard ledger layout auto-confirmed",
             }
 
+        # 3. A new layout: a person checks which column is which, once.
+        meta.update(
+            {
+                "layoutSignature": signature,
+                "mappingStatus": "PROPOSED",
+                "mapping": proposal.to_dict(),
+                "header": headers,
+                "sampleRows": rows[:5],
+            }
+        )
         updated = replace(
             doc,
             status=DocStatus.NEEDS_INPUT,
             status_detail="Ledger mapping confirmation needed",
+            ledger_meta=meta,
         )
         await deps.doc_repo.save_document(org_id, updated)
+        if deps.review_items is not None:
+            item = confirm_mapping_item(
+                doc_id,
+                doc.file_name,
+                mapping=proposal.to_dict(),
+                header=headers,
+                sample_rows=rows[:5],
+                layout_signature=signature,
+            )
+            await deps.review_items.upsert_review_item(org_id, item)
         return {**node_input, "status": "NEEDS_INPUT", "summary": "Mapping confirmation needed"}
 
     return _node
 
 
 def parse_ledger(deps: PipelineDeps):
+    """AC-005-12: every row becomes a ledger entry through the mapping; more than 2% bad rows
+    reopen the mapping item."""
+
     @stage(deps, "parse_ledger")
     async def _node(ctx: Context, node_input: dict[str, Any]) -> dict[str, Any]:
         org_id, doc_id = _ids(node_input)
@@ -256,15 +321,42 @@ def parse_ledger(deps: PipelineDeps):
                         if ws and ws.currency:
                             currency = ws.currency
 
-                    res = parse_ledger_content(text, doc_id=doc_id, currency=currency)
+                    mapping = (
+                        LedgerMapping.from_dict(node_input["mapping"])
+                        if node_input.get("mapping")
+                        else None
+                    )
+                    res = parse_ledger_content(
+                        text, doc_id=doc_id, currency=currency, mapping=mapping
+                    )
+                    meta = dict(doc.ledger_meta or {})
                     if res.too_many_bad_rows:
                         msg = f"Over 2% invalid rows ({len(res.bad_rows)} bad rows)"
+                        meta.update(
+                            {
+                                "mappingStatus": "PROPOSED",
+                                "rowErrors": [
+                                    {"row": r, "reason": "could not be read"}
+                                    for r in res.bad_rows[:100]
+                                ],
+                            }
+                        )
                         updated = replace(
-                            doc,
-                            status=DocStatus.NEEDS_INPUT,
-                            status_detail=msg,
+                            doc, status=DocStatus.NEEDS_INPUT, status_detail=msg, ledger_meta=meta
                         )
                         await deps.doc_repo.save_document(org_id, updated)
+                        if deps.review_items is not None and mapping is not None:
+                            headers, rows = read_table(text)
+                            item = confirm_mapping_item(
+                                doc_id,
+                                doc.file_name,
+                                mapping=mapping.to_dict(),
+                                header=headers,
+                                sample_rows=rows[:5],
+                                bad_rows=res.bad_rows,
+                                layout_signature=res.layout_signature,
+                            )
+                            await deps.review_items.upsert_review_item(org_id, item)
                         return {
                             **node_input,
                             "status": "NEEDS_INPUT",
@@ -274,25 +366,30 @@ def parse_ledger(deps: PipelineDeps):
                     if res.rows:
                         await deps.ledger.save_rows(org_id, res.rows)
                         months = sorted({r.date.strftime("%Y-%m") for r in res.rows})
-                        ledger_meta = {
-                            "rowsImported": len(res.rows),
-                            "rows": len(res.rows),
-                            "dateFrom": min(r.date for r in res.rows).isoformat(),
-                            "dateTo": max(r.date for r in res.rows).isoformat(),
-                            "badRowsCount": len(res.bad_rows),
-                        }
-                        updated = replace(doc, months=months, ledger_meta=ledger_meta)
+                        meta.update(
+                            {
+                                "rowsImported": len(res.rows),
+                                "rows": len(res.rows),
+                                "dateFrom": min(r.date for r in res.rows).isoformat(),
+                                "dateTo": max(r.date for r in res.rows).isoformat(),
+                                "badRowsCount": len(res.bad_rows),
+                                "layoutSignature": res.layout_signature,
+                                "mappingStatus": "CONFIRMED",
+                            }
+                        )
+                        if mapping is not None:
+                            meta["mapping"] = mapping.to_dict()
+                        updated = replace(doc, months=months, ledger_meta=meta)
                         await deps.doc_repo.save_document(org_id, updated)
                         return {
                             **node_input,
                             "months": months,
-                            "ledgerMeta": ledger_meta,
+                            "ledgerMeta": meta,
                             "summary": f"Ledger parsed: {len(res.rows)} entries",
                         }
         return {**node_input, "summary": "Ledger parsed"}
 
     return _node
-
 
 
 def parse_pages(deps: PipelineDeps):

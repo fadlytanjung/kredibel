@@ -152,6 +152,14 @@ def create_documents_router(
         doc = await provider.document_service.get_document(principal, doc_id)
         return _document_body(doc)
 
+    @router.get("/{doc_id}/ledger-mapping")
+    async def get_ledger_mapping(
+        doc_id: str,
+        principal: Principal = Depends(workspace_dep),
+    ) -> dict[str, Any]:
+        """The proposed or confirmed column mapping with sample rows (AC-005-11)."""
+        return await provider.document_service.get_ledger_mapping(principal, doc_id)
+
     @router.get("/{doc_id}/file")
     async def get_document_file(
         doc_id: str,

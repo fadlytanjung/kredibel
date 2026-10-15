@@ -486,9 +486,10 @@ stateDiagram-v2
     and lights it.
   - **Ledger export** (`document-ledger.html`): no page viewer; the figures are the rows imported,
     the period and the type (spreadsheet); the **Ledger entries** tab says how many rows were
-    imported, links **View in Profit and loss** and names the months. The column confirmation of a
-    new layout (**Check columns**, spec 005 T005-11) is planned: the mock keeps it, labelled as
-    planned; standard layouts are confirmed automatically today.
+    imported, links **View in Profit and loss** and names the months. A file with a new layout
+    (`document-ledger-columns.html`) has imported nothing yet: a banner says "New column layout.
+    Check which column is which, once, and every row is imported." and **Check columns** opens its
+    review item (§6.5, spec 005 AC-005-11). Standard English layouts are confirmed by code.
   - The mock and the page draw the same synthetic document (`contracts/design/fixtures/document.json`);
     the browser check serves the mock's synthetic page as the page image and compares header,
     figures, tabs, filters and columns.
@@ -602,6 +603,18 @@ from the same synthetic items as the browser check (`contracts/design/fixtures/r
   bank lines that could be its payment; the other allowed actions as quiet buttons (**Not this
   match**, **Correct it**, **Leave it, with a reason**); the primary action named after the choice
   (**Confirm the match**, **The value is right**) and **Skip**.
+- **Checking columns** (`review-mapping.html`, spec 005 T005-11): a ledger export with a new
+  layout asks once which column of the file holds each field. The drawer shows the file, the
+  **MappingEditor** (Date, Description, Account code, Account name, Reference and the amount columns,
+  each a select over the file's header with **Not in the file**; the amounts' layout, debit and
+  credit columns or one signed amount with **Positive amounts are** debits or credits; the date
+  format; the decimal separator) and **The first rows, as this mapping reads them** (the file's
+  values, mapped columns tinted, and "1 Apr 2026 · 4000 · Credit 24,480,000" or why a row could not
+  be read). Code proposes the mapping from the header words and the value shapes; **Confirm
+  columns** is enabled only when the required fields and one amount layout are chosen (the API
+  applies the same rule, 422 otherwise). The confirmed mapping is kept for the layout, so the next
+  file with it is read at once; more than 2% rows that cannot be read reopen the item with their
+  count (AC-005-12).
 - **Correcting a value** (`review-correction.html`, T009-03a): a value only one source read opens
   with its receipt or invoice page in the preview; **Correct it** shows "The total as printed" with
   the hint "Amounts as digits (476976.00), dates as YYYY-MM-DD. What was read is kept beside it."

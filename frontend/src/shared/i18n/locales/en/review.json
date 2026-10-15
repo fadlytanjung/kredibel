@@ -81,5 +81,41 @@
     "date": "date",
     "issueDate": "date",
     "amount": "amount"
+  },
+  "mapping": {
+    "intro": "Say which column of the file holds each field. Every row is imported once you confirm; the next file with this layout is read at once.",
+    "field": "Field",
+    "column": "Column in the file",
+    "notInFile": "Not in the file",
+    "fields": {
+      "date": "Date",
+      "description": "Description",
+      "accountCode": "Account code",
+      "accountName": "Account name",
+      "reference": "Reference",
+      "debit": "Debit",
+      "credit": "Credit",
+      "amount": "Amount"
+    },
+    "layout": "Amounts",
+    "layoutDebitCredit": "Debit and credit columns",
+    "layoutAmount": "One signed amount column",
+    "signConvention": "Positive amounts are",
+    "DEBIT_POSITIVE": "debits",
+    "CREDIT_POSITIVE": "credits",
+    "dateFormat": "Date format",
+    "decimalSeparator": "Decimal separator",
+    "separatorDot": "Point (1,250,000.00)",
+    "separatorComma": "Comma (1.250.000,00)",
+    "sample": "The first rows, as this mapping reads them",
+    "sampleRaw": "In the file",
+    "sampleRead": "Read as",
+    "sampleUnread": "Could not be read: {{reason}}",
+    "badRows_one": "{{count}} row could not be read with the last mapping; check the columns.",
+    "badRows_other": "{{count}} rows could not be read with the last mapping; check the columns.",
+    "loading": "Loading the columns…",
+    "unavailable": "The columns of this file could not be loaded.",
+    "confirm": "Confirm columns",
+    "incomplete": "Choose a column for every required field."
   }
 }

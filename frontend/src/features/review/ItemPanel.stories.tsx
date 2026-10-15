@@ -28,6 +28,20 @@ function seeded() {
   })
   client.setQueryData(['document', 'doc_copy'], { docId: 'doc_copy', fileName: 'statement-2026-02 (1).pdf' })
   client.setQueryData(['document', 'doc_feb'], { docId: 'doc_feb', fileName: 'statement-2026-02.pdf' })
+  // A ledger export with a new layout (spec 005, T005-11): the proposal misses the description.
+  client.setQueryData(['document', 'doc_gl_new'], { docId: 'doc_gl_new', fileName: 'GL_2026_Q2.csv' })
+  client.setQueryData(['ledger-mapping', 'doc_gl_new'], {
+    docId: 'doc_gl_new',
+    layoutSignature: 'sig_q2',
+    status: 'PROPOSED',
+    mapping: { date: 'Tanggal', description: null, accountCode: 'Kode Akun', accountName: 'Nama Akun', reference: null, debit: 'Debet', credit: 'Kredit', amount: null, signConvention: null, dateFormat: 'DD/MM/YYYY', decimalSeparator: ',' },
+    header: ['Tanggal', 'Uraian Transaksi', 'Kode Akun', 'Nama Akun', 'Debet', 'Kredit'],
+    sampleRows: [
+      { raw: ['01/04/2026', 'Penjualan kopi', '4000', 'Penjualan', '0,00', '24.480.000,00'], parsed: { date: '2026-04-01', accountCode: '4000', description: '', debit: { amount: '0.00', currency: '' }, credit: { amount: '24480000.00', currency: '' } }, error: null },
+      { raw: ['01/04/2026', 'Penjualan kopi', '1110', 'Bank', '24.480.000,00', '0,00'], parsed: { date: '2026-04-01', accountCode: '1110', description: '', debit: { amount: '24480000.00', currency: '' }, credit: { amount: '0.00', currency: '' } }, error: null },
+    ],
+    bankAccountCodes: {},
+  })
   return client
 }
 
@@ -114,6 +128,21 @@ export const LineACheckNames: Story = {
       title: 'IDR 2,150,000.00 received on 14 Feb 2026 has no supporting document',
       subject: { bankLineIds: ['tx_14feb'], docIds: ['doc_feb'] },
       allowedActions: ['MATCH', 'NO_DOCUMENT_NEEDED', 'IGNORE'],
+    }),
+  },
+}
+
+/** A ledger export with a new layout: which column is which, confirmed once (spec 005, T005-11). */
+export const CheckColumns: Story = {
+  args: {
+    item: item({
+      itemId: 'itm_0000000000000004',
+      kind: 'CONFIRM_LEDGER_MAPPING',
+      month: null,
+      docId: 'doc_gl_new',
+      title: 'Check the columns of GL_2026_Q2.csv',
+      subject: { docIds: ['doc_gl_new'] },
+      allowedActions: ['CONFIRM_MAPPING'],
     }),
   },
 }

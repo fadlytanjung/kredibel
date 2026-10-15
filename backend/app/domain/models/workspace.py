@@ -6,7 +6,7 @@ adapters/firestore/models/.
 
 from datetime import datetime
 from decimal import Decimal
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
@@ -121,6 +121,8 @@ class Workspace(DomainModel):
     default_language: str
     subscription: Subscription
     share_verified_labels: bool = False
+    # docs/09 §3.8: per file layout signature, the column mapping a person confirmed (spec 005).
+    ledger_mappings: dict[str, dict[str, Any]] = Field(default_factory=dict)
     created_by: str
     created_at: datetime
 

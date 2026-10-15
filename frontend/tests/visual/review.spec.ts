@@ -9,6 +9,7 @@ import { mockUrl, pageImageFromMock, REVIEW, texts, WORKSPACE } from './fixtures
 
 const require = createRequire(import.meta.url)
 const PROPOSAL = 'itm_0000000000000001'
+const MAPPING = 'itm_0000000000000004'
 const VALUE = 'itm_0000000000000009'
 
 async function serve(page: Page, png?: Buffer) {
@@ -22,6 +23,7 @@ async function serve(page: Page, png?: Buffer) {
     const doc = path.match(/^\/api\/documents\/(doc_\w+)$/)
     if (path === '/api/review-items') return route.fulfill({ json: { items: REVIEW.items, countsByKind, nextCursor: null } })
     if (one) return route.fulfill({ json: REVIEW.items.find((i) => i.itemId === one[1]) })
+    if (path === `/api/documents/${REVIEW.ledgerMapping.docId}/ledger-mapping`) return route.fulfill({ json: REVIEW.ledgerMapping })
     if (doc) return route.fulfill({ json: REVIEW.documents[doc[1] as keyof typeof REVIEW.documents] })
     if (/^\/api\/documents\/doc_\w+\/pages\//.test(path) && png) return route.fulfill({ body: png, contentType: 'image/png' })
     if (path === '/api/bank-lines') return route.fulfill({ json: { items: byMonth(REVIEW.lines), nextCursor: null } })
@@ -113,6 +115,30 @@ test.describe('Review (spec 009, T009-06; spec 019, T019-03)', () => {
     await expect(drawer).toHaveCount(0)
     await page.goto(mockUrl('review-correction'))
     expect(await drawerOutline(page)).toEqual(implementation)
+  })
+
+  test('AC-005-11: a new ledger layout asks which column is which, once', async ({ page }) => {
+    await serve(page)
+    await page.goto(`/preview/review/${MAPPING}`)
+    const drawer = page.getByRole('dialog')
+    await expect(drawer.getByText('Check the columns of GL_2026_Q2.csv')).toBeVisible()
+    await expect(drawer.getByText('1 Apr 2026 · 4000 · Credit 24,480,000')).toBeVisible()
+    const confirm = drawer.getByRole('button', { name: 'Confirm columns' })
+    await expect(confirm).toBeDisabled()
+    await expect(page).toHaveScreenshot('review-mapping.png', { fullPage: true, mask: [page.locator('select')] })
+    await axeClean(page)
+    const mappingOutline = async () => ({
+      ...(await drawerOutline(page)),
+      fields: await texts(page, '#content [role="dialog"] .mapping-fields th'),
+      columns: await texts(page, '#content [role="dialog"] .mapping-sample th'),
+      settings: await texts(page, '#content [role="dialog"] .mapping .label'),
+    })
+    const implementation = await mappingOutline()
+    // Choosing the missing column completes the mapping; nothing is parsed before the confirmation.
+    await drawer.getByLabel('Description', { exact: true }).selectOption('Uraian Transaksi')
+    await expect(confirm).toBeEnabled()
+    await page.goto(mockUrl('review-mapping'))
+    expect(await mappingOutline()).toEqual(implementation)
   })
 
   test('AC-019-4: the queue and the drawer stay inside 360 and 1600 px', async ({ page }) => {

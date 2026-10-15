@@ -135,6 +135,50 @@ class ReviewItem:
     key: str = ""
 
 
+# ------------------------------------------------------------------- ledger column mapping
+
+
+def confirm_mapping_item(
+    doc_id: str,
+    file_name: str,
+    *,
+    mapping: dict[str, Any],
+    header: list[str],
+    sample_rows: list[list[str]],
+    bad_rows: list[int] | None = None,
+    layout_signature: str = "",
+) -> ReviewItem:
+    """AC-005-11: a ledger export with a new layout asks once which column is which. The item is
+    the document's (no month yet); it reopens with the rows that could not be read (AC-005-12)."""
+    bad = list(bad_rows or [])
+    title = (
+        f"Check the columns of {file_name}"
+        if not bad
+        else f"{len(bad)} rows of {file_name} could not be read: check the columns"
+    )
+    return ReviewItem(
+        item_id=compute_item_id("CONFIRM_LEDGER_MAPPING", doc_id),
+        kind="CONFIRM_LEDGER_MAPPING",
+        month=None,
+        doc_id=doc_id,
+        status="OPEN",
+        priority=calculate_item_priority("CONFIRM_LEDGER_MAPPING"),
+        title=title,
+        subject=ReviewSubject(doc_ids=[doc_id]),
+        suggestion=ReviewSuggestion(
+            mapping={
+                "layoutSignature": layout_signature,
+                "mapping": mapping,
+                "header": header,
+                "sampleRows": sample_rows,
+                "badRows": bad,
+            }
+        ),
+        allowed_actions=list(ALLOWED_ACTIONS_BY_KIND["CONFIRM_LEDGER_MAPPING"]),
+        key=f"mapping:{doc_id}",
+    )
+
+
 # ------------------------------------------------------------------------------ month facts
 
 Check = tuple[str, str]  # (field, consensus status)

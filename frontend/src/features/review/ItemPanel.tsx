@@ -7,13 +7,15 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { type BankLine, CASHFLOW_BADGE, useMonthBankLines } from '../../entities/bank-line'
-import { PageViewer, useDocument } from '../../entities/document'
+import { type LedgerMapping, PageViewer, useDocument, useLedgerMapping } from '../../entities/document'
 import { type Invoice, type Receipt, useMonthInvoices, useMonthReceipts } from '../../entities/record'
 import { type ResolveRequest, type ReviewItem, useResolveReviewItem } from '../../entities/review'
 import { formatDate } from '../../shared/lib/formatDate'
 import { formatAmount } from '../../shared/lib/formatMoney'
 import { Badge, Button, Icon } from '../../shared/ui'
 import { KIND_ICON, monthName } from './kinds'
+import { isComplete } from './mapping'
+import { MappingEditor } from './MappingEditor'
 import { linesThatCouldPay, subjectsOf } from './subjects'
 import { useQueueKeys } from './useQueueKeys'
 
@@ -289,6 +291,12 @@ export function ItemPanel({
   const [reason, setReason] = useState('')
   const [correcting, setCorrecting] = useState(false)
   const [correction, setCorrection] = useState('')
+  // A ledger export's column mapping (T005-11): the proposal, then what the person changed.
+  const isMapping = item.kind === 'CONFIRM_LEDGER_MAPPING'
+  const mappingDocId = isMapping ? item.docId || item.subject.docIds?.[0] : undefined
+  const { data: mappingView, isLoading: mappingLoading } = useLedgerMapping(mappingDocId)
+  const [edited, setEdited] = useState<LedgerMapping | null>(null)
+  const mapping = edited ?? mappingView?.mapping ?? null
 
   const monthLines = useMemo(() => lineData?.items ?? [], [lineData?.items])
   const subjects = useMemo(
@@ -345,8 +353,10 @@ export function ItemPanel({
     resolve.mutate({ itemId: item.itemId, request }, { onSuccess: (resolved) => onResolved(resolved) })
 
   // The primary action of each kind (docs/11 §6.5), named after what it does.
-  const primary: { label: string; request: ResolveRequest } | undefined =
-    item.kind === 'PROPOSED_MATCH' && allowed.has('CONFIRM_MATCH')
+  const primary: { label: string; request: ResolveRequest; disabled?: boolean } | undefined =
+    isMapping && allowed.has('CONFIRM_MAPPING') && mapping
+      ? { label: t('mapping.confirm'), request: { action: 'CONFIRM_MAPPING', mapping }, disabled: !isComplete(mapping) }
+      : item.kind === 'PROPOSED_MATCH' && allowed.has('CONFIRM_MATCH')
       ? { label: t('actions.CONFIRM_MATCH'), request: { action: 'CONFIRM_MATCH', matchId: item.subject.matchId } }
       : item.kind === 'UNMATCHED_DOCUMENT' && pickedLine && allowed.has('MATCH')
         ? {
@@ -367,9 +377,9 @@ export function ItemPanel({
   const busy = resolve.isPending
   useQueueKeys(
     useMemo(
-      () => ({ primary: primary && !busy ? () => act(primary.request) : undefined, close: onClose }),
+      () => ({ primary: primary && !busy && !primary.disabled ? () => act(primary.request) : undefined, close: onClose }),
       // eslint-disable-next-line react-hooks/exhaustive-deps -- the action changes with the item and the choice
-      [item.itemId, primary?.label, busy, onClose],
+      [item.itemId, primary?.label, primary?.disabled, busy, onClose],
     ),
   )
 
@@ -473,6 +483,22 @@ export function ItemPanel({
                 activePreviewDocId={previewDocId}
               />
             ))}
+          {isMapping && mappingDocId && <DocumentSubject docId={mappingDocId} label={t('panel.document')} />}
+          {isMapping &&
+            (mappingLoading ? (
+              <p className="muted small">{t('mapping.loading')}</p>
+            ) : mappingView && mapping ? (
+              <MappingEditor
+                view={mappingView}
+                value={mapping}
+                onChange={setEdited}
+                disabled={busy}
+                badRows={(item.suggestion?.mapping as { badRows?: number[] } | undefined)?.badRows ?? []}
+              />
+            ) : (
+              <p className="muted small">{t('mapping.unavailable')}</p>
+            ))}
+          {isMapping && mapping && !isComplete(mapping) && <p className="muted small">{t('mapping.incomplete')}</p>}
           {item.kind === 'PROPOSED_MATCH' && <Proposal item={item} />}
           {item.kind === 'UNMATCHED_DOCUMENT' && <LinePicker lines={candidates} picked={pickedLine?.txId} onPick={setPicked} />}
 
@@ -539,7 +565,7 @@ export function ItemPanel({
 
       <div className="fix-foot">
         {primary && (
-          <Button disabled={resolve.isPending} onClick={() => act(primary.request)}>
+          <Button disabled={resolve.isPending || primary.disabled} onClick={() => act(primary.request)}>
             <Icon name="check" size="sm" />
             <span>{primary.label}</span>
           </Button>

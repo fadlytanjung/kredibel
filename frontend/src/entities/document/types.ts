@@ -8,6 +8,8 @@ export type DuplicateInfo = components['schemas']['DuplicateInfo']
 export type PageInfo = components['schemas']['PageInfo']
 export type RiskLevel = components['schemas']['RiskLevel']
 export type Verdict = components['schemas']['Verdict']
+export type LedgerMapping = components['schemas']['LedgerMapping']
+export type LedgerMappingView = components['schemas']['LedgerMappingView']
 
 export const DOC_TYPE_BADGE: Record<string, { variant: 'brand' | 'clean' | 'evidence' | 'low' | 'outline' | 'default' }> = {
   BANK_STATEMENT: { variant: 'brand' },

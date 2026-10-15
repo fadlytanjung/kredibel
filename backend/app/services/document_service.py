@@ -9,6 +9,7 @@ import hashlib
 from collections.abc import Awaitable, Callable
 from dataclasses import replace
 from datetime import datetime
+from pathlib import PurePosixPath
 from typing import Any
 
 from app.core.auth import Principal
@@ -22,6 +23,7 @@ from app.domain.errors import (
     WorkspaceRequiredError,
 )
 from app.domain.file_types import detect_file_type
+from app.domain.ledger_parse import LedgerMapping, read_table, sample_rows
 from app.domain.models.document import (
     DocStatus,
     DocType,
@@ -321,6 +323,34 @@ class DocumentService:
             limit=limit,
             cursor=cursor,
         )
+
+    async def get_ledger_mapping(self, principal: Principal, doc_id: str) -> dict[str, Any]:
+        """The proposed or confirmed column mapping of a ledger export with sample rows parsed by
+        it (contracts LedgerMappingView, AC-005-11)."""
+        doc = await self.get_document(principal, doc_id)
+        meta = doc.ledger_meta or {}
+        if doc.doc_type != DocType.LEDGER_EXPORT or not meta.get("mapping"):
+            raise NotFoundError(f"Document {doc_id} has no ledger column mapping")
+        mapping = LedgerMapping.from_dict(meta["mapping"])
+        headers = list(meta.get("header") or [])
+        samples: list[dict[str, Any]] = []
+        if principal.org_id and doc.gcs_path:
+            ext = PurePosixPath(doc.gcs_path).suffix or ".csv"
+            content = await self._storage.get_original(principal.org_id, doc_id, ext)
+            if content:
+                text = content.decode("utf-8", errors="replace")
+                if not headers:
+                    headers, _ = read_table(text)
+                samples = sample_rows(text, mapping, currency=None)
+        return {
+            "docId": doc_id,
+            "layoutSignature": str(meta.get("layoutSignature") or ""),
+            "status": str(meta.get("mappingStatus") or "PROPOSED"),
+            "mapping": mapping.to_dict(),
+            "header": headers,
+            "sampleRows": samples,
+            "bankAccountCodes": {},
+        }
 
     async def get_file(self, principal: Principal, doc_id: str) -> tuple[bytes, str]:
         """Fetch original document bytes. An exact duplicate serves the original's file."""

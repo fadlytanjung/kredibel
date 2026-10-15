@@ -73,6 +73,13 @@ class WorkspaceRepository(Protocol):
         """Replace the workspace's editable fields and append the event, atomically."""
         ...
 
+    async def save_ledger_mapping(
+        self, org_id: str, layout_signature: str, mapping: dict[str, Any], event: AuditEvent
+    ) -> None:
+        """A person's confirmed column mapping for one file layout (docs/09 §3.8), with its event;
+        the next export with the same layout is parsed at once (AC-005-11)."""
+        ...
+
     async def count_members(self, org_id: str) -> int: ...
 
     async def list_bank_accounts(self, org_id: str) -> list[BankAccount]: ...

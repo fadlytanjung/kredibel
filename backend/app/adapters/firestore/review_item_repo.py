@@ -190,6 +190,9 @@ class FirestoreReviewItemRepo(ReviewItemRepository):
         )
         await batch.commit()
 
+    async def upsert_review_item(self, org_id: str, item: ReviewItem) -> None:
+        await self._col(org_id).document(item.item_id).set(dump(_to_doc(item)))
+
     async def replace_month_review_items(
         self, org_id: str, month: str, fresh: list[ReviewItem], *, now: datetime
     ) -> list[ReviewItem]:

@@ -787,12 +787,13 @@ def record_subject(record: dict) -> str:
   <div class="s row"><span>{escape(meta)}</span>{kind_badge}<a class="citation" href="document.html" title="{rw("panel.seePage")}">{icon("eye", "icon icon-sm")}<span>{rw("panel.seePage")}</span></a><a class="citation" href="document.html" title="{rw("panel.openDocument")}">{icon("external", "icon icon-sm")}</a></div></div>"""
 
 
-def review_drawer(item: dict, body: str, primary: str | None, quiet: list[str], position: int, preview: str = "") -> str:
+def review_drawer(item: dict, body: str, primary: str | None, quiet: list[str], position: int, preview: str = "",
+                  primary_disabled: bool = False) -> str:
     items = REVIEW_FIX["items"]
     head = f"""
 <div class="fix-head">
   <div class="pager-line">
-    <span class="row">{badge("brand", rw(f"kinds.{item['kind']}"), KIND_ICON.get(item["kind"], "inbox"))}<span>{month_name(item["month"], "long")}</span></span>
+    <span class="row">{badge("brand", rw(f"kinds.{item['kind']}"), KIND_ICON.get(item["kind"], "inbox"))}{f'<span>{month_name(item["month"], "long")}</span>' if item.get("month") else ''}</span>
     <span class="row"><span>{rw("panel.position", index=position, total=len(items))}</span><a class="icon-button" href="review.html" aria-label="{rw("panel.close")}">{icon("x")}</a></span>
   </div>
   <h2 id="fix-h">{escape(item["title"])}</h2>
@@ -801,7 +802,7 @@ def review_drawer(item: dict, body: str, primary: str | None, quiet: list[str], 
     others = "".join(f'<a class="button button-quiet button-sm" href="#">{label}</a>' for label in quiet)
     foot = f"""
 <div class="fix-foot">
-  {f'<a class="button button-primary" href="review.html">{icon("check", "icon icon-sm")}<span>{primary}</span></a>' if primary else ''}
+  {(f'<button class="button button-primary" type="button" disabled>{icon("check", "icon icon-sm")}<span>{primary}</span></button>' if primary_disabled else f'<a class="button button-primary" href="review.html">{icon("check", "icon icon-sm")}<span>{primary}</span></a>') if primary else ''}
   <a class="button button-secondary" href="review.html">{rw("panel.skip")}</a>
   <span class="keys hide-compact"><span><span class="kbd">J</span> <span class="kbd">K</span> {rw("panel.keys")}</span><span><span class="kbd">{rw("panel.enterKey")}</span> {rw("panel.keyEnter")}</span></span>
 </div>"""
@@ -897,6 +898,85 @@ def review_correction() -> str:
     body = record_subject(receipt) + form
     drawer = review_drawer(item, body, rw("actions.ACCEPT_AS_READ"), [], position, preview)
     return shell("review", topbar(rw("title"), (rw("title"),)), review_queue(item["itemId"]) + drawer, fab=False)
+
+def document_subject(doc: dict, label: str, href: str) -> str:
+    return f"""<div class="subject"><span class="ico">{icon("files")}</span><span class="t">{escape(doc["fileName"])}</span>
+  <div class="s row"><span>{label}</span><a class="citation" href="{href}" title="{rw("panel.openDocument")}">{icon("eye", "icon icon-sm")}<span>{rw("panel.openDocument")}</span></a><a class="citation" href="{href}" title="{rw("panel.openDocument")}">{icon("external", "icon icon-sm")}</a></div></div>"""
+
+
+MAPPING_FIELDS = ["date", "description", "accountCode", "accountName", "reference"]
+DATE_FORMATS = ["DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD", "DD-MM-YYYY", "DD.MM.YYYY"]
+
+
+def mapping_editor_markup(view: dict) -> str:
+    """The MappingEditor: the fields with the file's columns, the amounts' layout, the date format
+    and the decimal separator, and the first rows as the mapping reads them (spec 005)."""
+    mapping, header = view["mapping"], view["header"]
+    first = view["sampleRows"][0]["raw"] if view["sampleRows"] else []
+    amount_fields = ["amount"] if mapping.get("amount") else ["debit", "credit"]
+    required = {"date", "description", "accountCode", *amount_fields}
+
+    def select(field: str) -> str:
+        chosen = mapping.get(field) or ""
+        options = f'<option value=""{" selected" if not chosen else ""}>{rw("mapping.notInFile")}</option>' + "".join(
+            f'<option value="{escape(h)}"{" selected" if h == chosen else ""}>{escape(h)}</option>' for h in header)
+        return f'<select class="input" aria-label="{rw(f"mapping.fields.{field}")}">{options}</select>'
+
+    rows = "".join(
+        f'<tr><th scope="row">{rw(f"mapping.fields.{f}")}{" *" if f in required else ""}</th><td>{select(f)}</td>'
+        f'<td class="muted small hide-rt">{escape(first[header.index(mapping[f])]) if mapping.get(f) in header else ""}</td></tr>'
+        for f in MAPPING_FIELDS + amount_fields)
+    mapped = {mapping.get(f) for f in MAPPING_FIELDS + amount_fields if mapping.get(f)}
+    sample_head = "".join(f'<th scope="col"{" class=\"is-mapped\"" if h in mapped else ""}>{escape(h)}</th>' for h in header)
+    sample_rows = []
+    for row in view["sampleRows"]:
+        cells = "".join(f'<td class="{"is-mapped" if header[i] in mapped else "muted"}">{escape(c)}</td>' for i, c in enumerate(row["raw"]))
+        parsed = row.get("parsed")
+        if parsed:
+            debit, credit = Decimal(parsed["debit"]["amount"]), Decimal(parsed["credit"]["amount"])
+            read = (f'{fmt_date(parsed["date"])} · {parsed["accountCode"]} · '
+                    + (f'{rw("mapping.fields.debit")} {amount(parsed["debit"]["amount"])}' if debit else "")
+                    + (f'{rw("mapping.fields.credit")} {amount(parsed["credit"]["amount"])}' if credit else ""))
+        else:
+            read = f'<span class="sev-high">{rw("mapping.sampleUnread", reason=row.get("error") or "")}</span>'
+        sample_rows.append(f'<tr>{cells}<td class="small">{read}</td></tr>')
+    date_options = "".join(f'<option{" selected" if f == mapping["dateFormat"] else ""}>{f}</option>' for f in DATE_FORMATS)
+    amount_layout = "amount" if mapping.get("amount") else "debitCredit"
+    sign = (f'<label class="field m-0"><span class="label">{rw("mapping.signConvention")}</span><select class="input">'
+            f'<option value="DEBIT_POSITIVE"{" selected" if mapping.get("signConvention") != "CREDIT_POSITIVE" else ""}>{rw("mapping.DEBIT_POSITIVE")}</option>'
+            f'<option value="CREDIT_POSITIVE"{" selected" if mapping.get("signConvention") == "CREDIT_POSITIVE" else ""}>{rw("mapping.CREDIT_POSITIVE")}</option></select></label>'
+            if amount_layout == "amount" else "")
+    return f"""
+<div class="mapping stack gap-4">
+  <p class="muted small">{rw("mapping.intro")}</p>
+  <div class="table-panel"><table class="data-table mapping-fields"><thead><tr><th scope="col">{rw("mapping.field")}</th><th scope="col">{rw("mapping.column")}</th><th scope="col" class="hide-rt">{rw("mapping.sampleRaw")}</th></tr></thead><tbody>{rows}</tbody></table></div>
+  <div class="row">
+    <fieldset class="field m-0"><legend class="label">{rw("mapping.layout")}</legend><div class="row">
+      <label class="row"><input type="radio" name="mapping-layout"{" checked" if amount_layout == "debitCredit" else ""}/>{rw("mapping.layoutDebitCredit")}</label>
+      <label class="row"><input type="radio" name="mapping-layout"{" checked" if amount_layout == "amount" else ""}/>{rw("mapping.layoutAmount")}</label>
+    </div></fieldset>
+    {sign}
+    <label class="field m-0"><span class="label">{rw("mapping.dateFormat")}</span><select class="input">{date_options}</select></label>
+    <label class="field m-0"><span class="label">{rw("mapping.decimalSeparator")}</span><select class="input"><option value="."{" selected" if mapping["decimalSeparator"] == "." else ""}>{rw("mapping.separatorDot")}</option><option value=","{" selected" if mapping["decimalSeparator"] == "," else ""}>{rw("mapping.separatorComma")}</option></select></label>
+  </div>
+  <section class="stack gap-2" aria-label="{rw("mapping.sample")}">
+    <h3 class="type-h3">{rw("mapping.sample")}</h3>
+    <div class="table-panel rt-wrap"><table class="data-table mapping-sample"><thead><tr>{sample_head}<th scope="col">{rw("mapping.sampleRead")}</th></tr></thead><tbody>{"".join(sample_rows)}</tbody></table></div>
+  </section>
+</div>"""
+
+
+def review_mapping() -> str:
+    """A ledger export with a new layout: which column is which, confirmed once (T005-11)."""
+    item = next(i for i in REVIEW_FIX["items"] if i["kind"] == "CONFIRM_LEDGER_MAPPING")
+    view = REVIEW_FIX["ledgerMapping"]
+    doc = REVIEW_FIX["documents"][item["subject"]["docIds"][0]]
+    position = REVIEW_FIX["items"].index(item) + 1
+    body = (document_subject(doc, rw("panel.document"), "document-ledger-columns.html") + mapping_editor_markup(view)
+            + f'<p class="muted small">{rw("mapping.incomplete")}</p>')
+    drawer = review_drawer(item, body, rw("mapping.confirm"), [], position, primary_disabled=True)
+    return shell("review", topbar(rw("title"), (rw("title"),)), review_queue(item["itemId"]) + drawer, fab=False)
+
 
 # ------------------------------------------------------------------------------------------------
 # Evidence viewer (Risk → finding)
@@ -1123,8 +1203,7 @@ def document() -> str:
 
 
 def document_ledger() -> str:
-    """A ledger export after import: its rows and period, the link to the P&L, and the planned
-    column confirmation (spec 005, T005-11) marked as such."""
+    """A ledger export after import: its rows and period, and the link to the P&L."""
     doc = DOC_FIX["ledger"]
     meta = doc["ledgerMeta"]
     summary = dw("detail.summary.other", type=dw("detail.docType.LEDGER_EXPORT"), uploaded=fmt_date(doc["uploadedAt"][:10]))
@@ -1150,24 +1229,48 @@ def document_ledger() -> str:
   {doc_tabs([(dw("detail.tabs.ledger"), meta["rowsImported"]), (dw("detail.tabs.details"), None)])}
   <div role="tabpanel" class="stack gap-3">{card}</div>
 </section>"""
-    mapping_rows = "".join(
-        f'<tr><td><strong>{field}</strong></td><td><label class="field m-0"><span class="sr-only">{field}</span><select class="input" aria-label="{field}" disabled><option>{column}</option></select></label></td><td class="muted small">{sample}</td></tr>'
-        for field, column, sample in [("Date", "Tanggal", "02/03/2026"), ("Description", "Keterangan", "Penjualan kopi"), ("Account code", "Kode Akun", "4000"),
-                                       ("Debit", "Debet", "0"), ("Credit", "Kredit", "120.000.000")])
-    planned = f"""
-<section class="panel panel-pad stack gap-3" aria-labelledby="map-h" data-planned="T005-11">
-  <div class="spread"><h2 class="type-h2" id="map-h">{rw("kinds.CONFIRM_LEDGER_MAPPING")}</h2>{badge("outline", "Planned, spec 005 T005-11")}</div>
-  <p class="muted">{rw("why.CONFIRM_LEDGER_MAPPING")} Standard layouts are confirmed automatically today; this confirmation screen for a new layout is still to be built.</p>
-  <div class="table-panel"><table class="data-table"><thead><tr><th>Field</th><th>Column in the file</th><th>Sample</th></tr></thead><tbody>{mapping_rows}</tbody></table></div>
-  <div class="row"><button class="button button-primary" type="button" disabled>Confirm columns</button></div>
-</section>"""
     content = f"""
 <div class="page stack gap-5">
   {document_header(doc, summary, badges)}
   {pane}
-  {planned}
 </div>"""
     return shell("documents", topbar(doc["fileName"], ((dw("title"), "documents.html"), doc["fileName"]), back=(dw("title"), "documents.html")), content)
+
+def document_ledger_columns() -> str:
+    """A ledger export with a new layout: nothing imported yet, the page says so and points to the
+    column check in the review queue (spec 005, T005-11)."""
+    doc = REVIEW_FIX["documents"]["doc_gl_new"]
+    summary = dw("detail.summary.other", type=dw("detail.docType.LEDGER_EXPORT"), uploaded=fmt_date(doc["uploadedAt"][:10]))
+    badges = badge(DOC_TYPE_BADGE[doc["docType"]], dw("detail.docType.LEDGER_EXPORT")) + badge("medium", words(DOC_WORDS, "status.needsInput"))
+    banner = f"""
+  <div class="found" role="status">{icon("table")}<div class="stack gap-1"><strong>{words(DOC_WORDS, "status.needsInput")}</strong><p class="small">{dw("detail.needsColumns")}</p><a class="link small" href="review-mapping.html">{dw("detail.checkColumns")}</a></div></div>"""
+    figures = f"""
+  <dl class="ledger-figures">
+    <div><dt>{dw("detail.rowsImported")}</dt><dd class="v">0</dd><dd class="n">{words(DOC_WORDS, "status.imported")}</dd></div>
+    <div><dt>{dw("detail.period")}</dt><dd class="v">—</dd></div>
+    <div><dt>{dw("detail.info.type")}</dt><dd class="v">{dw("detail.spreadsheet")}</dd><dd class="n">{doc["contentType"]}</dd></div>
+  </dl>"""
+    card = f"""
+<div class="card stack gap-4">
+  <div class="row spread">
+    <div><strong>{dw("detail.spreadsheet")}</strong><p class="small muted">{dw("detail.rowsSummary", count=0)}</p></div>
+    <a class="button button-secondary" href="profit-loss.html">{icon("bar-chart", "icon icon-sm")}<span>{dw("detail.viewProfitLoss")}</span></a>
+  </div>
+</div>"""
+    pane = f"""
+<section class="doc-pane" aria-label="{dw("detail.pane")}">
+  {figures}
+  {doc_tabs([(dw("detail.tabs.ledger"), 0), (dw("detail.tabs.details"), None)])}
+  <div role="tabpanel" class="stack gap-3">{card}</div>
+</section>"""
+    content = f"""
+<div class="page stack gap-5">
+  {document_header(doc, summary, badges)}
+  {banner}
+  {pane}
+</div>"""
+    return shell("documents", topbar(doc["fileName"], ((dw("title"), "documents.html"), doc["fileName"]), back=(dw("title"), "documents.html")), content)
+
 
 # ------------------------------------------------------------------------------------------------
 # Finance Assistant (P1)
@@ -1456,12 +1559,14 @@ SCREENS = {
     "documents": ("Documents", documents),
     "document": ("Document", document),
     "document-ledger": ("Document: ledger export", document_ledger),
+    "document-ledger-columns": ("Document: ledger export awaiting its columns", document_ledger_columns),
     "month": ("Month reconciliation", month),
     "months": ("All months", months),
     "reconciliation": ("Bank evidence and document support", reconciliation),
     "review": ("Review queue", review),
     "review-match": ("Review: choose a match", review_match),
     "review-correction": ("Review: check a value", review_correction),
+    "review-mapping": ("Review: check columns", review_mapping),
     "evidence-viewer": ("Evidence viewer", evidence_viewer),
     "assistant": ("Finance Assistant", assistant),
     "assistant-welcome": ("Finance Assistant: welcome", assistant_welcome),
@@ -1474,7 +1579,9 @@ NOTES = {
     "profit-loss": "Accrual management P&L from posted ledger activity, with company account classifications and source rows.",
     "dashboard": "The period's figures, the profit and loss panel, then full-width charts grouped by IFRS or US GAAP: money flow (flow, bars, table or by client and supplier), money in and out by month, and the cash-flow statement. Below, one sentence says where the books stand, then the open risks, what is to review and where the money went in short, and the months.",
     "document": "One read document: the page viewer with the selected value lit, beside what was read from it, a paginated list with reading marks, its findings and details.",
-    "document-ledger": "A ledger export after import: rows and period, the link to the profit and loss, and the column confirmation for a new layout marked as planned (T005-11).",
+    "document-ledger": "A ledger export after import: rows and period, and the link to the profit and loss.",
+    "document-ledger-columns": "A ledger export with a new layout: nothing imported yet, the page says so and points to the column check.",
+    "review-mapping": "A ledger export with a new layout: which column of the file holds each field, the first rows as read, confirmed once per layout.",
     "months": "All months in one table: state, risk and statements, newest first; each row opens its month.",
     "review-match": "The fix drawer for a proposed match: the bank line, the invoice it fits, why, and Confirm the match.",
     "review-correction": "A value to check: the receipt beside the panel, the correction form open.",

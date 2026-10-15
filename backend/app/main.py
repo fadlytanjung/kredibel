@@ -470,6 +470,8 @@ class AppDeps:
                 invoices=self.invoices,
                 receipts=self.receipts,
                 clock=self.clock,
+                workspaces=self.workspace_repo,
+                task_queue=self.task_queue,
             ),
         )
 
@@ -552,6 +554,7 @@ class AppDeps:
                 categories=self.categories,
                 risk_policy=self.risk_policy,
                 ledger=self.ledger_repo,
+                review_items=self.review_items,
             )
             await run_workflow(
                 build_document_workflow(pipeline_deps),

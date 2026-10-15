@@ -20,7 +20,7 @@
 ## Phase 3 — Scenarios
 
 - [ ] **T005-10** `make record` for S1 seed 1 (digital, scanned) and the receipt photos; scenario test: S1 reads every value of `truth.json` with agreement ≥ 0.95. (AC-005-4…8)
-- [ ] **T005-11** UI: the document page shows read values with their status and boxes; the mapping confirmation screen (shared with spec 009). (AC-005-11)
+- [x] **T005-11** UI: the document page shows read values with their status and boxes; the mapping confirmation screen (shared with spec 009). (AC-005-11) (the `CONFIRM_LEDGER_MAPPING` item from the document workflow, `GET …/ledger-mapping`, `CONFIRM_MAPPING`, the review drawer `MappingEditor`, the waiting document's banner; proposal by code, the model mapper as a later fallback, docs/20 deviations)
 
 ## Phase 4 — P1
 
@@ -28,4 +28,4 @@
 
 ## Phase 5 — Close
 
-- [ ] **T005-13** Update `docs/20-implementation-status.md`.
+- [x] **T005-13** Update `docs/20-implementation-status.md`. (Ledger import Built with its deviation, 15 Oct 2026; the reader rows stay as recorded)

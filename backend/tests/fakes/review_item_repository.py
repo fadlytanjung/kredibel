@@ -38,6 +38,9 @@ class FakeReviewItemRepository(ReviewItemRepository):
         self.items[(org_id, item.item_id)] = item
         self.events.append(event)
 
+    async def upsert_review_item(self, org_id: str, item: ReviewItem) -> None:
+        self.items[(org_id, item.item_id)] = item
+
     async def replace_month_review_items(
         self, org_id: str, month: str, fresh: list[ReviewItem], *, now: datetime
     ) -> list[ReviewItem]:

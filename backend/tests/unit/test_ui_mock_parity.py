@@ -106,14 +106,19 @@ def test_ac019_3_refreshed_references_have_states_drawers_and_planned_markers():
         "review": "IMPLEMENTED",
         "review-match": "IMPLEMENTED_DRAWER",
         "review-correction": "IMPLEMENTED_DRAWER",
+        "review-mapping": "IMPLEMENTED_DRAWER",
+        "document-ledger-columns": "IMPLEMENTED_STATE",
         "assistant-welcome": "IMPLEMENTED_STATE",
         "assistant-history": "IMPLEMENTED_DRAWER",
     }.items():
         assert SCREEN_INVENTORY[slug].status == status, slug
         assert (ROOT / "design" / "mocks" / f"{slug}.html").exists(), slug
 
+    # The column confirmation is built (T005-11): no mock presents it as planned any more.
     ledger = (ROOT / "design" / "mocks" / "document-ledger.html").read_text(encoding="utf-8")
-    assert 'data-planned="T005-11"' in ledger and "Planned, spec 005 T005-11" in ledger
+    assert "T005-11" not in ledger
+    mapping = (ROOT / "design" / "mocks" / "review-mapping.html").read_text(encoding="utf-8")
+    assert "Confirm columns" in mapping and 'aria-label="Description"' in mapping
     dashboard = (ROOT / "design" / "mocks" / "dashboard.html").read_text(encoding="utf-8")
     assert "Planned, spec 014" in dashboard
 
@@ -145,10 +150,18 @@ def test_ac019_5_task_claims_and_implementation_status_audit():
     reading_tasks = (ROOT / "docs" / "specs" / "005-reading" / "tasks.md").read_text(
         encoding="utf-8"
     )
-    # T005-11 (mapping confirmation UI) must remain open until built
-    assert "- [ ] **T005-11**" in reading_tasks
-
     status_doc = (ROOT / "docs" / "20-implementation-status.md").read_text(encoding="utf-8")
-    # Ledger import status should accurately note mapping confirmation UI is open / in progress
+    # T005-11 (the mapping confirmation) is ticked only because it is built: the review drawer,
+    # its API and its mocks exist, and the status records how the proposal deviates from the spec.
+    assert "- [x] **T005-11**" in reading_tasks
+    assert (ROOT / "frontend" / "src" / "features" / "review" / "MappingEditor.tsx").exists()
+    assert (ROOT / "design" / "mocks" / "review-mapping.html").exists()
+    documents_api = (ROOT / "backend" / "app" / "api" / "documents.py").read_text(encoding="utf-8")
+    assert "ledger-mapping" in documents_api
     assert "019" in status_doc
-    assert "T005-11" in status_doc or "confirmation" in status_doc
+    assert "heuristic" in status_doc and "MODEL_LITE" in status_doc, "the deviation is recorded"
+    # Tasks that stay open keep their owners (AC-019-5).
+    open_tasks = (("010-dashboard-and-money-flow", "T010-06"), ("009-review-queue", "T009-07"))
+    for spec, task in open_tasks:
+        tasks = (ROOT / "docs" / "specs" / spec / "tasks.md").read_text(encoding="utf-8")
+        assert f"- [ ] **{task}**" in tasks, f"{task} is not built yet"

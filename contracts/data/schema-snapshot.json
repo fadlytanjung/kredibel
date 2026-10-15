@@ -315,6 +315,7 @@
       "default_language": "str",
       "entity_type": "EntityType",
       "learning": "dict[str, Any]",
+      "ledger_mappings": "dict[str, Any]",
       "name": "str",
       "org_id": "str",
       "profile": "dict[str, Any]",

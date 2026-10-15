@@ -29,6 +29,11 @@ class ReviewItemRepository(Protocol):
         """A person's resolution and its audit event, in one write."""
         ...
 
+    async def upsert_review_item(self, org_id: str, item: ReviewItem) -> None:
+        """A document's own item (no month yet), written or reopened by the document workflow:
+        the ledger column confirmation (AC-005-11). Deterministic IDs keep it to one per cause."""
+        ...
+
     async def replace_month_review_items(
         self, org_id: str, month: str, fresh: list[ReviewItem], *, now: datetime
     ) -> list[ReviewItem]:

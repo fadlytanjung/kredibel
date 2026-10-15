@@ -5,7 +5,7 @@
  */
 import { expect, type Page, test } from '@playwright/test'
 import { createRequire } from 'node:module'
-import { DOCUMENT, mockUrl, pageImageFromMock, texts, WORKSPACE } from './fixtures'
+import { DOCUMENT, mockUrl, pageImageFromMock, REVIEW, texts, WORKSPACE } from './fixtures'
 
 const require = createRequire(import.meta.url)
 
@@ -71,7 +71,7 @@ test('AC-019-3: a read statement shows its page beside what was read, like the m
   expect(await outline(page)).toEqual(implementation)
 })
 
-test('AC-019-3: a ledger export shows its rows and period; the column confirmation is marked as planned', async ({ page }) => {
+test('AC-019-3: a ledger export shows its rows, period and the link to the profit and loss', async ({ page }) => {
   await serve(page, DOCUMENT.ledger, [])
   await page.goto('/preview/documents/doc_gl')
   await expect(page.getByRole('heading', { name: 'GL_2026_Q1.csv' })).toBeVisible()
@@ -87,11 +87,36 @@ test('AC-019-3: a ledger export shows its rows and period; the column confirmati
     links: await texts(page, '#content .doc-pane .button, #content .doc-pane .badge-brand'),
   })
   const implementation = await read()
-  // The app has no column confirmation yet (T005-11): the mock keeps it, labelled as planned.
-  expect(await page.getByRole('button', { name: 'Confirm columns' }).count()).toBe(0)
   await page.goto(mockUrl('document-ledger'))
   expect(await read()).toEqual(implementation)
-  await expect(page.locator('[data-planned="T005-11"]')).toContainText('Planned, spec 005 T005-11')
+})
+
+test('AC-005-11: a ledger export with a new layout says so and points to the column check', async ({ page }) => {
+  const doc = REVIEW.documents.doc_gl_new
+  const item = REVIEW.items.find((i) => i.kind === 'CONFIRM_LEDGER_MAPPING')!
+  await page.route((url) => url.pathname.startsWith('/api/'), (route) => {
+    const path = new URL(route.request().url()).pathname
+    if (path === `/api/documents/${doc.docId}`) return route.fulfill({ json: doc })
+    if (path === '/api/review-items') return route.fulfill({ json: { items: [item], countsByKind: { CONFIRM_LEDGER_MAPPING: 1 }, nextCursor: null } })
+    if (path === '/api/workspace') return route.fulfill({ json: WORKSPACE })
+    return route.fulfill({ json: { items: [] } })
+  })
+  await page.goto(`/preview/documents/${doc.docId}`)
+  await expect(page.getByRole('heading', { name: 'GL_2026_Q2.csv' })).toBeVisible()
+  await expect(page.getByText('New column layout. Check which column is which, once, and every row is imported.')).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Check columns' })).toHaveAttribute('href', `/review/${item.itemId}`)
+  await expect(page).toHaveScreenshot('document-ledger-columns.png', { fullPage: true })
+  await axeClean(page)
+  const read = async () => ({
+    title: await texts(page, '#content h1'),
+    status: await texts(page, '#content .doc-status .badge'),
+    banner: await texts(page, '#content .found strong, #content .found .link'),
+    figures: await texts(page, '#content .doc-pane .ledger-figures dt'),
+    tabs: await texts(page, '#content .doc-pane [role="tab"]', true),
+  })
+  const implementation = await read()
+  await page.goto(mockUrl('document-ledger-columns'))
+  expect(await read()).toEqual(implementation)
 })
 
 test('AC-019-4: the document page stays inside 360 and 1600 px with usable tabs', async ({ page }) => {

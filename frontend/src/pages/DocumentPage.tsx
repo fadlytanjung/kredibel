@@ -14,6 +14,7 @@ import { type BankLine, isIncoming, lineBox, StatementLines, useBankLines } from
 import { type Document, DOC_TYPE_BADGE, downloadOriginal, PageViewer, useDeleteDocument, useDocument } from '../entities/document'
 import { FindingList, useDocumentFindings } from '../entities/finding'
 import { InvoiceCard, ReceiptCard, useInvoices, useReceipts, type ValueFocus } from '../entities/record'
+import { useReviewItems } from '../entities/review'
 import { sumDecimals } from '../shared/lib/decimal'
 import { formatDate } from '../shared/lib/formatDate'
 import { formatMoney } from '../shared/lib/formatMoney'
@@ -48,6 +49,12 @@ export function DocumentPage() {
   const { data: invoicePage } = useInvoices(isInvoice ? docId : undefined)
   const { data: receiptPage } = useReceipts(isReceipt ? docId : undefined)
   const { data: findingPage } = useDocumentFindings(doc?.integrity ? docId : undefined)
+  // A ledger export with a new layout waits for its columns to be checked (T005-11).
+  const needsColumns = Boolean(isLedger && doc?.status === 'NEEDS_INPUT' && doc.ledgerMeta?.mappingStatus === 'PROPOSED')
+  const { data: openItems } = useReviewItems(needsColumns)
+  const mappingItem = openItems?.items.find(
+    (item) => item.kind === 'CONFIRM_LEDGER_MAPPING' && (item.docId === docId || item.subject.docIds?.includes(docId ?? '')),
+  )
   const [focus, setFocus] = useState<ValueFocus | null>(null)
   const [selectedPage, setSelectedPage] = useState<number>(1)
   const [tab, setTab] = useState<Tab | null>(null)
@@ -240,6 +247,21 @@ export function DocumentPage() {
             <Button variant="secondary" size="sm" onClick={() => setShowConfirmDelete(false)}>
               {t('documents:detail.cancel')}
             </Button>
+          </div>
+        </div>
+      )}
+
+      {needsColumns && (
+        <div className="found" role="status">
+          <Icon name="table" />
+          <div className="stack gap-1">
+            <strong>{t('documents:status.needsInput')}</strong>
+            <p className="small">{t('documents:detail.needsColumns')}</p>
+            {mappingItem && (
+              <Link className="link small" to={`/review/${mappingItem.itemId}`}>
+                {t('documents:detail.checkColumns')}
+              </Link>
+            )}
           </div>
         </div>
       )}

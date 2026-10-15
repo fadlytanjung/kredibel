@@ -681,6 +681,12 @@ a:hover { color: var(--k-color-brand-hover); }
   .fix-foot .button { flex: 1; }
 }
 .subject { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 2px var(--k-space-3); align-items: center; padding: var(--k-space-4); border-radius: var(--k-radius-sm); background: var(--k-color-bg-sunken); }
+/* A ledger export's column mapping (spec 005): the fields and the file's first rows as read. */
+.mapping-fields th[scope="row"] { font-weight: 600; white-space: nowrap; width: 160px; }
+.mapping-fields .input { min-width: 160px; }
+.mapping-sample th.is-mapped, .mapping-sample td.is-mapped { background: var(--k-color-brand-soft); color: var(--k-color-text-default); }
+.mapping .field .label { font-size: 13px; font-weight: 580; }
+.mapping input[type="radio"] { width: 16px; height: 16px; margin: 0; accent-color: var(--k-color-brand-default); }
 .subject .ico { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: var(--k-color-bg-surface); color: var(--k-color-text-default); grid-row: span 2; }
 .subject .t { font-size: 14px; font-weight: 620; }
 .subject .s { font-size: 12.5px; color: var(--k-color-text-muted); }

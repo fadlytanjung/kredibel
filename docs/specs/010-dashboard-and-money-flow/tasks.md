@@ -25,5 +25,5 @@
 
 ## Phase 3 — Scenario and close
 
-- [ ] **T010-07** Scenario test: S1 top sources and uses. (AC-010-8)
+- [x] **T010-07** Scenario test: S1 top sources and uses. (AC-010-8) `test_scenario_money_flow_api.py` through `GET /api/money-flow`.
 - [ ] **T010-08** Update `docs/20-implementation-status.md`.

@@ -19,7 +19,7 @@
 ## Phase 3 — UI
 
 - [x] **T009-05** `ReviewPage` and `ItemPanel` with the six bodies; stories per kind. (AC-009-2, AC-009-4)
-- [ ] **T009-06** Auto-advance and keyboard; phone layout; visual and axe tests. (AC-009-7)
+- [x] **T009-06** Auto-advance and keyboard; phone layout; visual and axe tests. (AC-009-7) (the queue, the proposal drawer and a value correction at 390/834/1440 px with axe, keyboard and 360/1600 px checks: `frontend/tests/visual/review.spec.ts`, spec 019)
   Done: auto-advance, J/K/Enter/Esc, the phone layout (the panel above the queue when they stack), visual
   baselines at 390, 834 and 1440 (`tests/visual/review.spec.ts`). Open: axe tests (no axe library yet).
 

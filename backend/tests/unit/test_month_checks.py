@@ -14,6 +14,7 @@ from app.adapters.policy_files import load_forensics, load_reconciliation_policy
 from app.domain.checks.month import MonthContext, StatementSpan, run_month_checks
 from app.domain.models.bank_line import BankLine
 from app.domain.models.invoice import Invoice
+from app.domain.profit_loss import LedgerRow
 from app.domain.reconcile import Allocation
 
 POLICY_DIR = Path(__file__).resolve().parents[3] / "contracts" / "policy"
@@ -66,6 +67,28 @@ def invoice(
         currency="IDR",
         due_date=issued.replace(day=min(issued.day + 14, 28)),
         pay_to_masked=pay_to,
+    )
+
+
+def ledger_row(
+    entry_id: str,
+    day: date,
+    account_code: str,
+    debit: str = "0",
+    credit: str = "0",
+    account_name: str = "Bank Account",
+    doc_id: str = "doc_ledger",
+    row_number: int = 1,
+) -> LedgerRow:
+    return LedgerRow(
+        entry_id=entry_id,
+        doc_id=doc_id,
+        row_number=row_number,
+        date=day,
+        account_code=account_code,
+        account_name=account_name,
+        debit=D(debit),
+        credit=D(credit),
     )
 
 
@@ -222,10 +245,113 @@ def test_x08_a_supplier_asks_to_be_paid_into_a_new_account():
     assert (f.facts["earlierAccount"], f.facts["newAccount"]) == ("••••1111", "••••9999")
 
 
-@pytest.mark.parametrize("code", ["B01_GAMBLING_INDICATORS", "C02_NEGATIVE_BALANCE_DAYS"])
+@pytest.mark.parametrize(
+    "code",
+    ["B01_GAMBLING_INDICATORS", "C02_NEGATIVE_BALANCE_DAYS", "X09_LEDGER_BANK_MISMATCH"],
+)
 def test_a_check_runs_only_when_the_policy_enables_it(code):
     lines = [line("t1", date(2026, 3, 3), "-50", "SLOT GAMES 88", tags=["GAMBLING"])]
     off = FORENSICS.model_copy(update={"enabled": FORENSICS.enabled - {code}})
     assert code not in codes(
         run_month_checks(replace(ctx(lines=lines, negative_days=9), policy=off))
     )
+
+
+def test_x09_clean_ledger_and_bank_movement_matches():
+    lines = [
+        line("l1", date(2026, 3, 10), "1000.00", "CLIENT PAYMENT"),
+        line("l2", date(2026, 3, 15), "-400.00", "SUPPLIER PAYMENT"),
+    ]
+    rows = [
+        ledger_row("e1", date(2026, 3, 10), "1100", debit="1000.00"),
+        ledger_row("e2", date(2026, 3, 15), "1100", credit="400.00"),
+    ]
+    # Mapped account 1100, net movement is 600.00 on both
+    found = run_month_checks(
+        ctx(
+            lines=lines,
+            all_lines=lines,
+            ledger_rows=rows,
+            bank_account_mappings={ACC: "1100"},
+        )
+    )
+    assert [f for f in found if f.code == "X09_LEDGER_BANK_MISMATCH"] == []
+
+
+def test_x09_difference_within_tolerance_is_clean():
+    lines = [line("l1", date(2026, 3, 10), "1000.00", "CLIENT PAYMENT")]
+    rows = [
+        ledger_row("e1", date(2026, 3, 10), "1100", debit="1000.50"),  # 0.50 diff <= 1.00 tol
+    ]
+    found = run_month_checks(
+        ctx(
+            lines=lines,
+            all_lines=lines,
+            ledger_rows=rows,
+            bank_account_mappings={ACC: "1100"},
+        )
+    )
+    assert [f for f in found if f.code == "X09_LEDGER_BANK_MISMATCH"] == []
+
+
+def test_x09_month_movement_difference_medium_and_high():
+    # 10,000 bank net movement.
+    # 2% difference (200 diff) -> MEDIUM
+    lines = [line("l1", date(2026, 3, 10), "10000.00", "CLIENT PAYMENT")]
+    rows_medium = [
+        ledger_row("e1", date(2026, 3, 10), "1100", debit="10200.00"),
+    ]
+    found_med = run_month_checks(
+        ctx(
+            lines=lines,
+            all_lines=lines,
+            ledger_rows=rows_medium,
+            bank_account_mappings={ACC: "1100"},
+        )
+    )
+    x09_med = [f for f in found_med if f.code == "X09_LEDGER_BANK_MISMATCH"]
+    assert len(x09_med) == 1
+    assert x09_med[0].severity == "MEDIUM"
+    assert x09_med[0].facts["difference"] == "200.00"
+
+    # 10% difference (1,000 diff > 5%) -> HIGH
+    rows_high = [
+        ledger_row("e1", date(2026, 3, 10), "1100", debit="11000.00"),
+    ]
+    found_high = run_month_checks(
+        ctx(
+            lines=lines,
+            all_lines=lines,
+            ledger_rows=rows_high,
+            bank_account_mappings={ACC: "1100"},
+        )
+    )
+    x09_high = [f for f in found_high if f.code == "X09_LEDGER_BANK_MISMATCH"]
+    assert len(x09_high) == 1
+    assert x09_high[0].severity == "HIGH"
+    assert x09_high[0].facts["difference"] == "1000.00"
+
+
+def test_x09_entry_missing_bank_line_within_window():
+    lines = [
+        line("l1", date(2026, 3, 1), "1000.00", "CLIENT PAYMENT"),
+    ]
+    rows = [
+        # Entry on 2026-03-25: 24 days away (> 3 days ledgerDays window)
+        ledger_row("e1", date(2026, 3, 25), "1100", debit="500.00"),
+    ]
+    found = run_month_checks(
+        ctx(
+            lines=lines,
+            all_lines=lines,
+            ledger_rows=rows,
+            bank_account_mappings={ACC: "1100"},
+        )
+    )
+    x09_entries = [
+        f for f in found if f.code == "X09_LEDGER_BANK_MISMATCH" and f.facts.get("entryId") == "e1"
+    ]
+    assert len(x09_entries) == 1
+    assert x09_entries[0].severity == "MEDIUM"
+    assert x09_entries[0].facts["entryId"] == "e1"
+

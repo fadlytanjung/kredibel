@@ -43,6 +43,7 @@ class Duplicates(_Model):
 class CrossDocument(_Model):
     holder_name_min_score: int = 80
     continuity_tolerance_minor: int = 100
+    ledger_month_difference_high: Decimal = Decimal("0.05")
 
 
 class ReconciliationChecks(_Model):

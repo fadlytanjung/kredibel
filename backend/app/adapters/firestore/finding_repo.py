@@ -40,6 +40,7 @@ def _evidence_to_domain(e: EvidenceDoc) -> Evidence:
         tx_id=e.tx_id,
         invoice_id=e.invoice_id,
         receipt_id=e.receipt_id,
+        ledger_entry_id=e.ledger_entry_id,
         label=e.label,
     )
 

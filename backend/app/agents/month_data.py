@@ -21,6 +21,7 @@ from app.domain.models.decision import Decision
 from app.domain.models.document import DocStatus, DocType, Document, DuplicateKind
 from app.domain.models.invoice import Invoice, Receipt
 from app.domain.models.match import StoredMatch
+from app.domain.profit_loss import LedgerRow
 from app.domain.reconcile import Allocation, Decisions, ManualMatch
 from app.domain.reconcile_scoring import MatchRecord, in_workspace_currency
 
@@ -51,6 +52,8 @@ class MonthData:
     matches: list[StoredMatch]  # every stored match
     accepted_docs: set[str] = field(default_factory=set)
     not_required: set[str] = field(default_factory=set)
+    ledger_rows: list[LedgerRow] = field(default_factory=list)
+    bank_account_mappings: dict[str, str] = field(default_factory=dict)
 
     @property
     def computable(self) -> bool:
@@ -135,6 +138,19 @@ async def read_month(deps: PipelineDeps, org_id: str, month: str) -> MonthData |
     receipts = [
         r for r in await deps.receipts.list_records(org_id, limit=2000) if r.doc_id in eligible
     ]
+    bank_account_mappings: dict[str, str] = {}
+    bank_accounts = await deps.workspaces.list_bank_accounts(org_id)
+    for acc in bank_accounts:
+        if acc.ledger_account_code:
+            key = statement_account(acc.bank_name, acc.account_masked)
+            if key:
+                bank_account_mappings[key] = acc.ledger_account_code
+            bank_account_mappings[acc.account_id] = acc.ledger_account_code
+
+    ledger_rows: list[LedgerRow] = []
+    if deps.ledger is not None:
+        ledger_rows = await deps.ledger.list_rows(org_id)
+
     return MonthData(
         month=month,
         currency=currency,
@@ -149,6 +165,8 @@ async def read_month(deps: PipelineDeps, org_id: str, month: str) -> MonthData |
         matches=await deps.matches.list_matches(org_id),
         accepted_docs=accepted,
         not_required={d.tx_id for d in decisions if d.kind == "SUPPORT_NOT_REQUIRED" and d.tx_id},
+        ledger_rows=ledger_rows,
+        bank_account_mappings=bank_account_mappings,
     )
 
 

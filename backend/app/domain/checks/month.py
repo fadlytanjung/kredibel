@@ -18,6 +18,7 @@ from rapidfuzz import fuzz
 from app.domain.findings import Evidence, Finding, Severity, finding_id
 from app.domain.models.bank_line import BankLine
 from app.domain.models.invoice import Invoice, Receipt
+from app.domain.profit_loss import LedgerRow
 from app.domain.reconcile import Allocation
 from app.domain.reconciliation_policy import ReconciliationPolicy
 
@@ -48,6 +49,8 @@ class MonthContext:
     allocations: list[Allocation]  # the month's bank-to-document allocations
     negative_days: int
     own_names: list[str] = field(default_factory=list)
+    ledger_rows: list[LedgerRow] = field(default_factory=list)
+    bank_account_mappings: dict[str, str] = field(default_factory=dict)
 
     @property
     def first_day(self) -> date:
@@ -496,4 +499,113 @@ def supplier_account_changed(ctx: MonthContext) -> list[Finding]:
                 ],
             )
         )
+    return out
+
+
+@_check("X09_LEDGER_BANK_MISMATCH")
+def ledger_bank_mismatch(ctx: MonthContext) -> list[Finding]:
+    """docs/08 §2.6: For a mapped bank account, ledger cash movement for the month differs from
+    the statement's net movement by > tol; or a ledger cash entry has no bank line within the
+    window."""
+    if not ctx.bank_account_mappings:
+        return []
+
+    tol = Decimal(ctx.policy.cross_document.continuity_tolerance_minor) / 100
+    high_threshold = ctx.policy.cross_document.ledger_month_difference_high
+    ledger_days = ctx.reconciliation.windows.ledger_days
+    out: list[Finding] = []
+
+    for account, ledger_code in sorted(ctx.bank_account_mappings.items()):
+        account_spans = [s for s in ctx.statements if s.account == account]
+        doc_ids = {s.doc_id for s in account_spans}
+        month_lines = [
+            ln for ln in ctx.lines if ln.doc_id in doc_ids and ln.cashflow_class != "NON_CASH"
+        ]
+        all_account_lines = [
+            ln for ln in ctx.all_lines if ln.doc_id in doc_ids and ln.cashflow_class != "NON_CASH"
+        ] or month_lines
+
+        month_rows = [
+            r
+            for r in ctx.ledger_rows
+            if r.account_code == ledger_code
+            and not r.held_as_duplicate
+            and _month_of(r.date) == ctx.month
+        ]
+        if not account_spans and not month_rows:
+            continue
+
+        bank_net = sum((ln.amount for ln in month_lines), Decimal(0))
+        # In a bank/cash asset account, debits increase cash and credits decrease cash:
+        ledger_net = sum((r.debit - r.credit for r in month_rows), Decimal(0))
+        diff = abs(ledger_net - bank_net)
+
+        if diff > tol:
+            is_high = (diff / abs(bank_net) > high_threshold) if bank_net != Decimal(0) else True
+            severity: Severity = "HIGH" if is_high else "MEDIUM"
+            ev: list[Evidence] = []
+            if account_spans:
+                ev.append(Evidence(doc_id=account_spans[0].doc_id, page=1, label="Bank statement"))
+            for r in month_rows[:5]:
+                ev.append(
+                    Evidence(doc_id=r.doc_id, ledger_entry_id=r.entry_id, label="Ledger entry")
+                )
+            out.append(
+                ctx.finding(
+                    "X09_LEDGER_BANK_MISMATCH",
+                    f"{account}|month_difference",
+                    category="CROSS_DOCUMENT",
+                    severity=severity,
+                    title="Ledger cash movement for this month does not match bank statements",
+                    facts={
+                        "account": account,
+                        "ledgerAccountCode": ledger_code,
+                        "ledgerMovement": _money(ledger_net),
+                        "bankMovement": _money(bank_net),
+                        "difference": _money(diff),
+                    },
+                    evidence=ev,
+                )
+            )
+
+        # Per entry check:
+        for row in sorted(month_rows, key=lambda r: (r.date, r.entry_id)):
+            row_amount = row.debit - row.credit
+            if row_amount == Decimal(0):
+                continue
+            tolerance = ctx.reconciliation.tolerance(abs(row_amount), ctx.workspace_currency)
+            if tolerance is None:
+                tolerance = tol
+            candidates = [
+                ln
+                for ln in all_account_lines
+                if abs((ln.date - row.date).days) <= ledger_days
+                and ln.amount * row_amount > 0
+                and abs(abs(ln.amount) - abs(row_amount)) <= tolerance
+            ]
+            if not candidates:
+                out.append(
+                    ctx.finding(
+                        "X09_LEDGER_BANK_MISMATCH",
+                        f"{row.doc_id}|{row.entry_id}",
+                        category="CROSS_DOCUMENT",
+                        severity="MEDIUM",
+                        title="A ledger cash entry has no corresponding bank line",
+                        facts={
+                            "account": account,
+                            "ledgerAccountCode": ledger_code,
+                            "entryId": row.entry_id,
+                            "date": row.date.isoformat(),
+                            "amount": _money(row_amount),
+                        },
+                        evidence=[
+                            Evidence(
+                                doc_id=row.doc_id,
+                                ledger_entry_id=row.entry_id,
+                                label="Ledger entry",
+                            )
+                        ],
+                    )
+                )
+
     return out

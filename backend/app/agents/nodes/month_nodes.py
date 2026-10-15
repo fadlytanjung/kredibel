@@ -261,6 +261,8 @@ def check_month(deps: PipelineDeps, pending: PendingMonths):
             ],
             allocations=allocations_for_checks(result.allocations, data.matches, month),
             negative_days=int(node_input.get("negativeDays") or 0),
+            ledger_rows=data.ledger_rows,
+            bank_account_mappings=data.bank_account_mappings,
         )
         fresh = run_month_checks(context)
         result.findings = fresh

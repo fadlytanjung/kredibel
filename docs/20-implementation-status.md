@@ -4,7 +4,7 @@
 > a component. Statuses: **Specified** → **In progress** → **Built** (tests green) → **Deployed**
 > (running on Cloud Run) · **Cut** (deliberately dropped, with reason).
 
-_Last updated: 12 Oct 2026 — Local OTLP tracing and generated invoice/receipt reconciliation replay verified. Document-first evidence, currency-agreement exclusion, category corrections and match inspection are built. Full scenario gates, manual-match endpoints and reconciliation UI remain open._
+_Last updated: 15 Oct 2026 — Spec 019: every implemented screen's mock is generated from a shared synthetic fixture and proven against the app in the browser (78 Playwright checks at three widths, 360/1600 bounds, axe). Three screen bugs found by the checks are fixed. Core gaps keep their owners: ledger column confirmation (T005-11), scenario gates (T006-09, T009-07, T010-07), Lighthouse (T010-06), deployed-environment checks (T004-11, T013-18)._
 
 ## Foundation & platform
 
@@ -20,7 +20,7 @@ _Last updated: 12 Oct 2026 — Local OTLP tracing and generated invoice/receipt 
 | Synthetic books S1–S5, scan variant, fixtures | 002 | Built | `tools/synthetic` (`make synth`): books as data, AUTO/PROPOSED proven against the reconciliation policy, deterministic PDFs/JPEGs/CSV/XLSX, T1 and T7–T13, `truth.json`, `--scan`, 8 fixtures; 213 generator tests in `make check`. Demo set generated, not committed |
 | Synthetic S6 (hidden instructions) | 002 | Specified (P1) | |
 
-| Current UI and mock parity audit | 019 | In progress | Current route inventory, deprecated mock refresh and executable mock/application parity; core feature gaps retain original spec ownership |
+| Current UI and mock parity | 019 | Built | Screen inventory with route and status on every mock (`tools/design/mocks/inventory.py`); dashboard, assistant (welcome, conversation, history drawer), document (statement, ledger export), month, all months and review (queue, proposal drawer, value correction) mocks generated from shared synthetic fixtures (`contracts/design/fixtures/*.json`) with the app's own words; Playwright parity specs serve the same fixtures to the dev preview routes and compare the visible outline of mock and screen at 390/834/1440 px, record baselines, check 360/1600 px and axe (`frontend/tests/visual/`). Planned parts stay in the mocks labelled as planned (profile suggestions 014, column confirmation T005-11). Rule `.agents/rules/35-ui-sync.md` makes the inventory entry, the shared fixture and the browser check mandatory. See "Spec 019 validation" below |
 
 ## Workspace & plans
 
@@ -61,7 +61,7 @@ _Last updated: 12 Oct 2026 — Local OTLP tracing and generated invoice/receipt 
 | `reconcile_month` (order-independent) + figures | 007 | Built | Scoring, deterministic assignment (single, grouped, split; manual matches kept, rejections never return; Hypothesis order test), payment evidence and coverage, bank support, figures as facts, a person's decisions (`/api/decisions`), and the month run writing matches, evidence, support, figures and an honest state. Statement + invoice end to end: `AUTO` match with all reasons, `PAID_BANK`, month `RECONCILED`. S1 (≥ 85% match rate, 0 wrong automatic matches, Feb ambiguous pair `PROPOSED`), S4 (`X08`, `R02`), double payment (`D07`) and S5 = S1 upload-order independence gates passed in `test_scenario_reconciliation.py`. |
 | Bank evidence, supporting documents and manual attestations | 007 | Built | Document-first evidence and separate approval/payment decisions work without a statement; later bank matches do not double count cash. Pending currency documents stay out of totals; agreement uses unchanged numbers in workspace currency and preserves the printed label. Month outputs are buffered until the final generation check. Interactive evidence, documents-first, and currency-check tabs implemented in `MonthsPage`. Replay verified in both upload orders |
 | Month checks `X01`, `X02`, `X08`, `X09`, `R01`, `R02`, `B01`, `B04`, `C02`, `D07` | 007 | Built | All checks including `X09_LEDGER_BANK_MISMATCH` built and tested; run by `check_month` with month-scoped findings |
-| Months page, manual match and unmatch | 007 | Built | `MonthsPage` (`/months`), `MonthPage` (`/months/:month`), `MatchService`, `POST /api/matches` and `DELETE /api/matches/{matchId}` built and tested. Includes facts bar, Gemini explanation card, match breakdown meter, filter chips, bank lines table, and manual Match/Unmatch UI controls |
+| Months page, manual match and unmatch | 007 | Built | `MonthsPage` (`/months/all`), `MonthPage` (`/months/:month`), `MatchService`, `POST /api/matches` and `DELETE /api/matches/{matchId}` built and tested. Includes facts bar, Gemini explanation card (its `[[finding:…]]` markers are citation chips with the finding's code that open the evidence, 15 Oct 2026), match breakdown meter, filter chips, bank lines table with support chips and reasons, and manual Match/Unmatch UI controls. Browser parity with `month.html` and `months.html` (spec 019). Open: the ledger tab's difference count and the bank-evidence/documents-first/currency views on the workspace's own data (T007-10c) |
 | Counterparties (accounts seen) + profile suggestions | 014 | Specified | |
 | Risk levels + next-step catalog | 008 | Built | Pure deterministic rules, score calculation, next steps catalog and month/doc workflow scoring nodes implemented (T008-01, T008-02) |
 | Explainer + grounding guard | 008 | Built | Pure grounding guard (marker resolution, number normalization, ungrounded rejection), explain_month prompt, retry, hash skip, and template fallback (T008-03, T008-04) |
@@ -70,9 +70,9 @@ _Last updated: 12 Oct 2026 — Local OTLP tracing and generated invoice/receipt 
 
 | Component | Spec | Status | Notes |
 |---|---|---|---|
-| Review queue (8 kinds, actions, auto-advance) | 009 | In progress | Backend: the month run creates and closes `PROPOSED_MATCH`, `UNMATCHED_DOCUMENT`, `POSSIBLE_DUPLICATE`, `LOW_CONFIDENCE_VALUE` and finding-cited `UNMATCHED_BANK_LINE` items (`sync_review_items`); `GET /api/review-items` and `POST …/resolve` store each action through the service that owns it (match, confirm, reject, no document needed, duplicate decision, ignore). The Review page: the queue in the shared table beside the fix panel, per-kind actions, auto-advance, J/K/Enter/Esc, the open count in the navigation. Corrections of an invoice's, receipt's, or bank line's amount/total and date (kept when the document is read again, T009-03a, T009-03b). Open: `CONFIRM_TYPE` (E03), ledger kinds (T005-04), axe tests (T009-06), scenario tests (T009-07) |
+| Review queue (8 kinds, actions, auto-advance) | 009 | In progress | Backend: the month run creates and closes `PROPOSED_MATCH`, `UNMATCHED_DOCUMENT`, `POSSIBLE_DUPLICATE`, `LOW_CONFIDENCE_VALUE` and finding-cited `UNMATCHED_BANK_LINE` items (`sync_review_items`); `GET /api/review-items` and `POST …/resolve` store each action through the service that owns it (match, confirm, reject, no document needed, duplicate decision, ignore). The Review page: the queue in the shared table beside the fix panel, per-kind actions, auto-advance, J/K/Enter/Esc, the open count in the navigation. Corrections of an invoice's, receipt's, or bank line's amount/total and date (kept when the document is read again, T009-03a, T009-03b). Queue, proposal drawer and value correction proven against their mocks at three widths with axe, keyboard and 360/1600 px checks (`frontend/tests/visual/review.spec.ts`, 15 Oct 2026); the drawer's preview no longer hides the panel's actions on phones. Open: `CONFIRM_TYPE` (E03), ledger kinds (T005-04), scenario tests (T009-07) |
 | Risk page + evidence viewer | 008 | Built | Findings routes (`/api/findings`, audited acknowledge and reason-backed dismiss), `RiskPage` (`/risk`) with month tabs, severity filters, month groupings, `SeverityBadge` (colour + icon + text), and `EvidenceViewer` (`/risk/:findingId`) with lamp highlights, calc breakdown, two readings, plain-language explanation, and next steps catalog (T008-05…08) |
-| Dashboard (KPIs, month strip, alerts, review preview) | 010 | In progress | `GET /api/dashboard` (money in, out, net and match rate against the previous period, documents waiting, month chips, open alerts, top sources and uses; `period` with `recent`); `DashboardPage` with the status sentence, figures, risk, where the money went in short, months, period picker and empty state. The open review items figure and the first five items of the queue (T010-04a). `build_flows` node writes `months.flows` (≤ 40 links, T010-02a). Open: visual tests and Lighthouse (T010-06) |
+| Dashboard (KPIs, month strip, alerts, review preview) | 010 | In progress | `GET /api/dashboard` (money in, out, net and match rate against the previous period, documents waiting, month chips, open alerts, top sources and uses; `period` with `recent`); `DashboardPage` with the status sentence, figures, risk, where the money went in short, months, period picker and empty state. The open review items figure and the first five items of the queue (T010-04a). `build_flows` node writes `months.flows` (≤ 40 links, T010-02a). Visual baselines at three widths, the empty state and mock parity are checked by `frontend/tests/visual/dashboard.spec.ts` (15 Oct 2026); the money-flow Sankey is an accessible group of focusable bands, no longer an image. Open: links with filters and Lighthouse (T010-06), the S1 top sources and uses scenario test (T010-07) |
 | Money flow (Flow, Bars, Table, By client and supplier) + drill-down | 010 | Built | `domain/money_flow.py` (both views, framework wording, balance per account, transfers, held lines) and `GET /api/money-flow`; `flow=` on `/api/bank-lines` rebuilds the flow and returns a band's lines; `MoneyFlowPanel`, `SankeyChart` (SVG with d3-sankey layout), `StatementBars`, `FlowTable`, `FlowList`, keyboard focus on bands, bank-lines drawer/sheet with exact total (T010-05) |
 | Months in and out, cash-flow statement waterfall | 010 | Built | `domain/cash_flow.py` (months, activities, lines, opening-to-closing check with `gaps`) and `GET /api/cash-flow`; `MonthBarsPanel`, `WaterfallPanel`, `SegmentedControl`, three drawings per chart, stories at 390, 834, 1440 (T010-05) |
 | Category → cash-flow class per framework | 007, 016 | Specified | `contracts/policy/categories.v1.yaml` |
@@ -123,6 +123,35 @@ at least 44 px, correct fixed workspace currency in the shell. Added action-prev
 used the existing large-button variant after the first visual check found 40 px desktop actions.
 Screenshots are recorded at 390/834/1440. The Python screenshot runner expected an absent Chromium
 revision; the installed frontend Playwright browser captured the same mock locally instead.
+
+### Spec 019 validation (15 Oct 2026)
+
+Audit of the sessions that preceded this spec: the dashboard order, the assistant's history and
+composer, the P&L flow and the review corrections had been built without their mocks following, and
+the review and P&L phone baselines no longer matched the app (they failed identically against the
+previous commit). What was done, and what the checks found:
+
+1. **Inventory** (T019-01): every mock carries its route and status; clients, Labels and Runs stay
+   design-only; ledger column confirmation (T005-11) stays open.
+2. **Shared fixtures** (T019-02, T019-03): `contracts/design/fixtures/{dashboard,document,month,review}.json`
+   feed both the mock generator (with the app's locale words) and the Playwright specs, so a mock
+   cannot show numbers or words the app does not. New mocks: assistant welcome and history drawer,
+   ledger export document, all months, review proposal drawer, value correction.
+3. **Browser parity**: 78 checks across `dashboard`, `assistant`, `document`, `month`, `review`,
+   `profit-loss`, `shell-and-login` specs at 390/834/1440 px; baselines recorded on macOS
+   (`-darwin.png`); 360 and 1600 px bounds; axe serious/critical clean on every screen.
+4. **Bugs the checks found and fixed**: the money-flow Sankey was `role="img"` with focusable bands
+   (axe nested-interactive); the assistant scrolled under the top bar on first paint and hid its
+   history button between 768 and 900 px where the rail was hidden too; the page viewer's window
+   was scrollable without keyboard focus; on phones the review drawer's preview pushed the panel's
+   actions out of reach; native selects made the P&L phone baseline flaky (masked).
+5. **Polish**: assistant strings externalized and citation chips show the citation's label; the
+   month explanation's finding markers are chips with the finding's code; "1 statement" plural.
+6. **Re-recorded baselines**: review (queue, proposal) and P&L (phone), after confirming the drift
+   predated this spec.
+
+Not done here, by design: Lighthouse (T010-06), scenario tests (T006-09, T009-07, T010-07), ledger
+column confirmation UI (T005-11), the Cloud Run checks (T004-11, T013-18).
 
 ### Spec 008 validation (12 Oct 2026)
 

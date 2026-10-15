@@ -95,6 +95,51 @@ def test_ac019_1_opened_screens_identify_status_and_route():
         assert info.route in html, f"{slug}.html must display route {info.route}"
 
 
+def test_ac019_3_refreshed_references_have_states_drawers_and_planned_markers():
+    """AC-019-3: document, month, all-months and review references exist as implemented screens,
+    states or drawers; a part that is not built is marked planned with its task."""
+    for slug, status in {
+        "document": "IMPLEMENTED",
+        "document-ledger": "IMPLEMENTED_STATE",
+        "month": "IMPLEMENTED",
+        "months": "IMPLEMENTED",
+        "review": "IMPLEMENTED",
+        "review-match": "IMPLEMENTED_DRAWER",
+        "review-correction": "IMPLEMENTED_DRAWER",
+        "assistant-welcome": "IMPLEMENTED_STATE",
+        "assistant-history": "IMPLEMENTED_DRAWER",
+    }.items():
+        assert SCREEN_INVENTORY[slug].status == status, slug
+        assert (ROOT / "design" / "mocks" / f"{slug}.html").exists(), slug
+
+    ledger = (ROOT / "design" / "mocks" / "document-ledger.html").read_text(encoding="utf-8")
+    assert 'data-planned="T005-11"' in ledger and "Planned, spec 005 T005-11" in ledger
+    dashboard = (ROOT / "design" / "mocks" / "dashboard.html").read_text(encoding="utf-8")
+    assert "Planned, spec 014" in dashboard
+
+
+def test_ac019_2_mocks_and_browser_checks_share_one_synthetic_fixture():
+    """AC-019-2, AC-019-4: each refreshed screen's mock and its Playwright spec read the same
+    fixture file, so numbers and words cannot drift between them."""
+    fixtures = ROOT / "contracts" / "design" / "fixtures"
+    specs = ROOT / "frontend" / "tests" / "visual"
+    generator = (ROOT / "tools" / "design" / "mocks" / "screens.py").read_text(encoding="utf-8")
+    widgets = ROOT / "frontend" / "src" / "widgets"
+    readers = (specs / "fixtures.ts").read_text(encoding="utf-8") + (
+        widgets / "dashboard" / "dashboard.fixture.ts"
+    ).read_text(encoding="utf-8")
+    for name in ("dashboard", "document", "month", "review"):
+        assert (fixtures / f"{name}.json").exists(), name
+        assert f"{name}.json" in generator, f"the mock generator must read {name}.json"
+        assert f"{name}.json" in readers, f"the browser checks must read {name}.json"
+        assert (specs / f"{name}.spec.ts").exists(), f"{name}.spec.ts must prove the parity"
+    # Synthetic data only (non-negotiable 7): the demo workspace, never a real account number.
+    for path in fixtures.glob("*.json"):
+        text = path.read_text(encoding="utf-8")
+        assert "Sunrise Coffee Roasters" in text or "IDR" in text, path.name
+        assert "••" in text or "account" not in text.lower() or "acc" in text.lower(), path.name
+
+
 def test_ac019_5_task_claims_and_implementation_status_audit():
     """AC-019-5: Incomplete acceptance criteria remain open with task IDs and dependencies."""
     reading_tasks = (ROOT / "docs" / "specs" / "005-reading" / "tasks.md").read_text(

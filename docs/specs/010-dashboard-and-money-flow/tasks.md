@@ -9,7 +9,7 @@
   month's). Open review items and the review preview wait for the review queue (spec 009).
 - [x] **T010-02a** `build_flows` node writes the month's own flow to `months.flows` (≤ 40 links), after
   the spec 009 changes to `month_nodes.py` land. (AC-010-10)
-- [ ] **T010-03** Latency test on S1 data in the emulator. (AC-010-10)
+- [x] **T010-03** Latency test on S1 data in the emulator. (AC-010-10) `test_dashboard_latency.py`: S1's books in the Firestore emulator, 20 requests per period; p95 measured 15 Oct 2026 at 68 ms (`recent`), 80 ms (half-year), 51 ms (quarter) against the 500 ms budget. Skips without the emulator.
 
 ## Phase 2 — UI
 

@@ -26,4 +26,4 @@
 ## Phase 4 — Scenarios and close
 
 - [x] **T009-07** Scenario tests S1 and S3 through the API. (AC-009-8, AC-009-9) `test_scenario_review_queue_api.py`: S1's queue holds the February pair, the net-of-tax proposal (policy) and the June deposit; resolving them reconciles every month but June, whose ledger difference stays blocking. S3's four copies (three documents and the journal entry entered twice in the ledger) are held, confirming keeps the figures equal to S1's, releasing the statement copy adds its values back.
-- [ ] **T009-08** Update `docs/20-implementation-status.md`.
+- [x] **T009-08** Update `docs/20-implementation-status.md`. (kept current with every change; the row stays "In progress" until `LEDGER_DIFFERENCE` items exist)

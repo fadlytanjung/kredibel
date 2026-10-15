@@ -1912,7 +1912,7 @@ button.tab { border: 0; background: transparent; cursor: pointer; font-family: i
 .pub-header-actions .button { min-height: 40px; border-radius: var(--k-radius-full); }
 .pub-signin { display: none; }
 @container app (width >= 600px) { .pub-signin { display: inline-flex; } }
-.pub-menu-button { display: inline-flex; color: var(--pub-on-ink); border-radius: var(--k-radius-full); }
+.pub-menu-button { display: inline-flex; align-items: center; justify-content: center; color: var(--pub-on-ink); border-radius: var(--k-radius-full); }
 .pub-menu-button:hover { background: color-mix(in srgb, var(--pub-on-ink) 10%, transparent); }
 @container app (width >= 940px) { .pub-menu-button { display: none; } }
 /* Reading progress: the double rule fills as the page is read. */

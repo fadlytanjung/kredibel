@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { PaperArtefact, type ArtefactKind } from './PaperArtefact'
 
 /**
- * A CSS 3D stage (spec 018, AC-018-2, AC-018-12; docs/12 §12): perspective → an entrance → a group
+ * A CSS 3D stage (spec 020, AC-020-2, AC-020-12; docs/12 §12): perspective → an entrance → a group
  * that tilts with the pointer (it reads `--rx`/`--ry` from the surrounding `Lamp`) → the leaves. The
  * `deck` is a pile of textless paper artefacts floating behind the front piece at other depths.
  */

@@ -1240,7 +1240,7 @@ a:hover { color: var(--k-color-brand-hover); }
 .lbl-table .task { display: table; margin-bottom: 4px; }
 
 /* ------------------------------------------------------------------------------------------ */
-/* Public site (spec 018): "the ledger in depth" (docs/12 §12). A deep ink reading room where   */
+/* Public site (spec 020): "the ledger in depth" (docs/12 §12). A deep ink reading room where   */
 /* the product's own paper artefacts float in CSS 3D. Scroll and pointer values arrive as CSS   */
 /* custom properties written by motion hooks: --p (scroll progress 0…1), --rx/--ry (tilt −1…1), */
 /* --lx/--ly (the lamp). Every scene is settled under prefers-reduced-motion.                   */
@@ -1535,7 +1535,7 @@ a:hover { color: var(--k-color-brand-hover); }
 .pub-hero .statement-foot { animation: pub-rise 800ms var(--pub-ease) 960ms both; }
 @keyframes pub-row { 0%, 100% { background-color: transparent; } 5% { background-color: color-mix(in srgb, var(--k-color-evidence-soft) 70%, transparent); } 12% { background-color: transparent; } }
 
-/* The live duplicate decision (AC-018-3). */
+/* The live duplicate decision (AC-020-3). */
 .decision { padding: var(--k-space-6); border-radius: var(--k-radius-lg); background: var(--k-color-bg-surface); color: var(--k-color-text-default); display: flex; flex-direction: column; gap: var(--k-space-3); box-shadow: var(--pub-shadow-deep); }
 .decision-head { display: flex; align-items: center; gap: var(--k-space-3); font-size: 15px; font-weight: 640; }
 .decision-actions { display: flex; flex-wrap: wrap; gap: var(--k-space-2); }

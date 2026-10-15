@@ -3,7 +3,7 @@ import { useInViewAttr } from '../../shared/lib/useInViewAttr'
 import { usePointerTilt } from '../../shared/lib/usePointerTilt'
 
 /**
- * An ink section lit by the violet evidence lamp (spec 018, AC-018-12; docs/12 §12). On a fine
+ * An ink section lit by the violet evidence lamp (spec 020, AC-020-12; docs/12 §12). On a fine
  * pointer the lamp follows the cursor, and every depth scene inside tilts with it (the section
  * writes `--rx`/`--ry`/`--lx`/`--ly`, which its descendants inherit). `reveal` adds `data-inview`
  * for scenes that open as the section arrives.

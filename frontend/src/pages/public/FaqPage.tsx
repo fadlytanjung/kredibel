@@ -7,7 +7,7 @@ import { PublicShell } from '../../widgets/PublicShell'
 const QA = ['1', '2', '3', '4', '5', '6', '7', '8'] as const
 
 /**
- * FAQ (spec 018 AC-018-6; docs/12 §12): eight native disclosures that open smoothly, beside a sticky
+ * FAQ (spec 020 AC-020-6; docs/12 §12): eight native disclosures that open smoothly, beside a sticky
  * way to ask the rest.
  */
 export function FaqPage() {

@@ -5,7 +5,7 @@ import { PublicShell } from '../../widgets/PublicShell'
 
 const SECTIONS = ['s1', 's2', 's3', 's4', 's5', 's6', 's7'] as const
 
-/** Privacy Policy (spec 018 AC-018-7), as a reading layout with a contents rail. */
+/** Privacy Policy (spec 020 AC-020-7), as a reading layout with a contents rail. */
 export function PrivacyPage() {
   const { t } = useTranslation('public')
 

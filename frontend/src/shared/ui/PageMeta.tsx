@@ -1,5 +1,5 @@
 /**
- * Document title and description for a public page (spec 018). React 19 hoists <title> and <meta>
+ * Document title and description for a public page (spec 020). React 19 hoists <title> and <meta>
  * rendered anywhere in the tree into <head>, so no dependency is needed.
  */
 export interface PageMetaProps {

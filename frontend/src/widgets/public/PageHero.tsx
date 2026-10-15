@@ -3,7 +3,7 @@ import { DepthStage } from './DepthStage'
 import { Lamp } from './Lamp'
 
 /**
- * The ink hero of an inner public page (spec 018, AC-018-6; docs/12 §12): eyebrow, the page's one
+ * The ink hero of an inner public page (spec 020, AC-020-6; docs/12 §12): eyebrow, the page's one
  * h1, a lead, and on wide screens a small depth scene (by default a deck of paper artefacts).
  */
 export interface PageHeroProps {

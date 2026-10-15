@@ -48,7 +48,7 @@ const SCREENS = [
 ] as const
 
 /**
- * The public landing (spec 018, AC-018-1…4, 12; docs/12 §12): "the ledger in depth". An ink hero where
+ * The public landing (spec 020, AC-020-1…4, 12; docs/12 §12): "the ledger in depth". An ink hero where
  * two readings converge on one printed figure inside a 3D deck of paper; the reading room, a scroll
  * story of what happens to every document; the live duplicate decision; why, the Google Cloud stack,
  * the real screens, the trust rules, plans and questions, and a closing call to action.

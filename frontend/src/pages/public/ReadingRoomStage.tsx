@@ -3,7 +3,7 @@ import { PaperArtefact } from '../../widgets/public/PaperArtefact'
 const ROWS = [0, 1, 2, 3, 4] as const
 
 /**
- * The decorative 3D scene of the landing's reading room (spec 018, AC-018-4; docs/12 §12). Four
+ * The decorative 3D scene of the landing's reading room (spec 020, AC-020-4; docs/12 §12). Four
  * sheets, the statement's two reading layers (image and text), the beams between them, the lamp and
  * a tick per sheet; `kit.css` arranges them by the story's `data-chapter`. No words, no meaning of its
  * own: the chapters beside it carry the story.

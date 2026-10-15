@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 
 /**
- * A printed statement surface (spec 018): a bank header, optional content (the read-twice scene or a
+ * A printed statement surface (spec 020): a bank header, optional content (the read-twice scene or a
  * held row), the rows and the closing balance. Values keep their provenance reading mark (docs/12
  * §6.1). Presentational only.
  */

@@ -7,7 +7,7 @@ import { PageHero } from '../../widgets/public/PageHero'
 import { PublicShell } from '../../widgets/PublicShell'
 
 /**
- * Contact (spec 018 AC-018-7; docs/12 §12): a real mailbox on a letter that tilts toward the pointer,
+ * Contact (spec 020 AC-020-7; docs/12 §12): a real mailbox on a letter that tilts toward the pointer,
  * a button to copy the address, and no backend form.
  */
 export function ContactPage() {

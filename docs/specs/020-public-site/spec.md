@@ -1,4 +1,4 @@
-# Spec 018 — Public site (landing and public pages)
+# Spec 020 — Public site (landing and public pages)
 
 | | |
 |---|---|
@@ -21,13 +21,13 @@ describing it, so a first-time visitor understands it in seconds.
 
 ## User stories
 
-### US-018-1: Understand the product without signing in (visitor)
+### US-020-1: Understand the product without signing in (visitor)
 
-- **AC-018-1** Given no session, when I open `/`, then I see the landing page (not a redirect to
+- **AC-020-1** Given no session, when I open `/`, then I see the landing page (not a redirect to
   `/login`), with the tagline "Every number has a source.", one sentence naming the product and the
   three catches (duplicates, edited documents, unmatched payments), and the primary **Start free
   trial** action.
-- **AC-018-2** The landing hero shows one printed statement figure with the two reading marks (AI
+- **AC-020-2** The landing hero shows one printed statement figure with the two reading marks (AI
   reader and witness) and a **double rule** under the value, set in a **3D depth scene**: the
   product's own paper artefacts (statement, invoice, receipt, ledger export) float at different
   depths behind it. The hero copy, the statement rows, a single scan sweep and the two converging
@@ -35,47 +35,47 @@ describing it, so a first-time visitor understands it in seconds.
   keeps the scene alive, and on a fine pointer the scene tilts and a violet lamp follows the cursor.
   A `prefers-reduced-motion: reduce` visitor sees the same figure already settled, with the two
   reading labels as static chips and no animation at all.
-- **AC-018-3** Below the hero, a live **duplicate decision** shows the same statement held
+- **AC-020-3** Below the hero, a live **duplicate decision** shows the same statement held
   (`ACB_Feb_2026 (1).pdf`); choosing **Same document** keeps the running total and stamps "Kept as a
   copy", choosing **Different** counts it and moves the total. The control is keyboard-operable and
   the result is announced in a live region.
-- **AC-018-4** The page continues as an immersive scroll narrative. First **the reading room**: four
+- **AC-020-4** The page continues as an immersive scroll narrative. First **the reading room**: four
   chapters (any order → read twice → forensics with the lamp → the month reconciles and the money
   flows), pinned with a progress rail on wide, tall screens and stacked elsewhere; each chapter has a
-  real heading. Then the live duplicate decision (AC-018-3, never inside the pinned stage), *why
+  real heading. Then the live duplicate decision (AC-020-3, never inside the pinned stage), *why
   Kredibel* (the problem and what Kredibel does instead), *built on Google Cloud* (the service stack),
   the product's screens with the two readings of one value, the trust rules, a plans and questions
   band, and a closing call to action before the footer.
 
-### US-018-2: Find the legal, pricing and help pages (visitor)
+### US-020-2: Find the legal, pricing and help pages (visitor)
 
-- **AC-018-5** `/pricing` lists the free trial as available (from `contracts/plans.v1.yaml`) and
+- **AC-020-5** `/pricing` lists the free trial as available (from `contracts/plans.v1.yaml`) and
   Starter, Professional and Enterprise as **Coming soon**, with no price and no purchase action; two
   coming-soon features are shown. It does not call `GET /api/plans` (which requires a token).
-- **AC-018-6** `/how-it-works`, `/security`, `/faq`, `/contact`, `/privacy` and `/terms` each render
+- **AC-020-6** `/how-it-works`, `/security`, `/faq`, `/contact`, `/privacy` and `/terms` each render
   without a session, are reachable from the header and footer, and are deep-linkable (a direct URL
   load works).
-- **AC-018-7** Contact shows a mailto link and the operating name; the Privacy Policy and Terms state
+- **AC-020-7** Contact shows a mailto link and the operating name; the Privacy Policy and Terms state
   that demos use synthetic data, that real-data controls are on, that processing is on Google Cloud /
   Firebase, that the service is a free trial with no billing, and that it gives no financial advice.
   Legal entity and governing law are marked placeholders.
 
-### US-018-3: Sign in from the landing (visitor → user)
+### US-020-3: Sign in from the landing (visitor → user)
 
-- **AC-018-8** **Sign in** and **Start free trial** both lead to `/login`; after signing in, a user
+- **AC-020-8** **Sign in** and **Start free trial** both lead to `/login`; after signing in, a user
   with a workspace lands on the dashboard and a user without one lands on `/onboarding`.
-- **AC-018-9** Given a signed-in user, when they open `/`, then they are redirected to `/dashboard`;
+- **AC-020-9** Given a signed-in user, when they open `/`, then they are redirected to `/dashboard`;
   other public pages remain viewable and show **Go to dashboard** instead of the trial action.
 
-### US-018-4: The app keeps working (user)
+### US-020-4: The app keeps working (user)
 
-- **AC-018-10** The dashboard moves from `/` to `/dashboard`; Documents, Reconciliation, Review, Risk,
+- **AC-020-10** The dashboard moves from `/` to `/dashboard`; Documents, Reconciliation, Review, Risk,
   Clients and suppliers, Assistant, Labels, Runs and Settings keep their current paths; the shell
   logo, home and back links point to `/dashboard`.
-- **AC-018-11** Every public page is responsive from 360 px to 1600 px, sets its own title and
+- **AC-020-11** Every public page is responsive from 360 px to 1600 px, sets its own title and
   description (`PageMeta`), passes axe with no serious/critical violations, and uses only tokens and
   `kit.css` (no raw styles).
-- **AC-018-12** Motion on the public site is depth and scroll, never scroll hijack: 3D is CSS
+- **AC-020-12** Motion on the public site is depth and scroll, never scroll hijack: 3D is CSS
   transforms (no WebGL); scroll-linked and pointer effects come from `motion` hooks writing CSS
   custom properties; pointer effects only on a fine pointer; decorative 3D layers carry no text and
   are hidden from assistive technology; under `prefers-reduced-motion` every scene is settled and
@@ -87,7 +87,7 @@ describing it, so a first-time visitor understands it in seconds.
 - No backend endpoints, no contact-form backend, no CMS — copy lives in `locales/en/public.json`.
 - No new languages (English only), no dark theme, no prerender/SSG, no analytics.
 - No smooth-scroll or scroll-hijack library and no WebGL; `motion` is the only animation dependency
-  and only its hooks are used (amended 2026-10-14, T018-18).
+  and only its hooks are used (amended 2026-10-14, T020-18).
 
 ## Edge cases
 

@@ -15,7 +15,7 @@ const PROPS = {
   countedTotal: 'IDR 24,000,000',
 }
 
-describe('DuplicateDecision (spec 018, AC-018-3)', () => {
+describe('DuplicateDecision (spec 020, AC-020-3)', () => {
   it('keeps the total when the copy is the same document', async () => {
     const user = userEvent.setup()
     render(<DuplicateDecision {...PROPS} />)

@@ -67,7 +67,7 @@ Two kinds of diagram live in these docs:
 | Screen mock | Shows | Used in |
 |---|---|---|
 | [`onboarding`](../design/mocks/onboarding.html) | Myself or a company, the free trial, the brand panel | 11 §6.1 |
-| [`landing`](../design/mocks/landing.html) | The public landing: the two readings converge on one printed figure, one live duplicate decision, the story | 11 §4.2, spec 018 |
+| [`landing`](../design/mocks/landing.html) | The public landing: the two readings converge on one printed figure, one live duplicate decision, the story | 11 §4.2, spec 020 |
 | [`dashboard`](../design/mocks/dashboard.html) | Status sentence, figures, Needs you, Risk, then full-width charts by IFRS or US GAAP (money flow by statement line, money in and out by month, cash-flow statement), months as binder tabs | 11 §6.2 |
 | [`documents`](../design/mocks/documents.html) | Upload tray (exact copy, held copy, reading, new ledger layout) and the library | 11 §6.3 |
 | [`month`](../design/mocks/month.html) | March 2026: figures, the critical explanation, bank lines with match reasons | 11 §6.4 |

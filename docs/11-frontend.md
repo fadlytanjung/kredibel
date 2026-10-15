@@ -126,7 +126,7 @@ put):
 
 | Path | Page | Notes |
 |---|---|---|
-| `/` | Landing | Public ([spec 018](specs/018-public-site/spec.md)). Signed-in visitors redirect to `/dashboard`. A 3D ink hero where the two readings converge on one printed figure, the four-chapter reading room, then one live duplicate decision (docs/12 §12) |
+| `/` | Landing | Public ([spec 020](specs/020-public-site/spec.md)). Signed-in visitors redirect to `/dashboard`. A 3D ink hero where the two readings converge on one printed figure, the four-chapter reading room, then one live duplicate decision (docs/12 §12) |
 | `/pricing` | Pricing / Plans | Public. Free trial available, paid tiers coming soon, no price |
 | `/how-it-works` | How it works | Public. The seven steps and the reading cost |
 | `/security` | Security & trust | Public |
@@ -638,7 +638,7 @@ are keyboard operable; dialogs and drawers trap and restore focus; targets ≥ 4
 | Stories | Storybook 9 + test runner | every `shared/ui` component in each state; interaction tests; axe on every story |
 | Visual regression | Playwright `toHaveScreenshot` | the 8 screens of §6 at 390, 834 and 1440 px with fixed data and fonts; baselines change only in a reviewed PR |
 | Accessibility E2E | `@axe-core/playwright` | each screen at each width: no serious or critical violations |
-| Performance | Lighthouse CI (mobile profile) | `/` and `/months/:month`: performance ≥ 85, accessibility ≥ 95, best practices ≥ 95; JS ≤ 250 KB gzip on first load. The public pages load eagerly; the signed-in app, Login and Onboarding are `React.lazy` chunks behind `Suspense` (spec 018, T018-19) |
+| Performance | Lighthouse CI (mobile profile) | `/` and `/months/:month`: performance ≥ 85, accessibility ≥ 95, best practices ≥ 95; JS ≤ 250 KB gzip on first load. The public pages load eagerly; the signed-in app, Login and Onboarding are `React.lazy` chunks behind `Suspense` (spec 020, T020-19) |
 | Contract | `tsc` against generated `schema.d.ts` | API drift breaks the build |
 | Smoke E2E | Playwright | new user → company workspace → upload S1 in a shuffled order → exact copy recognised → confirm ledger columns → resolve the 18.7 M match → March shows its critical explanation → open A01 evidence; once at 1440 px and once at 390 px |
 | i18n | Vitest + ESLint | `i18next/no-literal-string` in `src/`; every key in `locales/en` is used; missing keys fail the build |

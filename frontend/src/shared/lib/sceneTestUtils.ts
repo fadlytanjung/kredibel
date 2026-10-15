@@ -1,7 +1,7 @@
 import { vi } from 'vitest'
 
 /**
- * Test helper for the scene hooks (spec 018, T018-20): `matchMedia` answering per query, so a test
+ * Test helper for the scene hooks (spec 020, T020-20): `matchMedia` answering per query, so a test
  * can say "fine pointer, no reduced motion" or the opposite. jsdom has no `matchMedia` of its own.
  */
 export function stubMedia(answers: Record<string, boolean>) {

@@ -88,7 +88,7 @@ Playwright visual regression at 390, 834 and 1440 px, Lighthouse CI budgets.
 - Colour as the only signal; red for anything that is not a problem; mint for anything that is not
   checked.
 
-The **public site** (spec 018) is the one exception to the gradient and decoration rules: its `pub-*`
+The **public site** (spec 020) is the one exception to the gradient and decoration rules: its `pub-*`
 surfaces may use glows, gradients and decorative shapes in depth (§12). The rest of this list still
 applies there, and the app itself is unchanged.
 
@@ -217,7 +217,7 @@ characters; inputs are 16 px on compact screens (no zoom on focus in mobile brow
   for drawers, easing `standard` `cubic-bezier(0.2, 0, 0, 1)`. **One orchestrated moment:** when the
   evidence viewer opens, the lamp sweeps once across the box (`sweep` 720 ms, 400 ms delay). Upload
   rows and month tabs tick as they finish. Nothing animates on its own after that. Everything respects
-  `prefers-reduced-motion` (the sweep is removed, sheets cross-fade). The **public site** (spec 018) has
+  `prefers-reduced-motion` (the sweep is removed, sheets cross-fade). The **public site** (spec 020) has
   its own motion language, described in §12: depth, scroll-linked scenes and pointer tilt, with
   ambient loops slow (≥ 1.6 s) and decorative; all of it is removed under `prefers-reduced-motion`.
 
@@ -449,7 +449,7 @@ component has a Storybook story per state and size class. The mock class names i
 | `PlanCard` | `plan`, `current?` | Current: 2 px brand border and "Your plan"; coming soon: dashed, muted, disabled action, no price |
 | `MaskedText` | `value` | Never a full account or ID number (`ACB ••4821`); copy disabled |
 
-**Public site** ([spec 018](specs/018-public-site/spec.md))
+**Public site** ([spec 020](specs/020-public-site/spec.md))
 
 | Component | Variants / props | Rules |
 |---|---|---|
@@ -515,7 +515,7 @@ Public-only scene widgets live in `frontend/src/widgets/public/` (§12), not in 
 - **Tagline:** *Every number has a source.*
 - **Onboarding brand panel:** ink surface with a ledger-paper texture (5% rules every 40 px), the
   tagline, three promises, and three ledger lines showing *read twice*, *matched* and *copy, not
-  read*. The **public site** (spec 018) builds its deep ink scenes on the same ink and ledger
+  read*. The **public site** (spec 020) builds its deep ink scenes on the same ink and ledger
   paper, so the marketing pages and the app read as one product; its extra depth, glows and gradients
   are described in §12 and stay on the public surfaces.
 - No stock imagery; the product's own evidence viewer and money flow are the heroes in the README and
@@ -563,7 +563,7 @@ make mock-shots    tools/design/shoot_mocks.py at 390, 834, 1440 px → docs/ass
 | Mock | Shows | Spec |
 |---|---|---|
 | `onboarding.html` | Myself or a company, the trial terms, the brand panel | 013 |
-| `landing.html` | The first public landing (before the 2026-10 revamp, §12); its classes left `kit.css` with the revamp, so it no longer renders as designed. The React page is the reference | 018 |
+| `landing.html` | The first public landing (before the 2026-10 revamp, §12); its classes left `kit.css` with the revamp, so it no longer renders as designed. The React page is the reference | 020 |
 | `dashboard.html` | Status sentence, figures, Needs you, Risk, then full-width charts with the IFRS / US GAAP switch: money flow (Flow, Bars, Table, By client and supplier), money in and out by month, cash-flow statement; months as binder tabs | 010 |
 | `documents.html` | Upload tray with an exact copy, a held copy, a page being read and a new ledger layout; the library | 003, 006 |
 | `month.html` | March 2026: figures, the critical explanation with citations and next steps, bank lines with matches | 007, 008 |
@@ -580,7 +580,7 @@ make mock-shots    tools/design/shoot_mocks.py at 390, 834, 1440 px → docs/ass
 
 ---
 
-## 12. Public site: the ledger in depth (spec 018)
+## 12. Public site: the ledger in depth (spec 020)
 
 The public pages are a separate surface with more freedom than the app: they must make a visitor
 understand *read twice* in seconds and feel the product. The concept is a dark, deep **reading

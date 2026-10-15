@@ -2,7 +2,7 @@ import { usePrefersReducedMotion } from '../lib/usePrefersReducedMotion'
 import { Icon } from './Icon'
 
 /**
- * The product's signature move (docs/12 §6.1, spec 018 AC-018-2): one printed figure with the two
+ * The product's signature move (docs/12 §6.1, spec 020 AC-020-2): one printed figure with the two
  * independent reading marks and a double rule under the value. The marks converge on first paint
  * ("play"); under `prefers-reduced-motion` the scene is already settled. Meaning never depends on
  * the motion: the result is stated in text for screen readers either way.

@@ -21,7 +21,7 @@ export interface ScrollStoryProps {
 }
 
 /**
- * A scroll story with a sticky 3D stage (spec 018, AC-018-4, AC-018-12; docs/12 §12). One DOM: the
+ * A scroll story with a sticky 3D stage (spec 020, AC-020-4, AC-020-12; docs/12 §12). One DOM: the
  * chapters are real headings in reading order and scroll natively; beside them on wide, tall screens
  * the stage sticks and changes with the chapter in view (`data-chapter`) and the scroll (`--p`).
  * Elsewhere, and under reduced motion, the chapters simply stack and nothing pins.

@@ -34,7 +34,7 @@ function renderAt(ui: ReactNode, path = '/') {
   )
 }
 
-describe('Public pages (spec 018)', () => {
+describe('Public pages (spec 020)', () => {
   it('landing: tagline, hero CTA targets, the signature move and the live duplicate decision', async () => {
     const user = userEvent.setup()
     renderAt(<LandingPage />)
@@ -49,7 +49,7 @@ describe('Public pages (spec 018)', () => {
     expect(screen.getByText('24,300,000')).toBeInTheDocument()
   })
 
-  it('landing: the reading room tells its four chapters as headings, in order (AC-018-4)', () => {
+  it('landing: the reading room tells its four chapters as headings, in order (AC-020-4)', () => {
     renderAt(<LandingPage />)
     const room = screen.getByRole('region', { name: 'Watch one month get checked.' })
     const titles = Array.from(room.querySelectorAll('.pub-chapter > h3'), (h) => h.textContent)

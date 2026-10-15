@@ -45,7 +45,7 @@ afterEach(() => {
   act(() => scroll.progress?.set(0))
 })
 
-describe('ScrollStory (spec 018, AC-018-4, AC-018-12)', () => {
+describe('ScrollStory (spec 020, AC-020-4, AC-020-12)', () => {
   it('renders one DOM: the heading, then every chapter as a heading, in order', () => {
     stubMedia({})
     renderStory()

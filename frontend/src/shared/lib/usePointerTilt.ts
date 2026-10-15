@@ -6,7 +6,7 @@ import { usePrefersReducedMotion } from './usePrefersReducedMotion'
 const SPRING = { stiffness: 140, damping: 18, mass: 0.6 }
 
 /**
- * Pointer-driven depth on a scene (spec 018, AC-018-12; docs/12 §12). On a fine pointer it writes:
+ * Pointer-driven depth on a scene (spec 020, AC-020-12; docs/12 §12). On a fine pointer it writes:
  * `--rx` / `--ry` — the tilt, −1…1, eased by a spring (CSS turns it into degrees);
  * `--lx` / `--ly` — where the pointer is, as a percentage of the element (the violet lamp);
  * `data-pointer="on"` while the pointer is over the element.

@@ -8,7 +8,7 @@ import { Icon } from '../shared/ui'
 import { PUBLIC_NAV } from './publicNav'
 
 /**
- * The public site header (spec 018, AC-018-6, 8, 9; docs/12 §12): a floating pill over every page's
+ * The public site header (spec 020, AC-020-6, 8, 9; docs/12 §12): a floating pill over every page's
  * ink hero that condenses into glass once the page scrolls, with a double-rule reading-progress line.
  * Below 940 px the links move into a menu sheet (Escape or a link closes it).
  */

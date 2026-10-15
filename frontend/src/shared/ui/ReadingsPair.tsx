@@ -1,7 +1,7 @@
 import { Icon } from './Icon'
 
 /**
- * The two readings of a printed value side by side (docs/12 §6.2 readings table, spec 018): the AI
+ * The two readings of a printed value side by side (docs/12 §6.2 readings table, spec 020): the AI
  * reader and the witness, and the result. A CRITICAL accusation is only made on values both readings
  * agree on; this table is how that is shown.
  */

@@ -1,4 +1,4 @@
-# Plan 018 — Public site
+# Plan 020 — Public site
 
 ## Approach
 
@@ -39,7 +39,7 @@ gradients, illustrations or stock photos. *Superseded for the public site by the
   CreateWorkspaceForm, AppShell stories/tests).
 - `frontend/public/marketing/` — synthetic screenshots copied from `docs/assets/mocks/`.
 
-## Revamp: "the ledger in depth" (2026-10, T018-18…30)
+## Revamp: "the ledger in depth" (2026-10, T020-18…30)
 
 The first cut stacked identical section heads and cards. The revamp makes the public site immersive:
 a dark, deep **reading room** where the product's own paper artefacts float in 3D and the visitor
@@ -64,7 +64,7 @@ marks, double rule, violet evidence lamp, ledger lines drawing into a money flow
   string is duplicated for assistive technology or tests.
 - **Budget.** The single chunk was ~330 KB gzip before the revamp (over the 250 KB budget). Public
   pages stay eager (the landing h1 renders synchronously); the signed-in app, Login and Onboarding are
-  lazy-loaded behind `Suspense`. Sizes before and after are recorded in `tasks.md` (T018-19).
+  lazy-loaded behind `Suspense`. Sizes before and after are recorded in `tasks.md` (T020-19).
 - **Cut:** route view transitions (`viewTransition` needs a data router; the app uses
   `BrowserRouter`), a magnetic cursor, rotated-text carousels, and a second pinned story.
 

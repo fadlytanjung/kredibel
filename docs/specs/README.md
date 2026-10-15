@@ -26,7 +26,7 @@ documents sit under `docs/`. Paths to other docs are relative (`../01-…`, `../
 | 015 | [Trust extensions](015-trust-extensions/spec.md) | P1 | A, B, C | 004, 006, 008, 009 | D6 |
 | 016 | [Labels and learning from people](016-labels-and-learning/spec.md) | P1 (writers early) · export later | A, B, C | 005, 007, 013 | D3 (writers) · D6 (page) |
 | 017 | [Agent observability](017-agent-observability/spec.md) | P0 (traces, dev UI) · P1 (BigQuery, Runs page) | A, D, C | 004, 016 | D2 (traces) · D6 |
-| 018 | [Public site](018-public-site/spec.md) | P0 (submission) | C (+D) | 001, 013 | D7 |
+| 020 | [Public site](020-public-site/spec.md) | P0 (submission) | C (+D) | 001, 013 | D7 |
 
 Spec numbers are identifiers, not the build order: 013 is built right after 001, because 003 and 004
 call its entitlement checks.

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Icon } from '../../shared/ui'
 
 /**
- * Copy the contact address (spec 018, AC-018-7): one button and a polite status, no form and no text
+ * Copy the contact address (spec 020, AC-020-7): one button and a polite status, no form and no text
  * field. If the browser refuses the clipboard the status says so and the address stays selectable.
  */
 export interface CopyEmailButtonProps {

@@ -6,7 +6,7 @@ import { Lamp } from './Lamp'
 import { PaperArtefact } from './PaperArtefact'
 import { ScrollStory } from './ScrollStory'
 
-// The public site's depth scenes (spec 018, docs/12 §12). They read the `--pub-*` variables set on
+// The public site's depth scenes (spec 020, docs/12 §12). They read the `--pub-*` variables set on
 // `.site`, so every story renders inside the public frame.
 const meta: Meta = {
   title: 'Public/Scenes',

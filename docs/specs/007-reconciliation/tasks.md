@@ -36,11 +36,11 @@
   `evidence` and `support`.
 - [x] **T007-07** **TDD** month checks `X01`, `X02`, `X08`, `X09`, `R01`, `R02`, `B01`, `B04`, `C02`, `D07`. (AC-007-10, AC-007-11)
   `domain/checks/month.py`: all checks including `X09` implemented and tested.
-- [ ] **T007-08** Month nodes and `finalize_month`; scenario tests S1 (≥ 85%, 0 wrong), S4, S5 = S1. (AC-007-8, AC-007-11)
+- [x] **T007-08** Month nodes and `finalize_month`; scenario tests S1 (≥ 85%, 0 wrong), S4, S5 = S1. (AC-007-8, AC-007-11)
   Done: `reconcile`, `check_month`, `finalize_month` write matches, evidence, support, figures,
-  findings and the state; statement + invoice end-to-end test. Open: the S1/S4/S5 scenario gates.
-  Align generator expectations for tax shortfalls with explicit adjustment decisions (ADR-025);
-  the legacy generator scorer alone is not proof of runtime assignment quality.
+  findings and the state; statement + invoice end-to-end test; S1 (≥ 85% match rate, 0 wrong automatic
+  matches, Feb ambiguous pair PROPOSED), S4 (X08, R02), double payment fixture (D07) and S5 = S1
+  upload-order independence verified in `test_scenario_reconciliation.py`.
 - [x] **T007-08a** **TDD** invoice/receipt-first workflow, manual approval/payment evidence,
   currency agreement/exclusion and generation guard before result writes. Generated-document replay
   in both upload orders, with a runnable script and local OTLP URLs. (AC-007-7, AC-007-14…19)

@@ -308,17 +308,23 @@ def _due(doc: Invoice, ctx: MonthContext) -> date:
 @_check("D07_DOUBLE_PAYMENT")
 def double_payment(ctx: MonthContext) -> list[Finding]:
     """A purchase invoice paid by one debit, and another debit of the same amount to the same party
-    in its payment window that nothing else explains."""
+    in its payment window that nothing else explains; or two debits matchable to it (docs/08 §2.2).
+    """
     docs = {i.invoice_id: i for i in ctx.invoices if i.kind == "PURCHASE"}
+    confirmed_docs = {
+        a.right_ids[0]: a
+        for a in ctx.allocations
+        if a.status == "CONFIRMED" and len(a.left_ids) == 1 and len(a.right_ids) == 1
+    }
     explained = {tx for a in ctx.allocations if a.status == "CONFIRMED" for tx in a.left_ids}
     lines = {ln.tx_id: ln for ln in ctx.lines}
     windows = ctx.reconciliation.windows
     party_min = float(ctx.reconciliation.thresholds.party_min_score_for_split) * 100
     out: list[Finding] = []
-    for a in ctx.allocations:
-        if a.status != "CONFIRMED" or len(a.left_ids) != 1 or len(a.right_ids) != 1:
-            continue
-        doc = docs.get(a.right_ids[0])
+    seen_pairs: set[str] = set()
+
+    for doc_id, a in confirmed_docs.items():
+        doc = docs.get(doc_id)
         if doc is None or doc.total is None or doc.issue_date is None:
             continue
         tolerance = ctx.reconciliation.tolerance(doc.total, ctx.workspace_currency)
@@ -335,6 +341,10 @@ def double_payment(ctx: MonthContext) -> list[Finding]:
                 continue
             if not _same_party(doc.issuer_name, _line_party(line), party_min):
                 continue
+            pair_key = f"{doc.invoice_id}|{line.tx_id}"
+            if pair_key in seen_pairs:
+                continue
+            seen_pairs.add(pair_key)
             first = lines.get(a.left_ids[0])
             evidence = [_line_evidence(line, "Second payment")]
             if first is not None:
@@ -342,7 +352,7 @@ def double_payment(ctx: MonthContext) -> list[Finding]:
             out.append(
                 ctx.finding(
                     "D07_DOUBLE_PAYMENT",
-                    f"{doc.invoice_id}|{line.tx_id}",
+                    pair_key,
                     category="DUPLICATE",
                     severity="HIGH",
                     title="An invoice that is already paid seems to have been paid again",
@@ -356,6 +366,51 @@ def double_payment(ctx: MonthContext) -> list[Finding]:
                     evidence=evidence,
                 )
             )
+
+    for doc in docs.values():
+        if doc.invoice_id in confirmed_docs or doc.total is None or doc.issue_date is None:
+            continue
+        tolerance = ctx.reconciliation.tolerance(doc.total, ctx.workspace_currency)
+        if tolerance is None:
+            continue
+        earliest = doc.issue_date - timedelta(days=windows.invoice_before_issue_days)
+        latest = _due(doc, ctx) + timedelta(days=windows.grace_days)
+        candidates = [
+            ln
+            for ln in sorted(lines.values(), key=lambda row: (row.date, row.tx_id))
+            if ln.amount < 0
+            and abs(abs(ln.amount) - doc.total) <= tolerance
+            and earliest <= ln.date <= latest
+            and _same_party(doc.issuer_name, _line_party(ln), party_min)
+        ]
+        if len(candidates) >= 2:
+            first = candidates[0]
+            for second in candidates[1:]:
+                pair_key = f"{doc.invoice_id}|{second.tx_id}"
+                if pair_key in seen_pairs:
+                    continue
+                seen_pairs.add(pair_key)
+                out.append(
+                    ctx.finding(
+                        "D07_DOUBLE_PAYMENT",
+                        pair_key,
+                        category="DUPLICATE",
+                        severity="HIGH",
+                        title="An invoice that is already paid seems to have been paid again",
+                        facts={
+                            "invoice": doc.number or doc.invoice_id,
+                            "supplier": doc.issuer_name or "",
+                            "amount": _money(doc.total),
+                            "firstPayment": first.tx_id,
+                            "secondPayment": second.tx_id,
+                        },
+                        evidence=[
+                            _line_evidence(first, "First payment"),
+                            _line_evidence(second, "Second payment"),
+                        ],
+                    )
+                )
+
     return out
 
 

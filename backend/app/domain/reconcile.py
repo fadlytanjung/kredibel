@@ -140,11 +140,7 @@ def assign_matches(
             continue
         if best.scored.score < thresholds.propose_score:
             break  # sorted by score: nothing further reaches a proposal
-        rivals = [
-            c
-            for c in pool
-            if c is not best and not (c.records & used) and (c.records & best.records)
-        ]
+        rivals = [c for c in pool if c is not best and (c.records & best.records)]
         runner_up = max((c.scored.score for c in rivals), default=None)
         clear = runner_up is None or runner_up < best.scored.score - thresholds.ambiguity_margin
         auto = (

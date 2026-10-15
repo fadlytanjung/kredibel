@@ -18,7 +18,7 @@
 
 - [x] **T004-09** Listeners and `ProgressLine`; runs API. (AC-004-8, AC-004-9)
 - [x] **T004-10** `RUNS_ENABLED`, quotas and the "paused until tomorrow" state. (AC-004-10, AC-004-11)
-- [ ] **T004-11** Tracing setup; verify a document run shows as one trace in Cloud Trace. (AC-004-12) Setup built (`TRACE_EXPORT=cloud`, `runs.traceId`, docs/23 §5); the Cloud Trace check waits for the next deploy.
+- [x] **T004-11** Tracing setup; verify a document run shows as one trace in Cloud Trace. (AC-004-12) Setup built (`TRACE_EXPORT=cloud`, `runs.traceId`, docs/23 §5). Verified 15 Oct 2026 on the deployed worker (Cloud Build `3167356c`, smoke upload): trace `01309983546b…` has one root `workflow:document_workflow` and 53 spans, every document node (`load_document` … `finalize_document`) and the month run it enqueued under it.
 
 ## Phase 4 — Close
 

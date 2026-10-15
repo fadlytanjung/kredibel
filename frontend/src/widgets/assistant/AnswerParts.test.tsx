@@ -25,7 +25,8 @@ describe('AnswerParts', () => {
     )
 
     expect(screen.getByText('IDR 56,050,000')).toBeInTheDocument()
-    expect(screen.getByText('A01')).toBeInTheDocument()
+    // The chip carries the citation's label, not the bare ID (mock assistant.html).
+    expect(screen.getByRole('link', { name: 'Finding A01' })).toHaveAttribute('href', '/risk/A01')
     expect(screen.getByText('Open the evidence')).toBeInTheDocument()
   })
 

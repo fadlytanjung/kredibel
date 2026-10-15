@@ -80,12 +80,12 @@ export function ActivityTrail({ steps, tools, running }: ActivityTrailProps) {
         ) : (
           <Icon name="check" size="sm" />
         )}
-        <span className="flex-1 truncate">{headerLabel}</span>
+        <span>{headerLabel}</span>
         <Icon name={expanded ? 'chevron-up' : 'chevron-down'} size="sm" />
       </button>
 
       {expanded && (
-        <ul className="trail-list m-0 p-0 list-none" aria-live="polite">
+        <ul className="trail-list" aria-live="polite">
           {steps.map((step, idx) => {
             const isLatest = running && idx === steps.length - 1 && !tools.length
             return (

@@ -2,6 +2,11 @@
 Synthetic data: the demo workspace of docs/18 (Sunrise Coffee Roasters, Jan–Jun 2026, scenarios S1 to S4
 together: the edited March statement, the duplicates, the changed supplier account and the unpaid bills)."""
 
+import json
+from decimal import Decimal
+from html import escape
+from pathlib import Path
+
 from icons import icon
 from shell import shell, topbar, BRAND
 from sankey import sankey_svg, flow_list, flow_table
@@ -11,53 +16,91 @@ SEV = {"critical": ("octagon-alert", "Critical"), "high": ("triangle-alert", "Hi
        "medium": ("circle-alert", "Medium"), "low": ("info", "Low")}
 
 
-def sev_badge(level: str) -> str:
-    ic, label = SEV[level]
-    return f'<span class="badge badge-{level}">{icon(ic)}{label}</span>'
-
-
 # ------------------------------------------------------------------------------------------------
 # Dashboard
 # ------------------------------------------------------------------------------------------------
+# The dashboard draws the same synthetic Dashboard payload as the React preview and the browser parity
+# check (contracts/design/fixtures/dashboard.json, AC-019-2), with the app's own words from the
+# locale files, so the mock and the implementation cannot drift apart silently.
 
-MONTHS = [
-    ("Jan", "ok", "Reconciled", "low", 94, "42 of 45", "Statement, ledger"),
-    ("Feb", "wait", "2 need you", "medium", 89, "40 of 45", "Possible copy held"),
-    ("Mar", "wait", "2 need you", "critical", 86, "39 of 45", "Statement edited"),
-    ("Apr", "ok", "Reconciled", "low", 93, "42 of 45", "Statement, ledger"),
-    ("May", "wait", "3 need you", "high", 88, "40 of 45", "Supplier account changed"),
-    ("Jun", "wait", "2 need you", "medium", 87, "39 of 45", "Possible copy held"),
-]
+ROOT = Path(__file__).resolve().parents[3]
+LOCALES = ROOT / "frontend/src/shared/i18n/locales/en"
+DASH = json.loads((ROOT / "contracts/design/fixtures/dashboard.json").read_text(encoding="utf-8"))
+DASH_WORDS = json.loads((LOCALES / "dashboard.json").read_text(encoding="utf-8"))
+REVIEW_WORDS = json.loads((LOCALES / "review.json").read_text(encoding="utf-8"))
+RISK_WORDS = json.loads((LOCALES / "risk.json").read_text(encoding="utf-8"))
+
+MONTH_NAMES = ["January", "February", "March", "April", "May", "June",
+               "July", "August", "September", "October", "November", "December"]
+STATE_CLASS = {"RECONCILED": "ok", "SIGNED_OFF": "ok"}
+MTAB_TINT = {"CRITICAL": " is-critical", "HIGH": " is-high", "MEDIUM": " is-open"}
+KPI_ICON = {"MONEY_IN": "arrow-down-left", "MONEY_OUT": "arrow-up-right"}
+KIND_ICON = {"POSSIBLE_DUPLICATE": "copy", "PROPOSED_MATCH": "link", "UNMATCHED_DOCUMENT": "file-text",
+             "UNMATCHED_BANK_LINE": "bank", "LOW_CONFIDENCE_VALUE": "eye", "LEDGER_DIFFERENCE": "scale",
+             "CONFIRM_TYPE": "tag", "CONFIRM_LEDGER_MAPPING": "table"}
+KIND_TILE = {"POSSIBLE_DUPLICATE": "dup", "PROPOSED_MATCH": "match"}
+
+
+def month_name(month: str, style: str = "longYear") -> str:
+    """The app's formatMonth: 'Mar', 'March' or 'March 2026'."""
+    year, number = month.split("-")
+    name = MONTH_NAMES[int(number) - 1]
+    if style == "short":
+        return name[:3]
+    if style == "long":
+        return name
+    return f"{name} {year}"
+
+
+def amount(value: str) -> str:
+    """The app's formatAmount for a whole-unit currency: digits only, the code printed once beside it."""
+    return f"{Decimal(value):,.0f}"
+
+
+def words(table: dict, key: str, **params) -> str:
+    """A locale string with its {{params}} filled; `count` picks the _one/_other form."""
+    count = params.get("count")
+    if count is not None and f"{key}_one" in table:
+        key = f"{key}_one" if count == 1 else f"{key}_other"
+    node: object = table
+    for part in key.split("."):
+        node = node[part]  # type: ignore[index]
+    text = str(node)
+    for name, value in params.items():
+        text = text.replace("{{" + name + "}}", str(value))
+    return escape(text)
+
+
+def period_range(months: list[str]) -> str:
+    first, last = months[0], months[-1]
+    if first == last:
+        return month_name(first)
+    same_year = first[:4] == last[:4]
+    return words(DASH_WORDS, "periodRange", first=month_name(first, "long" if same_year else "longYear"), last=month_name(last))
+
+
+def sev_badge(level: str) -> str:
+    ic, label = SEV[level.lower()]
+    return f'<span class="badge badge-{level.lower()}">{icon(ic)}{escape(RISK_WORDS["severity"].get(level.upper(), label))}</span>'
 
 
 def month_tabs() -> str:
+    """The MonthStrip: one binder tab per month of the fixture (docs/12 §6.2)."""
     out = []
-    for m, state, label, risk, pct, of, note in MONTHS:
-        cls = {"critical": " is-critical", "high": " is-high", "medium": " is-open"}.get(risk, "")
-        st_icon = "check-circle" if state == "ok" else "inbox"
-        out.append(f"""<li><a class="mtab{cls}" href="month.html">
-  <span class="m-name"><strong>{m}</strong><span>2026</span></span>
-  <span class="m-state {state}">{icon(st_icon)}{label}</span>
-  <span class="m-matched"><span><b>{pct}%</b> matched by Kredibel</span><span class="meter-bar"><i style="width:{pct}%"></i></span><span>{of} bank lines</span></span>
-  <span class="m-foot">{sev_badge(risk)}<span>{note}</span></span>
+    for m in DASH["months"]:
+        done = m["state"] in STATE_CLASS
+        rate = round(float(m["autoMatchRate"]) * 100) if m.get("autoMatchRate") else None
+        matched = (f'<span><b>{rate}%</b> {words(DASH_WORDS, "matchedShare")}</span><span class="meter-bar"><i style="width:{rate}%"></i></span>'
+                   if rate is not None else "")
+        statements = words(DASH_WORDS, "statements", present=m.get("statementsPresent", 0), expected=m.get("statementsExpected", 0))
+        foot = sev_badge(m["riskLevel"]) if m.get("riskLevel") else f'<span>{words(DASH_WORDS, "noRisk")}</span>'
+        out.append(f"""<li><a class="mtab{MTAB_TINT.get(m.get("riskLevel", ""), "")}" href="month.html">
+  <span class="m-name"><strong>{month_name(m["month"], "short")}</strong><span>{m["month"][:4]}</span></span>
+  <span class="m-state {"ok" if done else "wait"}">{icon("check-circle" if done else "inbox")}{words(DASH_WORDS, f"states.{m['state']}")}</span>
+  <span class="m-matched">{matched}<span>{statements}</span></span>
+  <span class="m-foot">{foot}</span>
 </a></li>""")
     return f'<div class="months-wrap"><ol class="months">{"".join(out)}</ol></div>'
-
-
-TODOS = [
-    ("match", "link", "IDR 7,250,000 on 14 Mar differs from your ledger", "Harborview Hotel Group; the March statement looks edited"),
-    ("dup", "copy", "Possible copy of the February statement", "ACB_Feb_2026 (re-download).pdf has the same 45 lines"),
-    ("match", "link", "IDR 18,700,000 on 9 Feb fits two invoices", "Daybreak Café, invoices 0003 and 0004"),
-    ("doc", "file-text", "Two Bluewater Trading Co. invoices never paid", "No bank line or ledger entry for either"),
-    ("doc", "wallet", "Cash deposit of IDR 2,150,000 is not in the ledger", "21 Jun, ACB ••4821"),
-]
-
-
-def todo_list(n=5) -> str:
-    items = "".join(
-        f'<li><a class="todo" href="review.html"><span class="kind {k}">{icon(ic)}</span><span><span class="t">{t}</span><br/><span class="s">{s}</span></span><span class="go">{icon("chevron-right")}</span></a></li>'
-        for k, ic, t, s in TODOS[:n])
-    return f'<ul class="todo-list">{items}</ul>'
 
 
 def seg(group: str, options: list[tuple[str, str]], active: str, label: str, touch: bool = False) -> str:
@@ -81,37 +124,79 @@ def by_fw(render) -> str:
 from profit_loss import panel as profit_loss_panel, page as profit_loss
 
 
+def kpi_figure(kpi: dict) -> str:
+    """One KpiCard: the figure, its note and, for the match rate, the small meter."""
+    kid, value, previous = kpi["id"], kpi["value"], kpi.get("previous")
+    label = words(DASH_WORDS, f"kpi.{kid}")
+    ic = f'{icon(KPI_ICON[kid], "icon icon-sm")}' if kid in KPI_ICON else ""
+    attn = ""
+    extra = ""
+    if isinstance(value, dict):
+        sign = "+" if kid == "NET" and not value["amount"].startswith("-") and value["amount"] != "0.00" else ""
+        shown = f'<small>{value["currency"]}</small>{sign}{amount(value["amount"])}'
+        if kid == "NET":
+            up = not value["amount"].startswith("-")
+            note = f'<dd class="n{" up" if up else ""}">{words(DASH_WORDS, "kept" if up else "taken")}</dd>'
+        else:
+            note = f'<dd class="n">{words(DASH_WORDS, "previous", value=amount(previous["amount"])) if previous else words(DASH_WORDS, "noPrevious")}</dd>'
+    elif kid == "AUTO_MATCH_RATE":
+        pct = lambda rate: f"{round(float(rate) * 1000) / 10:.1f}%"  # noqa: E731
+        shown = pct(value)
+        note = f'<dd class="n">{words(DASH_WORDS, "previous", value=pct(previous)) if previous else words(DASH_WORDS, "noPrevious")}</dd>'
+        extra = f'<dd class="mini"><i style="width:{pct(value)}"></i></dd>'
+    else:
+        count = int(value)
+        shown = str(count)
+        attn = ' class="is-attn"' if count > 0 else ""
+        if kid == "DOCUMENTS_WAITING":
+            note = (f'<dd class="n"><a class="link" href="documents.html">{words(DASH_WORDS, "documentsWaiting", count=count)}</a></dd>'
+                    if count else f'<dd class="n">{words(DASH_WORDS, "nothingWaiting")}</dd>')
+        else:
+            note = (f'<dd class="n"><a class="link" href="review.html">{words(DASH_WORDS, "reviewWaiting", count=count)}</a></dd>'
+                    if count else f'<dd class="n">{words(DASH_WORDS, "nothingToReview")}</dd>')
+    return f'<div{attn}><dt>{ic}{label}</dt><dd class="v">{shown}</dd>{note}{extra}</div>'
+
+
+def flow_rows(nodes: list[dict], maximum: Decimal, out: bool = False) -> str:
+    rows = []
+    for node in nodes:
+        value = Decimal(node["value"]["amount"])
+        width = f"{(value / maximum * 100):.1f}%" if maximum > 0 else "0%"
+        rows.append(f'<div class="flow-row{" out" if out else ""}"><span>{escape(node["label"])}</span>'
+                    f'<span class="amt">{amount(node["value"]["amount"])}</span><span class="bar"><i style="width:{width}"></i></span></div>')
+    return "".join(rows)
+
+
 def dashboard() -> str:
-    hero = f"""
-<section class="status-hero" aria-labelledby="status-h">
-  <p class="greeting">Sunrise Coffee Roasters, January to June 2026</p>
-  <h1 class="status-sentence" id="status-h"><span class="done">2 of 6 months are reconciled.</span> <span class="ask">9 things need you.</span></h1>
-  <ul class="why">
-    <li><span class="sev-critical">{icon("octagon-alert")}</span><span><strong>March:</strong> the bank statement was edited after the bank issued it.</span></li>
-    <li><span class="sev-high">{icon("triangle-alert")}</span><span><strong>May:</strong> a supplier was paid to a bank account we have not seen for them before.</span></li>
-  </ul>
-  <div class="actions"><a class="button button-primary button-lg" href="review.html">{icon("inbox", "icon icon-sm")}Open review (9)</a><a class="button button-secondary button-lg" href="month.html">See March</a></div>
-</section>"""
+    """The dashboard as the app draws it (DashboardPage, docs/11 §6.2): period, header, figures, the
+    P&L panel, where the money went, reconciliation and findings, three panels, the months. The
+    profile-suggestions card at the end is a planned design (spec 014)."""
+    months = DASH["periodMonths"]
+    period = period_range(months)
+    name = "Sunrise Coffee Roasters"
+    in_period = [m for m in DASH["months"] if m["month"] in months]
+    done = sum(1 for m in in_period if m["state"] in STATE_CLASS)
+    alerts = DASH["alerts"]
+    worst = sorted((m for m in in_period if m.get("riskLevel")),
+                   key=lambda m: ["CRITICAL", "HIGH", "MEDIUM", "LOW"].index(m["riskLevel"]))[0]
+    why = [a for a in alerts if a["severity"] in ("CRITICAL", "HIGH")][:2]
+
+    period_row = f'<div class="dash-period">{seg("period", [("recent", words(DASH_WORDS, "periods.recent")), ("2026", "2026"), ("all", words(DASH_WORDS, "periods.all"))], "all", words(DASH_WORDS, "periods.label"))}</div>'
+    header = f'<header class="stack gap-1"><h1 class="type-title">{name}</h1><p class="greeting muted">{words(DASH_WORDS, "greeting", name=name, range=period)}</p></header>'
     figs = f"""
-<section class="ledger" aria-label="Figures for January to June 2026">
-  <dl class="ledger-figures">
-    <div><dt>{icon("arrow-down-left", "icon icon-sm")}Money in</dt><dd class="v"><small>IDR</small><span class="reading reading-agreed">1,355.8 M</span></dd><dd class="n">226.0 M a month on average</dd></div>
-    <div><dt>{icon("arrow-up-right", "icon icon-sm")}Money out</dt><dd class="v"><small>IDR</small><span class="reading reading-agreed">1,286.8 M</span></dd><dd class="n">214.5 M a month on average</dd></div>
-    <div><dt>Net</dt><dd class="v"><small>IDR</small>+69.0 M</dd><dd class="n up">Kept in the account</dd></div>
-    <div><dt>Matched by Kredibel</dt><dd class="v">89.6%</dd><dd class="n">242 of 270 bank lines</dd><dd class="mini"><i style="width:89.6%"></i></dd></div>
-    <div class="is-attn"><dt>Needs you</dt><dd class="v">9</dd><dd class="n">4 possible copies, 5 to match or explain</dd></div>
-    <div><dt>Documents</dt><dd class="v">92</dd><dd class="n">1 still reading</dd></div>
-  </dl>
+<section class="ledger" aria-label="{words(DASH_WORDS, "figuresAria", range=period)}">
+  <dl class="ledger-figures">{"".join(kpi_figure(k) for k in DASH["kpis"])}</dl>
 </section>"""
-    flow_views = seg("flowview", [("flow", "Flow"), ("bars", "Bars"), ("table", "Table"), ("parties", "By client and supplier")], "flow", "Chart type")
+
+    flow_views = seg("flowview", [(k, words(DASH_WORDS, f"charts.views.{k}")) for k in ("flow", "bars", "table", "parties")], "flow", words(DASH_WORDS, "charts.viewLabel"))
     fw_note = ('<p class="chart-note" data-text-group="fw" '
-               'data-text-ifrs="IFRS: interest paid (12.0) is a financing cash flow, as IAS 7 classifies it after IFRS 18; applied to 2026 for comparability." '
-               'data-text-us_gaap="US GAAP: interest paid (12.0) is an operating cash flow (ASC 230), so operating activities are larger and financing smaller.">'
-               'IFRS: interest paid (12.0) is a financing cash flow, as IAS 7 classifies it after IFRS 18; applied to 2026 for comparability.</p>')
+               'data-text-ifrs="Amounts in millions. IFRS: interest paid (12.0) is a financing cash flow, as IAS 7 classifies it after IFRS 18; applied to 2026 for comparability." '
+               'data-text-us_gaap="Amounts in millions. US GAAP: interest paid (12.0) is an operating cash flow (ASC 230), so operating activities are larger and financing smaller.">'
+               'Amounts in millions. IFRS: interest paid (12.0) is a financing cash flow, as IAS 7 classifies it after IFRS 18; applied to 2026 for comparability.</p>')
     flow = f"""
-<article class="chart-panel" aria-labelledby="flow-h">
+<article class="chart-panel" aria-labelledby="money-flow-h">
   <div class="chart-head">
-    <div><h3 id="flow-h">Money flow</h3><p>From your clients, through ACB ••4821, to each line of the cash-flow statement. Click a band to list its bank lines.</p></div>
+    <div><h3 id="money-flow-h">{words(DASH_WORDS, "charts.flowTitle")}</h3><p>{words(DASH_WORDS, "charts.flowSubtitle.flow")}</p></div>
     {flow_views}
   </div>
   <div data-show-group="flowview" data-show-value="flow">
@@ -120,84 +205,116 @@ def dashboard() -> str:
   <div data-show-group="flowview" data-show-value="bars" hidden>{by_fw(charts.spend_bars)}</div>
   <div data-show-group="flowview" data-show-value="table" hidden>{by_fw(charts.flow_table)}</div>
   <div data-show-group="flowview" data-show-value="parties" hidden><div class="chart-roomy">{sankey_svg()}</div><div class="chart-compact">{flow_list()}</div></div>
-  <p class="flow-callout">{icon("lightbulb")}<span><strong>Cost of sales took 41.6% of revenue.</strong> Green Valley Farms alone was IDR 318.2 M, paid to the same account every month except one transfer in May (see Risk).</span></p>
-  <div class="chart-foot">{fw_note}<a class="link" href="month.html">{icon("list", "icon icon-sm")}See bank lines</a></div>
+  <div class="chart-foot">{fw_note}</div>
 </article>"""
+    hot = ", ".join(month_name(m["month"]) for m in in_period if m.get("riskLevel") in ("CRITICAL", "HIGH"))
     monthly = f"""
-<article class="chart-panel" aria-labelledby="months-chart-h">
+<article class="chart-panel" aria-labelledby="month-bars-h">
   <div class="chart-head">
-    <div><h3 id="months-chart-h">Money in and out by month</h3><p>Net above each pair. March is the month with the edited statement.</p></div>
-    {seg("monthview", [("inout", "In and out"), ("net", "Net and balance")], "inout", "Chart type")}
+    <div><h3 id="month-bars-h">{words(DASH_WORDS, "charts.monthsTitle")}</h3><p>{words(DASH_WORDS, "charts.monthsSubtitleHot", months=hot) if hot else words(DASH_WORDS, "charts.monthsSubtitle")}</p></div>
+    {seg("monthview", [("inout", words(DASH_WORDS, "charts.inOut")), ("net", words(DASH_WORDS, "charts.netBalance"))], "inout", words(DASH_WORDS, "charts.monthsViewLabel"))}
   </div>
   <div data-show-group="monthview" data-show-value="inout">
     {tiers(charts.monthly_bars(), charts.monthly_bars(medium=True), charts.monthly_bars(compact=True))}
-    <p class="chart-legend"><span class="in"><i></i>Money in</span><span class="out"><i></i>Money out</span></p>
+    <p class="chart-legend"><span class="in"><i></i>{words(DASH_WORDS, "charts.moneyIn")}</span><span class="out"><i></i>{words(DASH_WORDS, "charts.moneyOut")}</span></p>
   </div>
   <div data-show-group="monthview" data-show-value="net" hidden>
     {tiers(charts.net_bars(), charts.net_bars(medium=True), charts.net_bars(compact=True))}
-    <p class="chart-legend"><span class="net"><i></i>Net cash flow</span><span class="bal"><i></i>Balance at month end</span></p>
+    <p class="chart-legend"><span class="net"><i></i>{words(DASH_WORDS, "charts.net")}</span><span class="bal"><i></i>{words(DASH_WORDS, "charts.balance")}</span></p>
   </div>
 </article>"""
     statement = f"""
-<article class="chart-panel" aria-labelledby="cfs-h">
+<article class="chart-panel" aria-labelledby="waterfall-h">
   <div class="chart-head">
-    <div><h3 id="cfs-h">Cash-flow statement</h3><p>Opening balance to closing balance, by activity. <span data-text-group="fw" data-text-ifrs="IFRS (IAS 7)." data-text-us_gaap="US GAAP (ASC 230).">IFRS (IAS 7).</span></p></div>
-    <a class="link" href="month.html">{icon("table", "icon icon-sm")}By month</a>
+    <div><h3 id="waterfall-h">{words(DASH_WORDS, "charts.waterfallTitle")}</h3><p data-text-group="fw" data-text-ifrs="{words(DASH_WORDS, "charts.waterfallSubtitle", framework="IFRS")}" data-text-us_gaap="{words(DASH_WORDS, "charts.waterfallSubtitle", framework="US GAAP")}">{words(DASH_WORDS, "charts.waterfallSubtitle", framework="IFRS")}</p></div>
+    <a class="link" href="month.html">{icon("table", "icon icon-sm")}{words(DASH_WORDS, "charts.byMonth")}</a>
   </div>
   {tiers(by_fw(charts.waterfall), by_fw(lambda fw: charts.waterfall(fw, medium=True)), by_fw(lambda fw: charts.waterfall(fw, compact=True)))}
 </article>"""
     charts_section = f"""
-<section class="charts" aria-labelledby="charts-h">
-  {profit_loss_panel()}
+<section class="stack gap-4" aria-labelledby="charts-h">
   <div class="section-head charts-section-head">
-    <div><h2 class="type-h2" id="charts-h">Where the money went</h2><p>January to June 2026, IDR millions, grouped the way your accounting framework groups cash flows.</p></div>
-    <div class="fw-switch"><span>Framework</span>{seg("fw", [("IFRS", "IFRS"), ("US_GAAP", "US GAAP")], "IFRS", "Accounting framework")}</div>
+    <div><h2 class="type-h2" id="charts-h">{words(DASH_WORDS, "charts.title")}</h2><p>{words(DASH_WORDS, "charts.subtitle", range=period)}</p></div>
+    <span class="fw-switch">{words(DASH_WORDS, "charts.framework")}{seg("fw", [("IFRS", "IFRS"), ("US_GAAP", "US GAAP")], "IFRS", words(DASH_WORDS, "charts.framework"))}</span>
   </div>
-  {flow}
-  {monthly}
-  {statement}
+  <div class="charts">
+    {flow}
+    {monthly}
+    {statement}
+  </div>
 </section>"""
+
+    why_items = "".join(
+        f'<li><span class="sev-{a["severity"].lower()}">{icon("octagon-alert" if a["severity"] == "CRITICAL" else "triangle-alert")}</span>'
+        f'<span><strong>{month_name(a["month"], "long")}: </strong>{escape(a["title"])}</span></li>' for a in why)
+    status = (f'<span class="done">{words(DASH_WORDS, "reconciled", done=done, count=len(in_period))}</span> '
+              f'<span class="ask">{words(DASH_WORDS, "openFindings", count=len(alerts)) if alerts else words(DASH_WORDS, "nothingOpen")}</span>')
+    hero = f"""
+<section class="status-hero" aria-labelledby="status-h">
+  <div class="section-head">
+    <h2 class="type-h2" id="status-h">{words(DASH_WORDS, "reconciliationHealth")}</h2>
+    <div class="actions">
+      <a class="button button-secondary button-sm" href="month.html">{words(DASH_WORDS, "seeMonth", month=month_name(worst["month"], "long"))}</a>
+      <a class="button button-quiet button-sm" href="assistant.html">{icon("sparkles", "icon icon-sm")}{words(DASH_WORDS, "askAboutThis")}</a>
+    </div>
+  </div>
+  <p class="status-sentence">{status}</p>
+  <ul class="why">{why_items}</ul>
+</section>"""
+
+    risk_items = "".join(
+        f'<li><a href="evidence-viewer.html"><span class="sev">{sev_badge(a["severity"])}</span>'
+        f'<span><p class="a-t">{escape(a["title"])}</p><p class="a-s">{month_name(a["month"])}</p></span></a></li>' for a in alerts)
+    review_items = "".join(
+        f'<li><a href="review.html"><span class="kind {KIND_TILE.get(i["kind"], "doc")}">{icon(KIND_ICON.get(i["kind"], "inbox"), "icon icon-sm")}</span>'
+        f'<span><p class="a-t">{escape(i["title"])}</p><p class="a-s">{words(REVIEW_WORDS, f"kinds.{i['kind']}")}, {month_name(i["month"])}</p></span></a></li>'
+        for i in DASH["reviewPreview"])
+    summary = DASH["moneyFlowSummary"]
+    maximum = max(Decimal(n["value"]["amount"]) for n in summary["topSources"] + summary["topUses"])
     lists = f"""
 <div class="dash-lists">
-  <section class="panel" aria-labelledby="todo-h">
-    <div class="panel-head"><h2 id="todo-h">Needs you</h2><a class="link" href="review.html">All 9</a></div>
-    {todo_list()}
+  <section class="panel" aria-labelledby="dash-risk-h">
+    <div class="panel-head"><h2 id="dash-risk-h">{words(DASH_WORDS, "risk")}</h2><a class="link" href="risk.html">{words(DASH_WORDS, "allFindings")}</a></div>
+    <ul class="alert-list">{risk_items}</ul>
   </section>
-  <section class="panel" aria-labelledby="risk-h">
-    <div class="panel-head"><h2 id="risk-h">Risk</h2><a class="link" href="risk.html">All findings</a></div>
-    <ul class="alert-list">
-      <li><a href="evidence-viewer.html"><span class="sev">{sev_badge("critical")}</span><span><p class="a-t">March statement edited after the bank issued it</p><p class="a-s">Balance breaks on 14 Mar; a later revision in a PDF editor</p></span></a></li>
-      <li><a href="risk.html"><span class="sev">{sev_badge("high")}</span><span><p class="a-t">Roastline Equipment Service paid to a new account</p><p class="a-s">6 May, IDR 24,500,000 to Meridian Savings ••7720; before: ACB ••3381</p></span></a></li>
-      <li><a href="risk.html"><span class="sev">{sev_badge("medium")}</span><span><p class="a-t">Invoices from an unknown supplier</p><p class="a-s">Bluewater Trading Co., 2 invoices, never paid, not in the ledger</p></span></a></li>
-    </ul>
+  <section class="panel" aria-labelledby="dash-review-h">
+    <div class="panel-head"><h2 id="dash-review-h">{words(DASH_WORDS, "review")}</h2><a class="link" href="review.html">{words(DASH_WORDS, "allReview")}</a></div>
+    <ul class="alert-list">{review_items}</ul>
+  </section>
+  <section class="panel" aria-labelledby="dash-flow-h">
+    <div class="panel-head"><h2 id="dash-flow-h">{words(DASH_WORDS, "flowTitle")}</h2></div>
+    <div class="stack gap-4 panel-pad">
+      <div><h3 class="small muted">{words(DASH_WORDS, "flowIn")}</h3>{flow_rows(summary["topSources"], maximum)}</div>
+      <div><h3 class="small muted">{words(DASH_WORDS, "flowOut")}</h3>{flow_rows(summary["topUses"], maximum, out=True)}</div>
+    </div>
   </section>
 </div>"""
-    found = f"""
-<section class="found" aria-label="Profile suggestions">
-  {icon("sparkles", "icon icon-lg")}
-  <p><strong>Kredibel found 2 details for your profile:</strong> your tax ID and your address, both printed on your sales invoices. Nothing changes until you accept.</p>
-  <a class="button button-secondary" href="plan-usage.html">Review details</a>
-</section>"""
-    months = f"""
+    months_section = f"""
 <section aria-labelledby="months-h">
-  <div class="section-head"><h2 class="type-h2" id="months-h">Months</h2><a class="link" href="month.html">Reconciliation</a></div>
+  <div class="section-head"><h2 class="type-h2" id="months-h">{words(DASH_WORDS, "monthsTitle")}</h2><a class="link" href="month.html">{words(DASH_WORDS, "reconciliation")}</a></div>
   {month_tabs()}
+</section>"""
+    found = f"""
+<section class="found" aria-label="Profile suggestions (planned, spec 014)">
+  {icon("sparkles", "icon icon-lg")}
+  <p><span class="badge badge-outline">Planned, spec 014</span> <strong>Kredibel found 2 details for your profile:</strong> your tax ID and your address, both printed on your sales invoices. Nothing changes until you accept.</p>
+  <a class="button button-secondary" href="plan-usage.html">Review details</a>
 </section>"""
     content = f"""
 <div class="page">
+  {period_row}
   <div class="dash">
+    {header}
     {figs}
+    {profit_loss_panel()}
     {charts_section}
     {hero}
     {lists}
-    {months}
+    {months_section}
     {found}
   </div>
 </div>"""
-    period = f'<span class="period hide-compact">{icon("calendar")}Jan to Jun 2026{icon("chevron-down")}</span>'
-    top = topbar("Dashboard", ("Dashboard",), extra=period)
-    return shell("dashboard", top, content)
-
+    return shell("dashboard", topbar("Dashboard", ("Dashboard",)), content)
 
 # ------------------------------------------------------------------------------------------------
 # Documents
@@ -726,19 +843,92 @@ def document() -> str:
 # ------------------------------------------------------------------------------------------------
 # Finance Assistant (P1)
 # ------------------------------------------------------------------------------------------------
+# Three states of the same screen, with the app's words (assistant.json): a conversation with a
+# streaming answer, the welcome state of an empty thread, and the history drawer phones open.
+
+ASSISTANT_WORDS = json.loads((LOCALES / "assistant.json").read_text(encoding="utf-8"))
+
+
+def aw(key: str, **params) -> str:
+    return words(ASSISTANT_WORDS, key, **params)
+
+
+def assistant_sidebar_markup() -> str:
+    """The history rail: New chat, earlier questions and the remembered preferences (docs/11 §6.8)."""
+    threads = [
+        ("How much did we pay Green Valley Farms in March?", "2 Jul", True),
+        ("Why is March critical?", "2 Jul", False),
+        ("Show my profit and loss for 2026-03", "2 Jul", False),
+        ("Which invoices are still unpaid?", "1 Jul", False),
+        ("Where did the money go in Q2?", "28 Jun", False),
+    ]
+    thread_items = "".join(
+        f'<a class="assistant-thread-btn{" is-active" if active else ""}" href="assistant.html">'
+        f'<span class="assistant-thread-title">{title}</span><span class="assistant-thread-date">{dt}</span></a>'
+        for title, dt, active in threads
+    )
+    memories = ["Show amounts in millions", "ACB ••5577 is the payroll account", "The financial year starts in January"]
+    mem_items = "".join(
+        f'<li><span>{mem}</span><button class="link-button small" type="button">{aw("remembered.forget")}</button></li>' for mem in memories
+    )
+    return f"""
+    <a class="button button-primary button-block" href="assistant-welcome.html">{icon("plus", "icon icon-sm")}<span>{aw("newChat")}</span></a>
+    <section class="assistant-side-section" aria-labelledby="thr-h">
+      <div class="spread"><h2 class="assistant-side-title" id="thr-h">{aw("earlierQuestions")}</h2><span class="badge badge-outline">{len(threads)}</span></div>
+      <div class="stack gap-1">{thread_items}</div>
+    </section>
+    <section class="panel panel-pad stack gap-2 assistant-memory" aria-labelledby="mem-h">
+      <div class="spread"><h2 class="assistant-side-title" id="mem-h">{aw("remembered.title")}</h2><button class="link-button small" type="button">{aw("remembered.forgetAll")}</button></div>
+      <ul class="remembered">{mem_items}</ul>
+      <p class="muted small">{aw("remembered.footer")}</p>
+    </section>
+"""
+
+
+def assistant_page_head() -> str:
+    return f"""
+  <div class="page-head">
+    <div class="spread">
+      <div class="row">
+        <a class="button button-quiet button-sm assistant-history-btn" href="assistant-history.html" aria-label="{aw("history")}">{icon("table", "icon icon-sm")}<span>{aw("history")}</span></a>
+        <h1 class="type-title">{aw("title")}</h1>
+        <span class="badge badge-outline">{aw("preview")}</span>
+      </div>
+    </div>
+    <p>{aw("subtitle")}</p>
+  </div>"""
+
+
+def assistant_composer() -> str:
+    starters = "".join(f'<a href="#">{aw(f"starters.{k}")}</a>' for k in ("unpaid", "q2", "clients"))
+    return f"""
+      <div class="suggested" aria-label="{aw("suggestedQuestions")}">{starters}</div>
+      <form class="composer" action="assistant.html" method="get"><input type="text" placeholder="{aw("composer.placeholder")}" aria-label="{aw("composer.placeholder")}" value=""/><button class="button button-primary" type="submit" aria-label="{aw("composer.send")}">{icon("send", "icon icon-sm")}</button></form>"""
+
+
+def assistant_layout(main: str) -> str:
+    return f"""
+<div class="page stack gap-4">
+  {assistant_page_head()}
+  <div class="assistant-page-container">
+    <aside class="assistant-sidebar assistant-sidebar-desktop" aria-label="{aw("recentConversations")}">
+      {assistant_sidebar_markup()}
+    </aside>
+    <main class="assistant-main">
+      {main}
+      {assistant_composer()}
+    </main>
+  </div>
+</div>"""
+
 
 def assistant() -> str:
-    content = f"""
-<div class="page">
-  <div class="page-head">
-    <div class="spread"><h1 class="type-title">Assistant</h1><span class="badge badge-outline">Preview</span></div>
-    <p>Ask about your books. Numbers come from your reconciled data, never from memory, and every answer shows its source.</p>
-  </div>
-  <div class="chat-layout">
-    <div class="stack gap-5">
+    """A conversation: three grounded answers and a fourth one still being written."""
+    grounded = f'<span class="grounded">{icon("shield-check")}{aw("messages.groundingAgreed")}</span>'
+    chat = f"""
       <div class="chat">
         <p class="msg-user">How much did we pay Green Valley Farms in March?</p>
-        <div class="msg-ai"><img class="ai-mark" src="{BRAND}/kredibel-mark.svg" alt="Kredibel"/>
+        <div class="msg-ai"><img class="ai-mark" src="{BRAND}/kredibel-mark.svg" alt="" aria-hidden="true"/>
           <div class="bubble">
             <p>You paid Green Valley Farms <strong>IDR 56,050,000</strong> in March, in 3 transfers <a class="citation" href="month.html">{icon("table")}3 bank lines</a>. All three went to their usual account, ACB ••0912, and each one matches an invoice.</p>
             <div class="mini-bars" role="img" aria-label="Three transfers: 5 Mar 32.1 million, 12 Mar 9.85 million, 26 Mar 14.1 million">
@@ -746,18 +936,20 @@ def assistant() -> str:
               <div class="mb"><span>12 Mar</span><span class="bar" style="width:31%"></span><b>9.85 M</b></div>
               <div class="mb"><span>26 Mar</span><span class="bar" style="width:44%"></span><b>14.10 M</b></div>
             </div>
-            <span class="grounded">{icon("shield-check")}Every number checked against your books</span>
+            {grounded}
           </div>
         </div>
         <p class="msg-user">Why is March critical?</p>
-        <div class="msg-ai"><img class="ai-mark" src="{BRAND}/kredibel-mark.svg" alt="Kredibel"/>
+        <div class="msg-ai"><img class="ai-mark" src="{BRAND}/kredibel-mark.svg" alt="" aria-hidden="true"/>
           <div class="bubble">
             <p>Because the March statement looks edited <a class="citation" href="evidence-viewer.html">{icon("eye")}A01</a>. On 14 March it shows IDR 7,250,000 from Harborview Hotel Group, but the balance only rises by IDR 1,250,000, and your ledger and invoice 0009 also say 1,250,000.</p>
             <p>The quickest check is to download March again from internet banking and upload it. Want me to open the evidence?</p>
-            <div class="row"><a class="button button-secondary button-sm" href="evidence-viewer.html">Open the evidence</a><a class="button button-quiet button-sm" href="month.html">Go to March</a></div>
+            <div class="row"><a class="button button-secondary button-sm" href="evidence-viewer.html">{aw("openEvidence")}</a><a class="button button-quiet button-sm" href="month.html">{aw("goToMonth")}</a></div>
+            {grounded}
           </div>
+        </div>
         <p class="msg-user">Show my profit and loss for 2026-03</p>
-        <div class="msg-ai"><img class="ai-mark" src="{BRAND}/kredibel-mark.svg" alt="Kredibel"/>
+        <div class="msg-ai"><img class="ai-mark" src="{BRAND}/kredibel-mark.svg" alt="" aria-hidden="true"/>
           <div class="bubble">
             <p>Accrual management P&amp;L from imported posted ledger entries only. These totals do not certify that the company books are complete.</p>
             <div class="mini-bars" role="img" aria-label="Profit and loss for 2026-03">
@@ -769,28 +961,65 @@ def assistant() -> str:
             </div>
             <p>Net profit: IDR 26,000,000 <a class="citation" href="profit-loss.html">Net profit</a></p>
             <div class="row"><a class="button button-secondary button-sm" href="profit-loss.html">Open profit and loss</a></div>
-            <span class="grounded">{icon("shield-check")}Every number checked against your books</span>
+            {grounded}
           </div>
         </div>
-      </div>
-      <div class="suggested" aria-label="Suggested questions"><a href="#">Which invoices are still unpaid?</a><a href="#">Where did the money go in Q2?</a><a href="#">Who are my biggest clients?</a></div>
-      <div class="composer"><p>Ask about your books</p><button class="button button-primary" type="button" aria-label="Send">{icon("send", "icon icon-sm")}</button></div>
-    </div>
-    <aside class="chat-aside stack gap-4">
-      <section class="panel panel-pad stack gap-3" aria-labelledby="mem-h">
-        <div class="spread"><h2 class="type-h3" id="mem-h">Remembered for you</h2><a class="link small" href="#">Forget all</a></div>
-        <ul class="remembered"><li><span>Show amounts in millions</span><a class="link small" href="#">Forget</a></li><li><span>ACB ••5577 is the payroll account</span><a class="link small" href="#">Forget</a></li><li><span>The financial year starts in January</span><a class="link small" href="#">Forget</a></li></ul>
-        <p class="muted small">Only preferences are remembered. Figures are always read fresh from your books.</p>
-      </section>
-      <section class="panel panel-pad stack gap-2" aria-labelledby="thr-h">
-        <h2 class="type-h3" id="thr-h">Earlier questions</h2>
-        <a class="link" href="#">Unpaid invoices in May</a><a class="link" href="#">Payroll this year</a>
-      </section>
-    </aside>
-  </div>
-</div>"""
-    return shell("assistant", topbar("Assistant", ("Assistant",)), content, fab=False)
+        <p class="msg-user">Who are my biggest clients?</p>
+        <div class="msg-ai" data-testid="streaming-ai-message"><img class="ai-mark" src="{BRAND}/kredibel-mark.svg" alt="" aria-hidden="true"/>
+          <div class="bubble stack gap-3">
+            <div class="activity-trail is-running" data-testid="activity-trail">
+              <button class="trail-head" type="button" aria-expanded="true" aria-label="{aw("activity.toggle")}">{icon("spinner", "icon icon-sm spin")}<span>{aw("activity.running")}</span>{icon("chevron-up", "icon icon-sm")}</button>
+              <ul class="trail-list" aria-live="polite">
+                <li class="trail-item">{icon("check", "icon icon-sm")}<span>Reading the period's money flow</span></li>
+                <li class="trail-item is-busy">{icon("spinner", "icon icon-sm spin")}<span>Listing clients by money in</span></li>
+              </ul>
+            </div>
+            <div class="thinking-dots" aria-label="{aw("activity.thinking")}"><span></span><span></span><span></span></div>
+          </div>
+        </div>
+      </div>"""
+    return shell("assistant", topbar(aw("title"), (aw("title"),)), assistant_layout(chat), fab=False)
 
+
+def assistant_welcome_markup() -> str:
+    prompts = [("bar-chart", "flow", "q2"), ("file-text", "unpaid", "unpaid"), ("shield-alert", "risk", "riskJune"), ("table", "pnl", "pnl")]
+    cards = "".join(
+        f'<a class="assistant-prompt-card" href="assistant.html"><span class="assistant-prompt-card-icon">{icon(ic, "icon icon-sm")}</span>'
+        f'<span class="assistant-prompt-card-text"><strong>{aw(f"welcome.prompts.{title}")}</strong><span>{aw(f"starters.{question}")}</span></span></a>'
+        for ic, title, question in prompts
+    )
+    return f"""
+      <div class="chat">
+        <div class="assistant-welcome" data-testid="assistant-welcome">
+          <div class="assistant-welcome-hero">
+            <img class="assistant-welcome-mark" src="{BRAND}/kredibel-mark.svg" alt="" aria-hidden="true"/>
+            <h2 class="assistant-welcome-title">{aw("welcome.title")}</h2>
+            <p class="assistant-welcome-subtitle">{aw("welcome.subtitle")}</p>
+          </div>
+          <div class="assistant-suggestion-grid">{cards}</div>
+        </div>
+      </div>"""
+
+
+def assistant_welcome() -> str:
+    """An empty thread: the welcome prompts a person can start from."""
+    return shell("assistant", topbar(aw("title"), (aw("title"),)), assistant_layout(assistant_welcome_markup()), fab=False)
+
+
+def assistant_history() -> str:
+    """The history drawer phones open from the Chat history button (the rail from 900 px)."""
+    drawer = f"""
+<div class="flow-sheet">
+  <a class="scrim" href="assistant-welcome.html" aria-label="{aw("closeHistory")}"></a>
+  <section class="sheet" role="dialog" aria-modal="true" aria-label="{aw("history")}">
+    <div class="sheet-head">
+      <h2 class="type-h3">{aw("recentConversations")}</h2>
+      <a class="icon-button" href="assistant-welcome.html" aria-label="{aw("closeHistory")}">{icon("x")}</a>
+    </div>
+    <div class="sheet-body stack gap-3">{assistant_sidebar_markup()}</div>
+  </section>
+</div>"""
+    return shell("assistant", topbar(aw("title"), (aw("title"),)), assistant_layout(assistant_welcome_markup()) + drawer, fab=False)
 
 # ------------------------------------------------------------------------------------------------
 # Plan and usage (Settings)
@@ -902,20 +1131,24 @@ SCREENS = {
     "review": ("Review queue", review),
     "evidence-viewer": ("Evidence viewer", evidence_viewer),
     "assistant": ("Finance Assistant", assistant),
+    "assistant-welcome": ("Finance Assistant: welcome", assistant_welcome),
+    "assistant-history": ("Finance Assistant: history drawer", assistant_history),
     "plan-usage": ("Plan and usage", plan_usage),
     "onboarding": ("Onboarding", onboarding),
 }
 
 NOTES = {
     "profit-loss": "Accrual management P&L from posted ledger activity, with company account classifications and source rows.",
-    "dashboard": "One sentence says where the books stand, then what needs you and the open risks. Below, full-width charts grouped by IFRS or US GAAP: money flow (flow, bars, table or by client and supplier), money in and out by month, and the cash-flow statement.",
+    "dashboard": "The period's figures, the profit and loss panel, then full-width charts grouped by IFRS or US GAAP: money flow (flow, bars, table or by client and supplier), money in and out by month, and the cash-flow statement. Below, one sentence says where the books stand, then the open risks, what is to review and where the money went in short, and the months.",
     "document": "One read document: the page viewer with the selected value lit, beside what was read from it, a paginated list with reading marks, its findings and details.",
     "documents": "Upload anything in any order. Exact copies are recognised at once; possible copies wait for you; ledgers ask for their columns once.",
     "month": "One month's reconciliation: figures with their provenance marks, the explained risk with next steps, and every bank line with its match and reason.",
     "reconciliation": "A separate synthetic MYR workspace preview: grouped and split payments, bank-only rows, documents before statements, separate approval/payment confirmation and currency agreement without conversion.",
     "review": "One queue for everything AI could not settle. Each item shows the evidence, the candidates and only the fixes that make sense.",
     "evidence-viewer": "The lamp on the printed value, the calculation, and both readings side by side. Phones open zoomed to the evidence.",
-    "assistant": "Questions about your books, answered from tools with citations and a small chart; only preferences are remembered.",
+    "assistant": "Questions about your books, answered from tools with citations and a small chart, with the history rail and an answer being written; only preferences are remembered.",
+    "assistant-welcome": "An empty thread: the welcome prompts to start from, the history rail and the composer.",
+    "assistant-history": "The history drawer phones open from the Chat history button; wide screens show the rail instead.",
     "plan-usage": "Trial days, usage that warns before a limit, coming-soon plans and features that cannot be clicked.",
     "onboarding": "Individual or company in one question; the brand panel explains the promise with a ledger.",
 }

@@ -20,7 +20,7 @@ export function ReviewPreview({ items }: { items: ReviewItem[] }) {
         </Link>
       </div>
       {items.length === 0 ? (
-        <p className="muted small p-4">{t('dashboard:nothingToReview')}</p>
+        <p className="muted small panel-pad">{t('dashboard:nothingToReview')}</p>
       ) : (
         <ul className="alert-list">
           {items.map((item) => (

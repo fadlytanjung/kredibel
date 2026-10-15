@@ -17,7 +17,7 @@ export function AlertList({ alerts }: { alerts: Alert[] }) {
         </Link>
       </div>
       {alerts.length === 0 ? (
-        <p className="muted small p-4">{t('noAlerts')}</p>
+        <p className="muted small panel-pad">{t('noAlerts')}</p>
       ) : (
         <ul className="alert-list">
           {alerts.map((alert) => (

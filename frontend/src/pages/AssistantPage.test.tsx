@@ -136,7 +136,7 @@ describe('AssistantPage', () => {
 
     expect(screen.getByText('Why is June risk scored as Medium?')).toBeInTheDocument()
     expect(screen.getByText(/June risk is Medium due to open finding/)).toBeInTheDocument()
-    expect(screen.getByText('fnd_01')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Finding fnd_01' })).toHaveAttribute('href', '/risk/fnd_01')
     expect(screen.getByText('Every number checked against your books')).toBeInTheDocument()
     expect(screen.getByText('Remembered for you')).toBeInTheDocument()
     expect(screen.getByText('Show amounts in millions')).toBeInTheDocument()

@@ -93,8 +93,8 @@ they never set colours, font sizes or shadows ([`12`](12-design-system.md) §0).
 | Group | Item (short label in the rail) | Route | Count badge |
 |---|---|---|---|
 | — | Dashboard | `/` | — |
-| Books | Documents | `/profit-loss` | Company P&L | Period, source rows and human-confirmed account/subledger classifications |
-| `/documents` | total, neutral (sidebar only) |
+| — | Company profit and loss (opened from the dashboard's P&L panel; the Dashboard item stays current) | `/profit-loss` | — |
+| Books | Documents | `/documents` | total, neutral (sidebar only) |
 | Books | Reconciliation (Reconcile) | `/months` | — |
 | Books | Review | `/review` | open items, alert colour |
 | Books | Risk | `/risk` | months at High or Critical with open findings, alert colour |
@@ -352,19 +352,22 @@ wins; on looks, the mock and [`12`](12-design-system.md) win.
 
 ### 6.2 Dashboard
 
-<p><img src="assets/mocks/dashboard-desktop.png" alt="Dashboard at 1440 px: status sentence, six figures, Needs you beside Risk, then three full-width chart panels one under the other: the money flow by statement line, money in and out by month, and the cash-flow statement" width="66%"> <img src="assets/mocks/dashboard-mobile.png" alt="Dashboard on a phone: status sentence, figures in two columns, bottom navigation and Upload button" width="26%"></p>
+<p><img src="assets/mocks/dashboard-desktop.png" alt="Dashboard at 1440 px: the period switch, the workspace name and period, six figures, the profit and loss panel, three full-width chart panels one under the other (the money flow by statement line, money in and out by month, the cash-flow statement), the reconciliation sentence with its findings, then Risk, To review and Where the money went side by side, and the months as binder tabs" width="66%"> <img src="assets/mocks/dashboard-mobile.png" alt="Dashboard on a phone: period switch, figures in two columns, bottom navigation and Upload button" width="26%"></p>
 
-<p><img src="assets/mocks/dashboard-tablet.png" alt="Dashboard at 834 px: rail, figures, Needs you and Risk stacked before the charts" width="45%"></p>
+<p><img src="assets/mocks/dashboard-tablet.png" alt="Dashboard at 834 px: rail, figures and the charts before the reconciliation sentence" width="45%"></p>
 
-Top to bottom:
+The mock and the page draw the same synthetic payload (`contracts/design/fixtures/dashboard.json`,
+spec 019 AC-019-2) and the page's own words (`dashboard.json`); a browser check compares their
+visible headings, segmented controls and panel links at 390, 834 and 1440 px. Top to bottom:
 
-- **Status hero:** one sentence ("2 of 6 months are reconciled. 9 things need you."), up to two
-  reasons with severity icons, **Open review (9)** and a link to the worst month.
-- **Figures:** money in, money out, net, matched by Kredibel (share and count of bank lines), needs
-  you, documents. Money figures carry their reading mark.
-- **Needs you** and **Risk:** the top review items (highest risk first, each opening the fix panel)
-  and the open findings (severity badge, title, one line of evidence, opening the evidence viewer).
-  Side by side from 980 px of content, stacked below.
+- **Period:** a segmented control (**Last 3 months**, the current year, **All months**) that drives
+  every figure and chart on the page.
+- **Header:** the workspace name, then "Sunrise Coffee Roasters, January to June 2026".
+- **Figures:** money in and money out against the previous period of equal length, net (kept in or
+  taken from the accounts), matched by Kredibel (share, with the previous period and a small meter),
+  waiting for you (documents to decide on) and to review (open items), the last two in the alert
+  colour when above zero and linking to the documents and the queue.
+- **Profit and loss:** the company P&L panel of spec 018 (§6.2a) with **Accounts and sources**.
 - **Where the money went:** a section with a **Framework** switch (IFRS or US GAAP, default the
   workspace's `profile.accountingFramework`; switching it here does not change the setting) and three
   chart panels. **Charts never share a row:** each panel takes the full content width beside the
@@ -372,17 +375,27 @@ Top to bottom:
   1. **Money flow** with four views: **Flow** (Sankey: revenue by client → bank account → activity →
      statement line, in the framework's wording, such as Cost of sales or Cost of goods sold),
      **Bars** (statement lines grouped by activity), **Table**, and **By client and supplier** (the
-     counterparties view, [`08`](08-risk-engine.md) §5.1). A callout written from facts ("Cost of sales
-     took 41.6% of revenue") and a note on what the framework changes ("IFRS: interest paid is a
-     financing cash flow…"). Clicking a band opens the **flow lines drawer** with its bank lines.
-     Possible copies are left out until decided. On phones the flow becomes ranked bars.
+     counterparties view, [`08`](08-risk-engine.md) §5.1). The foot prints the unit ("Amounts in
+     millions.") and the note the API writes about what the framework changes ("IFRS: interest paid
+     is a financing cash flow…"). Clicking a band, bar or row opens the **flow lines drawer** with its
+     bank lines. Possible copies are left out until decided. On phones the flow becomes two ranked
+     lists, **Where it came from** and **Where it went**. The Sankey is an accessible group of
+     focusable bands and nodes, never an image.
   2. **Money in and out by month:** grouped bars with the net above each pair, the month with a
-     Critical or High risk outlined; second view **Net and balance**.
+     Critical or High risk outlined and named in the subtitle; second view **Net and balance**.
   3. **Cash-flow statement:** opening balance → operating → investing → financing → closing balance
      as a waterfall, with **By month** to the month table.
-- **Months:** one binder tab per month with state, matched share, risk level and its reason; a
-  critical month is tinted. Clicking opens the month.
-- **Profile suggestions:** one card when details were found in documents ([spec 014](specs/014-profile-and-counterparties/spec.md)).
+- **Reconciliation & Findings:** the status sentence ("2 of 6 months are reconciled. 3 findings are
+  open."), up to two Critical or High reasons with severity icons, **See March** (the worst month) and
+  **Ask about this**, which opens the assistant with the question filled in.
+- **Risk**, **To review** and **Where the money went** in short: the open findings (severity badge,
+  title, month, opening the evidence viewer), the first five review items in the queue's order (kind
+  tile, title, kind and month, opening the fix panel) and the three largest sources and uses as ranked
+  bars. Two columns from 980 px of content, three from 1100 px, stacked below.
+- **Months:** one binder tab per month with state, matched share, statements present of expected and
+  the risk level; a critical month is tinted. Clicking opens the month.
+- **Profile suggestions** (planned, [spec 014](specs/014-profile-and-counterparties/spec.md)): the
+  mock keeps the card at the end, labelled as planned; the page does not draw it yet.
 
 ### 6.2a Company profit and loss (spec 018)
 
@@ -598,17 +611,36 @@ citation chip).
 
 ### 6.8 Finance Assistant (P1)
 
-<p><img src="assets/mocks/assistant-desktop.png" alt="Assistant at 1440 px: an answer with a citation chip and a small chart, a second answer with next actions, and the remembered panel" width="66%"> <img src="assets/mocks/assistant-mobile.png" alt="Assistant on a phone" width="26%"></p>
+<p><img src="assets/mocks/assistant-desktop.png" alt="Assistant at 1440 px: the history rail with New chat, earlier questions and the remembered preferences beside a conversation of three grounded answers and a fourth being written, the suggested questions and the composer" width="66%"> <img src="assets/mocks/assistant-mobile.png" alt="Assistant on a phone: the Chat history button beside the title, the conversation and the composer" width="26%"></p>
 
-- Questions about the workspace's books, answered from read-only tools with citation chips and,
-  when useful, a small bar chart drawn from tool output ([ADR-014](adr/ADR-014-finance-assistant-tools-rag-memory.md)).
-  "Every number checked against your books" appears when the grounding guard passed.
-- Answers can end in actions that are links (**Open the evidence**, **Go to March**); the assistant
-  never changes data.
+<p><img src="assets/mocks/assistant-welcome-desktop.png" alt="Assistant welcome state at 1440 px: four prompt cards under 'How can I help with your books today?'" width="45%"> <img src="assets/mocks/assistant-history-mobile.png" alt="The history drawer on a phone: New chat, earlier questions and the remembered preferences" width="26%"></p>
+
+Three states share the layout (`assistant.html`, `assistant-welcome.html`, `assistant-history.html`),
+with the page's words from `assistant.json`; a browser check compares the headings, prompt cards,
+suggested questions and composer of the welcome state with its mock at three widths (spec 019).
+
+- **Header:** the title with a **Preview** badge, the one-line promise, and on narrow screens the
+  **Chat history** button.
+- **History:** a rail on the left from 900 px of app width (**New chat**, **Earlier questions** with
+  their count and dates, and **Remembered for you**); below that width the same content opens in a
+  drawer from **Chat history** (a dialog that **Close history**, the scrim or `Esc` closes). The rail
+  and the drawer never show together.
+- **Welcome:** an empty thread shows "How can I help with your books today?" and four prompt cards
+  (money flow and cash flow, outstanding invoices, forensic risk score, profit and loss breakdown);
+  each sends its question. The page never scrolls on first paint; it follows the conversation only
+  when a message arrives or an answer is being written.
+- **Conversation:** questions about the workspace's books, answered from read-only tools with
+  citation chips (the citation's label, such as "3 bank lines", never a bare ID) and, when useful, a
+  small bar chart or an interactive diagram link ([ADR-014](adr/ADR-014-finance-assistant-tools-rag-memory.md)).
+  "Every number checked against your books" appears when the grounding guard passed; a template
+  answer says so instead. Answers can end in actions that are links (**Open the evidence**, **Go to
+  month**); the assistant never changes data.
+- **Activity:** while an answer streams, the bubble shows the activity trail (the steps and tool
+  lookups, expanded while running, collapsible after) and the typing dots, then the text with a caret.
 - **Remembered for you:** the preferences in Memory Bank with **Forget** and **Forget all**; "Only
   preferences are remembered. Figures are always read fresh from your books."
-- Suggested questions on an empty thread ("Why is March critical?", "Which invoices were never
-  paid?", "Who are my biggest suppliers?").
+- **Composer:** three suggested questions above a labelled text field and **Send** (disabled until
+  there is text, and while an answer streams). It works from the keyboard at 360 and 1600 px.
 
 ### 6.9 Settings: profile, bank accounts, plan and usage
 

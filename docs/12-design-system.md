@@ -556,13 +556,14 @@ make mock-shots    tools/design/shoot_mocks.py at 390, 834, 1440 px → docs/ass
 | Mock | Shows | Spec |
 |---|---|---|
 | `onboarding.html` | Myself or a company, the trial terms, the brand panel | 013 |
-| `dashboard.html` | Status sentence, figures, Needs you, Risk, then full-width charts with the IFRS / US GAAP switch: money flow (Flow, Bars, Table, By client and supplier), money in and out by month, cash-flow statement; months as binder tabs | 010 |
+| `dashboard.html` | Period switch, figures, the P&L panel, then full-width charts with the IFRS / US GAAP switch: money flow (Flow, Bars, Table, By client and supplier), money in and out by month, cash-flow statement; the reconciliation sentence, Risk, To review and Where the money went, months as binder tabs. Drawn from `contracts/design/fixtures/dashboard.json`, the same payload the browser parity check serves | 010, 018, 019 |
 | `documents.html` | Upload tray with an exact copy, a held copy, a page being read and a new ledger layout; the library | 003, 006 |
 | `document.html` | One read statement: page viewer (pages, zoom, the lamp) beside the figures and the transactions with reading marks, filters and pages | 003, 005, 006 |
 | `month.html` | March 2026: figures, the critical explanation with citations and next steps, bank lines with matches | 007, 008 |
 | `review.html` | The queue by month and the fix panel for a bank line that fits two invoices | 009 |
 | `evidence-viewer.html` | The lamp, calculation, two readings; magnifier on compact | 005, 008 |
-| `assistant.html` | Finance Assistant answer with a citation chip, a small chart, and what is remembered (P1) | 011 |
+| `assistant.html` | Finance Assistant: the history rail, three grounded answers with citation chips and a small chart, a fourth answer being written (activity trail), the composer | 011, 019 |
+| `assistant-welcome.html`, `assistant-history.html` | The welcome prompts of an empty thread; the history drawer phones open from Chat history | 011, 019 |
 | `plan-usage.html` | Trial track, usage meters, plan cards, coming-soon features | 013 |
 | `risk.html` | Findings grouped by month with severity, code, where and status | 008 |
 | `clients.html` | Clients and suppliers with shares; a supplier paid to a new account and one never paid are flagged | 014 |

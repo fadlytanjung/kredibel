@@ -112,9 +112,13 @@ export function AssistantPage() {
     return combined
   }, [serverMessages, sessionMessagesMap, currentThreadId, selectedThreadId, threadId])
 
-  // Auto-scroll to bottom of messages
+  // Follow the conversation: scroll to the newest message or the answer being written, never on an
+  // empty thread (the welcome state stays under the page title).
+  const shownMessages = useRef(0)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView?.({ behavior: 'smooth' })
+    const grew = messages.length > shownMessages.current
+    shownMessages.current = messages.length
+    if (grew || isStreaming) messagesEndRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' })
   }, [messages.length, isStreaming, draftText, liveSteps.length, liveTools.length])
 
   // Cleanup abort controller on unmount
@@ -134,7 +138,7 @@ export function AssistantPage() {
     setMobileSidebarOpen(false)
     try {
       const thread = await createThreadMutation.mutateAsync({
-        title: `Question ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
+        title: t('assistant:newThreadTitle', { date: formatDate(new Date().toISOString()) }),
         scope: 'WORKSPACE',
       })
       setSelectedThreadId(thread.threadId)
@@ -225,8 +229,8 @@ export function AssistantPage() {
           onError: (err) => {
             setStreamError(err.message)
             const fallbackText = draftText.trim()
-              ? `${draftText}\n\n*(Response interrupted: ${err.message})*`
-              : `I encountered an issue retrieving that information (${err.message}). Please try asking again.`
+              ? `${draftText}\n\n*(${t('assistant:errors.interrupted', { message: err.message })})*`
+              : t('assistant:errors.retrieve', { message: err.message })
             const errorMsg: AssistantMessage = {
               messageId: `err-${Date.now()}`,
               role: 'assistant',
@@ -260,14 +264,14 @@ export function AssistantPage() {
       )
     } catch (e) {
       setIsStreaming(false)
-      const errMsg = e instanceof Error ? e.message : 'Failed to send message'
+      const errMsg = e instanceof Error ? e.message : t('assistant:errors.sendFailed')
       setStreamError(errMsg)
       const errorMsg: AssistantMessage = {
         messageId: `err-${Date.now()}`,
         role: 'assistant',
         createdAt: new Date().toISOString(),
         answer: {
-          parts: [{ type: 'text', text: `I encountered an issue sending your message (${errMsg}). Please try asking again.` }],
+          parts: [{ type: 'text', text: t('assistant:errors.send', { message: errMsg }) }],
           citations: [],
           grounding: { verdict: 'TEMPLATE', citations: [] },
           toolsUsed: [],
@@ -301,49 +305,34 @@ export function AssistantPage() {
     t('assistant:starters.clients'),
   ]
 
+  // The welcome prompts; the same four as the mock (assistant-welcome.html).
   const welcomePrompts = [
-    {
-      title: 'Money flow & cash flow',
-      question: t('assistant:starters.q2', { defaultValue: 'Where did the money go in Q2?' }),
-      icon: 'bar-chart' as const,
-    },
-    {
-      title: 'Outstanding invoices',
-      question: t('assistant:starters.unpaid', { defaultValue: 'Which invoices are still unpaid?' }),
-      icon: 'file-text' as const,
-    },
-    {
-      title: 'Forensic risk score',
-      question: t('assistant:starters.riskJune', { defaultValue: 'Why is June risk scored as Medium?' }),
-      icon: 'shield-alert' as const,
-    },
-    {
-      title: 'Profit & loss breakdown',
-      question: 'Show my profit and loss for 2026-03',
-      icon: 'table' as const,
-    },
+    { title: t('assistant:welcome.prompts.flow'), question: t('assistant:starters.q2'), icon: 'bar-chart' as const },
+    { title: t('assistant:welcome.prompts.unpaid'), question: t('assistant:starters.unpaid'), icon: 'file-text' as const },
+    { title: t('assistant:welcome.prompts.risk'), question: t('assistant:starters.riskJune'), icon: 'shield-alert' as const },
+    { title: t('assistant:welcome.prompts.pnl'), question: t('assistant:starters.pnl'), icon: 'table' as const },
   ]
 
   const threadSidebarContent = (
     <>
       <button
         type="button"
-        className="button button-primary w-full inline-flex items-center justify-center gap-2"
+        className="button button-primary button-block"
         onClick={handleNewConversation}
         disabled={createThreadMutation.isPending}
         data-testid="new-thread"
       >
         <Icon name="plus" size="sm" />
-        <span>+ {t('assistant:newChat', { defaultValue: 'New chat' })}</span>
+        <span>{t('assistant:newChat')}</span>
       </button>
 
       {/* Conversations history list */}
-      <section className="stack gap-2 mt-2" aria-labelledby="thr-h">
-        <div className="spread items-center">
-          <h2 className="type-h3 text-xs uppercase tracking-wider text-muted font-bold" id="thr-h">
+      <section className="assistant-side-section" aria-labelledby="thr-h">
+        <div className="spread">
+          <h2 className="assistant-side-title" id="thr-h">
             {t('assistant:earlierQuestions')}
           </h2>
-          <span className="badge badge-quiet text-2xs">{threads.length}</span>
+          <span className="badge badge-outline">{threads.length}</span>
         </div>
 
         {loadingThreads && threads.length === 0 ? (
@@ -365,14 +354,10 @@ export function AssistantPage() {
                       e.preventDefault()
                       handleSelectThread(th.threadId)
                     }}
-                    className={`assistant-thread-btn ${isSelected ? 'is-active' : ''}`}
+                    className={`assistant-thread-btn${isSelected ? ' is-active' : ''}`}
                   >
-                    <div className="flex items-center justify-between gap-1">
-                      <span className="truncate font-medium">{th.title || t('assistant:defaultThreadTitle')}</span>
-                      {formattedDate && (
-                        <span className="text-2xs opacity-60 shrink-0 ml-1">{formattedDate}</span>
-                      )}
-                    </div>
+                    <span className="assistant-thread-title">{th.title || t('assistant:defaultThreadTitle')}</span>
+                    {formattedDate && <span className="assistant-thread-date">{formattedDate}</span>}
                   </Link>
                 )
               })}
@@ -380,7 +365,7 @@ export function AssistantPage() {
             {hasNextPage && (
               <button
                 type="button"
-                className="button button-quiet button-sm w-full mt-2"
+                className="button button-quiet button-sm button-block"
                 onClick={() => void fetchNextPage()}
                 disabled={isFetchingNextPage}
               >
@@ -399,15 +384,15 @@ export function AssistantPage() {
       </section>
 
       {/* Remembered Preferences */}
-      <section className="panel panel-pad stack gap-2 mt-auto" aria-labelledby="mem-h">
-        <div className="spread items-center">
-          <h2 className="type-h3 text-xs uppercase tracking-wider text-muted font-bold" id="mem-h">
+      <section className="panel panel-pad stack gap-2 assistant-memory" aria-labelledby="mem-h">
+        <div className="spread">
+          <h2 className="assistant-side-title" id="mem-h">
             {t('assistant:remembered.title')}
           </h2>
           {memories.length > 0 && (
             <button
               type="button"
-              className="link small border-0 bg-transparent cursor-pointer p-0"
+              className="link-button small"
               onClick={() => forgetMemoriesMutation.mutate()}
               disabled={forgetMemoriesMutation.isPending}
             >
@@ -418,13 +403,13 @@ export function AssistantPage() {
         {memories.length === 0 ? (
           <p className="muted small">{t('assistant:remembered.empty')}</p>
         ) : (
-          <ul className="remembered m-0 p-0 list-none">
+          <ul className="remembered">
             {memories.map((mem) => (
               <li key={mem.memoryId}>
                 <span>{mem.fact}</span>
                 <button
                   type="button"
-                  className="link small border-0 bg-transparent cursor-pointer p-0"
+                  className="link-button small"
                   onClick={() => forgetMemoryMutation.mutate(mem.memoryId)}
                   disabled={forgetMemoryMutation.isPending}
                 >
@@ -443,11 +428,11 @@ export function AssistantPage() {
     <div className="page stack gap-4">
       {/* Page Header */}
       <div className="page-head">
-        <div className="spread items-center">
-          <div className="row items-center gap-2">
+        <div className="spread">
+          <div className="row">
             <button
               type="button"
-              className="button button-quiet button-sm md:hidden inline-flex items-center gap-1.5"
+              className="button button-quiet button-sm assistant-history-btn"
               onClick={() => setMobileSidebarOpen(true)}
               aria-label={t('assistant:history')}
             >
@@ -522,13 +507,13 @@ export function AssistantPage() {
                       onClick={() => void handleSend(p.question)}
                       data-testid={`prompt-card-${idx}`}
                     >
-                      <div className="assistant-prompt-card-icon">
+                      <span className="assistant-prompt-card-icon">
                         <Icon name={p.icon} size="sm" />
-                      </div>
-                      <div className="assistant-prompt-card-text">
+                      </span>
+                      <span className="assistant-prompt-card-text">
                         <strong>{p.title}</strong>
                         <span>{p.question}</span>
-                      </div>
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -579,7 +564,7 @@ export function AssistantPage() {
                       <span />
                     </div>
                   ) : (
-                    <p className="m-0 leading-relaxed whitespace-pre-line">
+                    <p className="stream-draft">
                       {draftText}
                       <span className="stream-caret" aria-hidden="true" />
                     </p>
@@ -624,7 +609,7 @@ export function AssistantPage() {
           >
             <input
               type="text"
-              className="flex-1 min-h-10 border-0 bg-transparent text-ink placeholder:text-muted outline-none text-base px-0"
+              aria-label={t('assistant:composer.placeholder')}
               placeholder={t('assistant:composer.placeholder')}
               value={inputQuestion}
               onChange={(e) => setInputQuestion(e.target.value)}

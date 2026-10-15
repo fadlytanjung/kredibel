@@ -1,6 +1,12 @@
 """A small, dependency-free Sankey layout for the mocks (the app uses d3-sankey with the same look).
 Three columns: sources -> one bank account -> uses. Values in IDR millions (synthetic S1, Jan–Jun 2026)."""
 
+import json
+from pathlib import Path
+
+# The app's own chart words (dashboard.json), so the compact lists read the same in both (AC-019-2).
+DASH_WORDS = json.loads((Path(__file__).resolve().parents[3] / "frontend/src/shared/i18n/locales/en/dashboard.json").read_text(encoding="utf-8"))
+
 SOURCES = [
     ("Harborview Hotel Group", 412.5),
     ("Highland Resort & Spa", 318.0),
@@ -50,7 +56,7 @@ def sankey_svg(hot: str | None = "Suppliers") -> str:
     H = round(top + span + 14)
     acc_y = top + (span - acc_h) / 2
     acc_x = (xa0 + xa1) / 2
-    parts = [f'<svg class="sankey" viewBox="0 0 {W} {H}" role="img" aria-labelledby="flow-title flow-desc">',
+    parts = [f'<svg class="sankey" viewBox="0 0 {W} {H}" role="group" aria-labelledby="flow-title flow-desc">',
              '<title id="flow-title">Money flow, January to June 2026</title>',
              f'<desc id="flow-desc">IDR {fmt(TOTAL)} million came into ACB account ending 4821 from seven sources and went to eight uses, including {fmt(69.0)} million kept in the account. A table version follows the chart.</desc>',
              f'<text class="col" x="{xs1}" y="18" text-anchor="end">Money in</text>',
@@ -106,8 +112,9 @@ def flow_list() -> str:
     ins = "".join(row(n, v) for n, v in top_in)
     outs = "".join(row(n, v, "out") for n, v, _ in top_out)
     kept = row("Kept in the account", 69.0, "kept")
-    return (f'<div class="flow-list"><div><h3>Most money came from</h3>{ins}</div>'
-            f'<div><h3>Most money went to</h3>{outs}{kept}</div></div>')
+    came, went = DASH_WORDS["charts"]["cameFrom"], DASH_WORDS["charts"]["wentTo"]
+    return (f'<div class="flow-list"><section aria-label="{came}"><h3>{came}</h3>{ins}</section>'
+            f'<section aria-label="{went}"><h3>{went}</h3>{outs}{kept}</section></div>')
 
 
 def flow_table() -> str:

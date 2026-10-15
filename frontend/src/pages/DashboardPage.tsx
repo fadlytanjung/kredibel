@@ -169,7 +169,7 @@ export function DashboardPage() {
 
   return (
     <div className="page">
-      <div className="row justify-end mb-4">
+      <div className="dash-period">
         <div className="seg" role="group" aria-label={t('dashboard:periods.label')}>
           {periods.map((p) => (
             <button key={p.key} type="button" aria-pressed={period === p.key} onClick={() => setPeriod(p.key)}>

@@ -4,6 +4,7 @@
  */
 
 import { useParams } from 'react-router-dom'
+import { AssistantPage } from '../pages/AssistantPage'
 import { ProfitLossContent } from '../pages/ProfitLossPage'
 import { DashboardPage } from '../pages/DashboardPage'
 import { DocumentPage } from '../pages/DocumentPage'
@@ -70,4 +71,13 @@ export function ProfitLossPreview() {
   return <AppShell {...PREVIEW_PROPS} activePath="/profit-loss" onUpload={() => undefined}>
     <ProfitLossContent canEdit />
   </AppShell>
+}
+
+/** Assistant inside the shell, for screen tests with synthetic dev mocks. */
+export function AssistantPreview() {
+  return (
+    <AppShell {...PREVIEW_PROPS} activePath="/assistant" onUpload={() => undefined}>
+      <AssistantPage />
+    </AppShell>
+  )
 }

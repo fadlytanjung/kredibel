@@ -23,7 +23,20 @@
   "loadMoreThreads": "Load earlier questions",
   "welcome": {
     "title": "How can I help with your books today?",
-    "subtitle": "Ask anything about your cash flow, profit & loss, reconciliation, or forensic risk findings."
+    "subtitle": "Ask anything about your cash flow, profit & loss, reconciliation, or forensic risk findings.",
+    "prompts": {
+      "flow": "Money flow & cash flow",
+      "unpaid": "Outstanding invoices",
+      "risk": "Forensic risk score",
+      "pnl": "Profit & loss breakdown"
+    }
+  },
+  "newThreadTitle": "Question {{date}}",
+  "errors": {
+    "interrupted": "Response interrupted: {{message}}",
+    "retrieve": "I could not retrieve that information ({{message}}). Please try asking again.",
+    "send": "I could not send your message ({{message}}). Please try asking again.",
+    "sendFailed": "Failed to send message"
   },
   "charts": {
     "moneyFlow": "Money Flow (Sankey)",
@@ -36,7 +49,8 @@
     "unpaid": "Which invoices are still unpaid?",
     "q2": "Where did the money go in Q2?",
     "clients": "Who are my biggest clients?",
-    "riskJune": "Why is June risk Medium?"
+    "riskJune": "Why is June risk scored as Medium?",
+    "pnl": "Show my profit and loss for 2026-03"
   },
   "composer": {
     "placeholder": "Ask about your books",

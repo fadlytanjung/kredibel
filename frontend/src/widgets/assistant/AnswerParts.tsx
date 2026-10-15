@@ -63,8 +63,11 @@ function renderMarkdownSpans(text: string) {
   })
 }
 
-/** Render text with citation markers [[kind:id]] converted into citation chips and markdown links. */
-function renderFormattedContent(text: string) {
+type Citation = NonNullable<MessageAnswer['citations']>[number]
+
+/** Render text with citation markers [[kind:id]] converted into citation chips and markdown links.
+ *  A chip shows the citation's label ("3 bank lines", mock assistant.html), never a bare ID. */
+function renderFormattedContent(text: string, citations: Citation[] = []) {
   const parts = text.split(/(\[\[[a-zA-Z0-9_]+:[^\]]+\]\])/g)
   return parts.map((part, index) => {
     const match = part.match(/^\[\[([a-zA-Z0-9_]+):([^\]]+)\]\]$/)
@@ -73,11 +76,12 @@ function renderFormattedContent(text: string) {
     }
 
     const [, kind, id] = match
+    const label = citations.find((c) => c.ref === `${kind}:${id}`)?.label || id
     if (kind === 'finding') {
       return (
         <Link key={index} to={`/risk/${id}`} className="citation">
           <Icon name="eye" size="sm" />
-          {id}
+          {label}
         </Link>
       )
     }
@@ -86,7 +90,7 @@ function renderFormattedContent(text: string) {
       return (
         <Link key={index} to={`/months/${id}`} className="citation">
           <Icon name="table" size="sm" />
-          {id}
+          {label}
         </Link>
       )
     }
@@ -95,7 +99,7 @@ function renderFormattedContent(text: string) {
       return (
         <Link key={index} to={`/evidence/${id}`} className="citation">
           <Icon name="file-text" size="sm" />
-          {id}
+          {label}
         </Link>
       )
     }
@@ -103,7 +107,7 @@ function renderFormattedContent(text: string) {
     return (
       <span key={index} className="citation">
         <Icon name="table" size="sm" />
-        {id}
+        {label}
       </span>
     )
   })
@@ -197,7 +201,7 @@ export function AnswerParts({ answer }: AnswerPartsProps) {
         if (part.type === 'text' && part.text) {
           return (
             <p key={idx} className="m-0 leading-relaxed whitespace-pre-line">
-              {renderFormattedContent(part.text)}
+              {renderFormattedContent(part.text, answer.citations)}
             </p>
           )
         }
@@ -222,7 +226,7 @@ export function AnswerParts({ answer }: AnswerPartsProps) {
                     <tr key={rIdx} className="border-b border-line last:border-b-0">
                       {row.map((cell, cellIdx) => (
                         <td key={cellIdx} className="py-1.5 px-2">
-                          {renderFormattedContent(cell)}
+                          {renderFormattedContent(cell, answer.citations)}
                         </td>
                       ))}
                     </tr>

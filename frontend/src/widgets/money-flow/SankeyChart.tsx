@@ -59,7 +59,7 @@ export function SankeyChart({ flow, unit, width, columns, onOpen }: SankeyChartP
     <svg
       className="chart sankey"
       viewBox={`0 0 ${width} ${height}`}
-      role="img"
+      role="group"
       aria-label={t('charts.flowAria', { sources: nodes.filter((n) => n.side === 'left').length })}
     >
       {xs.map((x, i) =>

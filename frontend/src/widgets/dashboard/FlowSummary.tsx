@@ -30,9 +30,9 @@ export function FlowSummary({ sources, uses }: { sources: FlowNode[]; uses: Flow
         <h2 id="dash-flow-h">{t('flowTitle')}</h2>
       </div>
       {sources.length + uses.length === 0 ? (
-        <p className="muted small p-4">{t('noFlow')}</p>
+        <p className="muted small panel-pad">{t('noFlow')}</p>
       ) : (
-        <div className="stack gap-4 p-4">
+        <div className="stack gap-4 panel-pad">
           <div>
             <h3 className="small muted">{t('flowIn')}</h3>
             {sources.map((n) => (

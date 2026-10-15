@@ -2262,7 +2262,7 @@ button.tab { border: 0; background: transparent; cursor: pointer; font-family: i
 
 /* Screens: the app's real screens rise and lie flat as they arrive (scroll-linked --p) ------ */
 .pub-screens { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--k-space-6); margin-top: var(--k-space-12); perspective: 1800px; perspective-origin: 50% 0%; }
-@container app (width >= 900px) { .pub-screens { grid-template-columns: repeat(3, minmax(0, 1fr)); } .pub-screens > :nth-child(1) { grid-column: 1 / -1; } .pub-screens > :nth-child(n+2) img { max-height: 240px; } }
+@container app (width >= 900px) { .pub-screens { grid-template-columns: repeat(3, minmax(0, 1fr)); } .pub-screens > :nth-child(1) { grid-column: 1 / -1; } .pub-screens > :nth-child(n+2) img { max-height: 240px; } .pub-screens > :nth-child(1) img { max-height: none; } }
 .pub-shot { margin: 0; display: grid; grid-template-rows: minmax(0, 1fr) auto; border-radius: 22px; overflow: hidden; background: var(--k-color-bg-surface); color: var(--k-color-text-default); box-shadow: var(--pub-shadow-deep), 0 0 0 1px var(--pub-rule); transform-origin: 50% 0%; transform: rotateX(calc((1 - var(--p, 1)) * 34deg)) translate3d(0, calc((1 - var(--p, 1)) * 80px), calc((1 - var(--p, 1)) * -160px)); }
 .pub-screens > :nth-child(2) { transform: rotateX(calc((1 - var(--p, 1)) * 44deg)) translate3d(0, calc((1 - var(--p, 1)) * 140px), calc((1 - var(--p, 1)) * -220px)); }
 .pub-screens > :nth-child(3) { transform: rotateX(calc((1 - var(--p, 1)) * 52deg)) translate3d(0, calc((1 - var(--p, 1)) * 200px), calc((1 - var(--p, 1)) * -280px)); }

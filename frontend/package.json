@@ -10,6 +10,7 @@
     "check": "tsc -b",
     "test": "vitest",
     "test:visual": "playwright test",
+    "marketing:shots": "playwright test --config playwright.marketing.config.ts",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "preview": "vite preview",

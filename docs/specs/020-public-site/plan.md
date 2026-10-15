@@ -37,7 +37,9 @@ gradients, illustrations or stock photos. *Superseded for the public site by the
 - `frontend/src/app/router.tsx` — public routes, `/` index behaviour, dashboard at `/dashboard`.
 - `frontend/src/shared/ui/appShellNav.ts` and the `/` links (LoginPage, NotFoundPage, Placeholders,
   CreateWorkspaceForm, AppShell stories/tests).
-- `frontend/public/marketing/` — synthetic screenshots copied from `docs/assets/mocks/`.
+- `frontend/public/marketing/` — synthetic screenshots of the real app, captured from its preview
+  routes by `npm run marketing:shots` (`frontend/playwright.marketing.config.ts`,
+  `frontend/tests/marketing/shots.spec.ts`; `PLAYWRIGHT_CHROMIUM_EXECUTABLE` for a local Chromium).
 
 ## Revamp: "the ledger in depth" (2026-10, T020-18…30)
 

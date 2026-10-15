@@ -142,7 +142,7 @@ The salted hash of the full number lives in `orgPrivate/{orgId}/accountHashes/{a
 | `match` | map | `state` (`UNMATCHED`, `AUTO`, `MANUAL`, `PROPOSED`, `EXCLUDED`), `matchIds[]`, `matchedMinor` |
 | `heldAsDuplicate` | bool | From a held statement |
 | `source`, `chunkIds[]`, `notes[]` | | `AI` or `WITNESS` (a row only the page's words have); the layout chunks the row was read from ([ADR-023](adr/ADR-023-parse-extract-ground.md)); parse and grounding notes |
-| `correctedBy?`, `correctedAt?` | | Set when a user corrected a value (the original stays in `consensus.raw`) |
+| `correctedFields[]?`, `correctedBy?`, `correctedAt?` | | Set when a user corrected a value (`amount`, `date`; the original stays in `consensus.raw`) |
 
 ### 3.7 `orgs/{orgId}/invoices/{invoiceId}` and `receipts/{receiptId}`
 

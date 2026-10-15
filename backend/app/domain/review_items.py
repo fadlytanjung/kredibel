@@ -351,7 +351,7 @@ def month_items(
                 subject=ReviewSubject(
                     bank_line_ids=[ln.tx_id], doc_ids=[ln.doc_id], field=unsure[0]
                 ),
-                actions=["ACCEPT_AS_READ"],  # a bank line's CORRECT_VALUE comes with T009-03b
+                actions=["CORRECT_VALUE", "ACCEPT_AS_READ"],
             )
         elif ln.support == "NO_SUPPORT" and ln.cited_by:
             add(

@@ -48,3 +48,7 @@ class FakeBankLineRepository(BankLineRepository):
         stored.category, stored.categorized_by = line.category, line.categorized_by
         stored.cashflow_class, stored.category_confidence = line.cashflow_class, None
         self.events.append(event)
+
+    async def save_correction(self, org_id: str, line: BankLine, event: AuditEvent) -> None:
+        self.lines[(org_id, line.tx_id)] = line
+        self.events.append(event)

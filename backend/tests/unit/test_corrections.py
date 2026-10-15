@@ -83,3 +83,47 @@ def test_reading_the_document_again_keeps_the_correction():
     assert (kept.date, kept.month, kept.total) == (date(2026, 7, 1), "2026-07", D("467976.00"))
     assert kept.corrected_fields == ["date"] and kept.corrected_by == "uid_owner"
     assert keep_corrections([reread], [receipt()]) == [reread]  # nothing corrected, nothing kept
+
+
+def test_correct_bank_line_amount_and_date():
+    from app.domain.models.bank_line import BankLine
+
+    line = BankLine(
+        tx_id="tx_test_01",
+        doc_id="doc_stmt_01",
+        page=1,
+        row_index=1,
+        date=date(2026, 3, 10),
+        month="2026-03",
+        description="SUPPLIER PAYMENT",
+        amount=D("-150000.00"),
+        balance=D("1000000.00"),
+    )
+    # Correct amount preserving negative sign
+    fixed_amt = correct_record(line, "amount", "175000.00", by="uid_owner", at=AT)
+    assert fixed_amt.amount == D("-175000.00")
+    assert fixed_amt.corrected_fields == ["amount"]
+    assert fixed_amt.corrected_by == "uid_owner"
+
+    # Correct date moving month
+    fixed_date = correct_record(line, "date", "2026-04-05", by="uid_owner", at=AT)
+    assert fixed_date.date == date(2026, 4, 5)
+    assert fixed_date.month == "2026-04"
+    assert fixed_date.corrected_fields == ["date"]
+
+    # Re-reading keeps both
+    reread = BankLine(
+        tx_id="tx_test_01",
+        doc_id="doc_stmt_01",
+        page=1,
+        row_index=1,
+        date=date(2026, 3, 10),
+        month="2026-03",
+        description="SUPPLIER PAYMENT",
+        amount=D("-150000.00"),
+        balance=D("1000000.00"),
+    )
+    (kept,) = keep_corrections([reread], [fixed_amt])
+    assert kept.amount == D("-175000.00")
+    assert kept.corrected_fields == ["amount"]
+

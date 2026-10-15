@@ -1,5 +1,4 @@
-"""orgs/{orgId}/bankLines/{txId} as stored (docs/09 §3.6)."""
-
+from datetime import datetime
 from typing import Any
 
 from pydantic import Field
@@ -31,3 +30,7 @@ class BankLineDoc(FirestoreModel):
     held_as_duplicate: bool = False
     match: dict[str, Any] = Field(default_factory=lambda: {"state": "UNMATCHED", "matchIds": []})
     support: str | None = None
+    corrected_fields: list[str] = Field(default_factory=list)
+    corrected_by: str | None = None
+    corrected_at: datetime | None = None
+

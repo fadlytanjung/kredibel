@@ -40,6 +40,9 @@ def _to_doc(line: BankLine) -> BankLineDoc:
         else str(line.category_confidence),
         match={"state": line.match_state, "matchIds": line.match_ids},
         support=line.support,
+        corrected_fields=list(line.corrected_fields),
+        corrected_by=line.corrected_by,
+        corrected_at=line.corrected_at,
     )
 
 
@@ -69,6 +72,9 @@ def _to_domain(doc: BankLineDoc) -> BankLine:
         match_state=str(doc.match.get("state", "UNMATCHED")),
         match_ids=list(doc.match.get("matchIds") or []),
         support=doc.support,
+        corrected_fields=list(doc.corrected_fields or []),
+        corrected_by=doc.corrected_by,
+        corrected_at=doc.corrected_at,
     )
 
 
@@ -132,6 +138,28 @@ class FirestoreBankLineRepository(BankLineRepository):
                 "cashflowClass": line.cashflow_class,
                 "categorizedBy": line.categorized_by,
                 "categoryConfidence": None,
+            },
+        )
+        batch.set(
+            self._db.collection("orgs")
+            .document(org_id)
+            .collection("events")
+            .document(event.event_id),
+            dump(EventDoc(org_id=org_id, **event.model_dump())),
+        )
+        await batch.commit()
+
+    async def save_correction(self, org_id: str, line: BankLine, event: AuditEvent) -> None:
+        batch = self._db.batch()
+        batch.update(
+            self._col(org_id).document(line.tx_id),
+            {
+                "amountMinor": line.amount_minor,
+                "date": line.date.isoformat(),
+                "month": line.month,
+                "correctedFields": list(line.corrected_fields),
+                "correctedBy": line.corrected_by,
+                "correctedAt": line.corrected_at.isoformat() if line.corrected_at else None,
             },
         )
         batch.set(

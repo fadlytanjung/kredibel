@@ -504,11 +504,12 @@ async def _statement(
         return None
     result = build_statement(doc_id, readings, chunks)
     stored = await deps.bank_lines.list_lines(org_id, doc_id=doc_id, limit=5000)
-    keep_person_categories(result.lines, stored)  # a re-read never undoes a person's category
-    await deps.bank_lines.replace_document_lines(org_id, doc_id, result.lines)
+    lines = keep_corrections(result.lines, stored)
+    keep_person_categories(lines, stored)  # a re-read never undoes a person's category
+    await deps.bank_lines.replace_document_lines(org_id, doc_id, lines)
     meta = result.meta
     return _Verified(
-        records=len(result.lines),
+        records=len(lines),
         noun="lines",
         agreed=result.fields_agreed,
         compared=result.fields_compared,

@@ -19,7 +19,7 @@ from app.domain.models.document import (
 )
 from app.domain.models.invoice import Invoice, Receipt
 from app.domain.models.match import StoredMatch
-from app.domain.review_items import HeldCopy, ProposalFacts, RecordFacts, month_items
+from app.domain.review_items import HeldCopy, LineFacts, ProposalFacts, RecordFacts, month_items
 from tests.fakes.match_repository import FakeMatchRepository
 from tests.fakes.record_repository import FakeRecords
 from tests.fakes.review_item_repository import FakeReviewItemRepository
@@ -327,3 +327,51 @@ async def test_correcting_a_value_keeps_the_reading_and_reruns_the_months():
     (event,) = deps.receipts.events
     assert (event.type, event.details) == ("VALUE_CORRECTED", {"field": "total"})
     assert MONTH in _month_tasks(deps)
+
+
+async def test_correcting_a_bank_line_amount_and_date():
+    deps, _ = _deps()
+    await _seed(deps)
+    line = _line("tx_review_test", "-500000.00", 10)
+    await deps.bank_lines.replace_document_lines(ORG, "doc_stmt", [line])
+    (item,) = month_items(
+        month=MONTH,
+        currency="IDR",
+        risk_level="LOW",
+        lines=[
+            LineFacts(
+                "tx_review_test",
+                "doc_stmt",
+                dt.date(2026, 3, 10),
+                Decimal("-500000.00"),
+                "NO_SUPPORT",
+                checks=(("amount", "SINGLE_SOURCE"),),
+            )
+        ],
+        records=[],
+        proposals=[],
+        held=[],
+    )
+    await deps.review_items.replace_month_review_items(ORG, MONTH, [item], now=NOW)
+    async with _client(deps) as client:
+        bad = await client.post(
+            f"/api/review-items/{item.item_id}/resolve",
+            json={"action": "CORRECT_VALUE", "field": "amount", "value": "not_a_number"},
+            headers=AUTH,
+        )
+        res = await client.post(
+            f"/api/review-items/{item.item_id}/resolve",
+            json={"action": "CORRECT_VALUE", "field": "amount", "value": "550000.00"},
+            headers=AUTH,
+        )
+
+    assert bad.status_code == 422
+    assert res.status_code == 200, res.text
+    stored = await deps.bank_lines.get_line(ORG, "tx_review_test")
+    assert stored is not None
+    assert stored.amount == Decimal("-550000.00")
+    assert stored.amount_minor == -55000000
+    assert stored.corrected_fields == ["amount"]
+    assert stored.corrected_by == "u-1"
+    assert MONTH in _month_tasks(deps)
+

@@ -33,6 +33,10 @@ class BankLine:
     match_state: str = "UNMATCHED"
     match_ids: list[str] = field(default_factory=list)
     support: str | None = None
+    # Corrections (T009-03b)
+    corrected_fields: list[str] = field(default_factory=list)
+    corrected_by: str | None = None
+    corrected_at: Any = None
 
     @property
     def amount_minor(self) -> int:

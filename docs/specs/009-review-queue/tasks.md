@@ -13,7 +13,7 @@
 - [x] **T009-03a** **TDD** `CORRECT_VALUE` for an invoice's or receipt's total and date: the corrected value on the
   record (`correctedFields`, `correctedBy`, the reading kept), audited (`VALUE_CORRECTED`), its months re-run.
   (AC-009-5)
-- [ ] **T009-03b** `CORRECT_VALUE` for a bank line's amount and date, re-running the statement's arithmetic checks.
+- [x] **T009-03b** `CORRECT_VALUE` for a bank line's amount and date, re-running the statement's arithmetic checks.
 - [x] **T009-04** **TDD** decisions as reconciliation inputs; event; month dirty and run. (AC-009-6)
 
 ## Phase 3 — UI

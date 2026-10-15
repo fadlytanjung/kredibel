@@ -32,3 +32,7 @@ class BankLineRepository(Protocol):
     async def set_category(self, org_id: str, line: BankLine, event: AuditEvent) -> None:
         """A person's category (categorizedBy USER) and its audit event, written together."""
         ...
+
+    async def save_correction(self, org_id: str, line: BankLine, event: AuditEvent) -> None:
+        """A person's correction of one line (T009-03b), with its audit event in one write."""
+        ...

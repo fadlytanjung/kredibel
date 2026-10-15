@@ -85,6 +85,7 @@ class ReviewService:
         self._months = months
         self._docs = doc_repo
         self._holders = (bank_lines, invoices, receipts)
+        self._bank_lines = bank_lines
         self._invoices = invoices
         self._receipts = receipts
         self._clock = clock
@@ -214,7 +215,7 @@ class ReviewService:
             if invoice is None:
                 raise NotFoundError("The invoice is gone")
             before, fixed = invoice, correct_record(invoice, field, value, by=principal.uid, at=now)
-            store: DocumentRecords[Any] = self._invoices
+            store: Any = self._invoices
             record_id = invoice.invoice_id
         elif item.subject.receipt_ids:
             receipt = await self._receipts.get_record(org_id, item.subject.receipt_ids[0])
@@ -223,8 +224,15 @@ class ReviewService:
             before, fixed = receipt, correct_record(receipt, field, value, by=principal.uid, at=now)
             store = self._receipts
             record_id = receipt.receipt_id
+        elif item.subject.bank_line_ids:
+            line = await self._bank_lines.get_line(org_id, item.subject.bank_line_ids[0])
+            if line is None:
+                raise NotFoundError("The bank line is gone")
+            before, fixed = line, correct_record(line, field, value, by=principal.uid, at=now)
+            store = self._bank_lines
+            record_id = line.tx_id
         else:
-            raise ValidationProblem("field", "A bank line's values cannot be corrected yet.")
+            raise ValidationProblem("field", "This record's values cannot be corrected.")
         event = AuditEvent(
             event_id=new_id("evt"),
             type="VALUE_CORRECTED",

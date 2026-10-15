@@ -4,7 +4,7 @@
 > a component. Statuses: **Specified** → **In progress** → **Built** (tests green) → **Deployed**
 > (running on Cloud Run) · **Cut** (deliberately dropped, with reason).
 
-_Last updated: 12 Oct 2026 — Specs 001, 003, 004 and 013 (P0) built; spec 005 reads statements, invoices and receipts with grounding (ledger import, OCR for scans and escalation still open); production configuration from the `kredibel-env` secret (ADR-024)._
+_Last updated: 12 Oct 2026 — Specs 001, 003, 004 and 013 (P0) built; spec 005 reads statements, invoices and receipts with grounding (ledger import, OCR for scans and escalation still open); production configuration from the `kredibel-env` secret (ADR-024). Spec 018 adds the public site (landing at `/`, dashboard at `/dashboard`)._
 
 ## Foundation & platform
 
@@ -93,6 +93,12 @@ _Last updated: 12 Oct 2026 — Specs 001, 003, 004 and 013 (P0) built; spec 005 
 | Page extraction Markdown | 016 | Specified | GCS `extractions/` |
 | Run history in BigQuery (ADK plugin), Runs page, Looker Studio report | 017 | Specified | ADR-017 |
 | Dataset export for tuning (consent, masking) | 016 | Later | Not in the hackathon |
+
+## Public site
+
+| Component | Spec | Status | Notes |
+|---|---|---|---|
+| Landing, Pricing, How it works, Security, FAQ, Contact, Privacy, Terms | 018 | In progress | Public React routes in the same SPA; dashboard moved from `/` to `/dashboard`; components, pages and tests built. **Revamped** (T018-18…29): 3D depth scenes on CSS transforms with `motion` hooks, the four-chapter reading room, every public page redesigned (docs/12 §12); the signed-in app is split out of the first load. The HTML landing mock predates the revamp. Visual baselines and the Storybook axe pass still to run (T018-30); first-load JS is 303 KB gzip, over the 250 KB budget (Firestore loads eagerly) |
 
 ## Deviations from the docs
 

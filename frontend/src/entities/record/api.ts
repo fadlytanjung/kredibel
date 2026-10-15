@@ -32,6 +32,23 @@ export function useReceipts(docId: string | undefined) {
   })
 }
 
+/** Every invoice and receipt of the workspace, with their payment evidence (T007-10c). */
+export function useAllInvoices(enabled = true) {
+  return useQuery({
+    queryKey: ['invoices', { all: true }],
+    queryFn: () => apiClient<InvoicePage>('/api/invoices?limit=500'),
+    enabled,
+  })
+}
+
+export function useAllReceipts(enabled = true) {
+  return useQuery({
+    queryKey: ['receipts', { all: true }],
+    queryFn: () => apiClient<ReceiptPage>('/api/receipts?limit=500'),
+    enabled,
+  })
+}
+
 /** A month's invoices and receipts, with their payment evidence (docs/10 §2.4). */
 export function useMonthInvoices(month: string | undefined) {
   return useQuery({

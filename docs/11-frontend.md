@@ -142,7 +142,7 @@ put):
 | `/documents` | Documents | Filters by type and state; `?upload=1` opens the upload tray focused |
 | `/documents/:docId` | Document | Page viewer, read values, its findings, matches and events |
 | `/months` | — | Opens the current calendar month (`/months/<this month>`): reconciliation is monthly |
-| `/months/all` | Months | One row per month with state, matched share and risk level |
+| `/months/all` | Months | One row per month with state, matched share and risk level; `?view=` `bank` (lines by support), `documents` (invoices and receipts by payment evidence, approval and manual payment confirmation) or `currency` (documents waiting for an agreement) |
 | `/months/:month` | Month | `yyyy-mm`. Tabs (`?tab=`): `lines` (default), `documents`, `ledger`, `findings` |
 | `/review` | Review | Queue; filters by kind and month |
 | `/review/:itemId` | Review | Same page with the item open (split view from 980 px of container, full page below) |

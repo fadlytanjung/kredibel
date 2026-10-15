@@ -43,6 +43,8 @@ const DOCUMENTS: Row[] = [
     total: { amount: '15000000.00', currency: 'IDR' },
     payment: 'UNPAID',
     noCurrencyPrinted: false,
+  printedCurrency: 'IDR',
+  approved: false,
   },
   {
     id: 'rcp_fuel',
@@ -54,6 +56,8 @@ const DOCUMENTS: Row[] = [
     total: { amount: '250000.00', currency: 'IDR' },
     payment: 'PAID_CASH',
     noCurrencyPrinted: false,
+  printedCurrency: 'IDR',
+  approved: false,
   },
   {
     id: 'inv_sales_hotel',
@@ -65,6 +69,8 @@ const DOCUMENTS: Row[] = [
     total: { amount: '45000000.00', currency: 'IDR' },
     payment: 'UNPAID',
     noCurrencyPrinted: false,
+  printedCurrency: 'IDR',
+  approved: false,
   },
 ]
 

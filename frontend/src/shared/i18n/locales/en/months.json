@@ -18,7 +18,60 @@
     "filterLabel": "Filter months",
     "search": "Search months",
     "colRisk": "Risk",
-    "noRisk": "No risk found"
+    "noRisk": "No risk found",
+    "viewsLabel": "What to look at",
+    "views": {
+      "months": "Months",
+      "bank": "Bank evidence",
+      "documents": "Documents first",
+      "currency": "Currency"
+    },
+    "bank": {
+      "title": "Bank lines and what supports them",
+      "intro": "Every line comes from your statements and counts as bank cash. A line without a document is not an alarm: attach its invoice or receipt, or say it needs none.",
+      "filterLabel": "Filter bank lines by support",
+      "filterMatched": "Matched",
+      "none": "No bank lines yet. Upload a bank statement to begin.",
+      "notRequiredStatus": "Saved: this line needs no supporting document."
+    },
+    "docs": {
+      "title": "Documents and their payment evidence",
+      "intro": "Invoices and receipts wait for the statement that pays them. Approving a document says it is valid; confirming a payment by hand records what you know, with no bank evidence.",
+      "filterLabel": "Filter documents by payment evidence",
+      "none": "No invoices or receipts yet. Upload documents to begin.",
+      "approve": "Approve document",
+      "approved": "Document approved",
+      "approvedStatus": "{{title}} approved. Its payment is unchanged.",
+      "confirmPayment": "Confirm payment"
+    },
+    "pay": {
+      "title": "Confirm payment manually",
+      "amount": "Amount paid, {{currency}}",
+      "date": "Payment date",
+      "method": "Payment method",
+      "methods": {
+        "TRANSFER": "Bank transfer",
+        "CASH": "Cash",
+        "CARD": "Card",
+        "CHEQUE": "Cheque",
+        "OTHER": "Other"
+      },
+      "reason": "Reason",
+      "explain": "This records your confirmation, with no bank evidence. It does not change bank cash totals. A smaller amount leaves a partial payment.",
+      "confirm": "Confirm payment manually",
+      "confirmedStatus": "Payment of {{title}} confirmed by you, with no bank evidence."
+    },
+    "currency": {
+      "title": "Confirm document currency",
+      "intro": "Your workspace uses {{currency}}, fixed at onboarding. A document printed in another currency waits here until you agree to read its amounts as {{currency}}.",
+      "badge": "Currency needs confirmation",
+      "question": "The document says {{printed}} {{amount}}. Use its amounts as {{currency}} {{amount}} without conversion?",
+      "keep": "The numbers stay the same. We keep the printed currency and your agreement. Until you agree, this document stays out of totals and matching.",
+      "use": "Use amounts as {{currency}}",
+      "replace": "Replace document",
+      "none": "Every document is read in {{currency}}.",
+      "agreed": "{{title}} is now read as {{currency}}, without conversion."
+    }
   },
   "monthDetail": {
     "previousMonth": "Previous month",

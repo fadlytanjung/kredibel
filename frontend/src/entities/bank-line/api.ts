@@ -16,6 +16,15 @@ export function useBankLines(docId: string | undefined) {
   })
 }
 
+/** Every bank line of the workspace, newest statements included (the all-months views, T007-10c). */
+export function useAllBankLines(enabled = true) {
+  return useQuery({
+    queryKey: ['bank-lines', { all: true }],
+    queryFn: () => apiClient<BankLinePage>('/api/bank-lines?limit=1000'),
+    enabled,
+  })
+}
+
 /** All bank lines of a given month (docs/10 §2.4). */
 export function useMonthBankLines(month: string | undefined) {
   return useQuery({

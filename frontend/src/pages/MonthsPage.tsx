@@ -1,16 +1,21 @@
 /**
- * MonthsPage (`/months/all`): one row per month with its state and statements (spec 007, AC-007-12).
- * The navigation opens the current month instead (docs/11 §4.2). The bank evidence, documents-first
- * and currency views come back on the workspace's own data in T007-10c.
+ * MonthsPage (`/months/all`): one row per month with its state and statements (spec 007,
+ * AC-007-12), and three views on the workspace's own data (T007-10c, AC-007-14…19; ADR-025):
+ * bank evidence (lines by what supports them), documents first (invoices and receipts by payment
+ * evidence, with approval and manual payment confirmation) and currency (documents waiting for an
+ * agreement). The navigation opens the current month instead (docs/11 §4.2).
  */
 
 import { useTranslation } from 'react-i18next'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { useAllBankLines } from '../entities/bank-line'
 import { SeverityBadge, type SeverityLevel } from '../entities/finding'
 import { useMonths } from '../entities/month'
 import { useWorkspace } from '../entities/workspace'
 import { formatMonth } from '../shared/lib/formatDate'
-import { Badge, DataTable, type DataTableColumn, type DataTableFilter } from '../shared/ui'
+import { Badge, DataTable, type DataTableColumn, type DataTableFilter, SegmentedControl } from '../shared/ui'
+import { useAllDocuments } from '../widgets/month'
+import { BankEvidenceView, CurrencyView, DocumentsFirstView } from '../widgets/months'
 
 const STATE_BADGE = {
   COLLECTING: 'outline',
@@ -20,14 +25,22 @@ const STATE_BADGE = {
   SIGNED_OFF: 'clean',
 } as const
 const RISK_ORDER = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
+const VIEWS = ['months', 'bank', 'documents', 'currency'] as const
+type View = (typeof VIEWS)[number]
 
 type MonthRow = NonNullable<ReturnType<typeof useMonths>['data']>['items'][number]
 
 export function MonthsPage() {
   const { t } = useTranslation(['months', 'common'])
   const navigate = useNavigate()
+  const [params, setParams] = useSearchParams()
+  const asked = params.get('view') as View | null
+  const view: View = asked && VIEWS.includes(asked) ? asked : 'months'
   const { data: monthsData, isLoading } = useMonths()
   const { data: ws } = useWorkspace(true)
+  const currency = ws?.currency ?? 'IDR'
+  const { data: linesData, isLoading: linesLoading } = useAllBankLines(view === 'bank')
+  const documents = useAllDocuments(view !== 'months')
   const months = [...(monthsData?.items ?? [])].sort((a, b) => b.month.localeCompare(a.month))
   const byState = (states: string[]) => (m: MonthRow) => states.includes(m.state)
   const filterDefs = [
@@ -83,37 +96,56 @@ export function MonthsPage() {
         {ws?.currency && <p className="muted">{t('months:workspaceCurrency', { currency: ws.currency })}</p>}
       </header>
 
-      <section className="stack gap-4" aria-labelledby="all-months-h">
-        <h2 className="type-h2" id="all-months-h">
-          {t('months:all.title')}
-        </h2>
-        {!isLoading && months.length === 0 ? (
-          <div className="empty-state stack gap-3">
-            <p className="muted">{t('months:all.empty')}</p>
-            <Link to="/documents?upload=1" className="button button-primary">
-              {t('months:all.uploadDocuments')}
-            </Link>
-          </div>
-        ) : (
-          <DataTable
-            data={months}
-            columns={columns}
-            getRowKey={(m) => m.month}
-            filters={filters}
-            filterGroupAriaLabel={t('months:all.filterLabel')}
-            searchable
-            searchPlaceholder={t('months:all.search')}
-            searchPredicate={(m, q) =>
-              [m.month, formatMonth(m.month), t(`months:monthDetail.states.${m.state}`), m.note ?? ''].some((text) =>
-                text.toLowerCase().includes(q),
-              )
-            }
-            isLoading={isLoading}
-            loadingMessage={<p className="muted">{t('months:all.loading')}</p>}
-            onRowClick={(m) => navigate(`/months/${m.month}`)}
-          />
-        )}
-      </section>
+      <SegmentedControl
+        options={VIEWS.map((v) => ({ key: v, label: t(`months:all.views.${v}`) }))}
+        value={view}
+        onChange={(v) => setParams(v === 'months' ? {} : { view: v }, { replace: true })}
+        ariaLabel={t('months:all.viewsLabel')}
+      />
+
+      {view === 'months' && (
+        <section className="stack gap-4" aria-labelledby="all-months-h">
+          <h2 className="type-h2" id="all-months-h">
+            {t('months:all.title')}
+          </h2>
+          {!isLoading && months.length === 0 ? (
+            <div className="empty-state stack gap-3">
+              <p className="muted">{t('months:all.empty')}</p>
+              <Link to="/documents?upload=1" className="button button-primary">
+                {t('months:all.uploadDocuments')}
+              </Link>
+            </div>
+          ) : (
+            <DataTable
+              data={months}
+              columns={columns}
+              getRowKey={(m) => m.month}
+              filters={filters}
+              filterGroupAriaLabel={t('months:all.filterLabel')}
+              searchable
+              searchPlaceholder={t('months:all.search')}
+              searchPredicate={(m, q) =>
+                [m.month, formatMonth(m.month), t(`months:monthDetail.states.${m.state}`), m.note ?? ''].some((text) =>
+                  text.toLowerCase().includes(q),
+                )
+              }
+              isLoading={isLoading}
+              loadingMessage={<p className="muted">{t('months:all.loading')}</p>}
+              onRowClick={(m) => navigate(`/months/${m.month}`)}
+            />
+          )}
+        </section>
+      )}
+      {view === 'bank' && (
+        <BankEvidenceView
+          lines={linesData?.items ?? []}
+          documents={documents.rows}
+          currency={currency}
+          isLoading={linesLoading || documents.isLoading}
+        />
+      )}
+      {view === 'documents' && <DocumentsFirstView rows={documents.rows} currency={currency} isLoading={documents.isLoading} />}
+      {view === 'currency' && <CurrencyView rows={documents.rows} currency={currency} isLoading={documents.isLoading} />}
     </div>
   )
 }

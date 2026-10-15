@@ -11,17 +11,25 @@ const require = createRequire(import.meta.url)
 
 async function serve(page: Page) {
   await page.route((url) => url.pathname.startsWith('/api/'), (route) => {
-    const path = new URL(route.request().url()).pathname
+    const url = new URL(route.request().url())
+    const path = url.pathname
+    const month = url.searchParams.get('month')
+    const byMonth = <T extends { month?: string | null }>(items: T[]) => items.filter((i) => !month || i.month === month)
     if (path === '/api/months/2026-03') return route.fulfill({ json: MONTH.month })
     if (path === '/api/months') return route.fulfill({ json: { items: MONTH.months } })
     if (path === '/api/bank-lines') return route.fulfill({ json: { items: MONTH.lines, nextCursor: null } })
     if (path === '/api/matches') return route.fulfill({ json: { items: MONTH.matches } })
-    if (path === '/api/invoices') return route.fulfill({ json: { items: MONTH.invoices } })
-    if (path === '/api/receipts') return route.fulfill({ json: { items: MONTH.receipts } })
+    if (path === '/api/invoices') return route.fulfill({ json: { items: byMonth(MONTH.invoices) } })
+    if (path === '/api/receipts') return route.fulfill({ json: { items: byMonth(MONTH.receipts) } })
     if (path === '/api/findings') return route.fulfill({ json: { items: MONTH.findings } })
     if (path === '/api/workspace') return route.fulfill({ json: WORKSPACE })
     return route.fulfill({ json: { items: [] } })
   })
+}
+
+async function noOverflow(page: Page) {
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
+  expect(overflow).toBeLessThanOrEqual(0)
 }
 
 async function axeClean(page: Page) {
@@ -81,14 +89,60 @@ test('AC-019-3: all months list their state, risk and statements like the mock',
   await axeClean(page)
   const read = async () => ({
     headings: await texts(page, '#content :is(h1, h2):visible'),
-    chips: await texts(page, '#content .chips .chip', true),
-    columns: await texts(page, '#content .data-table th'),
-    months: await texts(page, '#content .data-table tbody strong'),
-    badges: await texts(page, '#content .data-table tbody .badge'),
+    views: await texts(page, '#content .seg button'),
+    chips: await texts(page, '#content .chips:visible .chip', true),
+    columns: await texts(page, '#content .data-table:visible th'),
+    months: await texts(page, '#content .data-table:visible tbody strong'),
+    badges: await texts(page, '#content .data-table:visible tbody .badge'),
   })
   const implementation = await read()
   await page.goto(mockUrl('months'))
   expect(await read()).toEqual(implementation)
+})
+
+test('T007-10c: bank evidence, documents first and currency show the workspace\'s own books like the mock', async ({ page }) => {
+  await serve(page)
+  const read = async () => ({
+    headings: await texts(page, '#content :is(h1, h2):visible'),
+    intro: await texts(page, '#content section:visible > p.muted'),
+    chips: await texts(page, '#content .chips:visible .chip'),
+    columns: await texts(page, '#content .data-table:visible th:visible'),
+    rows: await texts(page, '#content .data-table:visible tbody strong'),
+    evidence: await texts(page, '#content .data-table:visible .match-chip'),
+    reasons: await texts(page, '#content .data-table:visible tbody .reason'),
+    actions: await texts(page, '#content section:visible .button'),
+    cards: await texts(page, '#content article:visible p'),
+    badges: await texts(page, '#content section:visible .badge'),
+  })
+  for (const [view, heading] of [
+    ['bank', 'Bank lines and what supports them'],
+    ['documents', 'Documents and their payment evidence'],
+    ['currency', 'Confirm document currency'],
+  ] as const) {
+    await page.goto(`/preview/months?view=${view}`)
+    await expect(page.getByRole('heading', { name: heading })).toBeVisible()
+    await noOverflow(page)
+    await expect(page).toHaveScreenshot(`months-${view}.png`, { fullPage: true })
+    await axeClean(page)
+    const implementation = await read()
+    await page.goto(mockUrl('months'))
+    await page.locator(`.seg button[data-value="${view}"]`).click()
+    await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible() // proto.js switched the view
+    expect(await read()).toEqual(implementation)
+  }
+})
+
+test('AC-007-16: confirming a payment by hand asks for amount, date, method and reason', async ({ page }) => {
+  await serve(page)
+  await page.goto('/preview/months?view=documents')
+  await page.getByRole('button', { name: 'Confirm payment' }).first().click()
+  const sheet = page.getByRole('dialog')
+  await expect(sheet.getByRole('heading', { name: 'Confirm payment manually' })).toBeVisible()
+  await expect(sheet.getByLabel('Amount paid, IDR')).toHaveValue(/\d/)
+  await expect(sheet.getByRole('button', { name: 'Confirm payment manually' })).toBeDisabled()
+  await sheet.getByLabel('Reason').fill('Paid the supplier; waiting for the statement.')
+  await expect(sheet.getByRole('button', { name: 'Confirm payment manually' })).toBeEnabled()
+  await expect(sheet.getByText('It does not change bank cash totals.')).toBeVisible()
 })
 
 test('AC-019-4: the month page stays inside 360 and 1600 px and its actions remain usable', async ({ page }) => {

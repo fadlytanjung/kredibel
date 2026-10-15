@@ -509,6 +509,8 @@ MONTH_WORDS = json.loads((LOCALES / "months.json").read_text(encoding="utf-8"))
 DOC_WORDS = json.loads((LOCALES / "documents.json").read_text(encoding="utf-8"))
 COMMON_WORDS = json.loads((LOCALES / "common.json").read_text(encoding="utf-8"))
 MONTH_FIX = json.loads((ROOT / "contracts/design/fixtures/month.json").read_text(encoding="utf-8"))
+MONTH_INVOICES = [i for i in MONTH_FIX["invoices"] if i["month"] == MONTH_FIX["month"]["month"]]
+MONTH_RECEIPTS = [r for r in MONTH_FIX["receipts"] if r["month"] == MONTH_FIX["month"]["month"]]
 DOC_FIX = json.loads((ROOT / "contracts/design/fixtures/document.json").read_text(encoding="utf-8"))
 REVIEW_FIX = json.loads((ROOT / "contracts/design/fixtures/review.json").read_text(encoding="utf-8"))
 
@@ -642,7 +644,7 @@ def month() -> str:
     total = auto + manual + open_
     rate = round(float(figures["autoMatchRate"]) * 100)
     risk = data["risk"]
-    documents = len(MONTH_FIX["invoices"]) + len(MONTH_FIX["receipts"])
+    documents = len(MONTH_INVOICES) + len(MONTH_RECEIPTS)
     findings = [f for f in MONTH_FIX["findings"] if f["status"] in ("OPEN", "ACKNOWLEDGED")]
 
     figs = f"""
@@ -710,8 +712,147 @@ def month() -> str:
     return shell("months", topbar(label, ((mw("title"), "months.html"), label), back=("Dashboard", "dashboard.html")), content)
 
 
+PAYMENT_CHIP = {"PAID_BANK": ("auto", "link"), "PARTIAL_BANK": ("proposed", "link"), "PROPOSED": ("proposed", "eye"),
+                "CONFIRMED_BY_YOU": ("manual", "hand"), "PAID_CASH": ("cleared", "wallet"), "WAITING_FOR_STATEMENT": ("none", "clock"),
+                "NO_BANK_MATCH": ("none", "unlink"), "NOT_DUE": ("excluded", "calendar"), "UNPAID": ("overdue", "circle-alert"),
+                "CURRENCY_TO_CONFIRM": ("proposed", "globe"), "NOT_RUN": ("none", "clock")}
+PAID = ("PAID_BANK", "CONFIRMED_BY_YOU", "PAID_CASH")
+REASONED = ("PROPOSED", "NOT_REQUIRED", "EXCLUDED", "NO_SUPPORT", "NOT_RUN")
+
+
+def amount_in(value: str, currency: str) -> str:
+    """The app's formatAmount: whole units for IDR, two decimals otherwise, no code."""
+    return amount(value) if currency == "IDR" else f"{Decimal(value):,.2f}"
+
+
+def record_rows(records: list[dict] | None = None) -> list[dict]:
+    """Invoices and receipts as the app's rows (useMonthDocuments), oldest first."""
+    rows = []
+    for i in MONTH_FIX["invoices"]:
+        ev = i.get("evidence") or {}
+        rows.append({"id": i["invoiceId"], "docId": i["docId"], "kind": i["kind"], "number": i.get("number"), "month": i.get("month"),
+                     "party": i.get("buyerName") if i["kind"] == "SALES" else i.get("issuerName"), "date": i.get("issueDate"),
+                     "total": i.get("total"), "payment": ev.get("payment") or "NOT_RUN", "printedCurrency": ev.get("printedCurrency"),
+                     "noCurrencyPrinted": bool(ev) and not ev.get("printedCurrency"), "approved": bool(ev.get("approved"))})
+    for r in MONTH_FIX["receipts"]:
+        ev = r.get("evidence") or {}
+        rows.append({"id": r["receiptId"], "docId": r["docId"], "kind": "RECEIPT", "number": r.get("number"), "month": r.get("month"),
+                     "party": r.get("merchantName"), "date": r.get("date"), "total": r.get("total"), "payment": ev.get("payment") or "NOT_RUN",
+                     "printedCurrency": ev.get("printedCurrency"), "noCurrencyPrinted": bool(ev) and not ev.get("printedCurrency"),
+                     "approved": bool(ev.get("approved"))})
+    return sorted(rows, key=lambda r: (r["date"] or "", r["id"]))
+
+
+def row_title(r: dict) -> str:
+    if r["kind"] == "RECEIPT":
+        return mw("monthDetail.docs.receipt", number=r["number"]) if r.get("number") else mw("monthDetail.docs.receiptNoNumber")
+    return mw("monthDetail.docs.invoice", number=r["number"]) if r.get("number") else mw("monthDetail.docs.invoiceNoNumber")
+
+
+def row_who(r: dict) -> str:
+    party = r.get("party") or mw("monthDetail.docs.unknownParty")
+    key = {"SALES": "sales", "PURCHASE": "purchase"}.get(r["kind"], "merchant")
+    return mw(f"monthDetail.docs.{key}", party=party)
+
+
+def months_bank_view(currency: str) -> str:
+    """Bank evidence: every line with what supports it, newest first (BankEvidenceView)."""
+    # newest first, ties by id ascending (the app's sort)
+    lines = sorted(sorted(MONTH_FIX["lines"], key=lambda l: l["txId"]), key=lambda l: l.get("date") or "", reverse=True)
+    def kind_of(l: dict) -> str:
+        k = l.get("support") or "NOT_RUN"
+        return ("MANUAL" if l["match"].get("state") == "MANUAL" else "AUTO") if k == "MATCHED" else k
+    rows = []
+    for l in lines:
+        k = kind_of(l); chip, ic = SUPPORT_CHIP[k]
+        v = l["amount"]["amount"]; incoming = not v.startswith("-")
+        name = l.get("counterpartyName") or l["description"].split("\n")[0]
+        reason = f'<span class="reason">{mw(f"monthDetail.supportReason.{k}")}</span>' if k in REASONED else ""
+        action = f'<button class="button button-secondary button-sm" type="button">{mw("monthDetail.match")}</button>' if k in ("NO_SUPPORT", "PROPOSED") else ""
+        rows.append(f"""<tr>
+  <td data-cell="wide"><div><strong>{escape(name)}</strong><div class="reason">{fmt_date(l["date"])}</div></div></td>
+  <td class="hide-rt" data-cell="hide">{month_name(l["month"])}</td>
+  <td class="r num"><span class="{"amt-in" if incoming else "amt-out"}">{"+" if incoming else ""}{amount_in(v, currency)}</span></td>
+  <td data-cell="wide"><div class="stack gap-1"><span class="match-chip {chip}">{icon(ic, "icon icon-sm")}<span>{mw(f"monthDetail.support.{k}")}</span></span>{reason}</div></td>
+  <td class="r">{action}</td>
+</tr>""")
+    kinds = [("NO_SUPPORT",), ("PROPOSED",), ("AUTO", "MANUAL"), ("NOT_REQUIRED",), ("EXCLUDED",)]
+    labels = [mw("monthDetail.support.NO_SUPPORT"), mw("monthDetail.support.PROPOSED"), mw("all.bank.filterMatched"),
+              mw("monthDetail.support.NOT_REQUIRED"), mw("monthDetail.support.EXCLUDED")]
+    filters = [(mw("monthDetail.filterAll"), len(lines))] + [(label, sum(1 for l in lines if kind_of(l) in ks)) for label, ks in zip(labels, kinds)]
+    table = data_table(filters=filters, active=0, filter_label=mw("all.bank.filterLabel"), search=mw("monthDetail.searchPlaceholder"),
+                       columns=[(mw("monthDetail.colBankLine"), "wide"), (mw("all.colMonth"), "hide"), (mw("monthDetail.colAmount", currency=currency), "r"),
+                                (mw("monthDetail.colMatchedWith"), "wide"), (mw("monthDetail.colActions"), "r")],
+                       rows="".join(rows), pager=words(COMMON_WORDS, "table.showingRange", **{"from": 1, "to": len(lines), "total": len(lines)}))
+    return f"""<section class="stack gap-4" data-show-group="monthsview" data-show-value="bank" hidden aria-labelledby="bank-evidence-h">
+    <h2 class="type-h2" id="bank-evidence-h">{mw("all.bank.title")}</h2>
+    <p class="muted">{mw("all.bank.intro")}</p>
+    {table}
+  </section>"""
+
+
+def months_docs_view(currency: str) -> str:
+    """Documents first: every invoice and receipt by its payment evidence (DocumentsFirstView)."""
+    rows = sorted(sorted(record_rows(), key=lambda r: r["id"]), key=lambda r: r["date"] or "", reverse=True)
+    trs = []
+    for r in rows:
+        chip, ic = PAYMENT_CHIP[r["payment"]]
+        approved = badge("clean", mw("all.docs.approved")) if r["approved"] else ""
+        actions = ""
+        if not r["approved"]:
+            actions += f'<button class="button button-secondary button-sm" type="button">{mw("all.docs.approve")}</button>'
+        if r["payment"] not in PAID and r["payment"] != "CURRENCY_TO_CONFIRM":
+            actions += f'<button class="button button-secondary button-sm" type="button">{mw("all.docs.confirmPayment")}</button>'
+        printed = f'<div class="reason">{mw("monthDetail.docs.noCurrencyPrinted", currency=currency)}</div>' if r["noCurrencyPrinted"] else ""
+        total = r["total"]
+        trs.append(f"""<tr>
+  <td data-cell="wide"><div><strong>{row_title(r)}</strong><div class="reason">{row_who(r)}</div><div class="reason">{fmt_date(r["date"])}</div>{printed}</div></td>
+  <td class="r num">{amount_in(total["amount"], total["currency"]) if total else "—"}</td>
+  <td data-cell="wide"><div class="stack gap-1"><span class="match-chip {chip}">{icon(ic, "icon icon-sm")}<span>{mw(f"monthDetail.payment.{r['payment']}")}</span></span>{approved}</div></td>
+  <td class="r"><div class="row gap-2 justify-end flex-wrap">{actions}</div></td>
+</tr>""")
+    groups = [(mw("monthDetail.payment.WAITING_FOR_STATEMENT"), ("WAITING_FOR_STATEMENT", "NOT_DUE")),
+              (mw("monthDetail.payment.NO_BANK_MATCH"), ("NO_BANK_MATCH", "PROPOSED", "PARTIAL_BANK")),
+              (mw("monthDetail.payment.UNPAID"), ("UNPAID",)), (mw("monthDetail.docs.filterPaid"), PAID)]
+    filters = [(mw("monthDetail.docs.filterAll"), len(rows))] + [(label, sum(1 for r in rows if r["payment"] in ps)) for label, ps in groups]
+    table = data_table(filters=filters, active=0, filter_label=mw("all.docs.filterLabel"), search=mw("monthDetail.docs.search"),
+                       columns=[(mw("monthDetail.docs.colDocument"), "wide"), (mw("monthDetail.docs.colAmount", currency=currency), "r"),
+                                (mw("monthDetail.docs.colPayment"), "wide"), (mw("monthDetail.colActions"), "r")],
+                       rows="".join(trs), pager=words(COMMON_WORDS, "table.showingRange", **{"from": 1, "to": len(rows), "total": len(rows)}))
+    return f"""<section class="stack gap-4" data-show-group="monthsview" data-show-value="documents" hidden aria-labelledby="documents-first-h">
+    <h2 class="type-h2" id="documents-first-h">{mw("all.docs.title")}</h2>
+    <p class="muted">{mw("all.docs.intro")}</p>
+    {table}
+  </section>"""
+
+
+def months_currency_view(currency: str) -> str:
+    """Currency: documents printed in another currency, waiting for an agreement (CurrencyView)."""
+    pending = [r for r in record_rows() if r["payment"] == "CURRENCY_TO_CONFIRM"]
+    cards = []
+    for r in pending:
+        printed = r.get("printedCurrency") or (r["total"] or {}).get("currency") or ""
+        shown = amount_in(r["total"]["amount"], printed or currency)
+        cards.append(f"""<article class="card stack gap-3" aria-label="{row_title(r)}">
+      <span class="badge badge-medium self-start">{icon("circle-alert", "icon icon-sm")}{mw("all.currency.badge")}</span>
+      <p><strong>{row_title(r)}</strong><span class="muted"> · {row_who(r)}</span></p>
+      <p>{mw("all.currency.question", printed=printed, amount=shown, currency=currency)}</p>
+      <p class="muted">{mw("all.currency.keep")}</p>
+      <div class="row gap-3 flex-wrap"><button class="button button-primary" type="button">{mw("all.currency.use", currency=currency)}</button>
+        <a class="button button-secondary" href="documents.html">{mw("all.currency.replace")}</a></div>
+    </article>""")
+    body = "".join(cards) if cards else f'<p class="muted">{mw("all.currency.none", currency=currency)}</p>'
+    return f"""<section class="stack gap-4" data-show-group="monthsview" data-show-value="currency" hidden aria-labelledby="currency-check-h">
+    <h2 class="type-h2" id="currency-check-h">{mw("all.currency.title")}</h2>
+    <p class="muted">{mw("all.currency.intro", currency=currency)}</p>
+    {body}
+  </section>"""
+
+
 def months() -> str:
-    """All months (/months/all): one row per month with its state, risk and statements."""
+    """All months (/months/all): one row per month with its state, risk and statements, and the
+    bank evidence, documents-first and currency views on the same synthetic books (T007-10c)."""
+    currency = "IDR"
     items = sorted(MONTH_FIX["months"], key=lambda m: m["month"], reverse=True)
     by_state = lambda states: sum(1 for m in items if m["state"] in states)  # noqa: E731
     rows = "".join(f"""<tr class="is-clickable">
@@ -726,17 +867,22 @@ def months() -> str:
         active=0, filter_label=mw("all.filterLabel"), search=mw("all.search"),
         columns=[(mw("all.colMonth"), "wide"), (mw("all.colStatus"), ""), (mw("all.colRisk"), ""), (mw("all.colStatements"), "hide")],
         rows=rows, pager=words(COMMON_WORDS, "table.showingRange", **{"from": 1, "to": len(items), "total": len(items)}))
+    views = seg("monthsview", [(v, mw(f"all.views.{v}")) for v in ("months", "bank", "documents", "currency")], "months", mw("all.viewsLabel"))
     content = f"""
 <div class="page stack gap-6">
   <header class="stack gap-2">
     <h1 class="type-title">{mw("title")}</h1>
     <p class="muted">{mw("subtitle")}</p>
-    <p class="muted">{mw("workspaceCurrency", currency="IDR")}</p>
+    <p class="muted">{mw("workspaceCurrency", currency=currency)}</p>
   </header>
-  <section class="stack gap-4" aria-labelledby="all-months-h">
+  {views}
+  <section class="stack gap-4" data-show-group="monthsview" data-show-value="months" aria-labelledby="all-months-h">
     <h2 class="type-h2" id="all-months-h">{mw("all.title")}</h2>
     {table}
   </section>
+  {months_bank_view(currency)}
+  {months_docs_view(currency)}
+  {months_currency_view(currency)}
 </div>"""
     return shell("months", topbar(mw("title"), (mw("title"),)), content)
 

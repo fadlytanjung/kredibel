@@ -21,6 +21,8 @@ export function useCreateDecision() {
       void queryClient.invalidateQueries({ queryKey: ['months'] })
       void queryClient.invalidateQueries({ queryKey: ['month'] })
       void queryClient.invalidateQueries({ queryKey: ['review-items'] })
+      void queryClient.invalidateQueries({ queryKey: ['invoices'] })
+      void queryClient.invalidateQueries({ queryKey: ['receipts'] })
     },
   })
 }
@@ -38,6 +40,8 @@ export function useWithdrawDecision() {
       void queryClient.invalidateQueries({ queryKey: ['months'] })
       void queryClient.invalidateQueries({ queryKey: ['month'] })
       void queryClient.invalidateQueries({ queryKey: ['review-items'] })
+      void queryClient.invalidateQueries({ queryKey: ['invoices'] })
+      void queryClient.invalidateQueries({ queryKey: ['receipts'] })
     },
   })
 }

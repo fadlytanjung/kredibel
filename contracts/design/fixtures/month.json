@@ -3,20 +3,72 @@
     "month": "2026-03",
     "state": "NEEDS_REVIEW",
     "note": "ACB ••4821. Statement, 3 invoices, 1 receipt and 52 ledger entries for this month.",
-    "statements": [{ "docId": "doc_mar" }],
+    "statements": [
+      {
+        "docId": "doc_mar"
+      }
+    ],
     "figures": {
-      "opening": { "factId": "fact:2026-03:opening", "value": "47900000.00", "inputs": [] },
-      "moneyIn": { "factId": "fact:2026-03:money_in", "value": "231400000.00", "inputs": [] },
-      "moneyOut": { "factId": "fact:2026-03:money_out", "value": "-218900000.00", "inputs": [] },
-      "closing": { "factId": "fact:2026-03:closing", "value": "60400000.00", "inputs": [] },
-      "bankLines": { "factId": "fact:2026-03:bank_lines", "value": "45", "inputs": [] },
-      "excluded": { "factId": "fact:2026-03:excluded", "value": "1", "inputs": [] },
-      "autoMatched": { "factId": "fact:2026-03:auto_matched", "value": "38", "inputs": [] },
-      "manuallyMatched": { "factId": "fact:2026-03:manually_matched", "value": "5", "inputs": [] },
-      "proposed": { "factId": "fact:2026-03:proposed", "value": "1", "inputs": [] },
-      "unmatched": { "factId": "fact:2026-03:unmatched", "value": "0", "inputs": [] },
-      "autoMatchRate": { "factId": "fact:2026-03:auto_match_rate", "value": "0.8636", "inputs": [] },
-      "ledgerDifference": { "factId": "fact:2026-03:ledger_difference", "value": "6000000.00", "inputs": [] }
+      "opening": {
+        "factId": "fact:2026-03:opening",
+        "value": "47900000.00",
+        "inputs": []
+      },
+      "moneyIn": {
+        "factId": "fact:2026-03:money_in",
+        "value": "231400000.00",
+        "inputs": []
+      },
+      "moneyOut": {
+        "factId": "fact:2026-03:money_out",
+        "value": "-218900000.00",
+        "inputs": []
+      },
+      "closing": {
+        "factId": "fact:2026-03:closing",
+        "value": "60400000.00",
+        "inputs": []
+      },
+      "bankLines": {
+        "factId": "fact:2026-03:bank_lines",
+        "value": "45",
+        "inputs": []
+      },
+      "excluded": {
+        "factId": "fact:2026-03:excluded",
+        "value": "1",
+        "inputs": []
+      },
+      "autoMatched": {
+        "factId": "fact:2026-03:auto_matched",
+        "value": "38",
+        "inputs": []
+      },
+      "manuallyMatched": {
+        "factId": "fact:2026-03:manually_matched",
+        "value": "5",
+        "inputs": []
+      },
+      "proposed": {
+        "factId": "fact:2026-03:proposed",
+        "value": "1",
+        "inputs": []
+      },
+      "unmatched": {
+        "factId": "fact:2026-03:unmatched",
+        "value": "0",
+        "inputs": []
+      },
+      "autoMatchRate": {
+        "factId": "fact:2026-03:auto_match_rate",
+        "value": "0.8636",
+        "inputs": []
+      },
+      "ledgerDifference": {
+        "factId": "fact:2026-03:ledger_difference",
+        "value": "6000000.00",
+        "inputs": []
+      }
     },
     "risk": {
       "level": "CRITICAL",
@@ -26,47 +78,630 @@
         "If the bank's copy shows IDR 1,250,000, ask who sent you this file before you close March.",
         "Keep March open until then; Kredibel will compare the two statements for you."
       ],
-      "reasons": ["fnd_a01_mar", "fnd_m03_mar", "fnd_m04_mar"],
-      "grounding": { "verdict": "AGREED", "citations": ["finding:fnd_a01_mar", "finding:fnd_m03_mar", "finding:fnd_m04_mar", "fact:2026-03:ledgerDifference"] }
+      "reasons": [
+        "fnd_a01_mar",
+        "fnd_m03_mar",
+        "fnd_m04_mar"
+      ],
+      "grounding": {
+        "verdict": "AGREED",
+        "citations": [
+          "finding:fnd_a01_mar",
+          "finding:fnd_m03_mar",
+          "finding:fnd_m04_mar",
+          "fact:2026-03:ledgerDifference"
+        ]
+      }
     }
   },
   "lines": [
-    { "txId": "tx_vat", "docId": "doc_mar", "page": 2, "rowIndex": 0, "date": "2026-03-10", "month": "2026-03", "description": "VAT PAYMENT FEB", "amount": { "amount": "-4860000.00", "currency": "IDR" }, "counterpartyName": null, "category": "TAX_PAYMENT", "cashflowClass": "OPERATING", "categorizedBy": "RULE", "readings": { "amount": { "status": "AGREED" } }, "match": { "state": "AUTO", "matchIds": ["mat_vat"] }, "support": "MATCHED", "source": "AI" },
-    { "txId": "tx_daybreak", "docId": "doc_mar", "page": 2, "rowIndex": 1, "date": "2026-03-11", "month": "2026-03", "description": "TRANSFER IN DAYBREAK CAFE", "amount": { "amount": "6420000.00", "currency": "IDR" }, "counterpartyName": "Daybreak Café", "category": "SALES_RECEIPT", "cashflowClass": "OPERATING", "categorizedBy": "MATCH", "readings": { "amount": { "status": "AGREED" } }, "match": { "state": "AUTO", "matchIds": ["mat_daybreak"] }, "support": "MATCHED", "source": "AI" },
-    { "txId": "tx_gvf", "docId": "doc_mar", "page": 2, "rowIndex": 2, "date": "2026-03-12", "month": "2026-03", "description": "TRANSFER OUT GREEN VALLEY FARMS 0912", "amount": { "amount": "-9850000.00", "currency": "IDR" }, "counterpartyName": "Green Valley Farms", "category": "INVENTORY_PURCHASE", "cashflowClass": "OPERATING", "categorizedBy": "MODEL", "readings": { "amount": { "status": "AGREED" } }, "match": { "state": "PROPOSED", "matchIds": ["mat_gvf"] }, "support": "PROPOSED", "source": "AI" },
-    { "txId": "tx_own", "docId": "doc_mar", "page": 2, "rowIndex": 3, "date": "2026-03-12", "month": "2026-03", "description": "TRANSFER TO OWN SAVINGS ••7710", "amount": { "amount": "-2000000.00", "currency": "IDR" }, "counterpartyName": null, "category": "INTERNAL_TRANSFER", "cashflowClass": "NON_CASH", "categorizedBy": "TRANSFER", "readings": { "amount": { "status": "AGREED" } }, "match": { "state": "EXCLUDED", "matchIds": [] }, "support": "EXCLUDED", "source": "AI" },
-    { "txId": "tx_harbor", "docId": "doc_mar", "page": 2, "rowIndex": 5, "date": "2026-03-14", "month": "2026-03", "description": "TRANSFER IN HARBORVIEW HOTEL GROUP", "amount": { "amount": "7250000.00", "currency": "IDR" }, "counterpartyName": "Harborview Hotel Group", "category": "SALES_RECEIPT", "cashflowClass": "OPERATING", "categorizedBy": "MODEL", "readings": { "amount": { "status": "AGREED" } }, "match": { "state": "UNMATCHED", "matchIds": [] }, "support": "NO_SUPPORT", "source": "AI" },
-    { "txId": "tx_primepack", "docId": "doc_mar", "page": 2, "rowIndex": 6, "date": "2026-03-15", "month": "2026-03", "description": "TRANSFER OUT PRIMEPACK PACKAGING", "amount": { "amount": "-3180000.00", "currency": "IDR" }, "counterpartyName": "Primepack Packaging", "category": "SUPPLIER_PAYMENT", "cashflowClass": "OPERATING", "categorizedBy": "MATCH", "readings": { "amount": { "status": "AGREED" } }, "match": { "state": "MANUAL", "matchIds": ["mat_primepack"] }, "support": "MATCHED", "source": "AI" },
-    { "txId": "tx_fee", "docId": "doc_mar", "page": 2, "rowIndex": 7, "date": "2026-03-16", "month": "2026-03", "description": "MONTHLY ACCOUNT FEE", "amount": { "amount": "-35000.00", "currency": "IDR" }, "counterpartyName": null, "category": "BANK_FEES", "cashflowClass": "OPERATING", "categorizedBy": "RULE", "readings": { "amount": { "status": "AGREED" } }, "match": { "state": "UNMATCHED", "matchIds": [] }, "support": "NOT_REQUIRED", "source": "AI" },
-    { "txId": "tx_machine", "docId": "doc_mar", "page": 3, "rowIndex": 0, "date": "2026-03-17", "month": "2026-03", "description": "PURCHASE ESPRESSO MACHINE", "amount": { "amount": "-18400000.00", "currency": "IDR" }, "counterpartyName": null, "category": "ASSET_PURCHASE", "cashflowClass": "INVESTING", "categorizedBy": "USER", "readings": { "amount": { "status": "AGREED" } }, "match": { "state": "UNMATCHED", "matchIds": [] }, "support": "NO_SUPPORT", "source": "AI" },
-    { "txId": "tx_fuel", "docId": "doc_mar", "page": 3, "rowIndex": 1, "date": "2026-03-18", "month": "2026-03", "description": "DEBIT CARD CENDANA FUEL STATION", "amount": { "amount": "-650000.00", "currency": "IDR" }, "counterpartyName": "Cendana Fuel Station", "category": "UNKNOWN", "cashflowClass": "UNCLASSIFIED", "categorizedBy": "MODEL", "readings": { "amount": { "status": "SINGLE_SOURCE" } }, "match": { "state": "AUTO", "matchIds": ["mat_fuel"] }, "support": "MATCHED", "source": "AI" }
+    {
+      "txId": "tx_vat",
+      "docId": "doc_mar",
+      "page": 2,
+      "rowIndex": 0,
+      "date": "2026-03-10",
+      "month": "2026-03",
+      "description": "VAT PAYMENT FEB",
+      "amount": {
+        "amount": "-4860000.00",
+        "currency": "IDR"
+      },
+      "counterpartyName": null,
+      "category": "TAX_PAYMENT",
+      "cashflowClass": "OPERATING",
+      "categorizedBy": "RULE",
+      "readings": {
+        "amount": {
+          "status": "AGREED"
+        }
+      },
+      "match": {
+        "state": "AUTO",
+        "matchIds": [
+          "mat_vat"
+        ]
+      },
+      "support": "MATCHED",
+      "source": "AI"
+    },
+    {
+      "txId": "tx_daybreak",
+      "docId": "doc_mar",
+      "page": 2,
+      "rowIndex": 1,
+      "date": "2026-03-11",
+      "month": "2026-03",
+      "description": "TRANSFER IN DAYBREAK CAFE",
+      "amount": {
+        "amount": "6420000.00",
+        "currency": "IDR"
+      },
+      "counterpartyName": "Daybreak Café",
+      "category": "SALES_RECEIPT",
+      "cashflowClass": "OPERATING",
+      "categorizedBy": "MATCH",
+      "readings": {
+        "amount": {
+          "status": "AGREED"
+        }
+      },
+      "match": {
+        "state": "AUTO",
+        "matchIds": [
+          "mat_daybreak"
+        ]
+      },
+      "support": "MATCHED",
+      "source": "AI"
+    },
+    {
+      "txId": "tx_gvf",
+      "docId": "doc_mar",
+      "page": 2,
+      "rowIndex": 2,
+      "date": "2026-03-12",
+      "month": "2026-03",
+      "description": "TRANSFER OUT GREEN VALLEY FARMS 0912",
+      "amount": {
+        "amount": "-9850000.00",
+        "currency": "IDR"
+      },
+      "counterpartyName": "Green Valley Farms",
+      "category": "INVENTORY_PURCHASE",
+      "cashflowClass": "OPERATING",
+      "categorizedBy": "MODEL",
+      "readings": {
+        "amount": {
+          "status": "AGREED"
+        }
+      },
+      "match": {
+        "state": "PROPOSED",
+        "matchIds": [
+          "mat_gvf"
+        ]
+      },
+      "support": "PROPOSED",
+      "source": "AI"
+    },
+    {
+      "txId": "tx_own",
+      "docId": "doc_mar",
+      "page": 2,
+      "rowIndex": 3,
+      "date": "2026-03-12",
+      "month": "2026-03",
+      "description": "TRANSFER TO OWN SAVINGS ••7710",
+      "amount": {
+        "amount": "-2000000.00",
+        "currency": "IDR"
+      },
+      "counterpartyName": null,
+      "category": "INTERNAL_TRANSFER",
+      "cashflowClass": "NON_CASH",
+      "categorizedBy": "TRANSFER",
+      "readings": {
+        "amount": {
+          "status": "AGREED"
+        }
+      },
+      "match": {
+        "state": "EXCLUDED",
+        "matchIds": []
+      },
+      "support": "EXCLUDED",
+      "source": "AI"
+    },
+    {
+      "txId": "tx_harbor",
+      "docId": "doc_mar",
+      "page": 2,
+      "rowIndex": 5,
+      "date": "2026-03-14",
+      "month": "2026-03",
+      "description": "TRANSFER IN HARBORVIEW HOTEL GROUP",
+      "amount": {
+        "amount": "7250000.00",
+        "currency": "IDR"
+      },
+      "counterpartyName": "Harborview Hotel Group",
+      "category": "SALES_RECEIPT",
+      "cashflowClass": "OPERATING",
+      "categorizedBy": "MODEL",
+      "readings": {
+        "amount": {
+          "status": "AGREED"
+        }
+      },
+      "match": {
+        "state": "UNMATCHED",
+        "matchIds": []
+      },
+      "support": "NO_SUPPORT",
+      "source": "AI"
+    },
+    {
+      "txId": "tx_primepack",
+      "docId": "doc_mar",
+      "page": 2,
+      "rowIndex": 6,
+      "date": "2026-03-15",
+      "month": "2026-03",
+      "description": "TRANSFER OUT PRIMEPACK PACKAGING",
+      "amount": {
+        "amount": "-3180000.00",
+        "currency": "IDR"
+      },
+      "counterpartyName": "Primepack Packaging",
+      "category": "SUPPLIER_PAYMENT",
+      "cashflowClass": "OPERATING",
+      "categorizedBy": "MATCH",
+      "readings": {
+        "amount": {
+          "status": "AGREED"
+        }
+      },
+      "match": {
+        "state": "MANUAL",
+        "matchIds": [
+          "mat_primepack"
+        ]
+      },
+      "support": "MATCHED",
+      "source": "AI"
+    },
+    {
+      "txId": "tx_fee",
+      "docId": "doc_mar",
+      "page": 2,
+      "rowIndex": 7,
+      "date": "2026-03-16",
+      "month": "2026-03",
+      "description": "MONTHLY ACCOUNT FEE",
+      "amount": {
+        "amount": "-35000.00",
+        "currency": "IDR"
+      },
+      "counterpartyName": null,
+      "category": "BANK_FEES",
+      "cashflowClass": "OPERATING",
+      "categorizedBy": "RULE",
+      "readings": {
+        "amount": {
+          "status": "AGREED"
+        }
+      },
+      "match": {
+        "state": "UNMATCHED",
+        "matchIds": []
+      },
+      "support": "NOT_REQUIRED",
+      "source": "AI"
+    },
+    {
+      "txId": "tx_machine",
+      "docId": "doc_mar",
+      "page": 3,
+      "rowIndex": 0,
+      "date": "2026-03-17",
+      "month": "2026-03",
+      "description": "PURCHASE ESPRESSO MACHINE",
+      "amount": {
+        "amount": "-18400000.00",
+        "currency": "IDR"
+      },
+      "counterpartyName": null,
+      "category": "ASSET_PURCHASE",
+      "cashflowClass": "INVESTING",
+      "categorizedBy": "USER",
+      "readings": {
+        "amount": {
+          "status": "AGREED"
+        }
+      },
+      "match": {
+        "state": "UNMATCHED",
+        "matchIds": []
+      },
+      "support": "NO_SUPPORT",
+      "source": "AI"
+    },
+    {
+      "txId": "tx_fuel",
+      "docId": "doc_mar",
+      "page": 3,
+      "rowIndex": 1,
+      "date": "2026-03-18",
+      "month": "2026-03",
+      "description": "DEBIT CARD CENDANA FUEL STATION",
+      "amount": {
+        "amount": "-650000.00",
+        "currency": "IDR"
+      },
+      "counterpartyName": "Cendana Fuel Station",
+      "category": "UNKNOWN",
+      "cashflowClass": "UNCLASSIFIED",
+      "categorizedBy": "MODEL",
+      "readings": {
+        "amount": {
+          "status": "SINGLE_SOURCE"
+        }
+      },
+      "match": {
+        "state": "AUTO",
+        "matchIds": [
+          "mat_fuel"
+        ]
+      },
+      "support": "MATCHED",
+      "source": "AI"
+    }
   ],
   "matches": [
-    { "matchId": "mat_vat", "month": "2026-03", "kind": "BANK_LEDGER", "method": "AUTO", "status": "CONFIRMED", "reasons": ["AMOUNT_EXACT", "DATE_NEAR"], "amount": { "amount": "4860000.00", "currency": "IDR" } },
-    { "matchId": "mat_daybreak", "month": "2026-03", "kind": "BANK_SALES_INVOICE", "method": "AUTO", "status": "CONFIRMED", "reasons": ["AMOUNT_EXACT", "PARTY_MATCH", "DATE_NEAR"], "amount": { "amount": "6420000.00", "currency": "IDR" } },
-    { "matchId": "mat_gvf", "month": "2026-03", "kind": "BANK_PURCHASE_INVOICE", "method": "AUTO", "status": "PROPOSED", "reasons": ["AMOUNT_EXACT", "PARTY_MATCH"], "amount": { "amount": "9850000.00", "currency": "IDR" } },
-    { "matchId": "mat_primepack", "month": "2026-03", "kind": "BANK_PURCHASE_INVOICE", "method": "MANUAL", "status": "CONFIRMED", "reasons": [], "amount": { "amount": "3180000.00", "currency": "IDR" } },
-    { "matchId": "mat_fuel", "month": "2026-03", "kind": "BANK_RECEIPT", "method": "AUTO", "status": "CONFIRMED", "reasons": ["AMOUNT_EXACT", "PARTY_MATCH", "DATE_NEAR"], "amount": { "amount": "650000.00", "currency": "IDR" } }
+    {
+      "matchId": "mat_vat",
+      "month": "2026-03",
+      "kind": "BANK_LEDGER",
+      "method": "AUTO",
+      "status": "CONFIRMED",
+      "reasons": [
+        "AMOUNT_EXACT",
+        "DATE_NEAR"
+      ],
+      "amount": {
+        "amount": "4860000.00",
+        "currency": "IDR"
+      }
+    },
+    {
+      "matchId": "mat_daybreak",
+      "month": "2026-03",
+      "kind": "BANK_SALES_INVOICE",
+      "method": "AUTO",
+      "status": "CONFIRMED",
+      "reasons": [
+        "AMOUNT_EXACT",
+        "PARTY_MATCH",
+        "DATE_NEAR"
+      ],
+      "amount": {
+        "amount": "6420000.00",
+        "currency": "IDR"
+      }
+    },
+    {
+      "matchId": "mat_gvf",
+      "month": "2026-03",
+      "kind": "BANK_PURCHASE_INVOICE",
+      "method": "AUTO",
+      "status": "PROPOSED",
+      "reasons": [
+        "AMOUNT_EXACT",
+        "PARTY_MATCH"
+      ],
+      "amount": {
+        "amount": "9850000.00",
+        "currency": "IDR"
+      }
+    },
+    {
+      "matchId": "mat_primepack",
+      "month": "2026-03",
+      "kind": "BANK_PURCHASE_INVOICE",
+      "method": "MANUAL",
+      "status": "CONFIRMED",
+      "reasons": [],
+      "amount": {
+        "amount": "3180000.00",
+        "currency": "IDR"
+      }
+    },
+    {
+      "matchId": "mat_fuel",
+      "month": "2026-03",
+      "kind": "BANK_RECEIPT",
+      "method": "AUTO",
+      "status": "CONFIRMED",
+      "reasons": [
+        "AMOUNT_EXACT",
+        "PARTY_MATCH",
+        "DATE_NEAR"
+      ],
+      "amount": {
+        "amount": "650000.00",
+        "currency": "IDR"
+      }
+    }
   ],
   "invoices": [
-    { "invoiceId": "inv_0007", "docId": "doc_inv_0007", "kind": "SALES", "number": "INV/SCR/2026/03/0007", "buyerName": "Daybreak Café", "issueDate": "2026-03-06", "month": "2026-03", "total": { "amount": "6420000.00", "currency": "IDR" }, "evidence": { "payment": "PAID_BANK", "printedCurrency": "IDR" } },
-    { "invoiceId": "inv_gvf_0311", "docId": "doc_inv_gvf", "kind": "PURCHASE", "number": "GVF-2026-0311", "issuerName": "Green Valley Farms", "issueDate": "2026-03-11", "month": "2026-03", "total": { "amount": "9850000.00", "currency": "IDR" }, "evidence": { "payment": "UNPAID", "printedCurrency": "IDR" } },
-    { "invoiceId": "inv_pp_0312", "docId": "doc_inv_pp", "kind": "PURCHASE", "number": "PP/26/0312", "issuerName": "Primepack Packaging", "issueDate": "2026-03-12", "month": "2026-03", "total": { "amount": "3180000.00", "currency": "IDR" }, "evidence": { "payment": "PAID_BANK", "printedCurrency": "IDR" } }
+    {
+      "invoiceId": "inv_0007",
+      "docId": "doc_inv_0007",
+      "kind": "SALES",
+      "number": "INV/SCR/2026/03/0007",
+      "buyerName": "Daybreak Café",
+      "issueDate": "2026-03-06",
+      "month": "2026-03",
+      "total": {
+        "amount": "6420000.00",
+        "currency": "IDR"
+      },
+      "evidence": {
+        "payment": "PAID_BANK",
+        "printedCurrency": "IDR"
+      }
+    },
+    {
+      "invoiceId": "inv_gvf_0311",
+      "docId": "doc_inv_gvf",
+      "kind": "PURCHASE",
+      "number": "GVF-2026-0311",
+      "issuerName": "Green Valley Farms",
+      "issueDate": "2026-03-11",
+      "month": "2026-03",
+      "total": {
+        "amount": "9850000.00",
+        "currency": "IDR"
+      },
+      "evidence": {
+        "payment": "UNPAID",
+        "printedCurrency": "IDR"
+      }
+    },
+    {
+      "invoiceId": "inv_pp_0312",
+      "docId": "doc_inv_pp",
+      "kind": "PURCHASE",
+      "number": "PP/26/0312",
+      "issuerName": "Primepack Packaging",
+      "issueDate": "2026-03-12",
+      "month": "2026-03",
+      "total": {
+        "amount": "3180000.00",
+        "currency": "IDR"
+      },
+      "evidence": {
+        "payment": "PAID_BANK",
+        "printedCurrency": "IDR"
+      }
+    },
+    {
+      "invoiceId": "inv_rl_0402",
+      "docId": "doc_inv_rl_0402",
+      "kind": "PURCHASE",
+      "number": "RL-2026-0402",
+      "issuerName": "Roastline Equipment Service",
+      "issueDate": "2026-04-02",
+      "month": "2026-04",
+      "total": {
+        "amount": "1500.00",
+        "currency": "USD"
+      },
+      "evidence": {
+        "payment": "CURRENCY_TO_CONFIRM",
+        "printedCurrency": "USD",
+        "covered": false,
+        "bankPaid": {
+          "amount": "0.00",
+          "currency": "IDR"
+        },
+        "confirmedPaid": {
+          "amount": "0.00",
+          "currency": "IDR"
+        },
+        "outstanding": {
+          "amount": "1500.00",
+          "currency": "USD"
+        },
+        "approved": false
+      }
+    }
   ],
   "receipts": [
-    { "receiptId": "rcp_fuel_0318", "docId": "doc_rcp_fuel", "merchantName": "Cendana Fuel Station", "date": "2026-03-18", "month": "2026-03", "total": { "amount": "650000.00", "currency": "IDR" }, "evidence": { "payment": "PAID_BANK", "printedCurrency": null } }
+    {
+      "receiptId": "rcp_fuel_0318",
+      "docId": "doc_rcp_fuel",
+      "merchantName": "Cendana Fuel Station",
+      "date": "2026-03-18",
+      "month": "2026-03",
+      "total": {
+        "amount": "650000.00",
+        "currency": "IDR"
+      },
+      "evidence": {
+        "payment": "PAID_BANK",
+        "printedCurrency": null
+      }
+    }
   ],
   "findings": [
-    { "findingId": "fnd_a01_mar", "code": "A01_RUNNING_BALANCE_BREAK", "category": "ARITHMETIC", "scope": "DOCUMENT", "severity": "CRITICAL", "title": "The running balance does not add up on 14 Mar", "status": "OPEN", "month": "2026-03", "docId": "doc_mar", "facts": {}, "evidence": [], "detectedBy": "CODE", "nextSteps": ["Download the March statement again from internet banking and upload it."] },
-    { "findingId": "fnd_m03_mar", "code": "M03_LATER_REVISION", "category": "METADATA", "scope": "DOCUMENT", "severity": "HIGH", "title": "A later revision of the file replaced this page's content", "status": "OPEN", "month": "2026-03", "docId": "doc_mar", "facts": {}, "evidence": [], "detectedBy": "CODE" },
-    { "findingId": "fnd_m04_mar", "code": "M04_FONT_MISMATCH", "category": "METADATA", "scope": "DOCUMENT", "severity": "HIGH", "title": "One amount is set in a different font from its column", "status": "OPEN", "month": "2026-03", "docId": "doc_mar", "facts": {}, "evidence": [], "detectedBy": "CODE" }
+    {
+      "findingId": "fnd_a01_mar",
+      "code": "A01_RUNNING_BALANCE_BREAK",
+      "category": "ARITHMETIC",
+      "scope": "DOCUMENT",
+      "severity": "CRITICAL",
+      "title": "The running balance does not add up on 14 Mar",
+      "status": "OPEN",
+      "month": "2026-03",
+      "docId": "doc_mar",
+      "facts": {},
+      "evidence": [],
+      "detectedBy": "CODE",
+      "nextSteps": [
+        "Download the March statement again from internet banking and upload it."
+      ]
+    },
+    {
+      "findingId": "fnd_m03_mar",
+      "code": "M03_LATER_REVISION",
+      "category": "METADATA",
+      "scope": "DOCUMENT",
+      "severity": "HIGH",
+      "title": "A later revision of the file replaced this page's content",
+      "status": "OPEN",
+      "month": "2026-03",
+      "docId": "doc_mar",
+      "facts": {},
+      "evidence": [],
+      "detectedBy": "CODE"
+    },
+    {
+      "findingId": "fnd_m04_mar",
+      "code": "M04_FONT_MISMATCH",
+      "category": "METADATA",
+      "scope": "DOCUMENT",
+      "severity": "HIGH",
+      "title": "One amount is set in a different font from its column",
+      "status": "OPEN",
+      "month": "2026-03",
+      "docId": "doc_mar",
+      "facts": {},
+      "evidence": [],
+      "detectedBy": "CODE"
+    }
   ],
   "months": [
-    { "month": "2026-01", "state": "RECONCILED", "statements": [{ "docId": "doc_jan" }], "figures": { "bankLines": { "factId": "fact:2026-01:bank_lines", "value": "45", "inputs": [] } }, "risk": { "level": "LOW" }, "note": "Statement and ledger agree." },
-    { "month": "2026-02", "state": "NEEDS_REVIEW", "statements": [{ "docId": "doc_feb" }], "figures": { "bankLines": { "factId": "fact:2026-02:bank_lines", "value": "45", "inputs": [] } }, "risk": { "level": "MEDIUM" }, "note": "A possible copy of the statement is held." },
-    { "month": "2026-03", "state": "NEEDS_REVIEW", "statements": [{ "docId": "doc_mar" }], "figures": { "bankLines": { "factId": "fact:2026-03:bank_lines", "value": "45", "inputs": [] } }, "risk": { "level": "CRITICAL" }, "note": "The statement was edited after the bank issued it." },
-    { "month": "2026-04", "state": "RECONCILED", "statements": [{ "docId": "doc_apr" }], "figures": { "bankLines": { "factId": "fact:2026-04:bank_lines", "value": "45", "inputs": [] } }, "risk": { "level": "LOW" }, "note": "Statement and ledger agree." },
-    { "month": "2026-05", "state": "NEEDS_REVIEW", "statements": [{ "docId": "doc_may" }], "figures": { "bankLines": { "factId": "fact:2026-05:bank_lines", "value": "45", "inputs": [] } }, "risk": { "level": "HIGH" }, "note": "A supplier was paid to a new account." },
-    { "month": "2026-06", "state": "NEEDS_REVIEW", "statements": [{ "docId": "doc_jun" }], "figures": { "bankLines": { "factId": "fact:2026-06:bank_lines", "value": "45", "inputs": [] } }, "risk": { "level": "MEDIUM" }, "note": "A possible copy of a receipt is held." }
+    {
+      "month": "2026-01",
+      "state": "RECONCILED",
+      "statements": [
+        {
+          "docId": "doc_jan"
+        }
+      ],
+      "figures": {
+        "bankLines": {
+          "factId": "fact:2026-01:bank_lines",
+          "value": "45",
+          "inputs": []
+        }
+      },
+      "risk": {
+        "level": "LOW"
+      },
+      "note": "Statement and ledger agree."
+    },
+    {
+      "month": "2026-02",
+      "state": "NEEDS_REVIEW",
+      "statements": [
+        {
+          "docId": "doc_feb"
+        }
+      ],
+      "figures": {
+        "bankLines": {
+          "factId": "fact:2026-02:bank_lines",
+          "value": "45",
+          "inputs": []
+        }
+      },
+      "risk": {
+        "level": "MEDIUM"
+      },
+      "note": "A possible copy of the statement is held."
+    },
+    {
+      "month": "2026-03",
+      "state": "NEEDS_REVIEW",
+      "statements": [
+        {
+          "docId": "doc_mar"
+        }
+      ],
+      "figures": {
+        "bankLines": {
+          "factId": "fact:2026-03:bank_lines",
+          "value": "45",
+          "inputs": []
+        }
+      },
+      "risk": {
+        "level": "CRITICAL"
+      },
+      "note": "The statement was edited after the bank issued it."
+    },
+    {
+      "month": "2026-04",
+      "state": "RECONCILED",
+      "statements": [
+        {
+          "docId": "doc_apr"
+        }
+      ],
+      "figures": {
+        "bankLines": {
+          "factId": "fact:2026-04:bank_lines",
+          "value": "45",
+          "inputs": []
+        }
+      },
+      "risk": {
+        "level": "LOW"
+      },
+      "note": "Statement and ledger agree."
+    },
+    {
+      "month": "2026-05",
+      "state": "NEEDS_REVIEW",
+      "statements": [
+        {
+          "docId": "doc_may"
+        }
+      ],
+      "figures": {
+        "bankLines": {
+          "factId": "fact:2026-05:bank_lines",
+          "value": "45",
+          "inputs": []
+        }
+      },
+      "risk": {
+        "level": "HIGH"
+      },
+      "note": "A supplier was paid to a new account."
+    },
+    {
+      "month": "2026-06",
+      "state": "NEEDS_REVIEW",
+      "statements": [
+        {
+          "docId": "doc_jun"
+        }
+      ],
+      "figures": {
+        "bankLines": {
+          "factId": "fact:2026-06:bank_lines",
+          "value": "45",
+          "inputs": []
+        }
+      },
+      "risk": {
+        "level": "MEDIUM"
+      },
+      "note": "A possible copy of a receipt is held."
+    }
   ]
 }

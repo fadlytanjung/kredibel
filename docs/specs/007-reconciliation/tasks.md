@@ -62,9 +62,12 @@
   spilling into the next cell at 360–1600 px, the real automatic match rate, "—" with a note when a
   fact does not exist, the meter from the match counts, the explanation from `risk.summary`); support
   and categories labelled per state with distinct colours (ADR-025). (AC-007-12)
-- [ ] **T007-10c** Months page views Bank evidence, Documents first and Currency on the workspace's
+- [x] **T007-10c** Months page views Bank evidence, Documents first and Currency on the workspace's
   own data (bank lines by support, invoices and receipts by payment evidence, documents waiting for
-  a currency agreement). Their fixed sample rows were removed (T007-10d). (AC-007-14…19)
+  a currency agreement). Their fixed sample rows were removed (T007-10d). (AC-007-14…19) Built
+  15 Oct 2026: `/months/all?view=bank|documents|currency`, the match sheet from any line, document
+  approval and manual payment confirmation (`PaymentSheet`) and the currency agreement as decisions;
+  the mock `months.html` draws the same views from `month.json`.
 - [x] **T007-10d** The month page opens on the current month and has the mock's tabs: Bank lines,
   Documents (payment evidence), Ledger and Findings, with counts; `/months/all` lists the months.
   (AC-007-12)

@@ -7,42 +7,17 @@ import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 import { formatDate } from '../../shared/lib/formatDate'
 import { formatAmount } from '../../shared/lib/formatMoney'
-import { DataTable, type DataTableColumn, type DataTableFilter, Icon, type IconName } from '../../shared/ui'
-import { type Payment, type Row, useMonthDocuments } from './useMonthDocuments'
+import { DataTable, type DataTableColumn, type DataTableFilter, Icon } from '../../shared/ui'
+import { PAID, PAYMENT_CHIP, rowTitle, rowWho } from './rowWords'
+import { type Row, useMonthDocuments } from './useMonthDocuments'
 
-const CHIP: Record<Payment, { chip: string; icon: IconName }> = {
-  PAID_BANK: { chip: 'auto', icon: 'link' },
-  PARTIAL_BANK: { chip: 'proposed', icon: 'link' },
-  PROPOSED: { chip: 'proposed', icon: 'eye' },
-  CONFIRMED_BY_YOU: { chip: 'manual', icon: 'hand' },
-  PAID_CASH: { chip: 'cleared', icon: 'wallet' },
-  WAITING_FOR_STATEMENT: { chip: 'none', icon: 'clock' },
-  NO_BANK_MATCH: { chip: 'none', icon: 'unlink' },
-  NOT_DUE: { chip: 'excluded', icon: 'calendar' },
-  UNPAID: { chip: 'overdue', icon: 'circle-alert' },
-  CURRENCY_TO_CONFIRM: { chip: 'proposed', icon: 'globe' },
-  NOT_RUN: { chip: 'none', icon: 'clock' },
-}
-const PAID: Payment[] = ['PAID_BANK', 'CONFIRMED_BY_YOU', 'PAID_CASH']
 
 export function MonthDocuments({ month, currency }: { month: string; currency: string }) {
   const { t } = useTranslation('months')
   const navigate = useNavigate()
   const { rows: items, isLoading } = useMonthDocuments(month)
-  const title = (r: Row) =>
-    r.kind === 'RECEIPT'
-      ? r.number
-        ? t('monthDetail.docs.receipt', { number: r.number })
-        : t('monthDetail.docs.receiptNoNumber')
-      : r.number
-        ? t('monthDetail.docs.invoice', { number: r.number })
-        : t('monthDetail.docs.invoiceNoNumber')
-  const who = (r: Row) => {
-    const party = r.party || t('monthDetail.docs.unknownParty')
-    if (r.kind === 'SALES') return t('monthDetail.docs.sales', { party })
-    if (r.kind === 'PURCHASE') return t('monthDetail.docs.purchase', { party })
-    return t('monthDetail.docs.merchant', { party })
-  }
+  const title = (r: Row) => rowTitle(t, r)
+  const who = (r: Row) => rowWho(t, r)
   const isPaid = (r: Row) => PAID.includes(r.payment)
   const filters: DataTableFilter<Row>[] = [
     { key: 'all', label: t('monthDetail.docs.filterAll'), predicate: () => true, count: items.length },
@@ -78,8 +53,8 @@ export function MonthDocuments({ month, currency }: { month: string; currency: s
       header: t('monthDetail.docs.colPayment'),
       wideOnMobile: true,
       render: (r) => (
-        <span className={`match-chip ${CHIP[r.payment].chip}`}>
-          <Icon name={CHIP[r.payment].icon} size="sm" />
+        <span className={`match-chip ${PAYMENT_CHIP[r.payment].chip}`}>
+          <Icon name={PAYMENT_CHIP[r.payment].icon} size="sm" />
           <span>{t(`monthDetail.payment.${r.payment}`)}</span>
         </span>
       ),

@@ -40,7 +40,8 @@
     <p class="muted">Bank cash comes from your statement. Supporting documents explain each payment.</p>
     <p class="muted">Workspace currency: IDR.</p>
   </header>
-  <section class="stack gap-4" aria-labelledby="all-months-h">
+  <div class="seg" role="group" aria-label="What to look at"><button type="button" data-group="monthsview" data-value="months" aria-pressed="true">Months</button><button type="button" data-group="monthsview" data-value="bank" aria-pressed="false">Bank evidence</button><button type="button" data-group="monthsview" data-value="documents" aria-pressed="false">Documents first</button><button type="button" data-group="monthsview" data-value="currency" aria-pressed="false">Currency</button></div>
+  <section class="stack gap-4" data-show-group="monthsview" data-show-value="months" aria-labelledby="all-months-h">
     <h2 class="type-h2" id="all-months-h">Months in this workspace</h2>
     
 <div class="stack gap-3">
@@ -82,6 +83,125 @@
   <div class="pager-line"><span>1 to 6 of 6</span></div>
   
 </div>
+  </section>
+  <section class="stack gap-4" data-show-group="monthsview" data-show-value="bank" hidden aria-labelledby="bank-evidence-h">
+    <h2 class="type-h2" id="bank-evidence-h">Bank lines and what supports them</h2>
+    <p class="muted">Every line comes from your statements and counts as bank cash. A line without a document is not an alarm: attach its invoice or receipt, or say it needs none.</p>
+    
+<div class="stack gap-3">
+  <div class="table-toolbar">
+    <div class="chips" role="group" aria-label="Filter bank lines by support"><a class="chip" aria-pressed="true" href="months.html">All <span class="n">9</span></a><a class="chip" aria-pressed="false" href="months.html">No document yet <span class="n">2</span></a><a class="chip" aria-pressed="false" href="months.html">Proposed match <span class="n">1</span></a><a class="chip" aria-pressed="false" href="months.html">Matched <span class="n">4</span></a><a class="chip" aria-pressed="false" href="months.html">No document needed <span class="n">1</span></a><a class="chip" aria-pressed="false" href="months.html">Not counted <span class="n">1</span></a></div>
+    <div class="row ml-auto"><div class="table-search"><svg class="icon icon-sm table-search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg><input type="text" class="input input-sm table-search-input" placeholder="Search bank lines" aria-label="Search bank lines"/></div></div>
+  </div>
+  <div class="table-panel rt-wrap"><table class="data-table rt"><thead><tr><th data-cell="wide">Bank line</th><th class="hide-rt" data-cell="hide">Month</th><th class="r">Amount, IDR</th><th data-cell="wide">Matched with</th><th class="r">Actions</th></tr></thead><tbody><tr>
+  <td data-cell="wide"><div><strong>Cendana Fuel Station</strong><div class="reason">18 Mar 2026</div></div></td>
+  <td class="hide-rt" data-cell="hide">March 2026</td>
+  <td class="r num"><span class="amt-out">-650,000</span></td>
+  <td data-cell="wide"><div class="stack gap-1"><span class="match-chip auto"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg><span>Matched by Kredibel</span></span></div></td>
+  <td class="r"></td>
+</tr><tr>
+  <td data-cell="wide"><div><strong>PURCHASE ESPRESSO MACHINE</strong><div class="reason">17 Mar 2026</div></div></td>
+  <td class="hide-rt" data-cell="hide">March 2026</td>
+  <td class="r num"><span class="amt-out">-18,400,000</span></td>
+  <td data-cell="wide"><div class="stack gap-1"><span class="match-chip none"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6.5A1.5 1.5 0 0 0 5 4.5v15A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V8z"/><path d="M14 3v5h5M8.5 13h7M8.5 16.5h7"/></svg><span>No document yet</span></span><span class="reason">Bank cash is recorded. Upload its invoice or receipt, or say it needs none.</span></div></td>
+  <td class="r"><button class="button button-secondary button-sm" type="button">Match</button></td>
+</tr><tr>
+  <td data-cell="wide"><div><strong>MONTHLY ACCOUNT FEE</strong><div class="reason">16 Mar 2026</div></div></td>
+  <td class="hide-rt" data-cell="hide">March 2026</td>
+  <td class="r num"><span class="amt-out">-35,000</span></td>
+  <td data-cell="wide"><div class="stack gap-1"><span class="match-chip cleared"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg><span>No document needed</span></span><span class="reason">You said this line needs no document.</span></div></td>
+  <td class="r"></td>
+</tr><tr>
+  <td data-cell="wide"><div><strong>Primepack Packaging</strong><div class="reason">15 Mar 2026</div></div></td>
+  <td class="hide-rt" data-cell="hide">March 2026</td>
+  <td class="r num"><span class="amt-out">-3,180,000</span></td>
+  <td data-cell="wide"><div class="stack gap-1"><span class="match-chip manual"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 13V6.5a1.5 1.5 0 0 1 3 0V12M11 11V5a1.5 1.5 0 0 1 3 0v6M14 11V6.5a1.5 1.5 0 0 1 3 0V14a7 7 0 0 1-7 7h-.5A6 6 0 0 1 5 18l-1.7-3.4a1.5 1.5 0 0 1 2.6-1.5L8 15"/></svg><span>Matched by you</span></span></div></td>
+  <td class="r"></td>
+</tr><tr>
+  <td data-cell="wide"><div><strong>Harborview Hotel Group</strong><div class="reason">14 Mar 2026</div></div></td>
+  <td class="hide-rt" data-cell="hide">March 2026</td>
+  <td class="r num"><span class="amt-in">+7,250,000</span></td>
+  <td data-cell="wide"><div class="stack gap-1"><span class="match-chip none"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6.5A1.5 1.5 0 0 0 5 4.5v15A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V8z"/><path d="M14 3v5h5M8.5 13h7M8.5 16.5h7"/></svg><span>No document yet</span></span><span class="reason">Bank cash is recorded. Upload its invoice or receipt, or say it needs none.</span></div></td>
+  <td class="r"><button class="button button-secondary button-sm" type="button">Match</button></td>
+</tr><tr>
+  <td data-cell="wide"><div><strong>Green Valley Farms</strong><div class="reason">12 Mar 2026</div></div></td>
+  <td class="hide-rt" data-cell="hide">March 2026</td>
+  <td class="r num"><span class="amt-out">-9,850,000</span></td>
+  <td data-cell="wide"><div class="stack gap-1"><span class="match-chip proposed"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></svg><span>Proposed match</span></span><span class="reason">Check the proposed document before it counts.</span></div></td>
+  <td class="r"><button class="button button-secondary button-sm" type="button">Match</button></td>
+</tr><tr>
+  <td data-cell="wide"><div><strong>TRANSFER TO OWN SAVINGS ••7710</strong><div class="reason">12 Mar 2026</div></div></td>
+  <td class="hide-rt" data-cell="hide">March 2026</td>
+  <td class="r num"><span class="amt-out">-2,000,000</span></td>
+  <td data-cell="wide"><div class="stack gap-1"><span class="match-chip excluded"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.3-4.3L4 9"/><path d="M4 4v5h5M4 13a8 8 0 0 0 14.3 4.3L20 15"/><path d="M20 20v-5h-5"/></svg><span>Not counted</span></span><span class="reason">Between your own accounts or a reversal, so not money in or out.</span></div></td>
+  <td class="r"></td>
+</tr><tr>
+  <td data-cell="wide"><div><strong>Daybreak Café</strong><div class="reason">11 Mar 2026</div></div></td>
+  <td class="hide-rt" data-cell="hide">March 2026</td>
+  <td class="r num"><span class="amt-in">+6,420,000</span></td>
+  <td data-cell="wide"><div class="stack gap-1"><span class="match-chip auto"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg><span>Matched by Kredibel</span></span></div></td>
+  <td class="r"></td>
+</tr><tr>
+  <td data-cell="wide"><div><strong>VAT PAYMENT FEB</strong><div class="reason">10 Mar 2026</div></div></td>
+  <td class="hide-rt" data-cell="hide">March 2026</td>
+  <td class="r num"><span class="amt-out">-4,860,000</span></td>
+  <td data-cell="wide"><div class="stack gap-1"><span class="match-chip auto"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg><span>Matched by Kredibel</span></span></div></td>
+  <td class="r"></td>
+</tr></tbody></table></div>
+  <div class="pager-line"><span>1 to 9 of 9</span></div>
+  
+</div>
+  </section>
+  <section class="stack gap-4" data-show-group="monthsview" data-show-value="documents" hidden aria-labelledby="documents-first-h">
+    <h2 class="type-h2" id="documents-first-h">Documents and their payment evidence</h2>
+    <p class="muted">Invoices and receipts wait for the statement that pays them. Approving a document says it is valid; confirming a payment by hand records what you know, with no bank evidence.</p>
+    
+<div class="stack gap-3">
+  <div class="table-toolbar">
+    <div class="chips" role="group" aria-label="Filter documents by payment evidence"><a class="chip" aria-pressed="true" href="months.html">All <span class="n">5</span></a><a class="chip" aria-pressed="false" href="months.html">Waiting for the statement <span class="n">0</span></a><a class="chip" aria-pressed="false" href="months.html">No bank payment found <span class="n">0</span></a><a class="chip" aria-pressed="false" href="months.html">Unpaid after its due date <span class="n">1</span></a><a class="chip" aria-pressed="false" href="months.html">Paid <span class="n">3</span></a></div>
+    <div class="row ml-auto"><div class="table-search"><svg class="icon icon-sm table-search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg><input type="text" class="input input-sm table-search-input" placeholder="Search documents" aria-label="Search documents"/></div></div>
+  </div>
+  <div class="table-panel rt-wrap"><table class="data-table rt"><thead><tr><th data-cell="wide">Document</th><th class="r">Amount, IDR</th><th data-cell="wide">Payment evidence</th><th class="r">Actions</th></tr></thead><tbody><tr>
+  <td data-cell="wide"><div><strong>Invoice RL-2026-0402</strong><div class="reason">Purchase, from Roastline Equipment Service</div><div class="reason">2 Apr 2026</div></div></td>
+  <td class="r num">1,500.00</td>
+  <td data-cell="wide"><div class="stack gap-1"><span class="match-chip proposed"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.7 5.6 3.7 9s-1.2 6.4-3.7 9c-2.5-2.6-3.7-5.6-3.7-9S9.5 5.6 12 3z"/></svg><span>Currency to confirm</span></span></div></td>
+  <td class="r"><div class="row gap-2 justify-end flex-wrap"><button class="button button-secondary button-sm" type="button">Approve document</button></div></td>
+</tr><tr>
+  <td data-cell="wide"><div><strong>Receipt</strong><div class="reason">Paid to Cendana Fuel Station</div><div class="reason">18 Mar 2026</div><div class="reason">No currency printed: read as IDR</div></div></td>
+  <td class="r num">650,000</td>
+  <td data-cell="wide"><div class="stack gap-1"><span class="match-chip auto"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg><span>Paid through the bank</span></span></div></td>
+  <td class="r"><div class="row gap-2 justify-end flex-wrap"><button class="button button-secondary button-sm" type="button">Approve document</button></div></td>
+</tr><tr>
+  <td data-cell="wide"><div><strong>Invoice PP/26/0312</strong><div class="reason">Purchase, from Primepack Packaging</div><div class="reason">12 Mar 2026</div></div></td>
+  <td class="r num">3,180,000</td>
+  <td data-cell="wide"><div class="stack gap-1"><span class="match-chip auto"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg><span>Paid through the bank</span></span></div></td>
+  <td class="r"><div class="row gap-2 justify-end flex-wrap"><button class="button button-secondary button-sm" type="button">Approve document</button></div></td>
+</tr><tr>
+  <td data-cell="wide"><div><strong>Invoice GVF-2026-0311</strong><div class="reason">Purchase, from Green Valley Farms</div><div class="reason">11 Mar 2026</div></div></td>
+  <td class="r num">9,850,000</td>
+  <td data-cell="wide"><div class="stack gap-1"><span class="match-chip overdue"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V13M12 16.5h.01"/></svg><span>Unpaid after its due date</span></span></div></td>
+  <td class="r"><div class="row gap-2 justify-end flex-wrap"><button class="button button-secondary button-sm" type="button">Approve document</button><button class="button button-secondary button-sm" type="button">Confirm payment</button></div></td>
+</tr><tr>
+  <td data-cell="wide"><div><strong>Invoice INV/SCR/2026/03/0007</strong><div class="reason">Sales, to Daybreak Café</div><div class="reason">6 Mar 2026</div></div></td>
+  <td class="r num">6,420,000</td>
+  <td data-cell="wide"><div class="stack gap-1"><span class="match-chip auto"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg><span>Paid through the bank</span></span></div></td>
+  <td class="r"><div class="row gap-2 justify-end flex-wrap"><button class="button button-secondary button-sm" type="button">Approve document</button></div></td>
+</tr></tbody></table></div>
+  <div class="pager-line"><span>1 to 5 of 5</span></div>
+  
+</div>
+  </section>
+  <section class="stack gap-4" data-show-group="monthsview" data-show-value="currency" hidden aria-labelledby="currency-check-h">
+    <h2 class="type-h2" id="currency-check-h">Confirm document currency</h2>
+    <p class="muted">Your workspace uses IDR, fixed at onboarding. A document printed in another currency waits here until you agree to read its amounts as IDR.</p>
+    <article class="card stack gap-3" aria-label="Invoice RL-2026-0402">
+      <span class="badge badge-medium self-start"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V13M12 16.5h.01"/></svg>Currency needs confirmation</span>
+      <p><strong>Invoice RL-2026-0402</strong><span class="muted"> · Purchase, from Roastline Equipment Service</span></p>
+      <p>The document says USD 1,500.00. Use its amounts as IDR 1,500.00 without conversion?</p>
+      <p class="muted">The numbers stay the same. We keep the printed currency and your agreement. Until you agree, this document stays out of totals and matching.</p>
+      <div class="row gap-3 flex-wrap"><button class="button button-primary" type="button">Use amounts as IDR</button>
+        <a class="button button-secondary" href="documents.html">Replace document</a></div>
+    </article>
   </section>
 </div></main><div class="dock"><a class="fab" href="documents.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5"/><path d="M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15"/></svg>Upload</a><nav class="bottom-nav" aria-label="Main"><a class="nav-item" href="dashboard.html"><span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="8" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="5" rx="1.5"/><rect x="13.5" y="11.5" width="7" height="9" rx="1.5"/><rect x="3.5" y="14.5" width="7" height="6" rx="1.5"/></svg></span>Dashboard</a><a class="nav-item" href="documents.html"><span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 3H8.5A1.5 1.5 0 0 0 7 4.5v12A1.5 1.5 0 0 0 8.5 18h9a1.5 1.5 0 0 0 1.5-1.5V7z"/><path d="M15 3v4h4"/><path d="M4 7.5v12A1.5 1.5 0 0 0 5.5 21H14"/></svg></span>Documents</a><a class="nav-item" href="review.html"><span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 13.5 6 5.5A1.5 1.5 0 0 1 7.4 4.5h9.2A1.5 1.5 0 0 1 18 5.5l2.5 8"/><path d="M3.5 13.5V18A1.5 1.5 0 0 0 5 19.5h14a1.5 1.5 0 0 0 1.5-1.5v-4.5h-5a3.5 3.5 0 0 1-7 0z"/></svg><span class="nav-count" aria-label="10 open">10</span></span>Review</a><a class="nav-item" href="risk.html"><span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4.5 6v5.5c0 4.6 3.1 8 7.5 9.5 4.4-1.5 7.5-4.9 7.5-9.5V6z"/><path d="M12 8.5v4M12 15.5h.01"/></svg><span class="nav-count" aria-label="2 open">2</span></span>Risk</a><a class="nav-item" href="#more" aria-current="page"><span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></span>More</a></nav></div></div></div><div class="more-sheet" id="more" role="dialog" aria-label="More"><a class="scrim" href="#" aria-label="Close"></a><div class="sheet"><span class="handle" aria-hidden="true"></span><p class="sheet-title">More</p><nav class="sheet-links"><a href="month.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h11.5M12 3.5 15.5 7 12 10.5"/><path d="M20 17H8.5M12 13.5 8.5 17l3.5 3.5"/></svg><span>Reconciliation</span><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg></a><a href="clients.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 19.5c.8-3.2 3.4-5 6.5-5s5.7 1.8 6.5 5"/><path d="M15.5 4.8a3.5 3.5 0 0 1 0 6.4"/><path d="M18 14.8c1.8.7 3.1 2.3 3.5 4.7"/></svg><span>Clients and suppliers</span><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg></a><a href="assistant.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 13.7 8.3 18.5 10l-4.8 1.7L12 16.5l-1.7-4.8L5.5 10l4.8-1.7z"/><path d="M18.5 15.5 19.3 17.7 21.5 18.5l-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></svg><span>Assistant</span><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg></a><a href="labels.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7a1 1 0 0 1 .7.3l7.8 7.8a1 1 0 0 1 0 1.4l-7.7 7.7a1 1 0 0 1-1.4 0l-7.8-7.8a1 1 0 0 1-.3-.7z"/><circle cx="8" cy="8" r="1.5"/></svg><span>Labels</span><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg></a><a href="runs.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h4c4 0 6 12 10 12h4"/><path d="M3 18h4c4 0 6-12 10-12h4"/></svg><span>Runs</span><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg></a><a href="plan-usage.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg><span>Settings</span><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg></a><a href="brand.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5z"/><path d="M13 4h5.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H13z"/></svg><span>Logo and brand</span><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg></a><a href="index.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="8" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="5" rx="1.5"/><rect x="13.5" y="11.5" width="7" height="9" rx="1.5"/><rect x="3.5" y="14.5" width="7" height="6" rx="1.5"/></svg><span>All screens</span><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg></a></nav></div></div></div>
 </body>

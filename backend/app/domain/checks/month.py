@@ -557,6 +557,31 @@ def supplier_account_changed(ctx: MonthContext) -> list[Finding]:
     return out
 
 
+def _unbooked(
+    ctx: MonthContext,
+    lines: list[BankLine],
+    rows: list[LedgerRow],
+    tol: Decimal,
+    ledger_days: int,
+) -> list[BankLine]:
+    """The month's bank lines with no ledger cash entry of the same sign and amount within the
+    window, in statement order."""
+    out: list[BankLine] = []
+    for ln in sorted(lines, key=lambda x: (x.date, x.row_index, x.tx_id)):
+        tolerance = ctx.reconciliation.tolerance(abs(ln.amount), ctx.workspace_currency)
+        if tolerance is None:
+            tolerance = tol
+        booked = any(
+            abs((ln.date - r.date).days) <= ledger_days
+            and ln.amount * (r.debit - r.credit) > 0
+            and abs(abs(ln.amount) - abs(r.debit - r.credit)) <= tolerance
+            for r in rows
+        )
+        if not booked:
+            out.append(ln)
+    return out
+
+
 @_check("X09_LEDGER_BANK_MISMATCH")
 def ledger_bank_mismatch(ctx: MonthContext) -> list[Finding]:
     """docs/08 §2.6: For a mapped bank account, ledger cash movement for the month differs from
@@ -587,8 +612,8 @@ def ledger_bank_mismatch(ctx: MonthContext) -> list[Finding]:
             and not r.held_as_duplicate
             and _month_of(r.date) == ctx.month
         ]
-        if not account_spans and not month_rows:
-            continue
+        if not account_spans:
+            continue  # nothing to compare the ledger with until the account's statement arrives
 
         bank_net = sum((ln.amount for ln in month_lines), Decimal(0))
         # In a bank/cash asset account, debits increase cash and credits decrease cash:
@@ -604,6 +629,19 @@ def ledger_bank_mismatch(ctx: MonthContext) -> list[Finding]:
             for r in month_rows[:5]:
                 ev.append(
                     Evidence(doc_id=r.doc_id, ledger_entry_id=r.entry_id, label="Ledger entry")
+                )
+            # The bank lines no ledger entry books ("deposited but never booked"), named so the
+            # review queue can show them (docs/08 §7, UNMATCHED_BANK_LINE).
+            for ln in _unbooked(ctx, month_lines, month_rows, tol, ledger_days)[:10]:
+                ev.append(
+                    Evidence(
+                        doc_id=ln.doc_id,
+                        page=ln.page,
+                        tx_id=ln.tx_id,
+                        label="Deposited but never booked"
+                        if ln.amount > 0
+                        else "Paid but never booked",
+                    )
                 )
             out.append(
                 ctx.finding(

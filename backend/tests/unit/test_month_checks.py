@@ -355,3 +355,24 @@ def test_x09_entry_missing_bank_line_within_window():
     assert x09_entries[0].severity == "MEDIUM"
     assert x09_entries[0].facts["entryId"] == "e1"
 
+
+def test_x09_month_difference_names_the_bank_lines_never_booked_and_needs_a_statement():
+    lines = [
+        line("l1", date(2026, 3, 10), "1000.00", "CASH DEPOSIT"),
+        line("l2", date(2026, 3, 15), "-400.00", "SUPPLIER PAYMENT"),
+    ]
+    rows = [
+        ledger_row("e2", date(2026, 3, 15), "1100", credit="400.00")
+    ]  # the deposit never booked
+    [found] = run_month_checks(
+        ctx(lines=lines, all_lines=lines, ledger_rows=rows, bank_account_mappings={ACC: "1100"})
+    )
+    assert (found.code, found.severity) == ("X09_LEDGER_BANK_MISMATCH", "HIGH")
+    assert found.facts["difference"] == "1000.00"
+    named = [(e.tx_id, e.label) for e in found.evidence if e.tx_id]
+    assert named == [("l1", "Deposited but never booked")]
+    # Without a statement for the account that month there is nothing to compare the ledger with.
+    assert (
+        run_month_checks(ctx(statements=[], ledger_rows=rows, bank_account_mappings={ACC: "1100"}))
+        == []
+    )

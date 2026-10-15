@@ -18,7 +18,7 @@
 
 ## Phase 3 — Scenarios
 
-- [ ] **T006-09** Scenario tests S1, S2, S3. (AC-006-12, AC-006-13)
+- [x] **T006-09** Scenario tests S1, S2, S3. (AC-006-12, AC-006-13) `test_scenario_forensics.py`: every S1 statement `CLEAN`, S2's March `TAMPERED` with `A01` at the edited row, `A02`, `M01`–`M03` (`M04` on the workflow path), S3's `D02`/`D03`/`D05` held and `D01` refused at upload; S3's figures equal S1's through the API (009). `D06` stays open with the ledger copy.
 
 ## Phase 4 — Close
 

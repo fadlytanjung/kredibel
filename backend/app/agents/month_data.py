@@ -141,11 +141,10 @@ async def read_month(deps: PipelineDeps, org_id: str, month: str) -> MonthData |
     bank_account_mappings: dict[str, str] = {}
     bank_accounts = await deps.workspaces.list_bank_accounts(org_id)
     for acc in bank_accounts:
-        if acc.ledger_account_code:
-            key = statement_account(acc.bank_name, acc.account_masked)
-            if key:
-                bank_account_mappings[key] = acc.ledger_account_code
-            bank_account_mappings[acc.account_id] = acc.ledger_account_code
+        # Keyed as the statements' spans are (docs/09 §3.5), so X09 compares like with like.
+        key = statement_account(acc.bank_name, acc.account_masked)
+        if acc.ledger_account_code and key:
+            bank_account_mappings[key] = acc.ledger_account_code
 
     ledger_rows: list[LedgerRow] = []
     if deps.ledger is not None:

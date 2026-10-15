@@ -129,7 +129,7 @@ printed (wrong) balance, which shows where the edit was made.
 | `X06_UNDECLARED_ACCOUNT` | A statement's account is not among the workspace's bank accounts (also creates a `BANK_ACCOUNT` suggestion) | LOW | P0 |
 | `X07_TAX_ID_MISMATCH` | A sales invoice's issuer tax ID differs from the workspace's tax ID | HIGH | P1 |
 | `X08_SUPPLIER_ACCOUNT_CHANGED` | A purchase invoice's pay-to account, or a bank debit to a known supplier, uses an account not seen before for that supplier while an earlier account exists | HIGH | P0 |
-| `X09_LEDGER_BANK_MISMATCH` | For a mapped bank account, ledger cash movement for the month differs from the statement's net movement by > tol; or a ledger cash entry has no bank line within the window | MEDIUM (per entry) / HIGH (month difference > 5%) | P0 |
+| `X09_LEDGER_BANK_MISMATCH` | For a mapped bank account with a statement that month, ledger cash movement for the month differs from the statement's net movement by > tol (the finding names the bank lines no ledger entry books, so the queue can ask about them); or a ledger cash entry has no bank line within the window | MEDIUM (per entry) / HIGH (month difference > 5%) | P0 |
 
 ### 2.7 Reconciliation and behaviour (per month)
 

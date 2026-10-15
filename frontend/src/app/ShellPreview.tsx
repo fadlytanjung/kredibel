@@ -9,6 +9,7 @@ import { ProfitLossContent } from '../pages/ProfitLossPage'
 import { DashboardPage } from '../pages/DashboardPage'
 import { DocumentPage } from '../pages/DocumentPage'
 import { MonthPage } from '../pages/MonthPage'
+import { MonthsPage } from '../pages/MonthsPage'
 import { ReviewPage } from '../pages/ReviewPage'
 import { SettingsPage } from '../pages/SettingsPage'
 import { AppShell } from '../shared/ui'
@@ -53,6 +54,15 @@ export function MonthPreview() {
   return (
     <AppShell {...PREVIEW_PROPS} activePath="/months" onUpload={() => undefined}>
       <MonthPage />
+    </AppShell>
+  )
+}
+
+/** All months inside the shell; the caller serves its API data (screenshots). */
+export function MonthsPreview() {
+  return (
+    <AppShell {...PREVIEW_PROPS} activePath="/months" onUpload={() => undefined}>
+      <MonthsPage />
     </AppShell>
   )
 }

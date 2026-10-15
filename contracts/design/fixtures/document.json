@@ -1,0 +1,51 @@
+{
+  "document": {
+    "docId": "doc_feb",
+    "fileName": "ACB_Feb_2026.pdf",
+    "contentType": "application/pdf",
+    "docType": "BANK_STATEMENT",
+    "status": "DONE",
+    "pageCount": 3,
+    "months": ["2026-02"],
+    "pages": [
+      { "pageNo": 1, "status": "DONE", "textLayer": true, "witness": "TEXT_LAYER" },
+      { "pageNo": 2, "status": "DONE", "textLayer": true, "witness": "TEXT_LAYER" },
+      { "pageNo": 3, "status": "DONE", "textLayer": true, "witness": "TEXT_LAYER" }
+    ],
+    "reading": { "fieldsAgreed": 180, "fieldsCompared": 180 },
+    "statementMeta": {
+      "bankName": "Archipelago Commerce Bank",
+      "accountMasked": "••4821",
+      "periodStart": "2026-02-01",
+      "periodEnd": "2026-02-28",
+      "currency": "IDR",
+      "opening": { "amount": "41100000.00", "currency": "IDR" },
+      "closing": { "amount": "47900000.00", "currency": "IDR" }
+    },
+    "integrity": { "verdict": "CLEAN" },
+    "uploadedAt": "2026-07-02T09:00:00Z"
+  },
+  "lines": [
+    { "txId": "tx_feb_03", "docId": "doc_feb", "page": 1, "rowIndex": 1, "date": "2026-02-03", "month": "2026-02", "description": "TRANSFER OUT GREEN VALLEY FARMS 0912", "amount": { "amount": "-12400000.00", "currency": "IDR" }, "counterpartyName": null, "readings": { "amount": { "status": "AGREED", "bbox": { "x0": 0.555, "y0": 0.352, "x1": 0.69, "y1": 0.372 } } }, "match": { "state": "UNMATCHED", "matchIds": [] }, "source": "AI" },
+    { "txId": "tx_feb_04", "docId": "doc_feb", "page": 1, "rowIndex": 2, "date": "2026-02-04", "month": "2026-02", "description": "CASH DEPOSIT", "amount": { "amount": "2050000.00", "currency": "IDR" }, "counterpartyName": null, "readings": { "amount": { "status": "AGREED", "bbox": { "x0": 0.7, "y0": 0.385, "x1": 0.83, "y1": 0.405 } } }, "match": { "state": "UNMATCHED", "matchIds": [] }, "source": "AI" },
+    { "txId": "tx_feb_05", "docId": "doc_feb", "page": 1, "rowIndex": 3, "date": "2026-02-05", "month": "2026-02", "description": "TRANSFER IN SPICE ROUTE RESTAURANT", "amount": { "amount": "9800000.00", "currency": "IDR" }, "counterpartyName": null, "readings": { "amount": { "status": "AGREED", "bbox": { "x0": 0.7, "y0": 0.418, "x1": 0.83, "y1": 0.438 } } }, "match": { "state": "UNMATCHED", "matchIds": [] }, "source": "AI" },
+    { "txId": "tx_feb_06", "docId": "doc_feb", "page": 1, "rowIndex": 4, "date": "2026-02-06", "month": "2026-02", "description": "DEBIT CARD CENDANA FUEL STATION", "amount": { "amount": "-720000.00", "currency": "IDR" }, "counterpartyName": null, "readings": { "amount": { "status": "SINGLE_SOURCE", "bbox": { "x0": 0.555, "y0": 0.451, "x1": 0.69, "y1": 0.471 } } }, "match": { "state": "UNMATCHED", "matchIds": [] }, "source": "AI" },
+    { "txId": "tx_feb_09", "docId": "doc_feb", "page": 1, "rowIndex": 5, "date": "2026-02-09", "month": "2026-02", "description": "TRANSFER IN DAYBREAK CAFE", "amount": { "amount": "18700000.00", "currency": "IDR" }, "counterpartyName": null, "readings": { "amount": { "status": "AGREED", "bbox": { "x0": 0.7, "y0": 0.484, "x1": 0.83, "y1": 0.504 } } }, "match": { "state": "UNMATCHED", "matchIds": [] }, "source": "AI" },
+    { "txId": "tx_feb_10", "docId": "doc_feb", "page": 1, "rowIndex": 6, "date": "2026-02-10", "month": "2026-02", "description": "VAT PAYMENT JAN", "amount": { "amount": "-4410000.00", "currency": "IDR" }, "counterpartyName": null, "readings": { "amount": { "status": "AGREED", "bbox": { "x0": 0.555, "y0": 0.517, "x1": 0.69, "y1": 0.537 } } }, "match": { "state": "UNMATCHED", "matchIds": [] }, "source": "AI" },
+    { "txId": "tx_feb_11", "docId": "doc_feb", "page": 1, "rowIndex": 7, "date": "2026-02-11", "month": "2026-02", "description": "TRANSFER OUT PRIMEPACK PACKAGING", "amount": { "amount": "-3060000.00", "currency": "IDR" }, "counterpartyName": null, "readings": { "amount": { "status": "AGREED", "bbox": { "x0": 0.555, "y0": 0.55, "x1": 0.69, "y1": 0.57 } } }, "match": { "state": "UNMATCHED", "matchIds": [] }, "source": "AI" },
+    { "txId": "tx_feb_12", "docId": "doc_feb", "page": 1, "rowIndex": 8, "date": "2026-02-12", "month": "2026-02", "description": "INSTANT TRANSFER IN HIGHLAND RESORT & SPA", "amount": { "amount": "7600000.00", "currency": "IDR" }, "counterpartyName": null, "readings": { "amount": { "status": "AGREED", "bbox": { "x0": 0.7, "y0": 0.583, "x1": 0.83, "y1": 0.603 } } }, "match": { "state": "UNMATCHED", "matchIds": [] }, "source": "AI" },
+    { "txId": "tx_feb_13", "docId": "doc_feb", "page": 1, "rowIndex": 9, "date": "2026-02-13", "month": "2026-02", "description": "TRANSFER OUT ANDI PRATAMA", "amount": { "amount": "-5000000.00", "currency": "IDR" }, "counterpartyName": null, "readings": { "amount": { "status": "AGREED", "bbox": { "x0": 0.555, "y0": 0.616, "x1": 0.69, "y1": 0.636 } } }, "match": { "state": "UNMATCHED", "matchIds": [] }, "source": "AI" },
+    { "txId": "tx_feb_16", "docId": "doc_feb", "page": 2, "rowIndex": 0, "date": "2026-02-16", "month": "2026-02", "description": "TRANSFER IN HARBORVIEW HOTEL GROUP", "amount": { "amount": "6900000.00", "currency": "IDR" }, "counterpartyName": null, "readings": { "amount": { "status": "AGREED", "bbox": { "x0": 0.7, "y0": 0.22, "x1": 0.83, "y1": 0.24 } } }, "match": { "state": "UNMATCHED", "matchIds": [] }, "source": "AI" }
+  ],
+  "ledger": {
+    "docId": "doc_gl",
+    "fileName": "GL_2026_Q1.csv",
+    "contentType": "text/csv",
+    "docType": "LEDGER_EXPORT",
+    "status": "DONE",
+    "pageCount": 0,
+    "months": ["2026-01", "2026-02", "2026-03"],
+    "ledgerMeta": { "layoutSignature": "sig_7f3a", "mappingStatus": "CONFIRMED", "rows": 52, "rowsImported": 52, "dateFrom": "2026-01-01", "dateTo": "2026-03-31" },
+    "uploadedAt": "2026-07-02T09:05:00Z"
+  }
+}

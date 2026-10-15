@@ -284,4 +284,25 @@ describe('MonthPage', () => {
     expect(screen.getByRole('link', { name: 'Open June 2026' })).toHaveAttribute('href', '/months/2026-06')
     expect(screen.queryByRole('tab', { name: /Bank lines/ })).not.toBeInTheDocument()
   })
+
+  it("shows the explainer's finding citations as chips that open the evidence (AC-008-6)", async () => {
+    serve({
+      ...MONTH,
+      risk: {
+        level: 'HIGH',
+        summary: 'An invoice came from a supplier never paid before [[finding:fnd_1]]; the month is otherwise balanced [[fact:2026-03:closing]].',
+        nextSteps: ['Check who sent it.'],
+        reasons: ['fnd_1'],
+        grounding: { verdict: 'AGREED', citations: ['finding:fnd_1'] },
+      },
+    })
+    renderPage()
+
+    expect(await screen.findByText('High risk this month')).toBeInTheDocument()
+    const chip = screen.getByRole('link', { name: 'R02' })
+    expect(chip).toHaveAttribute('href', '/risk/fnd_1')
+    const lead = chip.closest('p')
+    expect(lead).toHaveTextContent('An invoice came from a supplier never paid before R02; the month is otherwise balanced.')
+    expect(lead?.textContent).not.toContain('[[')
+  })
 })

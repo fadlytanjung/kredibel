@@ -558,9 +558,11 @@ make mock-shots    tools/design/shoot_mocks.py at 390, 834, 1440 px → docs/ass
 | `onboarding.html` | Myself or a company, the trial terms, the brand panel | 013 |
 | `dashboard.html` | Period switch, figures, the P&L panel, then full-width charts with the IFRS / US GAAP switch: money flow (Flow, Bars, Table, By client and supplier), money in and out by month, cash-flow statement; the reconciliation sentence, Risk, To review and Where the money went, months as binder tabs. Drawn from `contracts/design/fixtures/dashboard.json`, the same payload the browser parity check serves | 010, 018, 019 |
 | `documents.html` | Upload tray with an exact copy, a held copy, a page being read and a new ledger layout; the library | 003, 006 |
-| `document.html` | One read statement: page viewer (pages, zoom, the lamp) beside the figures and the transactions with reading marks, filters and pages | 003, 005, 006 |
-| `month.html` | March 2026: figures, the critical explanation with citations and next steps, bank lines with matches | 007, 008 |
-| `review.html` | The queue by month and the fix panel for a bank line that fits two invoices | 009 |
+| `document.html` | One read statement: page viewer (pages, zoom, the lamp) beside the figures and the transactions with reading marks, filters and pages. Drawn from `contracts/design/fixtures/document.json` | 003, 005, 006 |
+| `document-ledger.html` | A ledger export after import: rows, period, the link to the profit and loss; the column confirmation marked as planned (T005-11) | 003, 005, 019 |
+| `month.html` | March 2026: figures, the critical explanation with citation chips and next steps, the match meter, bank lines with category, support, reason and action. Drawn from `contracts/design/fixtures/month.json` | 007, 008 |
+| `months.html` | All months in the shared table: state, risk, statements, newest first | 007 |
+| `review.html`, `review-match.html`, `review-correction.html` | The queue in the shared table; the fix drawer for a proposed match; a value to check with the receipt's page beside the correction form. Drawn from `contracts/design/fixtures/review.json` | 009, 019 |
 | `evidence-viewer.html` | The lamp, calculation, two readings; magnifier on compact | 005, 008 |
 | `assistant.html` | Finance Assistant: the history rail, three grounded answers with citation chips and a small chart, a fourth answer being written (activity trail), the composer | 011, 019 |
 | `assistant-welcome.html`, `assistant-history.html` | The welcome prompts of an empty thread; the history drawer phones open from Chat history | 011, 019 |

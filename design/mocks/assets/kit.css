@@ -77,6 +77,7 @@ a:hover { color: var(--k-color-brand-hover); }
   border: 0; border-radius: var(--k-radius-full); background: transparent; color: var(--k-color-text-default); cursor: pointer; position: relative;
 }
 .icon-button:hover { background: var(--k-color-bg-sunken); }
+.icon-button-sm { width: 28px; height: 28px; min-width: 28px; min-height: 28px; }
 .icon-button .dot { position: absolute; top: 9px; right: 10px; width: 8px; height: 8px; border-radius: 50%; background: var(--k-color-severity-critical-fg); box-shadow: 0 0 0 2px var(--k-color-bg-canvas); }
 
 .dock { position: sticky; bottom: 0; z-index: var(--k-z-nav); }
@@ -242,6 +243,10 @@ a:hover { color: var(--k-color-brand-hover); }
 
 .panel { background: var(--k-color-bg-surface); border: 1px solid var(--k-color-border-default); border-radius: var(--k-radius-md); }
 .panel-pad { padding: var(--k-space-5); }
+/* A card is a padded panel (the app writes `card p-4`; the mocks `card`). */
+.card { background: var(--k-color-bg-surface); border: 1px solid var(--k-color-border-default); border-radius: var(--k-radius-md); padding: var(--k-space-4); }
+/* The few layout utilities the app's pages use that the mocks need as well. */
+.ml-auto { margin-left: auto; } .mt-6 { margin-top: var(--k-space-6); } .block { display: block; } .m-0 { margin: 0; } .self-start { align-self: flex-start; }
 @container app (width < 600px) { .panel-pad { padding: var(--k-space-4); } }
 .panel-head { display: flex; align-items: center; justify-content: space-between; gap: var(--k-space-3); padding: var(--k-space-4) var(--k-space-5); border-bottom: 1px solid var(--k-color-border-default); }
 .panel-head h2 { font-size: 16px; line-height: 22px; font-weight: 660; }
@@ -716,14 +721,17 @@ a:hover { color: var(--k-color-brand-hover); }
 }
 .review-sheet .fix { border: 0; border-radius: 0; box-shadow: none; background: transparent; overflow-y: auto; }
 .review-split-layout { display: flex; flex-direction: column; height: 100%; overflow: hidden; flex: 1; }
+/* Narrow: the preview is a bounded block above the panel, which keeps scrolling to its actions. */
+.review-split-layout.with-preview .review-split-preview { flex: 0 0 auto; max-height: 45dvh; overflow-y: auto; }
+.review-split-layout .review-split-panel { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
 @media (min-width: 834px) {
   .review-split-layout.with-preview { flex-direction: row; }
-  .review-split-layout.with-preview .review-split-preview { flex: 1 1 55%; min-width: 380px; height: 100%; overflow-y: auto; border-right: 1px solid var(--k-color-border-subtle); background: var(--k-color-bg-sunken); display: flex; flex-direction: column; }
+  .review-split-layout.with-preview .review-split-preview { flex: 1 1 55%; min-width: 380px; height: 100%; max-height: none; overflow-y: auto; border-right: 1px solid var(--k-color-border-subtle); background: var(--k-color-bg-sunken); display: flex; flex-direction: column; }
   .review-split-layout.with-preview .review-split-panel { flex: 1 1 45%; min-width: 360px; max-width: 520px; height: 100%; overflow-y: auto; display: flex; flex-direction: column; }
 }
 @container app (width >= 834px) {
   .review-split-layout.with-preview { flex-direction: row; }
-  .review-split-layout.with-preview .review-split-preview { flex: 1 1 55%; min-width: 380px; height: 100%; overflow-y: auto; border-right: 1px solid var(--k-color-border-subtle); background: var(--k-color-bg-sunken); display: flex; flex-direction: column; }
+  .review-split-layout.with-preview .review-split-preview { flex: 1 1 55%; min-width: 380px; height: 100%; max-height: none; overflow-y: auto; border-right: 1px solid var(--k-color-border-subtle); background: var(--k-color-bg-sunken); display: flex; flex-direction: column; }
   .review-split-layout.with-preview .review-split-panel { flex: 1 1 45%; min-width: 360px; max-width: 520px; height: 100%; overflow-y: auto; display: flex; flex-direction: column; }
 }
 .review-split-preview { display: flex; flex-direction: column; background: var(--k-color-bg-sunken); border-bottom: 1px solid var(--k-color-border-subtle); }
@@ -826,6 +834,9 @@ a:hover { color: var(--k-color-brand-hover); }
 .doc-foot { margin-top: 14px; display: flex; justify-content: space-between; color: #6A6A6A; font-size: 10px; }
 .helvetica { font-family: Helvetica, Arial, sans-serif; font-stretch: 100%; }
 .doc-window { position: relative; }
+/* A till receipt in the preview beside a value to check: narrow, centred, small type. */
+.doc-page.doc-receipt { max-width: 340px; margin: var(--k-space-4) auto; padding: var(--k-space-5) var(--k-space-4); font-size: 12px; line-height: 17px; }
+.doc-page.doc-receipt .doc-table th, .doc-page.doc-receipt .doc-table td { padding: 3px 4px; }
 @container app (width < 600px) {
   .doc-window { height: 232px; overflow: hidden; border-radius: var(--k-radius-sm); box-shadow: inset 0 0 0 1px var(--k-color-border-default); background: #FFFFFF; }
   .doc-window .doc-page { width: 640px; zoom: 1.15; margin: -204px 0 0 -318px; box-shadow: none; }

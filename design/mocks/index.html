@@ -80,17 +80,45 @@
       </div>
     </li>
     <li class="index-card">
+      <a class="index-shot" href="document-ledger.html"><img src="../../docs/assets/mocks/document-ledger-desktop.png" alt="" loading="lazy"/></a>
+      <div class="index-text">
+        <div class="index-card-head">
+          <h2 class="type-h3"><a href="document-ledger.html">Document: ledger export</a></h2>
+          <span class="badge badge-low">Implemented state</span>
+        </div>
+        <p class="index-route"><strong>Route:</strong> <code>/documents/:docId</code> <span class="muted">(Spec 003, 005, 019)</span></p>
+        <p>A ledger export after import: rows and period, the link to the profit and loss, and the column confirmation for a new layout marked as planned (T005-11).</p>
+        <p class="index-sizes"><a href="../../docs/assets/mocks/document-ledger-mobile.png">Phone</a>
+        <a href="../../docs/assets/mocks/document-ledger-tablet.png">Tablet</a>
+        <a href="../../docs/assets/mocks/document-ledger-desktop.png">Desktop</a></p>
+      </div>
+    </li>
+    <li class="index-card">
       <a class="index-shot" href="month.html"><img src="../../docs/assets/mocks/month-desktop.png" alt="" loading="lazy"/></a>
       <div class="index-text">
         <div class="index-card-head">
           <h2 class="type-h3"><a href="month.html">Month reconciliation</a></h2>
           <span class="badge badge-clean">Implemented</span>
         </div>
-        <p class="index-route"><strong>Route:</strong> <code>/months/:month</code> <span class="muted">(Spec 007)</span></p>
-        <p>One month's reconciliation: figures with their provenance marks, the explained risk with next steps, and every bank line with its match and reason.</p>
+        <p class="index-route"><strong>Route:</strong> <code>/months/:month</code> <span class="muted">(Spec 007, 008)</span></p>
+        <p>One month's reconciliation: the figures, the explained risk with its citations and next steps, the match meter, and every bank line with its category, support and action.</p>
         <p class="index-sizes"><a href="../../docs/assets/mocks/month-mobile.png">Phone</a>
         <a href="../../docs/assets/mocks/month-tablet.png">Tablet</a>
         <a href="../../docs/assets/mocks/month-desktop.png">Desktop</a></p>
+      </div>
+    </li>
+    <li class="index-card">
+      <a class="index-shot" href="months.html"><img src="../../docs/assets/mocks/months-desktop.png" alt="" loading="lazy"/></a>
+      <div class="index-text">
+        <div class="index-card-head">
+          <h2 class="type-h3"><a href="months.html">All months</a></h2>
+          <span class="badge badge-clean">Implemented</span>
+        </div>
+        <p class="index-route"><strong>Route:</strong> <code>/months/all</code> <span class="muted">(Spec 007)</span></p>
+        <p>All months in one table: state, risk and statements, newest first; each row opens its month.</p>
+        <p class="index-sizes"><a href="../../docs/assets/mocks/months-mobile.png">Phone</a>
+        <a href="../../docs/assets/mocks/months-tablet.png">Tablet</a>
+        <a href="../../docs/assets/mocks/months-desktop.png">Desktop</a></p>
       </div>
     </li>
     <li class="index-card">
@@ -115,10 +143,38 @@
           <span class="badge badge-clean">Implemented</span>
         </div>
         <p class="index-route"><strong>Route:</strong> <code>/review</code> <span class="muted">(Spec 009)</span></p>
-        <p>One queue for everything AI could not settle. Each item shows the evidence, the candidates and only the fixes that make sense.</p>
+        <p>One queue for everything AI could not settle, in the shared table with chips by kind; an item opens the fix drawer.</p>
         <p class="index-sizes"><a href="../../docs/assets/mocks/review-mobile.png">Phone</a>
         <a href="../../docs/assets/mocks/review-tablet.png">Tablet</a>
         <a href="../../docs/assets/mocks/review-desktop.png">Desktop</a></p>
+      </div>
+    </li>
+    <li class="index-card">
+      <a class="index-shot" href="review-match.html"><img src="../../docs/assets/mocks/review-match-desktop.png" alt="" loading="lazy"/></a>
+      <div class="index-text">
+        <div class="index-card-head">
+          <h2 class="type-h3"><a href="review-match.html">Review: choose a match</a></h2>
+          <span class="badge badge-low">Implemented drawer</span>
+        </div>
+        <p class="index-route"><strong>Route:</strong> <code>/review/:itemId</code> <span class="muted">(Spec 009)</span></p>
+        <p>The fix drawer for a proposed match: the bank line, the invoice it fits, why, and Confirm the match.</p>
+        <p class="index-sizes"><a href="../../docs/assets/mocks/review-match-mobile.png">Phone</a>
+        <a href="../../docs/assets/mocks/review-match-tablet.png">Tablet</a>
+        <a href="../../docs/assets/mocks/review-match-desktop.png">Desktop</a></p>
+      </div>
+    </li>
+    <li class="index-card">
+      <a class="index-shot" href="review-correction.html"><img src="../../docs/assets/mocks/review-correction-desktop.png" alt="" loading="lazy"/></a>
+      <div class="index-text">
+        <div class="index-card-head">
+          <h2 class="type-h3"><a href="review-correction.html">Review: check a value</a></h2>
+          <span class="badge badge-low">Implemented drawer</span>
+        </div>
+        <p class="index-route"><strong>Route:</strong> <code>/review/:itemId</code> <span class="muted">(Spec 009)</span></p>
+        <p>A value to check: the receipt beside the panel, the correction form open (T009-03a).</p>
+        <p class="index-sizes"><a href="../../docs/assets/mocks/review-correction-mobile.png">Phone</a>
+        <a href="../../docs/assets/mocks/review-correction-tablet.png">Tablet</a>
+        <a href="../../docs/assets/mocks/review-correction-desktop.png">Desktop</a></p>
       </div>
     </li>
     <li class="index-card">

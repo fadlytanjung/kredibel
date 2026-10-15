@@ -1,50 +1,130 @@
+/**
+ * Review parity with its mocks (spec 019, T019-03, AC-019-3, AC-019-4; spec 009, T009-06,
+ * AC-009-2, AC-009-4, AC-009-7): the queue, the proposal drawer, and a value correction beside the
+ * receipt's page. The same synthetic items as the mocks (contracts/design/fixtures/review.json).
+ */
 import { expect, type Page, test } from '@playwright/test'
+import { createRequire } from 'node:module'
+import { mockUrl, pageImageFromMock, REVIEW, texts, WORKSPACE } from './fixtures'
 
-// Synthetic queue (docs/18): a held copy, a proposal, an unpaid bill and a value to check.
-const idr = (amount: string) => ({ amount, currency: 'IDR' })
-const ITEMS = [
-  { itemId: 'itm_0000000000000003', kind: 'POSSIBLE_DUPLICATE', month: '2026-03', status: 'OPEN', priority: 100, title: 'This statement covers days another statement already covers', subject: { docIds: ['doc_copy', 'doc_feb'] }, suggestion: {}, allowedActions: ['CONFIRM_DUPLICATE', 'NOT_DUPLICATE'] },
-  { itemId: 'itm_0000000000000001', kind: 'PROPOSED_MATCH', month: '2026-02', status: 'OPEN', priority: 70, title: 'Confirm the payment of IDR 19,205,109.00 on 9 Feb 2026', subject: { bankLineIds: ['tx_9feb'], invoiceIds: ['inv_0010'], matchId: 'mat_feb' }, suggestion: { candidates: [{ matchId: 'mat_feb', invoiceIds: ['inv_0010'], score: '0.82', reasons: ['NET_OF_TAX', 'PARTY_MATCH', 'DATE_NEAR'] }] }, allowedActions: ['CONFIRM_MATCH', 'MATCH', 'REJECT_MATCH'] },
-  { itemId: 'itm_0000000000000002', kind: 'UNMATCHED_DOCUMENT', month: '2026-02', status: 'OPEN', priority: 50, title: 'Invoice BW-0042 of IDR 990,000.00 is unpaid after its due date', subject: { invoiceIds: ['inv_bw42'], docIds: ['doc_bw42'] }, suggestion: {}, allowedActions: ['MATCH', 'NOT_YET_PAID', 'IGNORE'] },
-  { itemId: 'itm_0000000000000004', kind: 'LOW_CONFIDENCE_VALUE', month: '2026-06', status: 'OPEN', priority: 40, title: 'Check the date and total read from the receipt of 17 Jun 2026', subject: { receiptIds: ['rcp_17jun'], docIds: ['doc_rcp'], field: 'total' }, suggestion: {}, allowedActions: ['CORRECT_VALUE', 'ACCEPT_AS_READ'] },
-]
-const LINES = [
-  { txId: 'tx_9feb', docId: 'doc_feb', date: '2026-02-09', month: '2026-02', description: 'TRANSFER IN HIGHLAND CAFE', amount: idr('19205109.00'), support: 'PROPOSED', match: { state: 'PROPOSED' } },
-  { txId: 'tx_21feb', docId: 'doc_feb', date: '2026-02-21', month: '2026-02', description: 'TRANSFER TO BLUEWATER TRADING', amount: idr('-990000.00'), support: 'NO_SUPPORT', match: { state: 'UNMATCHED' } },
-]
-const INVOICES = [
-  { invoiceId: 'inv_0010', docId: 'doc_0010', kind: 'SALES', number: 'INV/SCR/2026/02/0010', buyerName: 'Highland Café', issueDate: '2026-02-02', month: '2026-02', total: idr('19597050.00') },
-  { invoiceId: 'inv_bw42', docId: 'doc_bw42', kind: 'PURCHASE', number: 'BW-0042', issuerName: 'Bluewater Trading Co.', issueDate: '2026-02-03', month: '2026-02', total: idr('990000.00') },
-]
+const require = createRequire(import.meta.url)
+const PROPOSAL = 'itm_0000000000000001'
+const VALUE = 'itm_0000000000000009'
 
-async function serve(page: Page) {
-  // Only the API: Vite serves modules such as /src/shared/api/client.ts too.
+async function serve(page: Page, png?: Buffer) {
+  const countsByKind = Object.fromEntries(REVIEW.items.map((i) => [i.kind, REVIEW.items.filter((o) => o.kind === i.kind).length]))
   await page.route((url) => url.pathname.startsWith('/api/'), (route) => {
-    const url = route.request().url()
-    const one = url.match(/\/api\/review-items\/(itm_\w+)$/)
-    if (url.includes('/api/review-items?')) {
-      const countsByKind = Object.fromEntries(ITEMS.map((i) => [i.kind, 1]))
-      return route.fulfill({ json: { items: ITEMS, countsByKind, nextCursor: null } })
-    }
-    if (one) return route.fulfill({ json: ITEMS.find((i) => i.itemId === one[1]) })
-    if (url.includes('/api/bank-lines')) return route.fulfill({ json: { items: LINES } })
-    if (url.includes('/api/invoices')) return route.fulfill({ json: { items: INVOICES } })
+    const url = new URL(route.request().url())
+    const path = url.pathname
+    const month = url.searchParams.get('month')
+    const byMonth = <T extends { month?: string }>(items: T[]) => items.filter((i) => !month || i.month === month)
+    const one = path.match(/^\/api\/review-items\/(itm_\w+)$/)
+    const doc = path.match(/^\/api\/documents\/(doc_\w+)$/)
+    if (path === '/api/review-items') return route.fulfill({ json: { items: REVIEW.items, countsByKind, nextCursor: null } })
+    if (one) return route.fulfill({ json: REVIEW.items.find((i) => i.itemId === one[1]) })
+    if (doc) return route.fulfill({ json: REVIEW.documents[doc[1] as keyof typeof REVIEW.documents] })
+    if (/^\/api\/documents\/doc_\w+\/pages\//.test(path) && png) return route.fulfill({ body: png, contentType: 'image/png' })
+    if (path === '/api/bank-lines') return route.fulfill({ json: { items: byMonth(REVIEW.lines), nextCursor: null } })
+    if (path === '/api/invoices') return route.fulfill({ json: { items: byMonth(REVIEW.invoices) } })
+    if (path === '/api/receipts') return route.fulfill({ json: { items: byMonth(REVIEW.receipts) } })
+    if (path === '/api/workspace') return route.fulfill({ json: WORKSPACE })
     return route.fulfill({ json: { items: [] } })
   })
 }
 
-test.describe('Visual Regression: Review (spec 009, T009-06)', () => {
-  test('the queue matches baseline', async ({ page }) => {
+async function axeClean(page: Page) {
+  await page.addScriptTag({ path: require.resolve('axe-core/axe.min.js') })
+  const violations = await page.evaluate(async () => {
+    const axe = (window as unknown as { axe: { run: (context?: string) => Promise<{ violations: { id: string; impact: string }[] }> } }).axe
+    return (await axe.run('#content')).violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')
+  })
+  expect(violations).toEqual([])
+}
+
+/** The queue as a person sees it: title, chips, columns and every item with its kind. */
+async function queueOutline(page: Page) {
+  return {
+    headings: await texts(page, '#content h1'),
+    chips: await texts(page, '#content .chips .chip', true),
+    columns: await texts(page, '#content .data-table th'),
+    items: await texts(page, '#content .qitem .t'),
+    kinds: await texts(page, '#content .qitem .s'),
+    pager: await texts(page, '#content .pager-line'),
+  }
+}
+
+/** The fix drawer: the kind and month, the title and why, the subjects, the reasons, the actions. */
+async function drawerOutline(page: Page) {
+  const drawer = '#content [role="dialog"]'
+  return {
+    head: await texts(page, `${drawer} .fix-head .badge, ${drawer} .fix-head .pager-line > span > span:not(.badge)`),
+    title: await texts(page, `${drawer} h2`),
+    why: await texts(page, `${drawer} .fix-head p`),
+    subjects: await texts(page, `${drawer} .subject .t`),
+    reasons: await texts(page, `${drawer} .why-tag`),
+    labels: await texts(page, `${drawer} .label`),
+    actions: await texts(page, `${drawer} .other-actions .button, ${drawer} form .button, ${drawer} .fix-foot .button`),
+  }
+}
+
+test.describe('Review (spec 009, T009-06; spec 019, T019-03)', () => {
+  test('the queue matches its baseline and its mock', async ({ page }) => {
     await serve(page)
     await page.goto('/preview/review')
-    await page.waitForSelector('text=Confirm the payment of IDR 19,205,109.00 on 9 Feb 2026')
+    await expect(page.getByText('Confirm the payment of IDR 18,700,000 on 9 Feb 2026')).toBeVisible()
     await expect(page).toHaveScreenshot('review-queue.png', { fullPage: true })
+    await axeClean(page)
+    const implementation = await queueOutline(page)
+    await page.goto(mockUrl('review'))
+    expect(await queueOutline(page)).toEqual(implementation)
   })
 
-  test('a proposal beside the queue matches baseline', async ({ page }) => {
+  test('a proposal opens in the fix drawer like the mock', async ({ page }) => {
     await serve(page)
-    await page.goto('/preview/review/itm_0000000000000001')
-    await page.waitForSelector('text=TRANSFER IN HIGHLAND CAFE')
+    await page.goto(`/preview/review/${PROPOSAL}`)
+    const drawer = page.getByRole('dialog')
+    await expect(drawer.getByText('TRANSFER IN DAYBREAK CAFE')).toBeVisible()
+    await expect(drawer.getByRole('button', { name: 'Confirm the match' })).toBeVisible()
     await expect(page).toHaveScreenshot('review-proposal.png', { fullPage: true })
+    await axeClean(page)
+    const implementation = await drawerOutline(page)
+    await page.goto(mockUrl('review-match'))
+    expect(await drawerOutline(page)).toEqual(implementation)
+  })
+
+  test('a value to check shows the receipt beside the panel and corrects it as printed', async ({ page }) => {
+    const { png } = await pageImageFromMock(page, 'review-correction', '.doc-receipt')
+    await serve(page, png)
+    await page.goto(`/preview/review/${VALUE}`)
+    const drawer = page.getByRole('dialog')
+    await expect(drawer.getByText('Receipt 0617')).toBeVisible()
+    await expect(drawer.locator('.page-zoom img')).toBeVisible()
+    await drawer.getByRole('button', { name: 'Correct it' }).click()
+    const field = drawer.getByLabel('The total as printed')
+    await expect(field).toBeVisible()
+    await expect(page).toHaveScreenshot('review-correction.png', { fullPage: true })
+    await axeClean(page)
+    const implementation = await drawerOutline(page)
+    await field.fill('820000.00')
+    await expect(drawer.getByRole('button', { name: 'Save the correction' })).toBeEnabled()
+    // Keys are the queue's only while nobody is typing; Esc closes the drawer once the field is left.
+    await field.blur()
+    await page.keyboard.press('Escape')
+    await expect(drawer).toHaveCount(0)
+    await page.goto(mockUrl('review-correction'))
+    expect(await drawerOutline(page)).toEqual(implementation)
+  })
+
+  test('AC-019-4: the queue and the drawer stay inside 360 and 1600 px', async ({ page }) => {
+    await serve(page)
+    await page.goto(`/preview/review/${PROPOSAL}`)
+    await expect(page.getByRole('dialog').getByRole('button', { name: 'Confirm the match' })).toBeVisible()
+    for (const width of [360, 1600]) {
+      await page.setViewportSize({ width, height: 1000 })
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+      const confirm = page.getByRole('dialog').getByRole('button', { name: 'Confirm the match' })
+      const box = await confirm.boundingBox()
+      expect(box?.height ?? 0).toBeGreaterThanOrEqual(40)
+    }
   })
 })

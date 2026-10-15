@@ -469,20 +469,29 @@ stateDiagram-v2
   <p><img src="assets/mocks/document-desktop.png" alt="Document page at 1440 px: the statement page with the selected credit lit, beside the figures and the transactions list" width="66%"> <img src="assets/mocks/document-mobile.png" alt="Document page on a phone: the page zoomed to the selected value above the figures" width="26%"></p>
 
   - **Header:** file name; what it is (type, bank and account, period) and when it was uploaded;
-    how it was read ("Read: 180 of 180 values found on the page") and its check; **Original file**,
-    **Remove document**.
-  - **Page viewer** (left, sticky from 980 px): one page at a time with previous and next, zoom in
-    steps from 50 to 200 %, and the lamp on the value being looked at. A phone opens at 200 %
-    centred on the lamp. The page image scrolls inside its window.
+    the type badge, how it was read ("Read: 180 of 180 values found on the page") and its check;
+    **Original file**, **Remove document** (which asks once, in a banner).
+  - **Page viewer** (left, sticky from 980 px): the file, whether the page is digital or scanned,
+    one page at a time with previous and next, zoom in steps from 50 to 200 %, and the lamp on the
+    value being looked at. A phone opens at 200 % centred on the lamp. The page image scrolls
+    inside its window, which keyboard users can focus.
   - **What was read** (right): for a statement, the opening and closing balances as printed and
     the money in and out of its lines, added exactly as decimals; then tabs. **Transactions** (or
-    **Invoices**, **Receipts**): chips All, Money in, Money out, To check (a value only one source
-    read, or readings that differ); 10 a page; each amount with its reading mark and the legend.
-    **Findings**: the document's open findings with facts, next step and **Show on page**.
-    **Details**: type, bank, account, period, currency, pages (digital or scanned), values found,
-    upload date.
+    **Invoices**, **Receipts**): the shared table with chips All, Money in, Money out, To check (a
+    value only one source read, or readings that differ) and search; 10 a page; each amount with
+    its reading mark and the legend. **Findings**: the document's open findings with facts, next
+    step and **Show on page**. **Details**: type, bank, account, period, currency, pages (digital or
+    scanned), values found, upload date.
   - Choosing a transaction, an invoice value or a finding's evidence moves the viewer to its page
     and lights it.
+  - **Ledger export** (`document-ledger.html`): no page viewer; the figures are the rows imported,
+    the period and the type (spreadsheet); the **Ledger entries** tab says how many rows were
+    imported, links **View in Profit and loss** and names the months. The column confirmation of a
+    new layout (**Check columns**, spec 005 T005-11) is planned: the mock keeps it, labelled as
+    planned; standard layouts are confirmed automatically today.
+  - The mock and the page draw the same synthetic document (`contracts/design/fixtures/document.json`);
+    the browser check serves the mock's synthetic page as the page image and compares header,
+    figures, tabs, filters and columns.
   - Later: the matches it takes part in (spec 007), its events, and P1 "How this was processed"
     (run graph, [`17`](17-observability.md) §5).
 - **Page images and the original file** are API routes that need the ID token, which an `<img src>`
@@ -491,28 +500,45 @@ stateDiagram-v2
 
 ### 6.4 Month
 
-<p><img src="assets/mocks/month-desktop.png" alt="March 2026 at 1440 px: six figures with reading marks, the critical explanation with citations and next steps, match meter, bank lines with match chips and reasons" width="66%"> <img src="assets/mocks/month-mobile.png" alt="March 2026 on a phone: figures in two columns and the explanation" width="26%"></p>
+<p><img src="assets/mocks/month-desktop.png" alt="March 2026 at 1440 px: six figures, the critical explanation with citation chips and next steps, the match meter, and the bank lines with their category, support chip, reason and action" width="66%"> <img src="assets/mocks/month-mobile.png" alt="March 2026 on a phone: figures in two columns and the explanation" width="26%"></p>
 
-- **Header:** month name with previous and next, state, risk badge; what the month holds ("ACB ••4821.
-  Statement, 9 invoices, 4 receipts and 52 ledger entries").
-- **Figures:** opening balance, money in, money out, closing balance, matched by Kredibel, ledger
-  difference. Each figure carries its reading mark.
-- **Explanation** (when the level is MEDIUM or higher): the risk level as a heading, the Gemini
-  summary with citation chips (`[[fact:…]]`, `[[finding:…]]` → evidence), **What to do next** as a
-  numbered list, and the by-line "Written by Gemini. Every figure checked by Kredibel." If the
-  grounding guard failed, the template text is shown and the by-line says "Written from a template".
+The mock and the page draw the same synthetic month (`contracts/design/fixtures/month.json`,
+spec 019 AC-019-3); the browser check compares header, figures, citations, tabs, filters,
+columns, support chips and actions at three widths.
+
+- **Header:** month name with previous and next, **All months**, the state badge, the Critical
+  badge when the level is critical, and **Ask about this month** (the assistant with the question
+  filled in); below it, the month's note ("ACB ••4821. Statement, 3 invoices, 1 receipt and 52
+  ledger entries for this month.") or the standing subtitle.
+- **Figures:** opening balance (before the month's first line), money in and money out with their
+  counts, closing balance (after the month's last line), matched by Kredibel (share, "38 of 44
+  lines matched automatically", a small meter) and the ledger difference ("Bank against the
+  ledger", or "No ledger imported yet"). A missing fact shows a dash, never a number.
+- **Explanation** (when the level is MEDIUM or higher): "Critical risk this month" as a heading,
+  the Gemini summary with its `[[finding:…]]` markers as citation chips that carry the finding's
+  code (A01) and open its evidence (other markers are dropped), **What to do next** as a numbered
+  list, and the by-line "Written by Gemini. Every figure checked by Kredibel." If the grounding
+  guard failed, the template text is shown and the by-line says "Written from a template".
 - **Match meter:** matched by Kredibel, matched by you, open.
 - **Opens on the current month** from the navigation; previous and next move a month; **All months**
-  lists them. A month with no statement, document or figure says so ("Nothing for October 2026
-  yet") and offers its latest month with data and the upload, instead of a page of dashes.
-- **Tabs:** Bank lines (default), Documents, Ledger (with the difference count), Findings, each with
-  its count. Documents: the month's invoices and receipts with their payment evidence, each opening
-  its document. Ledger: the difference with the ledger (until ledger import, T005-04, it says none
-  is imported). Findings: the month's open findings, each opening its evidence.
-- **Bank lines:** date and description, amount (signed, reading mark), **Matched with** as a chip
-  (auto, manual, proposed, no match) and the reason in plain words ("Paid 2% below the total:
-  withholding tax"). A line tied to a finding is tinted and shows **Evidence**.
-- P1: **Sign off** when the month is reconciled; **Reopen** with a reason.
+  (`/months/all`, `months.html`) lists every month in the shared table, newest first, with its
+  state, risk and statements, chips All, Needs review, Collecting, Reconciled and search; a row
+  opens its month. A month with no statement, document or figure says so ("Nothing for October
+  2026 yet") and offers its latest month with data and the upload, instead of a page of dashes.
+- **Tabs:** Bank lines (default), Documents, Ledger, Findings, with their counts. Documents: the
+  month's invoices and receipts with their payment evidence, each opening its document. Ledger:
+  until a ledger is imported it says none is and offers the upload; the difference count on the
+  tab is planned with the ledger views (T007-10c). Findings: the month's open findings, each
+  opening its evidence.
+- **Bank lines:** the shared table with chips All, Open, Money in, Money out, search and
+  **Re-reconcile**; columns Bank line (counterparty or description, date, the category badge in
+  its cash-flow colour, "IFRS: Operating", and "Set by you" for a person's category), Amount
+  (signed, reading mark), **Matched with** as a support chip (matched by Kredibel, matched by you,
+  proposed match, no document needed, not counted, no document yet) with the match reasons or the
+  support's plain-words reason, and **Actions** (**Match** opens the match sheet; **Unmatch** on a
+  matched line). The reading legend closes the table.
+- P1: **Sign off** when the month is reconciled; **Reopen** with a reason. Tinting a line tied to
+  a finding and an **Evidence** link on it are planned with spec 015.
 
 #### Bank evidence and document support (ADR-025, spec 007)
 
@@ -547,11 +573,17 @@ after acceptance; the confirmation is audited. No exchange-rate fields, conversi
 
 ### 6.5 Review
 
-<p><img src="assets/mocks/review-desktop.png" alt="Review at 1440 px: queue grouped by month beside the fix panel for a bank line that fits two invoices" width="66%"> <img src="assets/mocks/review-mobile.png" alt="Review on a phone: the item as a full page with candidates and a sticky Match button" width="26%"></p>
+<p><img src="assets/mocks/review-desktop.png" alt="Review at 1440 px: the queue in the shared table with chips by kind" width="40%"> <img src="assets/mocks/review-match-desktop.png" alt="Review at 1440 px: the fix drawer for a proposed match beside the queue" width="40%"> <img src="assets/mocks/review-match-mobile.png" alt="Review on a phone: the drawer as a bottom sheet with a sticky Confirm the match button" width="16%"></p>
+
+<p><img src="assets/mocks/review-correction-desktop.png" alt="Review at 1440 px: a value to check, the receipt's page beside the panel and the correction form open" width="66%"></p>
+
+Three mocks share the queue (`review.html`, `review-match.html`, `review-correction.html`), drawn
+from the same synthetic items as the browser check (`contracts/design/fixtures/review.json`).
 
 - **Queue:** the shared `DataTable` ([`12`](12-design-system.md) §7): chips by kind with counts,
   search, 10 items a page, a month column; each item with a kind tile, a title that names the money,
-  and its kind. The eight kinds of [`08`](08-risk-engine.md) §7 have these names on screen:
+  and its kind. An item opens the **fix drawer** over the queue (a side drawer from 760 px, a
+  bottom sheet below). The eight kinds of [`08`](08-risk-engine.md) §7 have these names on screen:
 
 | Kind | Chip | Kind | Chip |
 |---|---|---|---|
@@ -560,18 +592,29 @@ after acceptance; the confirmation is audited. No exchange-rate fields, conversi
 | `UNMATCHED_DOCUMENT` | Not paid | `CONFIRM_TYPE` | Confirm type |
 | `UNMATCHED_BANK_LINE` | Not in the ledger | `CONFIRM_LEDGER_MAPPING` | Check columns |
 
-- **Fix panel:** the kind and month; a title ("IDR 18,700,000 on 9 Feb fits two invoices"); why it
-  is here ("Kredibel only matches on its own when one answer is clearly better"); the **subject**
-  (the bank line, file or value) with **See on the page**; the **candidates** as radio cards with
-  reason tags (✓ same amount, ✓ same client, ✗ no invoice number) and the fit score; a hint written
-  from facts; the other allowed actions as quiet buttons; the primary action named after the choice
-  (**Match with invoice 0003**) and **Skip**.
+- **Fix drawer:** the kind and month, the position ("2 of 9") and **Close**; a title ("Confirm the
+  payment of IDR 18,700,000 on 9 Feb 2026"); why it is here ("Kredibel only matches on its own when
+  one answer is clearly better, so this one is yours."); the **subjects** (the bank line with its
+  category, the invoice or receipt with its kind, or the two files of a possible copy), each with
+  **See on the page** (the page opens in a preview beside the panel, which widens the drawer) and a
+  link to the document; for a proposed match **the proposed match** as a radio card with its reason
+  tags (✓ Same amount, ✓ Same party, ✓ Close date) and the fit score; for an unpaid document the
+  bank lines that could be its payment; the other allowed actions as quiet buttons (**Not this
+  match**, **Correct it**, **Leave it, with a reason**); the primary action named after the choice
+  (**Confirm the match**, **The value is right**) and **Skip**.
+- **Correcting a value** (`review-correction.html`, T009-03a): a value only one source read opens
+  with its receipt or invoice page in the preview; **Correct it** shows "The total as printed" with
+  the hint "Amounts as digits (476976.00), dates as YYYY-MM-DD. What was read is kept beside it."
+  and **Save the correction** (enabled once there is text). The correction survives re-reading.
 - Only actions allowed for the kind are shown ([`10`](10-api-contract.md) §4). After a fix the next
   item opens with "Saved. March is being reconciled again. Next: 5 left", and the month shows
   "Reconciling" until the month run finishes (§5.3). An unpaid document lists up to three unmatched
   bank lines of its direction within 10% of its total; leaving an item needs a reason.
-- On phones an opened item replaces the queue; the navigation badge shows the open count.
-- Keyboard on wide screens: `j`/`k` next and previous, `Enter` the primary action, `Esc` close.
+- On phones the drawer is a bottom sheet with the primary action pinned; the navigation badge shows
+  the open count.
+- Keyboard: `j`/`k` next and previous, `Enter` the primary action, `Esc` close; keys are the queue's
+  only while nobody is typing in a field. The hint written from facts ("Invoice 0003 was due first")
+  is planned (spec 015).
 
 ### 6.6 Evidence viewer
 

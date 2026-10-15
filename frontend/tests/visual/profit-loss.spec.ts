@@ -19,7 +19,8 @@ test('AC-018-5: company P&L matches the reviewed mock layout', async ({ page }) 
   await serve(page)
   await page.goto('/preview/profit-loss?period=2026-03')
   await expect(page.getByText('Net profit', { exact: true }).filter({ visible: true })).toBeVisible()
-  await expect(page).toHaveScreenshot('profit-loss.png', { fullPage: true })
+  // Native selects render their text differently from run to run on the phone project; they are masked.
+  await expect(page).toHaveScreenshot('profit-loss.png', { fullPage: true, mask: [page.locator('select')] })
   await page.getByRole('button', { name: 'Table', exact: true }).click()
   await expect(page.getByRole('cell', { name: /IDR.*26,000,000/ })).toBeVisible()
   await page.addScriptTag({ path: require.resolve('axe-core/axe.min.js') })
@@ -34,7 +35,7 @@ test('AC-018-5: unavailable data has no invented amounts', async ({ page }) => {
   await serve(page, true)
   await page.goto('/preview/profit-loss?period=2026-03')
   await expect(page.getByText('No general-ledger accounts have been imported.')).toBeVisible()
-  await expect(page).toHaveScreenshot('profit-loss-empty.png', { fullPage: true })
+  await expect(page).toHaveScreenshot('profit-loss-empty.png', { fullPage: true, mask: [page.locator('select')] })
 })
 
 test('AC-018-5: boundary widths and classification action remain usable', async ({ page }) => {

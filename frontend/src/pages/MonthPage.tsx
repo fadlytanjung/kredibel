@@ -10,7 +10,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { type BankLine, CASHFLOW_BADGE, isIncoming, useMonthBankLines } from '../entities/bank-line'
-import { useFindings } from '../entities/finding'
+import { type Finding, useFindings } from '../entities/finding'
 import { type Match, useMatches, useUnmatch } from '../entities/match'
 import { useMonth, useMonths, useReconcileMonth } from '../entities/month'
 import { useWorkspace } from '../entities/workspace'
@@ -62,6 +62,32 @@ function supportOf(line: BankLine, match: Match | undefined): Support {
     default:
       return 'NOT_RUN'
   }
+}
+
+/**
+ * The explainer's summary with its [[finding:…]] markers as citation chips that open the evidence
+ * (docs/11 §6.4; mock month.html): the chip shows the finding's code (A01). Markers of other kinds
+ * are dropped with the space before them.
+ */
+function CitedSummary({ text, findings }: { text: string; findings: Finding[] }) {
+  const codes = new Map(findings.map((f) => [f.findingId, f.code.split('_')[0]]))
+  const parts = text.replace(/\s*\[\[(?!finding:)[^\]]*\]\]/g, '').split(/(\[\[finding:[^\]]+\]\])/g)
+  return (
+    <p className="lead">
+      {parts.map((part, index) => {
+        const match = part.match(/^\[\[finding:([^\]]+)\]\]$/)
+        if (!match) return <span key={index}>{part}</span>
+        const code = codes.get(match[1])
+        if (!code) return null
+        return (
+          <Link key={index} className="citation" to={`/risk/${match[1]}`}>
+            <Icon name="eye" size="sm" />
+            {code}
+          </Link>
+        )
+      })}
+    </p>
+  )
 }
 
 function value(figures: Figures, name: string): string | undefined {
@@ -415,7 +441,7 @@ export function MonthPage() {
                 {t(`months:monthDetail.explainHead.${risk.level}`)}
               </h2>
               <div className="explain-body">
-                <p className="lead">{risk.summary.replace(/\s*\[\[[^\]]*\]\]/g, '')}</p>
+                <CitedSummary text={risk.summary} findings={findingsData?.items ?? []} />
                 {(risk.nextSteps?.length ?? 0) > 0 && (
                   <div className="stack gap-2">
                     <h3 className="type-h3">{t('months:monthDetail.whatNext')}</h3>

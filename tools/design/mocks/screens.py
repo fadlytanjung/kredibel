@@ -3,6 +3,7 @@ Synthetic data: the demo workspace of docs/18 (Sunrise Coffee Roasters, Jan–Ju
 together: the edited March statement, the duplicates, the changed supplier account and the unpaid bills)."""
 
 import json
+import re
 from decimal import Decimal
 from html import escape
 from pathlib import Path
@@ -60,12 +61,14 @@ def amount(value: str) -> str:
 def words(table: dict, key: str, **params) -> str:
     """A locale string with its {{params}} filled; `count` picks the _one/_other form."""
     count = params.get("count")
-    if count is not None and f"{key}_one" in table:
-        key = f"{key}_one" if count == 1 else f"{key}_other"
-    node: object = table
-    for part in key.split("."):
-        node = node[part]  # type: ignore[index]
-    text = str(node)
+    parts = key.split(".")
+    node: dict = table
+    for part in parts[:-1]:
+        node = node[part]
+    last = parts[-1]
+    if count is not None and f"{last}_one" in node:
+        last = f"{last}_one" if count == 1 else f"{last}_other"
+    text = str(node[last])
     for name, value in params.items():
         text = text.replace("{{" + name + "}}", str(value))
     return escape(text)
@@ -484,164 +487,416 @@ def reconciliation() -> str:
 
 
 # ------------------------------------------------------------------------------------------------
-# Month (reconciliation of March)
+# Month, all months and review: drawn from the same synthetic fixtures as the browser parity checks
+# (contracts/design/fixtures/month.json and review.json, AC-019-3) with the app's own words.
 # ------------------------------------------------------------------------------------------------
 
-def month() -> str:
-    # Categories are badges coloured by cash-flow class (operating, investing, financing, not cash,
-    # not categorized); support is a chip per state (ADR-025), so different states never look alike.
-    lines = [
-        ("10 Mar", "VAT PAYMENT FEB", "−4,860,000", "out", ("Tax", "brand"), ("auto", "link", "Ledger entry, 10 Mar"), "Same amount and date in the ledger", False),
-        ("11 Mar", "TRANSFER IN DAYBREAK CAFE", "+6,420,000", "in", ("Sales receipts", "brand"), ("auto", "link", "Invoice 0007"), "Same amount, same client, paid 5 days after issue", False),
-        ("12 Mar", "TRANSFER OUT GREEN VALLEY FARMS 0912", "−9,850,000", "out", ("Purchases for sale or production", "brand"), ("proposed", "eye", "Proposed: invoice GVF-2026-0311"), "Same amount and supplier; check it before it counts", False),
-        ("12 Mar", "TRANSFER TO OWN SAVINGS ••7710", "−2,000,000", "out", ("Between own accounts", "outline"), ("excluded", "refresh", "Not counted"), "Between your own accounts, so not money in or out", False),
-        ("14 Mar", "TRANSFER IN HARBORVIEW HOTEL GROUP", "+7,250,000", "in", ("Sales receipts", "brand"), ("none", "unlink", "No match"), "Your ledger and invoice 0009 say IDR 1,250,000", True),
-        ("15 Mar", "TRANSFER OUT PRIMEPACK PACKAGING", "−3,180,000", "out", ("Other suppliers and services", "brand"), ("manual", "hand", "Invoice PP/26/0312"), "Matched by Maya on 12 Jul", False),
-        ("16 Mar", "MONTHLY ACCOUNT FEE", "−35,000", "out", ("Bank fees", "brand"), ("cleared", "check", "No document needed"), "Maya: the bank's own fee, no invoice", False),
-        ("17 Mar", "PURCHASE ESPRESSO MACHINE", "−18,400,000", "out", ("Equipment bought", "low"), ("none", "file-text", "No document yet"), "Bank cash is recorded; upload its invoice", False),
-        ("18 Mar", "DEBIT CARD CENDANA FUEL STATION", "−650,000", "out", ("Not categorized yet", "medium"), ("auto", "link", "Receipt, 18 Mar"), "Same amount, merchant and date", False),
-    ]
-    trs = []
-    for d, desc, amt, direction, (cat, cat_cls), (mk, mi, ml), reason, flagged in lines:
-        amt_cls = "amt-in" if direction == "in" else "amt-out"
-        amt_html = f'<span class="reading reading-agreed">{amt}</span>'
-        ev = f' <a class="citation" href="evidence-viewer.html">{icon("eye")}Evidence</a>' if flagged else ""
-        trs.append(f"""<tr{' class="is-flagged"' if flagged else ''}>
-  <td data-cell="wide"><strong>{desc}</strong><div class="reason">{d}</div><span class="badge badge-{cat_cls}">{cat}</span></td>
-  <td class="r"><span class="{amt_cls}">{amt_html}</span></td>
-  <td data-cell="wide"><span class="match-chip {mk}">{icon(mi)}<span>{ml}</span></span><div class="reason">{reason}{ev}</div></td>
-</tr>""")
-    table = f"""
-<div class="table-panel rt-wrap">
-  <table class="data-table rt">
-    <thead><tr><th>Bank line</th><th class="r">Amount, IDR</th><th>Matched with</th></tr></thead>
-    <tbody>{''.join(trs)}</tbody>
-  </table>
+MONTH_WORDS = json.loads((LOCALES / "months.json").read_text(encoding="utf-8"))
+DOC_WORDS = json.loads((LOCALES / "documents.json").read_text(encoding="utf-8"))
+COMMON_WORDS = json.loads((LOCALES / "common.json").read_text(encoding="utf-8"))
+MONTH_FIX = json.loads((ROOT / "contracts/design/fixtures/month.json").read_text(encoding="utf-8"))
+DOC_FIX = json.loads((ROOT / "contracts/design/fixtures/document.json").read_text(encoding="utf-8"))
+REVIEW_FIX = json.loads((ROOT / "contracts/design/fixtures/review.json").read_text(encoding="utf-8"))
+
+SUPPORT_CHIP = {"AUTO": ("auto", "link"), "MANUAL": ("manual", "hand"), "PROPOSED": ("proposed", "eye"),
+                "NOT_REQUIRED": ("cleared", "check"), "EXCLUDED": ("excluded", "refresh"),
+                "NO_SUPPORT": ("none", "file-text"), "NOT_RUN": ("none", "clock")}
+CASHFLOW_BADGE = {"OPERATING": "brand", "INVESTING": "low", "FINANCING": "evidence", "NON_CASH": "outline", "UNCLASSIFIED": "medium"}
+STATE_BADGE = {"COLLECTING": "outline", "RECONCILING": "low", "NEEDS_REVIEW": "medium", "RECONCILED": "clean", "SIGNED_OFF": "clean"}
+DOC_TYPE_BADGE = {"BANK_STATEMENT": "brand", "SALES_INVOICE": "clean", "PURCHASE_INVOICE": "evidence", "RECEIPT": "low", "LEDGER_EXPORT": "outline"}
+READING_MARK = {"AGREED": "reading-agreed", "SINGLE_SOURCE": "reading-single", "CONFLICT": "reading-conflict", "MISSING": "reading-conflict"}
+
+
+def mw(key: str, **params) -> str:
+    return words(MONTH_WORDS, key, **params)
+
+
+def dw(key: str, **params) -> str:
+    return words(DOC_WORDS, key, **params)
+
+
+def fmt_date(iso: str) -> str:
+    """The app's formatDate: 9 Feb 2026."""
+    year, month, day = iso.split("-")
+    return f"{int(day)} {MONTH_NAMES[int(month) - 1][:3]} {year}"
+
+
+def money_code(value: str, currency: str = "IDR") -> str:
+    """The app's formatMoney: the code, a no-break space and the amount (whole units for IDR)."""
+    sign = "-" if value.startswith("-") else ""
+    return f"{sign}{currency} {amount(value.lstrip('-'))}"
+
+
+def badge(variant: str, text: str, ic: str | None = None) -> str:
+    return f'<span class="badge badge-{variant}">{icon(ic, "icon icon-sm") if ic else ""}{escape(text)}</span>'
+
+
+def data_table(filters: list[tuple[str, int]], active: int, filter_label: str, search: str, columns: list[tuple[str, str]],
+               rows: str, actions: str = "", pager: str = "", footer: str = "") -> str:
+    """The shared DataTable (docs/12 §7): chips, search, header actions, the responsive table, the pager."""
+    chips = "".join(f'<a class="chip" aria-pressed="{str(i == active).lower()}" href="#">{label} <span class="n">{n}</span></a>'
+                    for i, (label, n) in enumerate(filters))
+    search_html = (f'<div class="table-search">{icon("search", "icon icon-sm table-search-icon")}'
+                   f'<input type="text" class="input input-sm table-search-input" placeholder="{search}" aria-label="{search}"/></div>')
+    actions_html = f'<div class="table-actions">{actions}</div>' if actions else ""
+    attrs = {"": "", "r": ' class="r"', "wide": ' data-cell="wide"', "hide": ' class="hide-rt" data-cell="hide"'}
+    ths = "".join(f'<th{attrs[kind]}>{label}</th>' for label, kind in columns)
+    return f"""
+<div class="stack gap-3">
+  <div class="table-toolbar">
+    <div class="chips" role="group" aria-label="{filter_label}">{chips}</div>
+    <div class="row ml-auto">{search_html}{actions_html}</div>
+  </div>
+  <div class="table-panel rt-wrap"><table class="data-table rt"><thead><tr>{ths}</tr></thead><tbody>{rows}</tbody></table></div>
+  {f'<div class="pager-line"><span>{pager}</span></div>' if pager else ''}
+  {footer}
 </div>"""
+
+
+def reading_legend(table: dict, prefix: str) -> str:
+    sample = words(table, f"{prefix}.sample" if prefix == "legend" else "monthDetail.legendSample")
+    keys = (("agreed", "legendAgreed"), ("single", "legendSingle"), ("conflict", "legendConflict"))
+    parts = []
+    for mark, month_key in keys:
+        text = words(table, f"legend.{mark}") if prefix == "legend" else words(table, f"monthDetail.{month_key}")
+        parts.append(f'<span><span class="reading reading-{mark}">{sample}</span> {text}</span>')
+    return f'<p class="reading-legend">{"".join(parts)}</p>'
+
+
+# ------------------------------------------------------------------------------------------------
+# Month (the reconciliation of March, from month.json)
+# ------------------------------------------------------------------------------------------------
+
+def finding_chips(summary: str, findings: list[dict]) -> str:
+    """The explainer's [[finding:…]] markers as citation chips with the finding's code (A01); other
+    markers are dropped, as the page does."""
+    codes = {f["findingId"]: f["code"].split("_")[0] for f in findings}
+    out = []
+    for part in re.split(r"(\[\[[a-zA-Z0-9_]+:[^\]]+\]\])", summary):
+        m = re.match(r"^\[\[([a-zA-Z0-9_]+):([^\]]+)\]\]$", part)
+        if not m:
+            out.append(escape(part))
+        elif m.group(1) == "finding" and m.group(2) in codes:
+            out.append(f' <a class="citation" href="evidence-viewer.html">{icon("eye", "icon icon-sm")}{codes[m.group(2)]}</a>')
+    return "".join(out).replace(" .", ".").replace("  ", " ")
+
+
+def month_line_row(line: dict, matches: dict, currency: str) -> str:
+    kind = line.get("support") or "NOT_RUN"
+    if kind == "MATCHED":
+        kind = "MANUAL" if line["match"]["state"] == "MANUAL" else "AUTO"
+    chip, ic = SUPPORT_CHIP[kind]
+    match = matches.get((line["match"].get("matchIds") or [None])[0])
+    if kind in ("AUTO", "MANUAL"):
+        reason = ", ".join(mw(f"monthDetail.matchReasons.{r}") for r in (match or {}).get("reasons", []))
+    else:
+        reason = mw(f"monthDetail.supportReason.{kind}")
+    incoming = not line["amount"]["amount"].startswith("-")
+    cashflow = line.get("cashflowClass") or "UNCLASSIFIED"
+    category = mw(f"categories.{line.get('category') or 'UNKNOWN'}")
+    badges = badge(CASHFLOW_BADGE[cashflow], category)
+    if cashflow != "UNCLASSIFIED":
+        badges += badge("outline", mw("ifrsLabel", classification=mw(f"cashflow.{cashflow}")))
+    if line.get("categorizedBy") == "USER":
+        badges += f'<span class="reason">{mw("monthDetail.categoryByYou")}</span>'
+    name = line.get("counterpartyName") or line["description"].split("\n")[0]
+    mark = READING_MARK[line.get("readings", {}).get("amount", {}).get("status", "AGREED")]
+    if kind in ("EXCLUDED", "NOT_RUN"):
+        action = ""
+    elif kind in ("AUTO", "MANUAL") and match:
+        action = f'<button class="button button-secondary button-sm" type="button">{mw("monthDetail.unmatch")}</button>'
+    else:
+        action = f'<button class="button button-secondary button-sm" type="button">{mw("monthDetail.match")}</button>'
+    return f"""<tr>
+  <td data-cell="wide"><div class="stack gap-1"><strong>{escape(name)}</strong><div class="reason">{fmt_date(line["date"])}</div><div class="row">{badges}</div></div></td>
+  <td class="r"><span class="{"amt-in" if incoming else "amt-out"}"><span class="reading {mark}">{"+" if incoming else ""}{amount(line["amount"]["amount"])}</span></span></td>
+  <td data-cell="wide"><div><span class="match-chip {chip}">{icon(ic, "icon icon-sm")}<span>{mw(f"monthDetail.support.{kind}")}</span></span>{f'<div class="reason">{reason}</div>' if reason else ''}</div></td>
+  <td class="r">{action}</td>
+</tr>"""
+
+
+def month() -> str:
+    data = MONTH_FIX["month"]
+    lines = MONTH_FIX["lines"]
+    matches = {m["matchId"]: m for m in MONTH_FIX["matches"]}
+    figures = {k: v["value"] for k, v in data["figures"].items()}
+    currency = "IDR"
+    label = month_name(data["month"])
+    credits = sum(1 for l in lines if not l["amount"]["amount"].startswith("-"))
+    in_scope = int(figures["bankLines"]) - int(figures["excluded"])
+    auto, manual, open_ = int(figures["autoMatched"]), int(figures["manuallyMatched"]), int(figures["proposed"]) + int(figures["unmatched"])
+    total = auto + manual + open_
+    rate = round(float(figures["autoMatchRate"]) * 100)
+    risk = data["risk"]
+    documents = len(MONTH_FIX["invoices"]) + len(MONTH_FIX["receipts"])
+    findings = [f for f in MONTH_FIX["findings"] if f["status"] in ("OPEN", "ACKNOWLEDGED")]
+
+    figs = f"""
+<section class="ledger" aria-label="{mw("monthDetail.figuresAria", month=label)}">
+  <dl class="ledger-figures">
+    <div><dt>{mw("monthDetail.openingBalance")}</dt><dd class="v"><small>{currency}</small>{amount(figures["opening"])}</dd><dd class="n">{mw("monthDetail.fromPreviousClosing")}</dd></div>
+    <div><dt>{mw("monthDetail.moneyIn")}</dt><dd class="v"><small>{currency}</small>{amount(figures["moneyIn"])}</dd><dd class="n">{mw("monthDetail.creditsRecorded", count=credits)}</dd></div>
+    <div><dt>{mw("monthDetail.moneyOut")}</dt><dd class="v"><small>{currency}</small>{amount(figures["moneyOut"].lstrip("-"))}</dd><dd class="n">{mw("monthDetail.debitsRecorded", count=len(lines) - credits)}</dd></div>
+    <div><dt>{mw("monthDetail.closingBalance")}</dt><dd class="v"><small>{currency}</small>{amount(figures["closing"])}</dd><dd class="n">{mw("monthDetail.asPrintedOnStatement")}</dd></div>
+    <div><dt>{mw("monthDetail.matchedByKredibel")}</dt><dd class="v">{rate}%</dd><dd class="n">{mw("monthDetail.allocatedToDocs", matched=auto, total=in_scope)}</dd><dd class="mini"><i style="width:{rate}%"></i></dd></div>
+    <div><dt>{mw("monthDetail.ledgerDifference")}</dt><dd class="v"><small>{currency}</small>{amount(figures["ledgerDifference"])}</dd><dd class="n">{mw("monthDetail.differenceWithLedger")}</dd></div>
+  </dl>
+</section>"""
+    steps = "".join(f"<li>{escape(s)}</li>" for s in risk["nextSteps"])
     explain = f"""
 <section class="explain" aria-labelledby="ex-h">
-  <h2 class="explain-head" id="ex-h">{icon("octagon-alert")}Critical: the March statement was edited after the bank issued it</h2>
+  <h2 class="explain-head" id="ex-h">{icon("shield-alert")}{mw(f"monthDetail.explainHead.{risk['level']}")}</h2>
   <div class="explain-body">
-    <p class="lead">On 14 March the statement shows a credit of IDR 7,250,000 from Harborview Hotel Group <a class="citation" href="evidence-viewer.html">{icon("eye")}A01</a>, but the printed balance rises by only IDR 1,250,000. The file was saved again in a PDF editor three days after the bank created it <a class="citation" href="#">{icon("eye")}M03</a>, and that one amount is set in a different font <a class="citation" href="#">{icon("eye")}M04</a>. Your ledger records IDR 1,250,000 for the same payment <a class="citation" href="#">{icon("table")}Ledger, 14 Mar</a>.</p>
-    <div class="stack gap-2">
-      <h3 class="type-h3">What to do next</h3>
-      <ol class="steps">
-        <li>Download the March statement again from internet banking and upload it.</li>
-        <li>If the bank's copy shows IDR 1,250,000, ask who sent you this file before you close March.</li>
-        <li>Keep March open until then; Kredibel will compare the two statements for you.</li>
-      </ol>
-    </div>
-    <span class="by-line">{icon("sparkles")}Written by Gemini. Every figure checked by Kredibel.</span>
+    <p class="lead">{finding_chips(risk["summary"], MONTH_FIX["findings"])}</p>
+    <div class="stack gap-2"><h3 class="type-h3">{mw("monthDetail.whatNext")}</h3><ol class="steps">{steps}</ol></div>
+    <span class="by-line">{icon("sparkles", "icon icon-sm")}{mw("monthDetail.byline")}</span>
   </div>
 </section>"""
+    meter = f"""
+<section class="recon-meter" aria-label="{mw("monthDetail.meterAria")}">
+  <div class="bar"><i class="auto" style="width:{auto / total * 100:.1f}%"></i><i class="manual" style="width:{manual / total * 100:.1f}%"></i><i class="open" style="width:{open_ / total * 100:.1f}%"></i></div>
+  <p class="key"><span><i class="auto"></i>{mw("monthDetail.matchedByKredibel")} <b>{auto}</b></span><span><i class="manual"></i>{mw("monthDetail.matchedByYou")} <b>{manual}</b></span><span><i class="open"></i>{mw("monthDetail.open")} <b>{open_}</b></span></p>
+</section>"""
+    tab_counts = {"lines": len(lines), "documents": documents, "ledger": None, "findings": len(findings)}
+    tabs = "".join(
+        f'<a class="tab" role="tab" aria-selected="{str(key == "lines").lower()}" href="#">{mw(f"monthDetail.tabs.{key}")}'
+        + (f' <span class="count{" is-attn" if key == "findings" and n else ""}">{n}</span>' if n is not None else "") + "</a>"
+        for key, n in tab_counts.items())
+    is_open = lambda l: (l.get("support") in ("PROPOSED", "NO_SUPPORT")) or not l.get("support")  # noqa: E731
+    rows = "".join(month_line_row(l, matches, currency) for l in lines)
+    table = data_table(
+        filters=[(mw("monthDetail.filterAll"), len(lines)), (mw("monthDetail.filterOpen"), sum(1 for l in lines if is_open(l))),
+                 (mw("monthDetail.filterIn"), credits), (mw("monthDetail.filterOut"), len(lines) - credits)],
+        active=0, filter_label=mw("monthDetail.filterBankLines"), search=mw("monthDetail.searchPlaceholder"),
+        columns=[(mw("monthDetail.colBankLine"), "wide"), (mw("monthDetail.colAmount", currency=currency), "r"), (mw("monthDetail.colMatchedWith"), "wide"), (mw("monthDetail.colActions"), "r")],
+        rows=rows, actions=f'<button class="button button-secondary button-sm" type="button">{mw("monthDetail.reReconcile")}</button>',
+        pager=words(COMMON_WORDS, "table.showingRange", **{"from": 1, "to": len(lines), "total": len(lines)}),
+        footer=reading_legend(MONTH_WORDS, "monthDetail"))
     content = f"""
 <div class="page">
   <div class="month-head">
     <div class="row">
-      <span class="month-switch"><a href="#" aria-label="February">{icon("chevron-left")}</a><a href="#" aria-label="April">{icon("chevron-right")}</a></span>
-      <h1 class="type-title">March 2026</h1>
-      <span class="badge badge-status badge-medium">2 need you</span>{sev_badge("critical")}
+      <span class="month-switch"><a href="month.html" aria-label="{mw("monthDetail.previousMonth")}">{icon("chevron-left")}</a><a href="month.html" aria-label="{mw("monthDetail.nextMonth")}">{icon("chevron-right")}</a></span>
+      <h1 class="type-title">{label}</h1>
+      <a class="link small" href="months.html">{mw("monthDetail.allMonths")}</a>
+      {badge(STATE_BADGE[data["state"]], mw(f"monthDetail.states.{data['state']}"))}
+      {badge("critical", mw("monthDetail.critical"), "shield-alert") if risk["level"] == "CRITICAL" else ""}
+      <a class="button button-quiet button-sm ml-auto" href="assistant.html">{icon("sparkles", "icon icon-sm")}{mw("monthDetail.askAboutMonth")}</a>
     </div>
-    <p class="muted">ACB ••4821. Statement, 9 invoices, 4 receipts and 52 ledger entries for this month.</p>
+    <p class="muted">{escape(data.get("note") or mw("monthDetail.subtitle"))}</p>
   </div>
-  <div class="stack gap-6" style="margin-top:24px">
-    <section class="ledger" aria-label="March figures">
-      <dl class="ledger-figures">
-        <div><dt>Opening balance</dt><dd class="v"><small>IDR</small><span class="reading reading-agreed">47.9 M</span></dd><dd class="n">Same as February's closing</dd></div>
-        <div><dt>Money in</dt><dd class="v"><small>IDR</small><span class="reading reading-agreed">231.4 M</span></dd><dd class="n">21 credits</dd></div>
-        <div><dt>Money out</dt><dd class="v"><small>IDR</small><span class="reading reading-agreed">218.9 M</span></dd><dd class="n">24 debits</dd></div>
-        <div><dt>Closing balance</dt><dd class="v"><small>IDR</small><span class="reading reading-agreed">60.4 M</span></dd><dd class="n">As printed</dd></div>
-        <div><dt>Matched by Kredibel</dt><dd class="v">86%</dd><dd class="n">39 of 45 bank lines</dd><dd class="mini"><i style="width:86%"></i></dd></div>
-        <div class="is-attn"><dt>Ledger difference</dt><dd class="v"><small>IDR</small>6.0 M</dd><dd class="n">Bank shows more than the ledger</dd></div>
-      </dl>
-    </section>
+  <div class="stack gap-6 mt-6">
+    {figs}
     {explain}
-    <section class="recon-meter" aria-label="Bank lines by match state">
-      <div class="bar"><i class="auto" style="width:86.7%"></i><i class="manual" style="width:11.1%"></i><i class="open" style="width:2.2%"></i></div>
-      <p class="key"><span><i class="auto"></i>Matched by Kredibel <b>39</b></span><span><i class="manual"></i>Matched by you <b>5</b></span><span><i class="open"></i>Open <b>1</b></span></p>
-    </section>
-    <div class="stack gap-3">
-      <nav class="tabs" role="tablist" aria-label="March sections"><a class="tab" role="tab" aria-selected="true" href="#">Bank lines <span class="count">45</span></a><a class="tab" role="tab" aria-selected="false" href="#">Documents <span class="count">14</span></a><a class="tab" role="tab" aria-selected="false" href="#">Ledger <span class="count is-attn">1 difference</span></a><a class="tab" role="tab" aria-selected="false" href="#">Findings <span class="count">6</span></a></nav>
-      <div class="chips" role="group" aria-label="Filter bank lines"><a class="chip" aria-pressed="true" href="#">All <span class="n">45</span></a><a class="chip" href="#">Open <span class="n">1</span></a><a class="chip" href="#">Money in <span class="n">21</span></a><a class="chip" href="#">Money out <span class="n">24</span></a></div>
-      {table}
-      <p class="reading-legend"><span><span class="reading reading-agreed">7,250,000</span> both readings agree</span><span><span class="reading reading-single">7,250,000</span> one reading only</span><span><span class="reading reading-conflict">7,250,000</span> readings disagree</span></p>
-    </div>
+    {meter}
+    <nav class="tabs" role="tablist" aria-label="{mw("monthDetail.sectionsAria", month=label)}">{tabs}</nav>
+    <div role="tabpanel">{table}</div>
   </div>
 </div>"""
-    return shell("months", topbar("March 2026", (("Reconciliation", "month.html"), "March 2026"), back=("Dashboard", "dashboard.html")), content)
+    return shell("months", topbar(label, ((mw("title"), "months.html"), label), back=("Dashboard", "dashboard.html")), content)
+
+
+def months() -> str:
+    """All months (/months/all): one row per month with its state, risk and statements."""
+    items = sorted(MONTH_FIX["months"], key=lambda m: m["month"], reverse=True)
+    by_state = lambda states: sum(1 for m in items if m["state"] in states)  # noqa: E731
+    rows = "".join(f"""<tr class="is-clickable">
+  <td data-cell="wide"><div><strong>{month_name(m["month"])}</strong>{f'<div class="reason">{escape(m["note"])}</div>' if m.get("note") else ''}</div></td>
+  <td>{badge(STATE_BADGE[m["state"]], mw(f"monthDetail.states.{m['state']}"))}</td>
+  <td>{sev_badge(m["risk"]["level"]) if m.get("risk") else f'<span class="muted small">{mw("all.noRisk")}</span>'}</td>
+  <td class="hide-rt" data-cell="hide">{mw("all.statementsCount", count=len(m.get("statements", [])))}</td>
+</tr>""" for m in items)
+    table = data_table(
+        filters=[(mw("all.filterAll"), len(items)), (mw("monthDetail.states.NEEDS_REVIEW"), by_state({"NEEDS_REVIEW"})),
+                 (mw("monthDetail.states.COLLECTING"), by_state({"COLLECTING", "RECONCILING"})), (mw("monthDetail.states.RECONCILED"), by_state({"RECONCILED", "SIGNED_OFF"}))],
+        active=0, filter_label=mw("all.filterLabel"), search=mw("all.search"),
+        columns=[(mw("all.colMonth"), "wide"), (mw("all.colStatus"), ""), (mw("all.colRisk"), ""), (mw("all.colStatements"), "hide")],
+        rows=rows, pager=words(COMMON_WORDS, "table.showingRange", **{"from": 1, "to": len(items), "total": len(items)}))
+    content = f"""
+<div class="page stack gap-6">
+  <header class="stack gap-2">
+    <h1 class="type-title">{mw("title")}</h1>
+    <p class="muted">{mw("subtitle")}</p>
+    <p class="muted">{mw("workspaceCurrency", currency="IDR")}</p>
+  </header>
+  <section class="stack gap-4" aria-labelledby="all-months-h">
+    <h2 class="type-h2" id="all-months-h">{mw("all.title")}</h2>
+    {table}
+  </section>
+</div>"""
+    return shell("months", topbar(mw("title"), (mw("title"),)), content)
 
 
 # ------------------------------------------------------------------------------------------------
-# Review queue
+# Review queue (from review.json): the queue, the proposal drawer and a value correction
 # ------------------------------------------------------------------------------------------------
+
+KIND_ORDER = ["POSSIBLE_DUPLICATE", "PROPOSED_MATCH", "LEDGER_DIFFERENCE", "UNMATCHED_DOCUMENT", "UNMATCHED_BANK_LINE",
+              "LOW_CONFIDENCE_VALUE", "CONFIRM_TYPE", "CONFIRM_LEDGER_MAPPING"]
+
+
+def rw(key: str, **params) -> str:
+    return words(REVIEW_WORDS, key, **params)
+
+
+def review_queue(selected: str | None = None) -> str:
+    items = REVIEW_FIX["items"]
+    counts = {k: sum(1 for i in items if i["kind"] == k) for k in KIND_ORDER}
+    rows = "".join(f"""<tr class="is-clickable{" is-selected" if i["itemId"] == selected else ""}">
+  <td data-cell="wide"><div class="qitem"><span class="kind {KIND_TILE.get(i["kind"], "doc")}">{icon(KIND_ICON.get(i["kind"], "inbox"), "icon icon-sm")}</span><span class="t">{escape(i["title"])}</span><span class="s">{rw(f"kinds.{i['kind']}")}</span></div></td>
+  <td class="hide-rt" data-cell="hide">{month_name(i["month"], "long") if i.get("month") else rw("noMonth")}</td>
+</tr>""" for i in items)
+    table = data_table(
+        filters=[(rw("all"), len(items))] + [(rw(f"kinds.{k}"), n) for k, n in counts.items() if n],
+        active=0, filter_label=rw("filterLabel"), search=rw("search"),
+        columns=[(rw("colItem"), "wide"), (rw("colMonth"), "hide")], rows=rows,
+        pager=words(COMMON_WORDS, "table.showingRange", **{"from": 1, "to": len(items), "total": len(items)}))
+    return f"""
+<div class="page review stack gap-6">
+  <header class="stack gap-2">
+    <h1 class="type-title">{rw("title")}</h1>
+    <p class="muted">{rw("subtitle")}</p>
+  </header>
+  <section class="stack gap-3" aria-label="{rw("open", count=len(items))}">{table}</section>
+</div>"""
+
 
 def review() -> str:
-    groups = [
-        ("February", [("dup", "copy", "Possible copy of the February statement", "Same account and period, 45 identical lines", False),
-                      ("match", "link", "IDR 18,700,000 on 9 Feb fits two invoices", "Daybreak Café, invoices 0003 and 0004", True)]),
-        ("March", [("match", "link", "IDR 7,250,000 on 14 Mar differs from your ledger", "Harborview Hotel Group; ledger and invoice 0009 say IDR 1,250,000", False),
-                   ("dup", "copy", "Possible copy of invoice GVF-2026-0311", "Scanned again; same supplier, number and total", False)]),
-        ("May", [("dup", "copy", "Ledger line entered twice", "12 May, IDR 4,350,000", False),
-                 ("doc", "file-text", "Invoice BLU-2026-118 never paid", "Bluewater Trading Co., IDR 31,800,000", False),
-                 ("doc", "file-text", "Invoice BLU-2026-121 never paid", "Bluewater Trading Co., IDR 27,450,000", False)]),
-        ("June", [("dup", "copy", "Receipt photographed twice", "Cendana Fuel Station, 17 Jun, IDR 820,000", False),
-                  ("doc", "wallet", "Cash deposit not in the ledger", "21 Jun, IDR 2,150,000", False)]),
-    ]
-    q = []
-    for g, items in groups:
-        q.append(f'<li class="queue-group"><span>{g}</span><span>{len(items)}</span></li>')
-        for k, ic, t, s, cur in items:
-            c = ' aria-current="true"' if cur else ""
-            q.append(f'<li><a class="qitem" href="review.html"{c}><span class="kind {k}">{icon(ic)}</span><span class="t">{t}</span><span class="s">{s}</span></a></li>')
-    queue = f"""
-<section class="panel hide-compact" aria-label="Review queue" style="overflow:hidden">
-  <div class="panel-head"><h2>9 open</h2><span class="muted small">Oldest month first</span></div>
-  <ul class="queue todo-list">{''.join(q)}</ul>
-</section>"""
-    chips = "".join(
-        f'<a class="chip" href="#"{" aria-pressed=\"true\"" if i == 0 else ""}>{label} <span class="n">{n}</span></a>'
-        for i, (label, n) in enumerate([("All", 9), ("Possible copies", 4), ("Choose a match", 1), ("Explain a difference", 1), ("Not paid", 2), ("Not in the ledger", 1)]))
-    def why(ok, text):
-        return f'<span class="why-tag {"yes" if ok else "no"}">{icon("check" if ok else "x")}{text}</span>'
-    fix = f"""
-<section class="fix" aria-labelledby="fix-h">
-  <div class="fix-head">
-    <div class="pager-line"><span class="row"><span class="badge badge-brand">{icon("link")}Choose a match</span><span>February</span></span><span class="only-compact">2 of 9</span></div>
-    <h2 id="fix-h">IDR 18,700,000 on 9 Feb fits two invoices</h2>
-    <p>Both invoices are from Daybreak Café for the same amount. Kredibel only matches on its own when one answer is clearly better, so this one is yours.</p>
-  </div>
-  <div class="fix-body">
-    <div class="subject"><span class="ico">{icon("bank")}</span><span class="t">TRANSFER IN DAYBREAK CAFE</span><span class="amt amt-in">+18,700,000</span><span class="s">9 Feb, ACB ••4821, statement page 1 <a class="citation" href="#">{icon("eye")}See on the page</a></span></div>
-    <div class="candidates" role="radiogroup" aria-label="Invoices that fit">
-      <div class="candidate is-picked" role="radio" aria-checked="true" tabindex="0" data-label="Match with invoice 0003"><span class="radio"></span><span><span class="t">Invoice INV/SCR/2026/02/0003</span><br/><span class="s">Issued 2 Feb, due 16 Feb</span></span><span class="amt">18,700,000</span>
-        <span class="why">{why(True, "Same amount")}{why(True, "Same client")}{why(True, "Paid 7 days after issue")}{why(False, "No invoice number in the transfer")}</span>
-        <span class="score">Fit<span class="meter-bar"><i style="width:78%"></i></span>0.78</span></div>
-      <div class="candidate" role="radio" aria-checked="false" tabindex="-1" data-label="Match with invoice 0004"><span class="radio"></span><span><span class="t">Invoice INV/SCR/2026/02/0004</span><br/><span class="s">Issued 6 Feb, due 6 Mar</span></span><span class="amt">18,700,000</span>
-        <span class="why">{why(True, "Same amount")}{why(True, "Same client")}{why(True, "Paid 3 days after issue")}{why(False, "No invoice number in the transfer")}</span>
-        <span class="score">Fit<span class="meter-bar"><i style="width:76%"></i></span>0.76</span></div>
-    </div>
-    <p class="flow-callout" style="margin:0">{icon("lightbulb")}<span>Invoice 0003 was due first, and Daybreak's next payment on 4 Mar fits invoice 0004 by date.</span></p>
-    <div class="other-actions"><a class="button button-quiet button-sm" href="#">Match something else</a><a class="button button-quiet button-sm" href="#">Neither invoice</a></div>
-  </div>
-  <div class="fix-foot">
-    <a class="button button-primary" href="review.html" data-picked-label>{icon("check", "icon icon-sm")}<span>Match with invoice 0003</span></a>
-    <a class="button button-secondary hide-compact" href="#">Skip</a>
-    <span class="keys"><span><span class="kbd">J</span> <span class="kbd">K</span> next, previous</span><span><span class="kbd">Enter</span> match</span></span>
-  </div>
-</section>"""
-    content = f"""
-<div class="page review">
-  <div class="page-head">
-    <h1 class="type-title">Review</h1>
-    <p>What Kredibel could not settle on its own. Each fix is saved with your name and the month is reconciled again.</p>
-  </div>
-  <div class="stack gap-4">
-    <div class="chips" role="group" aria-label="Filter by kind">{chips}</div>
-    <div class="review-layout">{queue}{fix}</div>
-  </div>
-</div>"""
-    return shell("review", topbar("Review", ("Review",)), content, fab=False)
+    return shell("review", topbar(rw("title"), (rw("title"),)), review_queue(), fab=False)
 
+
+def line_subject(line: dict) -> str:
+    incoming = not line["amount"]["amount"].startswith("-")
+    category = badge(CASHFLOW_BADGE[line.get("cashflowClass") or "UNCLASSIFIED"], mw(f"categories.{line['category']}")) if line.get("category") else ""
+    return f"""<div class="subject"><span class="ico">{icon("bank")}</span><span class="t">{escape(line["description"])}</span><span class="amt{" amt-in" if incoming else ""}">{"+" if incoming else ""}{amount(line["amount"]["amount"])}</span>
+  <div class="s row"><span>{fmt_date(line["date"])}</span>{category}<a class="citation" href="document.html" title="{rw("panel.seePage")}">{icon("eye", "icon icon-sm")}<span>{rw("panel.seePage")}</span></a><a class="citation" href="document.html" title="{rw("panel.openDocument")}">{icon("external", "icon icon-sm")}</a></div></div>"""
+
+
+def record_subject(record: dict) -> str:
+    is_receipt = "receiptId" in record
+    if is_receipt:
+        name = mw("monthDetail.docs.receipt", number=record["number"]) if record.get("number") else mw("monthDetail.docs.receiptNoNumber")
+        party, day, kind_badge = record.get("merchantName"), record.get("date"), badge("low", mw("monthDetail.docs.badgeReceipt"))
+    else:
+        name = mw("monthDetail.docs.invoice", number=record["number"]) if record.get("number") else mw("monthDetail.docs.invoiceNoNumber")
+        sales = record["kind"] == "SALES"
+        party, day = (record.get("buyerName") if sales else record.get("issuerName")), record.get("issueDate")
+        kind_badge = badge("clean" if sales else "evidence", mw("monthDetail.docs.badgeSales" if sales else "monthDetail.docs.badgePurchase"))
+    meta = ", ".join(x for x in (party, fmt_date(day) if day else None) if x)
+    return f"""<div class="subject"><span class="ico">{icon("receipt" if is_receipt else "file-text")}</span><span class="t">{escape(name)}</span><span class="amt">{amount(record["total"]["amount"])}</span>
+  <div class="s row"><span>{escape(meta)}</span>{kind_badge}<a class="citation" href="document.html" title="{rw("panel.seePage")}">{icon("eye", "icon icon-sm")}<span>{rw("panel.seePage")}</span></a><a class="citation" href="document.html" title="{rw("panel.openDocument")}">{icon("external", "icon icon-sm")}</a></div></div>"""
+
+
+def review_drawer(item: dict, body: str, primary: str | None, quiet: list[str], position: int, preview: str = "") -> str:
+    items = REVIEW_FIX["items"]
+    head = f"""
+<div class="fix-head">
+  <div class="pager-line">
+    <span class="row">{badge("brand", rw(f"kinds.{item['kind']}"), KIND_ICON.get(item["kind"], "inbox"))}<span>{month_name(item["month"], "long")}</span></span>
+    <span class="row"><span>{rw("panel.position", index=position, total=len(items))}</span><a class="icon-button" href="review.html" aria-label="{rw("panel.close")}">{icon("x")}</a></span>
+  </div>
+  <h2 id="fix-h">{escape(item["title"])}</h2>
+  <p>{rw(f"why.{item['kind']}")}</p>
+</div>"""
+    others = "".join(f'<a class="button button-quiet button-sm" href="#">{label}</a>' for label in quiet)
+    foot = f"""
+<div class="fix-foot">
+  {f'<a class="button button-primary" href="review.html">{icon("check", "icon icon-sm")}<span>{primary}</span></a>' if primary else ''}
+  <a class="button button-secondary" href="review.html">{rw("panel.skip")}</a>
+  <span class="keys hide-compact"><span><span class="kbd">J</span> <span class="kbd">K</span> {rw("panel.keys")}</span><span><span class="kbd">{rw("panel.enterKey")}</span> {rw("panel.keyEnter")}</span></span>
+</div>"""
+    return f"""
+<div class="flow-sheet review-sheet">
+  <a class="scrim" href="review.html" aria-label="{rw("panel.close")}"></a>
+  <section class="sheet review-drawer{" has-preview" if preview else ""}" role="dialog" aria-modal="true" aria-labelledby="fix-h">
+    <div class="review-split-layout{" with-preview" if preview else ""}">
+      {preview}
+      <section class="fix review-split-panel" aria-labelledby="fix-h">
+        {head}
+        <div class="fix-body">{body}{f'<div class="other-actions">{others}</div>' if others else ''}</div>
+        {foot}
+      </section>
+    </div>
+  </section>
+</div>"""
+
+
+def review_match() -> str:
+    """The proposal drawer: one bank line, the invoice it fits, why, and Confirm the match."""
+    item = REVIEW_FIX["items"][0]
+    line = next(l for l in REVIEW_FIX["lines"] if l["txId"] == item["subject"]["bankLineIds"][0])
+    invoice = next(i for i in REVIEW_FIX["invoices"] if i["invoiceId"] == item["subject"]["invoiceIds"][0])
+    candidate = item["suggestion"]["candidates"][0]
+    score = float(candidate["score"])
+    tags = "".join(f'<span class="why-tag yes">{icon("check", "icon icon-sm")}{mw(f"monthDetail.matchReasons.{r}")}</span>' for r in candidate["reasons"])
+    proposal = f"""
+<div class="candidates" role="radiogroup" aria-label="{rw("panel.proposal")}">
+  <div class="candidate is-picked" role="radio" aria-checked="true" tabindex="0"><span class="radio"></span><span><span class="t">{rw("panel.proposal")}</span></span>
+    <span class="why">{tags}</span>
+    <span class="score">{rw("panel.fit")}<span class="meter-bar"><i style="width:{round(score * 100)}%"></i></span><span>{score:.2f}</span></span></div>
+</div>"""
+    body = line_subject(line) + record_subject(invoice) + proposal
+    drawer = review_drawer(item, body, rw("actions.CONFIRM_MATCH"), [rw("actions.REJECT_MATCH")], 1)
+    return shell("review", topbar(rw("title"), (rw("title"),)), review_queue(item["itemId"]) + drawer, fab=False)
+
+
+def receipt_page() -> str:
+    """A synthetic till receipt (docs/18) for the preview beside a value to check."""
+    return f"""
+<figure class="doc-page doc-receipt" aria-label="Receipt 0617 from Cendana Fuel Station, 17 Jun 2026, with the total highlighted">
+  <div class="watermark" aria-hidden="true">SYNTHETIC — FOR TESTING</div>
+  <p class="doc-bank" style="text-align:center"><i aria-hidden="true"></i>CENDANA FUEL STATION</p>
+  <p style="text-align:center;margin-top:4px">Jl. Raya Lembang 48, Bandung<br/>17 Jun 2026 14:32 · No. 0617</p>
+  <table class="doc-table" style="margin-top:14px">
+    <thead><tr><th>Item</th><th class="r">Qty</th><th class="r">Amount</th></tr></thead>
+    <tbody>
+      <tr><td>Pertamax 92</td><td class="r">41.2 L</td><td class="r">618,000.00</td></tr>
+      <tr><td>Engine oil 1 L</td><td class="r">2</td><td class="r">202,000.00</td></tr>
+      <tr><td><strong>TOTAL</strong></td><td></td><td class="r"><span class="lamp">820,000.00<span class="lamp-marker" aria-hidden="true">1</span></span></td></tr>
+      <tr><td>CASH</td><td></td><td class="r">850,000.00</td></tr>
+      <tr><td>CHANGE</td><td></td><td class="r">30,000.00</td></tr>
+    </tbody>
+  </table>
+  <div class="doc-foot"><span>Terima kasih</span><span>SYNTHETIC — FOR TESTING</span></div>
+</figure>"""
+
+
+def review_correction() -> str:
+    """A value to check: the receipt beside the panel, with the correction form open (T009-03a)."""
+    item = next(i for i in REVIEW_FIX["items"] if i["kind"] == "LOW_CONFIDENCE_VALUE")
+    receipt = next(r for r in REVIEW_FIX["receipts"] if r["receiptId"] == item["subject"]["receiptIds"][0])
+    doc = REVIEW_FIX["documents"][item["subject"]["docIds"][0]]
+    position = REVIEW_FIX["items"].index(item) + 1
+    preview = f"""
+<aside class="review-split-preview" aria-label="{rw("panel.documentPreview")}">
+  <div class="review-preview-header">
+    <span class="file">{icon("file-text", "icon icon-sm")}<span>{escape(doc["fileName"])}</span></span>
+    <div class="row"><a class="link small" href="document.html" title="{rw("panel.openDocument")}"><span>{rw("panel.openDocument")}</span>{icon("external", "icon icon-sm")}</a><a class="icon-button icon-button-sm" href="review.html" aria-label="Close preview">{icon("x", "icon icon-sm")}</a></div>
+  </div>
+  <div class="stack">
+    <section class="viewer" aria-label="{dw("detail.viewer.label")}">
+      <div class="viewer-bar">
+        <span class="file">{icon("file-text", "icon icon-sm")}{escape(doc["fileName"])}</span>
+        {badge("outline", dw("detail.scanned"))}
+        <span class="pages" role="group" aria-label="{dw("detail.viewer.pages")}"><button type="button" aria-label="{dw("detail.viewer.previous")}" disabled>{icon("chevron-left", "icon icon-sm")}</button><span>{dw("detail.viewer.pageOf", page=1, total=1)}</span><button type="button" aria-label="{dw("detail.viewer.next")}" disabled>{icon("chevron-right", "icon icon-sm")}</button></span>
+        <span class="zoom" role="group" aria-label="{dw("detail.viewer.zoom")}"><button type="button" aria-label="{dw("detail.viewer.zoomOut")}">{icon("zoom-out", "icon icon-sm")}</button><span>{dw("detail.viewer.zoomLevel", zoom=100)}</span><button type="button" aria-label="{dw("detail.viewer.zoomIn")}">{icon("zoom-in", "icon icon-sm")}</button></span>
+      </div>
+      <div class="doc-window is-image" tabindex="0">{receipt_page()}</div>
+      <p class="muted small">{dw("detail.viewer.hint")}</p>
+    </section>
+  </div>
+</aside>"""
+    field = item["subject"]["field"]
+    form = f"""
+<form class="field" action="review.html" method="get">
+  <label class="label" for="correct-value">{rw("panel.correctLabel", field=rw(f"fields.{field}"))}</label>
+  <input id="correct-value" class="input" value=""/>
+  <p class="muted small">{rw("panel.correctHint")}</p>
+  <div class="row"><button class="button button-primary button-sm" type="submit" disabled>{rw("actions.saveCorrection")}</button></div>
+</form>"""
+    body = record_subject(receipt) + form
+    drawer = review_drawer(item, body, rw("actions.ACCEPT_AS_READ"), [], position, preview)
+    return shell("review", topbar(rw("title"), (rw("title"),)), review_queue(item["itemId"]) + drawer, fab=False)
 
 # ------------------------------------------------------------------------------------------------
 # Evidence viewer (Risk → finding)
@@ -760,12 +1015,91 @@ def evidence_viewer() -> str:
 
 
 # ------------------------------------------------------------------------------------------------
-# Document (one read statement: the viewer beside what was read)
+# Document (one read statement, and a ledger export), from document.json
 # ------------------------------------------------------------------------------------------------
 
+def page_viewer(file_name: str, page: int, total: int, witness: str, figure: str, lit: bool) -> str:
+    """The PageViewer: file, witness, pages and zoom above the page window (docs/11 §6.3)."""
+    return f"""
+<section class="viewer" aria-label="{dw("detail.viewer.label")}">
+  <div class="viewer-bar">
+    <span class="file">{icon("file-text", "icon icon-sm")}{escape(file_name)}</span>
+    {badge("outline", dw("detail.digital" if witness == "TEXT_LAYER" else "detail.scanned"))}
+    <span class="pages" role="group" aria-label="{dw("detail.viewer.pages")}"><button type="button" aria-label="{dw("detail.viewer.previous")}"{" disabled" if page <= 1 else ""}>{icon("chevron-left", "icon icon-sm")}</button><span>{dw("detail.viewer.pageOf", page=page, total=total)}</span><button type="button" aria-label="{dw("detail.viewer.next")}"{" disabled" if page >= total else ""}>{icon("chevron-right", "icon icon-sm")}</button></span>
+    <span class="zoom" role="group" aria-label="{dw("detail.viewer.zoom")}"><button type="button" aria-label="{dw("detail.viewer.zoomOut")}">{icon("zoom-out", "icon icon-sm")}</button><span>{dw("detail.viewer.zoomLevel", zoom=100)}</span><button type="button" aria-label="{dw("detail.viewer.zoomIn")}">{icon("zoom-in", "icon icon-sm")}</button></span>
+  </div>
+  <div class="doc-window is-image" tabindex="0"><div class="page-zoom">{figure}</div></div>
+  <p class="muted small">{dw("detail.viewer.lit" if lit else "detail.viewer.hint")}</p>
+</section>"""
+
+
+def document_header(doc: dict, summary: str, badges: str) -> str:
+    return f"""
+  <header class="stack gap-2">
+    <h1 class="type-title">{escape(doc["fileName"])}</h1>
+    <p class="muted">{summary}</p>
+    <div class="doc-status">
+      {badges}
+      <span class="spacer"></span>
+      <span class="row"><button class="button button-secondary button-sm" type="button">{icon("download", "icon icon-sm")}{dw("detail.downloadOriginal")}</button><button class="button button-ghost button-sm" type="button">{icon("trash", "icon icon-sm")}{dw("detail.deleteDocument")}</button></span>
+    </div>
+  </header>"""
+
+
+def doc_tabs(tabs: list[tuple[str, int | None]], active: int = 0, attn: str | None = None) -> str:
+    items = "".join(
+        f'<a class="tab" role="tab" aria-selected="{str(i == active).lower()}" href="#">{label}'
+        + (f'<span class="count{" is-attn" if label == attn and n else ""}">{n}</span>' if n is not None else "") + "</a>"
+        for i, (label, n) in enumerate(tabs))
+    return f'<div class="tabs" role="tablist" aria-label="{dw("detail.tabs.label")}">{items}</div>'
+
+
 def document() -> str:
-    # ACB_Feb_2026.pdf: February as in the other mocks (money in 214.9 M, out 208.1 M, 45 lines,
-    # closing 47.9 M = March's opening), page 1 of 3, with 9 Feb's Daybreak Café credit selected.
+    doc, lines = DOC_FIX["document"], DOC_FIX["lines"]
+    meta = doc["statementMeta"]
+    currency = meta["currency"]
+    selected = "tx_feb_09"
+    summary = dw("detail.summary.statement", type=dw("detail.docType.BANK_STATEMENT"), account=f'{meta["bankName"]} {meta["accountMasked"]}',
+                 start=fmt_date(meta["periodStart"]), end=fmt_date(meta["periodEnd"]), uploaded=fmt_date(doc["uploadedAt"][:10]))
+    badges = (badge(DOC_TYPE_BADGE[doc["docType"]], dw(f"detail.docType.{doc['docType']}"))
+              + badge("brand", dw("detail.readBadge", agreed=doc["reading"]["fieldsAgreed"], compared=doc["reading"]["fieldsCompared"]), "check")
+              + badge("clean", dw(f"detail.verdictBadge.{doc['integrity']['verdict']}"), "shield-check"))
+    credits = [l for l in lines if not l["amount"]["amount"].startswith("-")]
+    debits = [l for l in lines if l["amount"]["amount"].startswith("-")]
+    total = lambda items: money_code(str(sum(Decimal(l["amount"]["amount"].lstrip("-")) for l in items)), currency)  # noqa: E731
+    figures = f"""
+  <dl class="ledger-figures">
+    <div><dt>{dw("detail.opening")}</dt><dd class="v">{money_code(meta["opening"]["amount"], currency)}</dd><dd class="n">{dw("detail.figures.asPrinted", date=fmt_date(meta["periodStart"]))}</dd></div>
+    <div><dt>{dw("detail.closing")}</dt><dd class="v">{money_code(meta["closing"]["amount"], currency)}</dd><dd class="n">{dw("detail.figures.asPrinted", date=fmt_date(meta["periodEnd"]))}</dd></div>
+    <div><dt>{dw("detail.figures.moneyIn")}</dt><dd class="v">{total(credits)}</dd><dd class="n">{dw("detail.figures.credits", count=len(credits))}</dd></div>
+    <div><dt>{dw("detail.figures.moneyOut")}</dt><dd class="v">{total(debits)}</dd><dd class="n">{dw("detail.figures.debits", count=len(debits))}</dd></div>
+  </dl>"""
+    to_check = [l for l in lines if l.get("source") == "WITNESS" or l["readings"]["amount"]["status"] != "AGREED"]
+
+    def row(line: dict) -> str:
+        status = line["readings"]["amount"]["status"]
+        incoming = not line["amount"]["amount"].startswith("-")
+        where = dw("detail.lines.where", date=fmt_date(line["date"]), page=line["page"])
+        check = dw("detail.witnessRow") if line.get("source") == "WITNESS" else (dw(f"detail.readingStatus.{status}") if status != "AGREED" else "")
+        mark = READING_MARK["SINGLE_SOURCE"] if line.get("source") == "WITNESS" else READING_MARK[status]
+        sel_cls, sel_attr = (" is-selected", ' aria-selected="true"') if line["txId"] == selected else ("", "")
+        return (f'<tr class="is-clickable{sel_cls}"{sel_attr}>'
+                f'<td data-cell="wide"><div><strong class="block">{escape(line["description"])}</strong><div class="reason">{f"{where} · {check}" if check else where}</div></div></td>'
+                f'<td class="r"><span class="{"amt-in" if incoming else "amt-out"}"><span class="reading {mark}">{"+" if incoming else ""}{money_code(line["amount"]["amount"], currency)}</span></span></td></tr>')
+
+    table = data_table(
+        filters=[(dw("detail.lines.all"), len(lines)), (dw("detail.lines.in"), len(credits)), (dw("detail.lines.out"), len(debits)), (dw("detail.lines.check"), len(to_check))],
+        active=0, filter_label=dw("detail.lines.filter"), search="Search transactions...",
+        columns=[(dw("detail.columns.transaction"), "wide"), (dw("detail.columns.amount"), "r")],
+        rows="".join(row(l) for l in lines),
+        pager=dw("detail.lines.range", **{"from": 1, "to": len(lines), "total": len(lines)}),
+        footer=reading_legend(DOC_WORDS["detail"], "legend"))
+    pane = f"""
+<section class="doc-pane" aria-label="{dw("detail.pane")}">
+  {figures}
+  {doc_tabs([(dw("detail.tabs.transactions"), len(lines)), (dw("detail.tabs.findings"), 0), (dw("detail.tabs.details"), None)])}
+  <div role="tabpanel" class="stack gap-3">{table}</div>
+</section>"""
     page_rows = [
         ("2 Feb", "OPENING BALANCE", "", "", "41,100,000.00", ""),
         ("3 Feb", "TRANSFER OUT GREEN VALLEY FARMS 0912", "12,400,000.00", "", "28,700,000.00", ""),
@@ -778,67 +1112,62 @@ def document() -> str:
         ("12 Feb", "INSTANT TRANSFER IN HIGHLAND RESORT &amp; SPA", "", "7,600,000.00", "58,660,000.00", ""),
         ("13 Feb", "TRANSFER OUT ANDI PRATAMA", "5,000,000.00", "", "53,660,000.00", ""),
     ]
-    list_rows = [
-        ("3 Feb", "TRANSFER OUT GREEN VALLEY FARMS 0912", "−12,400,000.00", "out", "agreed"),
-        ("4 Feb", "CASH DEPOSIT", "+2,050,000.00", "in", "agreed"),
-        ("5 Feb", "TRANSFER IN SPICE ROUTE RESTAURANT", "+9,800,000.00", "in", "agreed"),
-        ("6 Feb", "DEBIT CARD CENDANA FUEL STATION", "−720,000.00", "out", "single"),
-        ("9 Feb", "TRANSFER IN DAYBREAK CAFE", "+18,700,000.00", "in", "agreed"),
-        ("10 Feb", "VAT PAYMENT JAN", "−4,410,000.00", "out", "agreed"),
-        ("11 Feb", "TRANSFER OUT PRIMEPACK PACKAGING", "−3,060,000.00", "out", "agreed"),
-        ("12 Feb", "INSTANT TRANSFER IN HIGHLAND RESORT &amp; SPA", "+7,600,000.00", "in", "agreed"),
-        ("13 Feb", "TRANSFER OUT ANDI PRATAMA", "−5,000,000.00", "out", "agreed"),
-    ]
-    trs = "".join(
-        f"""<tr class="is-clickable{' is-selected' if desc.endswith('DAYBREAK CAFE') else ''}"{' aria-selected="true"' if desc.endswith('DAYBREAK CAFE') else ''}>
-  <td><strong>{desc}</strong><div class="reason">{day}, page 1</div></td>
-  <td class="r"><span class="{'amt-in' if way == 'in' else 'amt-out'}"><span class="reading reading-{mark}">{amt}</span></span></td>
-</tr>""" for day, desc, amt, way, mark in list_rows)
-    page = statement_page(page_rows, "01 Feb 2026 to 28 Feb 2026", "Page 1 / 3",
-                          "February statement, page 1, with the selected credit highlighted")
-    viewer = f"""
-<section class="viewer" aria-label="Page viewer">
-  <div class="viewer-bar">
-    <span class="file">{icon("file-text", "icon icon-sm")}ACB_Feb_2026.pdf</span>
-    <span class="pages" role="group" aria-label="Pages"><button type="button" aria-label="Previous page" disabled>{icon("chevron-left", "icon icon-sm")}</button><span>Page 1 of 3</span><button type="button" aria-label="Next page">{icon("chevron-right", "icon icon-sm")}</button></span>
-    <span class="zoom" role="group" aria-label="Zoom"><button type="button" aria-label="Zoom out">{icon("zoom-out", "icon icon-sm")}</button><span>100%</span><button type="button" aria-label="Zoom in">{icon("zoom-in", "icon icon-sm")}</button></span>
-  </div>
-  <div class="doc-window">{page}</div>
-  <div class="spread"><p class="muted small">The box shows where the selected value is printed, from the word positions in the file itself.</p><button class="button button-secondary button-sm whole-page" type="button">{icon("file-text", "icon icon-sm")}Whole page</button></div>
-</section>"""
-    pane = f"""
-<section class="doc-pane" aria-label="What was read">
+    figure = statement_page(page_rows, "01 Feb 2026 to 28 Feb 2026", "Page 1 / 3", "February statement, page 1, with the selected credit highlighted")
+    viewer = page_viewer(doc["fileName"], 1, doc["pageCount"], doc["pages"][0]["witness"], figure, lit=True)
+    content = f"""
+<div class="page stack gap-5">
+  {document_header(doc, summary, badges)}
+  <div class="doc-layout">{viewer}{pane}</div>
+</div>"""
+    return shell("documents", topbar(doc["fileName"], ((dw("title"), "documents.html"), doc["fileName"]), back=(dw("title"), "documents.html")), content)
+
+
+def document_ledger() -> str:
+    """A ledger export after import: its rows and period, the link to the P&L, and the planned
+    column confirmation (spec 005, T005-11) marked as such."""
+    doc = DOC_FIX["ledger"]
+    meta = doc["ledgerMeta"]
+    summary = dw("detail.summary.other", type=dw("detail.docType.LEDGER_EXPORT"), uploaded=fmt_date(doc["uploadedAt"][:10]))
+    badges = badge(DOC_TYPE_BADGE[doc["docType"]], dw("detail.docType.LEDGER_EXPORT")) + badge("brand", words(DOC_WORDS, "status.done"))
+    months_badges = "".join(f'<a class="badge badge-brand" href="month.html">{m}</a>' for m in doc["months"])
+    figures = f"""
   <dl class="ledger-figures">
-    <div><dt>Opening balance</dt><dd class="v"><small>IDR</small><span class="reading reading-agreed">41.1 M</span></dd><dd class="n">1 Feb, as printed</dd></div>
-    <div><dt>Closing balance</dt><dd class="v"><small>IDR</small><span class="reading reading-agreed">47.9 M</span></dd><dd class="n">28 Feb, as printed</dd></div>
-    <div><dt>Money in</dt><dd class="v"><small>IDR</small>214.9 M</dd><dd class="n">21 credits</dd></div>
-    <div><dt>Money out</dt><dd class="v"><small>IDR</small>208.1 M</dd><dd class="n">24 debits</dd></div>
-  </dl>
-  <nav class="tabs" role="tablist" aria-label="Document sections"><a class="tab" role="tab" aria-selected="true" href="#">Transactions <span class="count">45</span></a><a class="tab" role="tab" aria-selected="false" href="#">Findings <span class="count">0</span></a><a class="tab" role="tab" aria-selected="false" href="#">Details</a></nav>
-  <div class="chips" role="group" aria-label="Filter transactions"><a class="chip" aria-pressed="true" href="#">All <span class="n">45</span></a><a class="chip" href="#">Money in <span class="n">21</span></a><a class="chip" href="#">Money out <span class="n">24</span></a><a class="chip" href="#">To check <span class="n">1</span></a></div>
-  <div class="table-panel rt-wrap"><table class="data-table rt">
-    <thead><tr><th>Transaction</th><th class="r">Amount, IDR</th></tr></thead>
-    <tbody>{trs}</tbody>
-  </table></div>
-  <div class="pager-line"><span>1 to 10 of 45</span><span class="row"><button class="button button-secondary button-sm" type="button" disabled>Previous</button><button class="button button-secondary button-sm" type="button">Next</button></span></div>
-  <p class="reading-legend"><span><span class="reading reading-agreed">18,700,000</span> found on the page</span><span><span class="reading reading-single">720,000</span> read from the image only</span><span><span class="reading reading-conflict">7,250,000</span> page and reading differ</span></p>
+    <div><dt>{dw("detail.rowsImported")}</dt><dd class="v">{meta["rowsImported"]}</dd><dd class="n">{words(DOC_WORDS, "status.imported")}</dd></div>
+    <div><dt>{dw("detail.period")}</dt><dd class="v">{fmt_date(meta["dateFrom"])} – {fmt_date(meta["dateTo"])}</dd><dd class="n">{", ".join(doc["months"])}</dd></div>
+    <div><dt>{dw("detail.info.type")}</dt><dd class="v">{dw("detail.spreadsheet")}</dd><dd class="n">{doc["contentType"]}</dd></div>
+  </dl>"""
+    card = f"""
+<div class="card stack gap-4">
+  <div class="row spread">
+    <div><strong>{dw("detail.spreadsheet")}</strong><p class="small muted">{dw("detail.rowsSummary", count=meta["rowsImported"])}</p></div>
+    <a class="button button-secondary" href="profit-loss.html">{icon("bar-chart", "icon icon-sm")}<span>{dw("detail.viewProfitLoss")}</span></a>
+  </div>
+  <div class="row"><span class="muted small">{dw("detail.period")}:</span>{months_badges}</div>
+</div>"""
+    pane = f"""
+<section class="doc-pane" aria-label="{dw("detail.pane")}">
+  {figures}
+  {doc_tabs([(dw("detail.tabs.ledger"), meta["rowsImported"]), (dw("detail.tabs.details"), None)])}
+  <div role="tabpanel" class="stack gap-3">{card}</div>
+</section>"""
+    mapping_rows = "".join(
+        f'<tr><td><strong>{field}</strong></td><td><label class="field m-0"><span class="sr-only">{field}</span><select class="input" aria-label="{field}" disabled><option>{column}</option></select></label></td><td class="muted small">{sample}</td></tr>'
+        for field, column, sample in [("Date", "Tanggal", "02/03/2026"), ("Description", "Keterangan", "Penjualan kopi"), ("Account code", "Kode Akun", "4000"),
+                                       ("Debit", "Debet", "0"), ("Credit", "Kredit", "120.000.000")])
+    planned = f"""
+<section class="panel panel-pad stack gap-3" aria-labelledby="map-h" data-planned="T005-11">
+  <div class="spread"><h2 class="type-h2" id="map-h">{rw("kinds.CONFIRM_LEDGER_MAPPING")}</h2>{badge("outline", "Planned, spec 005 T005-11")}</div>
+  <p class="muted">{rw("why.CONFIRM_LEDGER_MAPPING")} Standard layouts are confirmed automatically today; this confirmation screen for a new layout is still to be built.</p>
+  <div class="table-panel"><table class="data-table"><thead><tr><th>Field</th><th>Column in the file</th><th>Sample</th></tr></thead><tbody>{mapping_rows}</tbody></table></div>
+  <div class="row"><button class="button button-primary" type="button" disabled>Confirm columns</button></div>
 </section>"""
     content = f"""
 <div class="page stack gap-5">
-  <header class="stack gap-2">
-    <h1 class="type-title">ACB_Feb_2026.pdf</h1>
-    <p class="muted">Bank statement, Archipelago Commerce Bank ••4821, 1 to 28 February 2026. Uploaded on 2 July.</p>
-    <div class="doc-status">
-      <span class="badge badge-brand">{icon("check")}Read: 180 of 180 values found on the page</span>
-      <span class="badge badge-clean">{icon("shield-check")}No signs of editing</span>
-      <span class="spacer"></span>
-      <span class="row"><a class="button button-secondary button-sm" href="#">{icon("download", "icon icon-sm")}Original file</a><a class="button button-ghost button-sm" href="#">{icon("trash", "icon icon-sm")}Remove</a></span>
-    </div>
-  </header>
-  <div class="doc-layout">{viewer}{pane}</div>
+  {document_header(doc, summary, badges)}
+  {pane}
+  {planned}
 </div>"""
-    return shell("documents", topbar("ACB_Feb_2026.pdf", (("Documents", "documents.html"), "ACB_Feb_2026.pdf"), back=("Documents", "documents.html")), content)
-
+    return shell("documents", topbar(doc["fileName"], ((dw("title"), "documents.html"), doc["fileName"]), back=(dw("title"), "documents.html")), content)
 
 # ------------------------------------------------------------------------------------------------
 # Finance Assistant (P1)
@@ -1126,9 +1455,13 @@ SCREENS = {
     "profit-loss": ("Company profit and loss", profit_loss),
     "documents": ("Documents", documents),
     "document": ("Document", document),
+    "document-ledger": ("Document: ledger export", document_ledger),
     "month": ("Month reconciliation", month),
+    "months": ("All months", months),
     "reconciliation": ("Bank evidence and document support", reconciliation),
     "review": ("Review queue", review),
+    "review-match": ("Review: choose a match", review_match),
+    "review-correction": ("Review: check a value", review_correction),
     "evidence-viewer": ("Evidence viewer", evidence_viewer),
     "assistant": ("Finance Assistant", assistant),
     "assistant-welcome": ("Finance Assistant: welcome", assistant_welcome),
@@ -1141,10 +1474,14 @@ NOTES = {
     "profit-loss": "Accrual management P&L from posted ledger activity, with company account classifications and source rows.",
     "dashboard": "The period's figures, the profit and loss panel, then full-width charts grouped by IFRS or US GAAP: money flow (flow, bars, table or by client and supplier), money in and out by month, and the cash-flow statement. Below, one sentence says where the books stand, then the open risks, what is to review and where the money went in short, and the months.",
     "document": "One read document: the page viewer with the selected value lit, beside what was read from it, a paginated list with reading marks, its findings and details.",
+    "document-ledger": "A ledger export after import: rows and period, the link to the profit and loss, and the column confirmation for a new layout marked as planned (T005-11).",
+    "months": "All months in one table: state, risk and statements, newest first; each row opens its month.",
+    "review-match": "The fix drawer for a proposed match: the bank line, the invoice it fits, why, and Confirm the match.",
+    "review-correction": "A value to check: the receipt beside the panel, the correction form open.",
     "documents": "Upload anything in any order. Exact copies are recognised at once; possible copies wait for you; ledgers ask for their columns once.",
-    "month": "One month's reconciliation: figures with their provenance marks, the explained risk with next steps, and every bank line with its match and reason.",
+    "month": "One month's reconciliation: the figures, the explained risk with its citations and next steps, the match meter, and every bank line with its category, support and action.",
     "reconciliation": "A separate synthetic MYR workspace preview: grouped and split payments, bank-only rows, documents before statements, separate approval/payment confirmation and currency agreement without conversion.",
-    "review": "One queue for everything AI could not settle. Each item shows the evidence, the candidates and only the fixes that make sense.",
+    "review": "One queue for everything AI could not settle, in the shared table with chips by kind; an item opens the fix drawer.",
     "evidence-viewer": "The lamp on the printed value, the calculation, and both readings side by side. Phones open zoomed to the evidence.",
     "assistant": "Questions about your books, answered from tools with citations and a small chart, with the history rail and an answer being written; only preferences are remembered.",
     "assistant-welcome": "An empty thread: the welcome prompts to start from, the history rail and the composer.",

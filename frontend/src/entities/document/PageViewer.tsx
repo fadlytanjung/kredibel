@@ -68,7 +68,8 @@ export function PageViewer({ docId, fileName, pageCount, page, onPage, highlight
           </button>
         </span>
       </div>
-      <div className="doc-window is-image" data-page-frame>
+      {/* The window scrolls when zoomed, so keyboard users can reach it (axe scrollable-region-focusable). */}
+      <div className="doc-window is-image" data-page-frame tabIndex={0}>
         <div className="page-zoom" style={{ width: `${zoom}%` }} /* allow-raw-style: the zoom level */>
           <PageImage docId={docId} pageNo={page} variant="full" alt={t('detail.page', { page })} highlight={highlight} />
         </div>

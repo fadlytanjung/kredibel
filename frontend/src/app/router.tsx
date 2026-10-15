@@ -32,7 +32,7 @@ import { SettingsPage } from '../pages/SettingsPage'
 import { AppShell, Button } from '../shared/ui'
 import { OnboardingPreview } from './OnboardingPreview'
 import { TrialBanner } from '../widgets/TrialBanner'
-import { AssistantPreview, DocumentPreview, MonthPreview, ProfitLossPreview, ReviewPreview, SettingsPreview, ShellPreview } from './ShellPreview'
+import { AssistantPreview, DocumentPreview, MonthPreview, MonthsPreview, ProfitLossPreview, ReviewPreview, SettingsPreview, ShellPreview } from './ShellPreview'
 
 function FullPageLoading() {
   const { t } = useTranslation()
@@ -156,6 +156,7 @@ export function AppRouter() {
         <Route path="/preview/settings/:section" element={<SettingsPreview />} />
       )}
       {import.meta.env.DEV && <Route path="/preview/documents/:docId" element={<DocumentPreview />} />}
+      {import.meta.env.DEV && <Route path="/preview/months" element={<MonthsPreview />} />}
       {import.meta.env.DEV && <Route path="/preview/months/:month" element={<MonthPreview />} />}
       {import.meta.env.DEV && <Route path="/preview/review" element={<ReviewPreview />} />}
       {import.meta.env.DEV && <Route path="/preview/review/:itemId" element={<ReviewPreview />} />}

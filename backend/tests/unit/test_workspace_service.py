@@ -96,16 +96,18 @@ async def test_ac013_2_creation_is_audited_in_the_same_transaction():
     assert all(event.actor_uid == "u-1" for event in repo.events[workspace.org_id])
 
 
-async def test_ac013_2_an_individual_workspace():
+async def test_ac013_2_every_new_workspace_is_a_company():
     service, repo, _ = _service()
-    person = WorkspaceCreate.model_validate(
-        {"name": "Demo Freelancer", "entityType": "INDIVIDUAL", "timezone": "Asia/Jakarta"}
-    )
+    business = WorkspaceCreate.model_validate({"name": "Demo Roasters", "timezone": "Asia/Jakarta"})
 
-    workspace = await service.create(NEW_USER, person)
+    workspace = await service.create(NEW_USER, business)
 
-    assert repo.workspaces[workspace.org_id].entity_type == "INDIVIDUAL"
-    assert repo.workspaces[workspace.org_id].profile.legal_name == "Demo Freelancer"
+    assert repo.workspaces[workspace.org_id].entity_type == "COMPANY"
+    assert repo.workspaces[workspace.org_id].profile.legal_name == "Demo Roasters"
+    with pytest.raises(ValidationError):
+        WorkspaceCreate.model_validate(
+            {"name": "Demo Freelancer", "entityType": "INDIVIDUAL", "timezone": "Asia/Jakarta"}
+        )
 
 
 async def test_ac013_3_a_caller_with_a_workspace_claim_gets_409():

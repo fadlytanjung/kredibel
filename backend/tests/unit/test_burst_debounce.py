@@ -202,7 +202,8 @@ async def test_ac004_6_ten_uploads_burst_produces_exactly_one_done_run(burst_env
     assert final_month is not None
     assert final_month.generation == 10
     assert final_month.dirty is False
-    assert final_month.state == MonthState.RECONCILED
+    assert final_month.state == MonthState.COLLECTING
+    assert final_month.note == "Reconciliation is not available yet."
     assert final_month.last_run_id == f"month-{org_id}-{month}-10"
 
 

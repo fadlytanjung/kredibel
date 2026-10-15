@@ -1,25 +1,30 @@
-/** One statement's lines as read, each with how its values were found (spec 005, T005-11). */
+/**
+ * One statement's lines as read: filtered, searchable, a page at a time, each amount marked with how it was
+ * found (spec 005, T005-11; mock design/mocks/document.html).
+ */
 
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { formatDate } from '../../shared/lib/formatDate'
 import { formatMoney } from '../../shared/lib/formatMoney'
-import { Badge } from '../../shared/ui'
-import type { BankLine, ValueReading } from './api'
+import { DataTable, type DataTableColumn, type DataTableFilter } from '../../shared/ui'
+import type { BankLine } from './api'
+import { isIncoming, lineStatus, needsCheck } from './lines'
 
-type Status = ValueReading['status']
+type Filter = 'all' | 'in' | 'out' | 'check'
 
-const RANK: Record<string, number> = { AGREED: 0, SINGLE_SOURCE: 1, CONFLICT: 2, MISSING: 3 }
-const VARIANT = { AGREED: 'clean', SINGLE_SOURCE: 'medium', CONFLICT: 'high', MISSING: 'critical' } as const
+const MARK = {
+  AGREED: 'reading-agreed',
+  SINGLE_SOURCE: 'reading-single',
+  CONFLICT: 'reading-conflict',
+  MISSING: 'reading-conflict',
+} as const
 
-/** The weakest reading among a line's values decides its badge. */
-export function lineStatus(line: BankLine): Status {
-  const statuses = Object.values(line.readings ?? {}).map((r) => r.status)
-  return statuses.reduce<Status>((worst, s) => ((RANK[s] ?? 0) > (RANK[worst] ?? 0) ? s : worst), 'AGREED')
-}
-
-/** Where to point on the page: the amount's box, else the description's. */
-export function lineBox(line: BankLine) {
-  return line.readings?.amount?.bbox ?? line.readings?.description?.bbox
+const KEEP: Record<Filter, (line: BankLine) => boolean> = {
+  all: () => true,
+  in: isIncoming,
+  out: (line) => !isIncoming(line),
+  check: needsCheck,
 }
 
 interface StatementLinesProps {
@@ -29,59 +34,113 @@ interface StatementLinesProps {
 }
 
 export function StatementLines({ lines, selectedTxId, onSelect }: StatementLinesProps) {
-  const { t } = useTranslation('documents')
-  return (
-    <div className="table-panel rt-wrap">
-      <table className="data-table rt">
-        <thead>
-          <tr>
-            <th>{t('detail.columns.date')}</th>
-            <th>{t('detail.columns.description')}</th>
-            <th className="r">{t('detail.columns.amount')}</th>
-            <th className="r">{t('detail.columns.balance')}</th>
-            <th>{t('detail.columns.reading')}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {lines.map((line) => {
-            const status = lineStatus(line)
-            const incoming = !line.amount.amount.startsWith('-')
-            const [first, ...rest] = line.description.split('\n')
-            return (
-              <tr
-                key={line.txId}
-                className={`is-clickable ${line.txId === selectedTxId ? 'is-selected' : ''}`}
-                aria-selected={line.txId === selectedTxId}
-                tabIndex={0}
-                onClick={() => onSelect(line)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault()
-                    onSelect(line)
-                  }
-                }}
-              >
-                <td className="whitespace-nowrap">{formatDate(line.date)}</td>
-                <td data-cell="wide">
-                  <strong className="block">{line.counterpartyName || first}</strong>
-                  <span className="small muted">{line.counterpartyName ? line.description.replace(/\n/g, ' · ') : rest.join(' · ')}</span>
-                </td>
-                <td className={`r ${incoming ? 'amt-in' : 'amt-out'}`}>
+  const { t } = useTranslation(['documents', 'common'])
+
+  const filters: DataTableFilter<BankLine>[] = useMemo(
+    () => [
+      { key: 'all', label: t('documents:detail.lines.all'), predicate: KEEP.all },
+      { key: 'in', label: t('documents:detail.lines.in'), predicate: KEEP.in },
+      { key: 'out', label: t('documents:detail.lines.out'), predicate: KEEP.out },
+      { key: 'check', label: t('documents:detail.lines.check'), predicate: KEEP.check },
+    ],
+    [t],
+  )
+
+  const columns: DataTableColumn<BankLine>[] = useMemo(
+    () => [
+      {
+        key: 'transaction',
+        header: t('documents:detail.columns.transaction'),
+        wideOnMobile: true,
+        sortable: true,
+        sortValue: (line) => line.counterpartyName || line.description,
+        render: (line) => {
+          const status = lineStatus(line)
+          const [first, ...rest] = line.description.split('\n')
+          const detail = line.counterpartyName ? line.description.replace(/\n/g, ' · ') : rest.join(' · ')
+          const where = t('documents:detail.lines.where', { date: formatDate(line.date), page: line.page })
+          const check =
+            line.source === 'WITNESS'
+              ? t('documents:detail.witnessRow')
+              : status !== 'AGREED'
+                ? t(`documents:detail.readingStatus.${status}`)
+                : ''
+          return (
+            <div>
+              <strong className="block">{line.counterpartyName || first}</strong>
+              {detail && <div className="reason">{detail}</div>}
+              <div className="reason">{check ? `${where} · ${check}` : where}</div>
+            </div>
+          )
+        },
+      },
+      {
+        key: 'amount',
+        header: t('documents:detail.columns.amount'),
+        align: 'right',
+        sortable: true,
+        sortValue: (line) => Number(line.amount.amount),
+        render: (line) => {
+          const status = lineStatus(line)
+          const amountStatus = line.readings?.amount?.status ?? status
+          const incoming = isIncoming(line)
+          return (
+            <>
+              <span className={incoming ? 'amt-in' : 'amt-out'}>
+                <span className={`reading ${line.source === 'WITNESS' ? MARK.SINGLE_SOURCE : MARK[amountStatus]}`}>
+                  {incoming ? '+' : ''}
                   {formatMoney(line.amount.amount, { currency: line.amount.currency })}
-                </td>
-                <td className="r">
-                  {line.balance ? formatMoney(line.balance.amount, { currency: line.balance.currency }) : '—'}
-                </td>
-                <td>
-                  <Badge variant={VARIANT[status]}>
-                    {line.source === 'WITNESS' ? t('detail.witnessRow') : t(`detail.readingStatus.${status}`)}
-                  </Badge>
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
+                </span>
+              </span>
+              <span className="sr-only">{t(`documents:detail.readingStatus.${amountStatus}`)}</span>
+            </>
+          )
+        },
+      },
+    ],
+    [t],
+  )
+
+  const searchPredicate = (line: BankLine, q: string) => {
+    if (line.counterpartyName && line.counterpartyName.toLowerCase().includes(q)) return true
+    if (line.description && line.description.toLowerCase().includes(q)) return true
+    if (line.date && line.date.includes(q)) return true
+    if (line.amount?.amount && line.amount.amount.includes(q)) return true
+    return false
+  }
+
+  return (
+    <DataTable
+      data={lines}
+      columns={columns}
+      getRowKey={(line) => line.txId}
+      filters={filters}
+      filterGroupAriaLabel={t('documents:detail.lines.filter')}
+      searchable={true}
+      searchPlaceholder={t('common:table.searchPlaceholder', { defaultValue: 'Search transactions...' })}
+      searchPredicate={searchPredicate}
+      rangeLabel={(from, to, total) =>
+        t('documents:detail.lines.range', { from, to, total })
+      }
+      emptyMessage={<p className="muted small">{t('documents:detail.lines.none')}</p>}
+      selectedRowKey={selectedTxId}
+      onRowClick={onSelect}
+      footer={
+        <p className="reading-legend">
+          <span>
+            <span className="reading reading-agreed">{t('documents:detail.legend.sample')}</span>{' '}
+            {t('documents:detail.legend.agreed')}
+          </span>
+          <span>
+            <span className="reading reading-single">{t('documents:detail.legend.sample')}</span>{' '}
+            {t('documents:detail.legend.single')}
+          </span>
+          <span>
+            <span className="reading reading-conflict">{t('documents:detail.legend.sample')}</span>{' '}
+            {t('documents:detail.legend.conflict')}
+          </span>
+        </p>
+      }
+    />
   )
 }

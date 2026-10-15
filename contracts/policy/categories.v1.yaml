@@ -24,11 +24,11 @@ lines:
   REVENUE:            { order: 1, ifrs: "Revenue",                    usGaap: "Net sales" }
   OTHER_INCOME:       { order: 2, ifrs: "Other income",               usGaap: "Other income" }
   COST_OF_SALES:      { order: 3, ifrs: "Cost of sales",              usGaap: "Cost of goods sold" }
-  OPERATING_EXPENSES: { order: 4, ifrs: "Operating expenses",         usGaap: "Selling, general and administrative" }
+  OPERATING_EXPENSES: { order: 4, ifrs: "Operating expenses",         usGaap: "Selling, general and administrative", split: true }
   INCOME_TAX:         { order: 5, ifrs: "Taxes paid",                 usGaap: "Taxes paid" }
   FINANCE_COSTS:      { order: 6, ifrs: "Finance costs",              usGaap: "Interest expense" }
   INVESTING:          { order: 7, ifrs: "Equipment and investments",  usGaap: "Capital expenditures" }
-  FINANCING:          { order: 8, ifrs: "Loans and owner",            usGaap: "Loans and owner" }
+  FINANCING:          { order: 8, ifrs: "Loans and owner",            usGaap: "Loans and owner", split: true }
   NONE:               { order: 9, ifrs: "Not a cash flow",            usGaap: "Not a cash flow" }
 
 categories:
@@ -40,19 +40,51 @@ categories:
   - { id: LOAN_DISBURSEMENT,      direction: in,  line: FINANCING,          label: "Loan received",             ifrs: FINANCING, usGaap: FINANCING }
   - { id: OWNER_CAPITAL,          direction: in,  line: FINANCING,          label: "Owner's capital",           ifrs: FINANCING, usGaap: FINANCING }
   # ---------------------------------------------------------------- money out
-  - { id: INVENTORY_PURCHASE,      direction: out, line: COST_OF_SALES,      label: "Purchases for sale or production", ifrs: OPERATING, usGaap: OPERATING }
-  - { id: SUPPLIER_PAYMENT,        direction: out, line: OPERATING_EXPENSES, label: "Other suppliers and services",    ifrs: OPERATING, usGaap: OPERATING }
-  - { id: PAYROLL,                 direction: out, line: OPERATING_EXPENSES, label: "Payroll",                 ifrs: OPERATING, usGaap: OPERATING }
-  - { id: RENT,                    direction: out, line: OPERATING_EXPENSES, label: "Rent",                    ifrs: OPERATING, usGaap: OPERATING }
-  - { id: UTILITIES,               direction: out, line: OPERATING_EXPENSES, label: "Utilities",               ifrs: OPERATING, usGaap: OPERATING }
-  - { id: BANK_FEES,               direction: out, line: OPERATING_EXPENSES, label: "Bank fees",               ifrs: OPERATING, usGaap: OPERATING }
-  - { id: OTHER_OPERATING_EXPENSE, direction: out, line: OPERATING_EXPENSES, label: "Other spending",          ifrs: OPERATING, usGaap: OPERATING }
-  - { id: TAX_PAYMENT,             direction: out, line: INCOME_TAX,         label: "Tax",                     ifrs: OPERATING, usGaap: OPERATING }
-  - { id: INTEREST_PAID,           direction: out, line: FINANCE_COSTS,      label: "Interest paid",           ifrs: FINANCING, usGaap: OPERATING }
-  - { id: ASSET_PURCHASE,          direction: out, line: INVESTING,          label: "Equipment bought",        ifrs: INVESTING, usGaap: INVESTING }
-  - { id: LOAN_REPAYMENT,          direction: out, line: FINANCING,          label: "Loan principal repaid",   ifrs: FINANCING, usGaap: FINANCING }
-  - { id: OWNER_DRAWING,           direction: out, line: FINANCING,          label: "Owner drawings",          ifrs: FINANCING, usGaap: FINANCING }
+  - { id: INVENTORY_PURCHASE,      direction: out, line: COST_OF_SALES,      label: "Purchases for sale or production", ifrs: OPERATING, usGaap: OPERATING, use: SUPPLIERS }
+  - { id: SUPPLIER_PAYMENT,        direction: out, line: OPERATING_EXPENSES, label: "Other suppliers and services",    ifrs: OPERATING, usGaap: OPERATING, use: SUPPLIERS }
+  - { id: PAYROLL,                 direction: out, line: OPERATING_EXPENSES, label: "Payroll",                 ifrs: OPERATING, usGaap: OPERATING, use: PAYROLL }
+  - { id: RENT,                    direction: out, line: OPERATING_EXPENSES, label: "Rent",                    ifrs: OPERATING, usGaap: OPERATING, use: RENT_UTILITIES }
+  - { id: UTILITIES,               direction: out, line: OPERATING_EXPENSES, label: "Utilities",               ifrs: OPERATING, usGaap: OPERATING, use: RENT_UTILITIES }
+  - { id: BANK_FEES,               direction: out, line: OPERATING_EXPENSES, label: "Bank fees",               ifrs: OPERATING, usGaap: OPERATING, use: OTHER }
+  - { id: OTHER_OPERATING_EXPENSE, direction: out, line: OPERATING_EXPENSES, label: "Other spending",          ifrs: OPERATING, usGaap: OPERATING, use: OTHER }
+  - { id: TAX_PAYMENT,             direction: out, line: INCOME_TAX,         label: "Tax",                     ifrs: OPERATING, usGaap: OPERATING, use: TAX }
+  - { id: INTEREST_PAID,           direction: out, line: FINANCE_COSTS,      label: "Interest paid",           ifrs: FINANCING, usGaap: OPERATING, use: LOANS }
+  - { id: ASSET_PURCHASE,          direction: out, line: INVESTING,          label: "Equipment bought",        ifrs: INVESTING, usGaap: INVESTING, use: SUPPLIERS }
+  - { id: LOAN_REPAYMENT,          direction: out, line: FINANCING,          label: "Loan principal repaid",   ifrs: FINANCING, usGaap: FINANCING, use: LOANS }
+  - { id: OWNER_DRAWING,           direction: out, line: FINANCING,          label: "Owner drawings",          ifrs: FINANCING, usGaap: FINANCING, use: OWNER }
   # ---------------------------------------------------------------- not cash flows of the business
   - { id: INTERNAL_TRANSFER,       direction: either, line: NONE, label: "Between own accounts", ifrs: NON_CASH, usGaap: NON_CASH }
   - { id: REVERSAL,                direction: either, line: NONE, label: "Reversal",             ifrs: NON_CASH, usGaap: NON_CASH }
-  - { id: UNKNOWN,                 direction: either, line: NONE, label: "Not categorized yet",  ifrs: UNCLASSIFIED, usGaap: UNCLASSIFIED }
+  - { id: UNKNOWN,                 direction: either, line: NONE, label: "Not categorized yet",  ifrs: UNCLASSIFIED, usGaap: UNCLASSIFIED, use: UNCATEGORIZED }
+
+# ---------------------------------------------------------------- money-flow chart (docs/08 §5.1)
+# Statement lines with `split: true` show one node per category in the chart's last column. `use`
+# groups money out by who was paid for the "By client and supplier" view. Labels are the same in
+# both frameworks; frameworkNotes is the sentence under the chart when interest is in the period.
+uses:
+  SUPPLIERS: "Suppliers"
+  PAYROLL: "Payroll"
+  RENT_UTILITIES: "Rent and utilities"
+  TAX: "Tax"
+  LOANS: "Loan payments"
+  OWNER: "Owner drawings"
+  OTHER: "Other spending"
+  UNCATEGORIZED: "Not categorized yet"
+
+flowLabels:
+  OPERATING: "Operating"
+  INVESTING: "Investing"
+  FINANCING: "Financing"
+  otherClients: "Other clients"
+  cashSales: "Cash sales deposited"
+  takenFromBalance: "Taken from balance"
+  kept: "Kept"
+  keptInAccount: "Kept in the account"
+  uncategorized: "Not categorized yet"
+  fromOwnAccounts: "From own accounts"
+  toOwnAccounts: "To own accounts"
+  bankAccount: "Bank account"
+
+frameworkNotes:
+  IFRS: "Under IFRS, interest paid is a financing cash flow and interest received an investing one."
+  US_GAAP: "Under US GAAP, interest paid and interest received are operating cash flows."

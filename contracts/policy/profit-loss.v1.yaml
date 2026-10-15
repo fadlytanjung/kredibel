@@ -1,0 +1,18 @@
+version: 1
+basis: ACCRUAL
+lines:
+  REVENUE: {label: Revenue, normalBalance: CREDIT}
+  COST_OF_SALES: {label: Cost of sales, normalBalance: DEBIT}
+  OPERATING_EXPENSES: {label: Operating expenses, normalBalance: DEBIT}
+  OTHER_INCOME: {label: Other income, normalBalance: CREDIT}
+  FINANCE_COSTS: {label: Finance costs, normalBalance: DEBIT}
+  INCOME_TAX: {label: Income tax, normalBalance: DEBIT}
+  BALANCE_SHEET: {label: Balance sheet (excluded from profit), normalBalance: NONE}
+subledgers:
+  RECEIVABLES: Receivables
+  PAYABLES: Payables
+  INVENTORY: Inventory
+  FIXED_ASSETS: Fixed assets
+  PAYROLL: Payroll
+  CASH: Cash and bank
+  GENERAL: General journals

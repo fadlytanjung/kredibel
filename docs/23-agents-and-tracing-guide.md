@@ -16,9 +16,10 @@
   uploaded file) and `month_workflow` (reconciles one month).
 - A **`Runner`** executes a workflow inside a **session** (like a LangGraph thread). Our sessions live
   only for one run; the real data is in Firestore, not in ADK state.
-- Every run emits **OpenTelemetry spans**. Locally you see them in the **ADK dev UI**
-  (`make dev-agents`, the LangSmith-like screen); in production they go to **Cloud Trace**, and each
-  run in Firestore stores its `traceId`.
+- Every run emits **OpenTelemetry spans**. Locally you see them in **Langfuse** (`make langfuse-up`,
+  `make dev-langfuse`; the LangSmith-like view, §5.2) or the **ADK dev UI** for fixture workflows
+  (`make dev-agents`); in production they go to **Cloud Trace**, and each run in Firestore stores its
+  `traceId`. Gemini usage per model: `make gemini-usage` (§3.4).
 
 ---
 
@@ -81,7 +82,7 @@ sequenceDiagram
 ### 3.1 `document_workflow` (dynamic)
 
 One orchestrator node calls the steps in code, so branches and the page fan-out are ordinary
-Python. Today most steps are stubs; specs 005 to 008 fill them in.
+Python. Which steps call Gemini and which are code is in §3.3.
 
 ```mermaid
 %%{init: {"theme": "base", "themeVariables": {"fontFamily": "Arial, Helvetica, sans-serif", "fontSize": "14px", "primaryColor": "#E7F2EE", "primaryBorderColor": "#0E5A47", "primaryTextColor": "#16212B", "lineColor": "#56636F", "secondaryColor": "#E8ECEE", "tertiaryColor": "#FFFFFF", "clusterBkg": "#F2F4F5", "clusterBorder": "#B9C2CA", "noteBkgColor": "#FFF5D6", "noteTextColor": "#16212B"}, "htmlLabels": false, "flowchart": {"htmlLabels": false, "padding": 16, "nodeSpacing": 40, "rankSpacing": 50, "wrappingWidth": 220}, "sequence": {"wrap": true, "useMaxWidth": true, "noteFontFamily": "Arial, Helvetica, sans-serif", "messageFontFamily": "Arial, Helvetica, sans-serif", "actorFontFamily": "Arial, Helvetica, sans-serif"}}}%%
@@ -104,9 +105,86 @@ Ten nodes in a fixed line; the graph view draws them all.
 `load_month → reconcile → check_month → build_counterparties → suggest_profile → score_risk →
 explain_month → build_flows → sync_review_items → finalize_month`
 
+### 3.3 Which steps use Gemini, and which are code
+
+Gemini reads and words; code decides every number, match and risk level (constitution, rule 1).
+
+| Step | Gemini? | What it does |
+|---|---|---|
+| `classify_document` | Yes, `MODEL_LITE` | Says what the file is (statement, sales or purchase invoice, receipt, ledger) from page 1 |
+| `read_page` (one per page, in parallel) | Yes, `MODEL_FAST` | Reads the page image plus its numbered layout chunks; cites the chunk of every value |
+| `verify_pages`, `escalate_pages` | No | Grounds each value in the words of the chunk it cites (ADR-023); checks arithmetic |
+| `check_document`, `detect_content_duplicates` | No | Forensics (`M0x`, `A0x`, `E0x`) and possible copies (`D0x`) |
+| `categorize_bank_lines` | Rules first, then `MODEL_LITE` | Rules from `contracts/policy/categories.v1.yaml`; the model only for lines no rule knows |
+| `reconcile`, `check_month`, `score_risk` | No | Matching, month checks, risk level: pure functions over all the month's data |
+| `explain_month` | Yes, `MODEL_FAST` | Words the month's risk from its findings and figures; the grounding guard rejects any number it cannot trace, then one retry, then a template |
+
+Each run's stages say which model a step called and how many tokens it used (§5.1), so "did this
+really use AI?" is answered per document and per month.
+
+### 3.4 Where Gemini usage shows in Google Cloud
+
+The application calls Gemini **on Vertex AI** with Google credentials (the service account on Cloud
+Run, your `gcloud auth application-default login` locally; `GOOGLE_GENAI_USE_VERTEXAI=TRUE`), never
+with an AI Studio or Gemini API key. So **nothing shows under an AI Studio key**; the usage is in the
+project's Cloud Monitoring.
+
+**Quickest: one command** (counts only, needs `roles/monitoring.viewer`):
+
+```bash
+make gemini-usage            # last 7 days; DAYS=2 for two
+# Gemini on Vertex AI, project cloud-hack2skill, last 2 day(s)
+# model                          calls    input tokens   output tokens
+# gemini-3.8-flash                 355         851,767         278,683
+# gemini-3.5-flash-lite            314         621,821          69,902
+# GenerateContent requests by response: 2xx 628, 4xx 29
+```
+
+**In the console**, independent of where the menus moved (Vertex AI now appears under Agent
+Platform): open **Monitoring → Metrics Explorer**, switch to the code editor (PromQL or MQL) or pick
+by metric name, and chart:
+
+- `aiplatform.googleapis.com/publisher/online_serving/model_invocation_count`, grouped by
+  `model_user_id`: calls per model;
+- `aiplatform.googleapis.com/publisher/online_serving/token_count`, grouped by `model_user_id` and
+  `type` (input, output): tokens per model;
+- `serviceruntime.googleapis.com/api/request_count` with `service = aiplatform.googleapis.com`,
+  grouped by `response_code_class`: errors and 429s.
+
+Cost: **Billing → Reports**, service "Vertex AI" (or its new name).
+
 ---
 
 ## 4. Debug locally: the ADK dev UI (`make dev-agents`)
+
+### 4.1 Trace uploads through the running application
+
+```bash
+make trace-up             # Docker: local Jaeger, http://localhost:16686
+make trace-smoke          # verifies ingestion and prints a working trace URL; no credentials
+make dev-traced           # API :8000 + inline worker; uses your normal local .env
+# In another terminal:
+make dev-frontend         # app http://localhost:5173
+```
+
+Upload through the app, then open **http://localhost:16686**, choose service **kredibel-all**
+(or the configured `K_SERVICE`) and **Find Traces**. Each `workflow:document_workflow` trace contains
+the classification, page reading, verification, categorization and finalization nodes. Direct Gemini
+requests appear as `generate_content <model>` with attempt number, prompt version, tokens and errors.
+A month run is a separate `workflow:month_workflow` trace linked by `orgId` and `month`.
+To open one directly, use `http://localhost:16686/trace/<traceId>` from `GET /api/runs/{runId}`.
+
+`dev-traced` changes telemetry only; it uses the same storage/auth/model configuration as
+`dev-backend`. Use a synthetic workspace for generated documents. `trace-smoke` creates only a
+two-span synthetic trace and never touches workspace data or Gemini. Jaeger stores traces in memory;
+`make trace-down` stops it and clears that history. Both viewer and collector bind only to loopback.
+
+Cloud Run keeps `TRACE_EXPORT=cloud`. `adk web --otel_to_cloud` is for Google Cloud export;
+local export here uses `TRACE_EXPORT=otlp` and `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`.
+We use the locked OTel SDK/exporter already in the repository, with
+[Jaeger 2.22](https://www.jaegertracing.io/docs/2.22/getting-started/), without LangSmith.
+
+### 4.2 Inspect fixture workflows in ADK
 
 ```bash
 make dev-agents            # http://localhost:8501  (adk web on backend/app/agents/dev_apps)
@@ -132,7 +210,7 @@ Each folder under `backend/app/agents/dev_apps/` is one app: today `document_wor
 4. **Traces**: the run as a waterfall, like a LangSmith run tree: ADK's `invoke_node` span for each
    step with our `node:<name>` span inside it, durations, and a detail panel (IDs, timing, children,
    attributes). Once LLM nodes exist, their `call_llm` spans appear here with model and tokens, and
-   prompts when content capture is on (§6).
+   prompts when content capture is on (§7).
 
    <img src="assets/adk/dev-ui-traces.png" alt="ADK dev UI Traces: the month_workflow run as a waterfall of node spans with durations" width="80%">
 
@@ -159,7 +237,82 @@ the UI uses `build_graph`, which works.
 
 ---
 
-## 5. Trace a run in production (Cloud Trace)
+### 4.3 Reproduce invoice/receipt reconciliation without real data
+
+```bash
+make demo-reconciliation          # offline: HTTP upload + real workflows, recorded readings
+make trace-up
+make demo-reconciliation-traced   # same run, traced; prints direct Jaeger URLs
+```
+
+Open **http://localhost:16686** and choose service **kredibel-reconciliation-demo**. The script
+uploads the five PDFs in `backend/tests/fixtures/reconciliation/` into in-memory repositories,
+first with the statement first, then with the supporting documents first. Both runs must produce
+three automatic bank matches (sales invoice, purchase invoice, card receipt), a paid-cash receipt
+with no bank match, and identical figures. Bank rows without documents remain `NO_SUPPORT`.
+Both receipts print no currency, so they are read in the workspace currency (ADR-025, T007-12).
+It never changes a real workspace, uses no Google credentials, and calls no model. Actual Gemini
+request spans are visible when uploading through `make dev-traced` (§4.1).
+
+The summary and trace URLs are written to `/tmp/kredibel-reconciliation-demo.json`.
+`make reconciliation-fixtures` regenerates this subset from the S1 builder and its truth; no figures
+are hand-edited. This is a focused workflow regression, not the full six-month S1/S4/S5 evaluation.
+The trace also names unfinished downstream nodes as skipped; risk explanations, money flows and
+review-item sync are still separate implementation tasks.
+
+## 5. Run history: local and production
+
+There is no LangSmith project to open; three places hold what LangSmith would show.
+
+### 5.1 Every run, every environment: the run record
+
+Each upload and each month reconciliation writes one run, `orgs/{orgId}/runs/{runId}`, with one
+stage per step: status, start and end, `model`, `tokensIn`, `tokensOut`, a one-line `summary` and
+the step's trace span. It is the run history, kept with the workspace.
+
+- In the app: a document's page shows its progress line from these stages.
+- Through the API: `GET /api/runs?target=<docId or yyyy-mm>` lists a target's runs, newest first;
+  `GET /api/runs/{runId}` returns one with its stages and `traceId`.
+- In the console: **Firestore** → database `kredibel` → `orgs/{orgId}/runs`.
+
+A step that called no model records none: only the step that made the call carries its tokens.
+
+### 5.2 Locally: Langfuse, the LangSmith-like view ([ADR-026](adr/ADR-026-langfuse-trace-viewer.md))
+
+```bash
+make langfuse-up     # first run: writes infra/langfuse/.env (credentials, git ignores it), pulls ~2 GB
+make langfuse-smoke  # sends a synthetic trace with one generation and finds it through the API
+make dev-langfuse    # API :8000 + inline worker, every run traced into Langfuse
+make dev-frontend    # in another terminal; upload as usual
+```
+
+1. Open **http://localhost:3000** and sign in as `dev@kredibel.local`; the password is
+   `LANGFUSE_INIT_USER_PASSWORD` in `infra/langfuse/.env`. The project `kredibel-local` is ready.
+2. **Tracing → Traces**: one row per run, named `workflow:document_workflow` or
+   `workflow:month_workflow`, with latency, tokens and the models used. Open one for the tree: every
+   `node:` step, and each Gemini call as a **generation** with model, prompt version, attempt and
+   input/output tokens; failed attempts in red with their error type.
+3. **Sessions**: all runs of one document (its `docId`) or one month (`month:2026-03`) together, for
+   instance a document's first attempt and its retry. **Users** are workspaces (`orgId`).
+4. Prompts and responses: only with synthetic data. Start with
+   `DATA_CLASS=synthetic make dev-langfuse CONTENT=1` (refused when `DATA_CLASS=real`), and each
+   generation shows the prompt's text (never the page image) and the JSON Gemini returned.
+
+Any other command can send its traces too, e.g. the demo upload:
+`set -a; . infra/langfuse/.env; set +a; TRACE_EXPORT=langfuse make demo-books EMAIL=…`.
+`make langfuse-down` stops it and keeps the traces; `RESET=1` deletes them.
+
+Jaeger (`make trace-up`, `make dev-traced`, http://localhost:16686) still works for the raw span
+view and needs nothing but Docker.
+
+### 5.3 Production
+
+In production, spans go to Cloud Trace (§6). A production Langfuse is proposed in ADR-026 and not
+decided: it needs Postgres, ClickHouse, Redis and storage on Google Cloud, and with real documents
+it may show metadata only. The in-app alternative: the BigQuery Agent Analytics plugin (T017-03),
+`GET /api/runs/{runId}/events` (T017-04) and the Runs pages (T017-05).
+
+## 6. Trace a run in production (Cloud Trace)
 
 On Cloud Run `TRACE_EXPORT=cloud`, so `app/observability/tracing.setup_tracing()` installs ADK's Google
 Cloud exporter at start-up and every run becomes one trace:
@@ -194,11 +347,11 @@ can link straight to the failing span.
 
 ---
 
-## 6. What is recorded, and what never is
+## 7. What is recorded, and what never is
 
 | Setting | Value | Effect |
 |---|---|---|
-| `TRACE_EXPORT` | `cloud` on Cloud Run, `none` by default | Whether spans leave the process |
+| `TRACE_EXPORT` | `cloud` on Cloud Run, `langfuse` for local Langfuse, `otlp` for local Jaeger, `none` by default | Where spans go |
 | `AI_CONTENT_CAPTURE` | `off` (default, the only value allowed with real data) | Spans keep model, tokens, durations and IDs; never prompts, page text or outputs (`ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS=false`) |
 | | `synthetic` (only with `DATA_CLASS=synthetic`; start-up refuses otherwise) | Prompts and responses appear in span attributes, so Trace Explorer and the dev UI show them |
 
@@ -206,7 +359,7 @@ Logs never contain document text, names or account numbers ([`17`](17-observabil
 
 ---
 
-## 7. Adding an agent or a node: the checklist
+## 8. Adding an agent or a node: the checklist
 
 1. Write the node in `agents/nodes/` with `stage(deps, "<name>")`; return a dict (with `summary`, and
    `model`, `tokens_in`, `tokens_out` for LLM calls so the run stage records them).
@@ -219,7 +372,7 @@ Logs never contain document text, names or account numbers ([`17`](17-observabil
 
 ---
 
-## 8. Troubleshooting
+## 9. Troubleshooting
 
 | Symptom | Cause and fix |
 |---|---|
@@ -227,4 +380,6 @@ Logs never contain document text, names or account numbers ([`17`](17-observabil
 | `Input should be a valid dictionary … input_value='run'` | An old node signature typed as `dict`; nodes take `Any` and call `node_input_dict()` (fixed in `stages.py`) |
 | Traces tab shows the invocation with "0us" and nothing under it | Spans without `gcp.vertex.agent.invocation_id`; `stage()` sets it, so this means a node bypasses `stage()` |
 | No trace in Cloud Trace for a production run | `TRACE_EXPORT` not `cloud` on that service, or the service account lacks `roles/cloudtrace.agent` (bootstrap step 4) |
+| A task's trace holds only its three request spans; the worker logs `Failed to export span batch code: 400` | The resource lacks `gcp.project_id` (`Resource is missing required attribute "gcp.project_id"`); `setup_tracing` merges ADK's `get_gcp_resource` (fixed) |
+| A local run has no trace | Run `make trace-up`, `make trace-smoke`, then `make dev-traced`; select `kredibel-all` in Jaeger. With real data, content capture stays off |
 | A run has no `traceId` | It ran before tracing was configured, or outside `run_workflow` |

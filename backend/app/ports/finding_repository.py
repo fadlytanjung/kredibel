@@ -30,3 +30,17 @@ class FindingRepository(Protocol):
     ) -> list[Finding]:
         """Most severe first."""
         ...
+
+    async def replace_month_findings(
+        self, org_id: str, month: str, fresh: list[Finding], *, run_id: str | None
+    ) -> list[Finding]:
+        """Merge a month run's MONTH-scope findings over the stored ones of that month."""
+        ...
+
+    async def get_finding(self, org_id: str, finding_id: str) -> Finding | None:
+        """Fetch a single finding by ID in the workspace. Returns None if foreign or missing."""
+        ...
+
+    async def save_finding(self, org_id: str, finding: Finding) -> None:
+        """Save an updated finding in the workspace."""
+        ...

@@ -5,8 +5,18 @@
  */
 
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useMemo } from 'react'
 import { apiBlob } from '../../shared/api/client'
+
+const objectUrlCache = new Map<string, string>()
+
+function getCachedObjectUrl(path: string, blob: Blob): string {
+  let url = objectUrlCache.get(path)
+  if (!url) {
+    url = URL.createObjectURL(blob)
+    objectUrlCache.set(path, url)
+  }
+  return url
+}
 
 export function useAuthedObjectUrl(path: string | null) {
   const query = useQuery({
@@ -15,8 +25,7 @@ export function useAuthedObjectUrl(path: string | null) {
     enabled: path !== null,
     staleTime: Infinity, // a rendered page never changes
   })
-  const url = useMemo(() => (query.data ? URL.createObjectURL(query.data) : undefined), [query.data])
-  useEffect(() => () => (url ? URL.revokeObjectURL(url) : undefined), [url])
+  const url = query.data && path ? getCachedObjectUrl(path, query.data) : undefined
   return { url, isError: query.isError }
 }
 

@@ -8,6 +8,8 @@ contracts/policy/categories.v1.yaml."""
 
 from __future__ import annotations
 
+from sankey import DASH_WORDS
+
 # ----------------------------------------------------------------------------------------------- data
 
 ACCOUNT = "ACB ••4821"
@@ -87,7 +89,7 @@ def sankey(columns: list[dict], links: list[tuple], width: int, height: int, k: 
                         "cls": cls, "lp": lp, "out": 0.0, "in": 0.0}
             y += nh + col["gap"]
         col["h"] = h
-    parts = [f'<svg class="chart sankey" viewBox="0 0 {width} {height}" role="img" aria-labelledby="{title[0]} {desc[0]}">',
+    parts = [f'<svg class="chart sankey" viewBox="0 0 {width} {height}" role="group" aria-labelledby="{title[0]} {desc[0]}">',
              f'<title id="{title[0]}">{esc(title[1])}</title><desc id="{desc[0]}">{esc(desc[1])}</desc>']
     for text, x, anchor in headers:
         parts.append(f'<text class="col" x="{x}" y="18" text-anchor="{anchor}">{text}</text>')
@@ -296,5 +298,6 @@ def flow_list(fw: str = "IFRS") -> str:
                 f'<span class="bar"><i style="width:{v / mx * 100:.0f}%"></i></span></div>')
     ins = "".join(row(n, v) for n, v in REVENUE[:3])
     outs = "".join(row(l[1][fw], l[2], "out") for l in sorted(LINES, key=lambda l: -l[2])[:4])
-    return (f'<div class="flow-list"><div><h3>Most revenue came from</h3>{ins}</div>'
-            f'<div><h3>Most money went to</h3>{outs}{row("Kept in the account", KEPT, "kept")}</div></div>')
+    came, went = DASH_WORDS["charts"]["cameFrom"], DASH_WORDS["charts"]["wentTo"]
+    return (f'<div class="flow-list"><section aria-label="{came}"><h3>{came}</h3>{ins}</section>'
+            f'<section aria-label="{went}"><h3>{went}</h3>{outs}{row("Kept in the account", KEPT, "kept")}</section></div>')

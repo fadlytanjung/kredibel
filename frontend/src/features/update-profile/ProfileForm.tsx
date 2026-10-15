@@ -7,10 +7,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
-import { useUpdateWorkspace, type Workspace } from '../../entities/workspace'
+import { currencyLabel, useUpdateWorkspace, type Workspace } from '../../entities/workspace'
 import { ProblemError } from '../../shared/api/client'
 import type { components } from '../../shared/api/schema'
 import onboardingEn from '../../shared/i18n/locales/en/onboarding.json'
+import { Badge } from '../../shared/ui/Badge'
 import { Field, Input, Select } from '../../shared/ui/Field'
 import { fieldErrorProps } from '../../shared/ui/fieldProps'
 import { timeZoneOptions } from '../create-workspace/timeZones'
@@ -55,7 +56,7 @@ export function ProfileForm({ workspace }: { workspace: Workspace }) {
   const form = useForm<Values>({ defaultValues: valuesOf(workspace) })
   const { register, formState, reset, setError } = form
   const company = workspace.entityType === 'COMPANY'
-  const typeLabel = t(company ? 'company' : 'individual', { ns: 'onboarding' })
+  const typeLabel = t(`entityTypes.${workspace.entityType}`, { ns: 'settings' })
   const industries = INDUSTRY_KEYS.map((key) => t(`industries.${key}`, { ns: 'onboarding' }))
   const currentIndustry = workspace.profile?.industry ?? ''
   const industryOptions = [...new Set([...industries, currentIndustry].filter(Boolean))]
@@ -116,10 +117,18 @@ export function ProfileForm({ workspace }: { workspace: Workspace }) {
       <p className="muted">{t('profile.intro')}</p>
       <div className="form-wrap">
         <div className="form-grid">
-          <div className="field span-2">
+          <div className="field">
             <span className="label">{t('profile.type')}</span>
             <span>{typeLabel}</span>
             <span className="hint">{t('profile.typeFixed')}</span>
+          </div>
+          <div className="field">
+            <span className="label">{t('language.currency')}</span>
+            <span className="row gap-2 font-medium">
+              {currencyLabel(workspace.currency)}
+              <Badge variant="outline">{t('plan.comingSoon')}</Badge>
+            </span>
+            <span className="hint">{t('language.currencyFixed')}</span>
           </div>
           <Field
             id="name"

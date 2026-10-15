@@ -7,15 +7,21 @@ from app.core.settings import Settings
 from app.domain.categorize import CategoryPolicy
 from app.domain.checks.policy import ForensicsPolicy
 from app.domain.models.invoice import Invoice, Receipt
+from app.domain.reconciliation_policy import ReconciliationPolicy
+from app.domain.risk import RiskPolicy
 from app.ports.bank_line_repository import BankLineRepository
+from app.ports.decision_repository import DecisionRepository
 from app.ports.document_reader import DocumentReader
 from app.ports.document_repository import DocumentRepository
 from app.ports.document_storage import DocumentStorage
 from app.ports.file_inspector import FileInspector
 from app.ports.finding_repository import FindingRepository
+from app.ports.ledger_repository import LedgerRepository
+from app.ports.match_repository import MatchRepository
 from app.ports.month_repository import MonthRepository
 from app.ports.page_text import PageText
 from app.ports.record_repository import DocumentRecords
+from app.ports.review_item_repository import ReviewItemRepository
 from app.ports.run_repository import RunRepository
 from app.ports.task_queue import TaskQueue
 from app.ports.workspace_repository import WorkspaceRepository
@@ -45,3 +51,13 @@ class PipelineDeps:
     forensics: ForensicsPolicy | None = None
     findings: FindingRepository | None = None
     categories: CategoryPolicy | None = None
+    # Month reconciliation (spec 007, ADR-025).
+    matches: MatchRepository | None = None
+    decisions: DecisionRepository | None = None
+    reconciliation: ReconciliationPolicy | None = None
+    # Risk policy (spec 008).
+    risk_policy: RiskPolicy | None = None
+    # Review queue (spec 009).
+    review_items: ReviewItemRepository | None = None
+    # Ledger repository (spec 018).
+    ledger: LedgerRepository | None = None

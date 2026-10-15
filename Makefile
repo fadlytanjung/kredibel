@@ -25,15 +25,30 @@ setup: ## Install all backend, frontend, and synthetic dependencies
 	@if [ -f tools/synthetic/pyproject.toml ]; then cd tools/synthetic && uv sync; fi
 	@echo "==> Setup complete."
 
-dev: ## Run local dev servers (FastAPI on :8000 + worker inline, Vite on :5173)
+dev: ## Run local dev servers (FastAPI on :8000, Vite on :5173, Langfuse, Firestore emulator)
 	@echo "Starting Kredibel in local dev mode..."
 	@if [ -f .env ]; then export $$(cat .env | grep -v '^#' | xargs); fi
 	@make docker-up
-	@echo "Starting backend and frontend..."
-	@concurrently "make dev-backend" "make dev-frontend" 2>/dev/null || ( \
-		echo "Run backend: (cd backend && uv run uvicorn app.main:app --reload --port 8000)"; \
-		echo "Run frontend: (cd frontend && npm run dev)" \
-	)
+	@if [ -f infra/langfuse/docker-compose.yml ]; then \
+		echo "Ensuring Langfuse trace viewer is running..."; \
+		make langfuse-up; \
+	fi
+	@echo ""
+	@echo "==================================================================="
+	@echo "  Kredibel Local Development Services"
+	@echo "==================================================================="
+	@echo "  • Web App (Frontend):     http://localhost:5173"
+	@echo "  • Backend API:            http://localhost:8000"
+	@echo "  • API Docs (Swagger):     http://localhost:8000/docs"
+	@echo "  • API Docs (ReDoc):       http://localhost:8000/redoc"
+	@echo "  • Langfuse Traces:        http://localhost:3000"
+	@echo "  • Firestore Emulator:     http://localhost:8080 (UI: :4000)"
+	@echo "  • AI Content Capture:     $(if $(CONTENT),ENABLED (prompts & responses visible),OFF (metadata only; pass CONTENT=1))"
+	@echo "==================================================================="
+	@echo ""
+	@npx -y concurrently -n "api,web" -c "cyan,magenta" \
+		"$(if $(filter 1,$(NO_LANGFUSE)),,$(WITH_LANGFUSE)) AI_CONTENT_CAPTURE=$(if $(CONTENT),synthetic,off) DATA_CLASS=$(if $(CONTENT),synthetic,$${DATA_CLASS:-real}) make dev-backend" \
+		"make dev-frontend"
 
 dev-backend: ## Run local backend with reload
 	cd backend && APP_ROLE=all TASK_QUEUE_MODE=inline FIRESTORE_DATABASE=$${FIRESTORE_DATABASE:-kredibel} DATA_CLASS=$${DATA_CLASS:-real} uv run uvicorn app.main:app --reload --port 8000
@@ -60,6 +75,7 @@ check: ## Run all quality gates (lint, types, layers, repo checks, tests)
 	@if [ -f tools/checks/scan_secrets.py ]; then python3 tools/checks/scan_secrets.py; fi
 	@if [ -f tools/checks/schema_drift.py ]; then python3 tools/checks/schema_drift.py; fi
 	@if [ -f tools/checks/no_raw_styles.py ]; then python3 tools/checks/no_raw_styles.py; fi
+	@python3 tools/checks/mock_sync.py
 	@if [ -f tools/design/build_tokens.py ]; then python3 tools/design/build_tokens.py --check; fi
 	@echo "5. Running backend tests (pytest)..."
 	@if [ -f backend/pyproject.toml ]; then cd backend && uv run pytest; fi
@@ -134,6 +150,58 @@ mock-shots: ## Take screenshots of HTML mocks for docs
 
 dev-agents: ## Open the ADK dev UI on every workflow and agent (http://localhost:8501, docs/23)
 	cd backend && PYTHONPATH=. uv run adk web --port 8501 --reload_agents app/agents/dev_apps
+
+.PHONY: trace-up trace-down trace-smoke dev-traced
+trace-up: ## Start local OTel collector and viewer (http://localhost:16686)
+	docker compose --profile tracing up -d jaeger
+
+trace-down: ## Stop the local trace viewer (clears transient traces)
+	docker compose --profile tracing stop jaeger
+
+trace-smoke: ## Send a synthetic trace and verify it appears in the local viewer
+	cd backend && ENV_FILE=/dev/null PYTHONPATH=. uv run python scripts/trace_smoke.py
+
+dev-traced: ## Run the local API/inline worker with metadata traces in Jaeger
+	TRACE_EXPORT=otlp AI_CONTENT_CAPTURE=off $(MAKE) dev-backend
+
+.PHONY: langfuse-up langfuse-down langfuse-smoke dev-langfuse gemini-usage
+LANGFUSE_COMPOSE := docker compose -f infra/langfuse/docker-compose.yml --env-file infra/langfuse/.env
+# The project keys from infra/langfuse/.env, for commands that send traces to the local Langfuse.
+WITH_LANGFUSE := set -a && . ./infra/langfuse/.env && export TRACE_EXPORT=langfuse LANGFUSE_HOST=http://127.0.0.1:3000 && set +a
+
+langfuse-up: ## Start a local Langfuse at http://localhost:3000 (ADR-026); the first run writes infra/langfuse/.env
+	python3 tools/langfuse/init_env.py
+	$(LANGFUSE_COMPOSE) up -d --wait
+	@echo "Langfuse: http://localhost:3000  (sign in as dev@kredibel.local; the password is LANGFUSE_INIT_USER_PASSWORD in infra/langfuse/.env)"
+
+langfuse-down: ## Stop the local Langfuse; its traces stay (RESET=1 deletes them)
+	$(LANGFUSE_COMPOSE) down $(if $(RESET),-v,)
+
+langfuse-smoke: ## Send a synthetic trace with one generation to the local Langfuse and find it
+	$(WITH_LANGFUSE) && cd backend && ENV_FILE=/dev/null PYTHONPATH=. uv run python scripts/trace_smoke.py --langfuse
+
+dev-langfuse: ## Run the local API/inline worker traced in Langfuse (CONTENT=1: prompts too; refused unless DATA_CLASS=synthetic)
+	$(WITH_LANGFUSE) && export AI_CONTENT_CAPTURE=$(if $(CONTENT),synthetic,off) DATA_CLASS=$(if $(CONTENT),synthetic,$${DATA_CLASS:-real}) && $(MAKE) dev-backend
+
+gemini-usage: ## Gemini requests and tokens of the project from Cloud Monitoring (DAYS=7)
+	cd backend && PYTHONPATH=. uv run python scripts/gemini_usage.py --days $(or $(DAYS),7)
+
+.PHONY: demo-books clean-workspace
+clean-workspace: ## Clean up workspace documents, bank lines and runs (EMAIL=... or ORG=...)
+	cd backend && uv run python -m scripts.clean_workspace $(if $(EMAIL),--email "$(EMAIL)",) $(if $(ORG),--org "$(ORG)",)
+
+demo-books: ## Upload synthetic demo books into EMAIL's workspace (docs/18 §5; DRY=1, MONTHS=..., CLEAN=1, SCENARIOS=...)
+	$(if $(filter 1,$(NO_LANGFUSE)),,$(WITH_LANGFUSE) && export DATA_CLASS=synthetic AI_CONTENT_CAPTURE=$(if $(NO_CONTENT),off,synthetic) &&) cd backend && $(shell command -v caffeinate >/dev/null && echo caffeinate -i) uv run python -m scripts.upload_demo_books --email "$(EMAIL)" $(if $(DRY),--dry-run,) $(if $(MONTHS),--months "$(MONTHS)",) $(if $(SCENARIOS),--scenarios "$(SCENARIOS)",) $(if $(filter 1,$(CLEAN)),--clean,)
+
+.PHONY: demo-reconciliation demo-reconciliation-traced reconciliation-fixtures
+demo-reconciliation: ## Replay generated invoices/receipts/statements in both orders (offline)
+	cd backend && ENV_FILE=/dev/null PYTHONPATH=. uv run python scripts/demo_reconciliation.py
+
+demo-reconciliation-traced: ## Replay generated documents with traces at http://localhost:16686
+	cd backend && ENV_FILE=/dev/null PYTHONPATH=. uv run python scripts/demo_reconciliation.py --trace
+
+reconciliation-fixtures: ## Regenerate the five S1 PDFs used by the offline reconciliation replay
+	cd tools/synthetic && uv run python reconciliation_fixtures.py
 
 migrate-dry: ## Dry-run pending data migrations
 	@if [ "$(ENV)" = "local" ]; then \

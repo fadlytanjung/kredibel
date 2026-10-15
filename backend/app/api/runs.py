@@ -34,9 +34,7 @@ def _stage_body(stage: RunStage) -> dict[str, Any]:
 
 def _run_body(run: Run) -> dict[str, Any]:
     trace_url = (
-        f"https://console.cloud.google.com/traces/list?tid={run.trace_id}"
-        if run.trace_id
-        else None
+        f"https://console.cloud.google.com/traces/list?tid={run.trace_id}" if run.trace_id else None
     )
     return {
         "runId": run.run_id,

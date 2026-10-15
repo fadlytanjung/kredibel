@@ -45,11 +45,12 @@ and dismissal is written to an append-only audit trail.
 
 ## P6 — Two readings before an accusation
 
-A document is only called **TAMPERED** on deterministic evidence whose values two **independent
-readings** agree on: the AI reader (Gemini on the page image) and a witness (the PDF text layer, or
-Document AI OCR for scans), or a specialized Document AI parser where one is used. When readings
-disagree, the result is **UNVERIFIABLE**, not fraud. A model's visual opinion alone can raise
-suspicion, never a verdict.
+A document is only called **TAMPERED** on deterministic evidence whose values two **readings** agree
+on: the AI reader (Gemini on the page image and its layout chunks) and the page's own words (the PDF
+text layer, or Document AI OCR for scans), in which code grounds every value the reader cites
+([ADR-023](adr/ADR-023-parse-extract-ground.md)), or a specialized Document AI parser where one is
+used. When they disagree, the result is **UNVERIFIABLE**, not fraud. A model's visual opinion alone
+can raise suspicion, never a verdict.
 
 ## P7 — Google Cloud only
 

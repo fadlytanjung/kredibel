@@ -1,6 +1,14 @@
 version: "3.8"
 
 services:
+  # Optional local tracing; in-memory storage is cleared when this container stops.
+  jaeger:
+    image: cr.jaegertracing.io/jaegertracing/jaeger:2.22.0
+    profiles: [tracing]
+    ports:
+      - "127.0.0.1:16686:16686"
+      - "127.0.0.1:4318:4318"
+
   # Local Firestore Emulator for development and testing
   firestore:
     image: google/cloud-sdk:emulators

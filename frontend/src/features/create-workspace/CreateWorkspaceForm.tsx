@@ -1,10 +1,11 @@
 /**
  * The onboarding form of design/mocks/onboarding.html, with the mock's markup and kit classes
- * (ADR-019): who-choice, form-grid, disclosure for the optional bank account, trial note.
+ * (ADR-019). Kredibel is for businesses (AC-013-2): three sections, Your business, Your books
+ * (currency, a segmented accounting framework, time zone) and an optional main bank account.
  */
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
@@ -14,25 +15,21 @@ import { useAuth } from '../../entities/session'
 import { ProblemError } from '../../shared/api/client'
 import { Field, Input, Select } from '../../shared/ui/Field'
 import { fieldErrorProps } from '../../shared/ui/fieldProps'
-import { Icon, type IconName } from '../../shared/ui/Icon'
+import { Icon } from '../../shared/ui/Icon'
 import onboardingEn from '../../shared/i18n/locales/en/onboarding.json'
 import {
   createWorkspaceSchema,
   formFieldOf,
+  FRAMEWORKS,
+  LEGAL_FORMS,
   toRequest,
   type CreateWorkspaceValues,
-  type EntityType,
 } from './schema'
 import { timeZoneOptions } from './timeZones'
 import { useCreateWorkspace } from './useCreateWorkspace'
 
-const CHOICES: { value: EntityType; icon: IconName; label: string; hint: string }[] = [
-  { value: 'INDIVIDUAL', icon: 'user', label: 'individual', hint: 'individualHint' },
-  { value: 'COMPANY', icon: 'building', label: 'company', hint: 'companyHint' },
-]
-
 const INDUSTRY_KEYS = Object.keys(onboardingEn.industries)
-type FieldName = Exclude<keyof CreateWorkspaceValues, 'entityType' | 'withBankAccount'>
+type FieldName = Exclude<keyof CreateWorkspaceValues, 'withBankAccount' | 'framework'>
 
 export function CreateWorkspaceForm({ retryDelayMs }: { retryDelayMs?: number }) {
   const { t } = useTranslation('onboarding')
@@ -48,10 +45,12 @@ export function CreateWorkspaceForm({ retryDelayMs }: { retryDelayMs?: number })
   const form = useForm<CreateWorkspaceValues>({
     resolver: zodResolver(createWorkspaceSchema),
     defaultValues: {
-      entityType: 'COMPANY',
       name: '',
       tradingName: '',
+      legalForm: 'LIMITED_COMPANY',
       industry: '',
+      taxId: '',
+      framework: 'IFRS',
       timezone: current,
       currency: suggestCurrency(current),
       withBankAccount: false,
@@ -61,7 +60,7 @@ export function CreateWorkspaceForm({ retryDelayMs }: { retryDelayMs?: number })
     },
   })
   const { register, setValue, formState, control } = form
-  const entityType = useWatch({ control, name: 'entityType' })
+  const framework = useWatch({ control, name: 'framework' })
   const withBankAccount = useWatch({ control, name: 'withBankAccount' })
 
   useEffect(() => {
@@ -106,7 +105,9 @@ export function CreateWorkspaceForm({ retryDelayMs }: { retryDelayMs?: number })
   const bind = {
     name: field('name'),
     tradingName: field('tradingName'),
+    legalForm: field('legalForm'),
     industry: field('industry'),
+    taxId: field('taxId'),
     timezone: field('timezone'),
     currency: field('currency'),
     bankName: field('bankName'),
@@ -114,105 +115,96 @@ export function CreateWorkspaceForm({ retryDelayMs }: { retryDelayMs?: number })
     accountNumber: field('accountNumber'),
   }
 
-  // Arrow keys move between the two choices, as in a native radio group.
-  const onChoiceKey = (event: KeyboardEvent<HTMLButtonElement>) => {
-    if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return
-    event.preventDefault()
-    setValue('entityType', entityType === 'COMPANY' ? 'INDIVIDUAL' : 'COMPANY')
-  }
-
   const busy = create.isPending
   const optional = <span className="muted">({t('optional')})</span>
 
   return (
     <form className="stack gap-6" onSubmit={onSubmit} noValidate>
-      <div className="who-choice" role="radiogroup" aria-label={t('typeLabel')}>
-        {CHOICES.map((choice) => {
-          const checked = entityType === choice.value
-          return (
-            <button
-              key={choice.value}
-              type="button"
-              role="radio"
-              aria-checked={checked}
-              tabIndex={checked ? 0 : -1}
-              className={`who text-left${checked ? ' is-checked' : ''}`}
-              onClick={() => setValue('entityType', choice.value)}
-              onKeyDown={onChoiceKey}
-            >
-              {checked && (
-                <span className="tick">
-                  <Icon name="check" />
-                </span>
-              )}
-              <span className="ico">
-                <Icon name={choice.icon} />
-              </span>
-              <strong>{t(choice.label)}</strong>
-              <span className="d">{t(choice.hint)}</span>
-            </button>
-          )
-        })}
-      </div>
-
-      <div className="form-wrap">
-        <div className="form-grid">
-          <Field
-            id="name"
-            className="span-2"
-            label={entityType === 'COMPANY' ? t('legalName') : t('fullName')}
-            error={errorOf('name')}
-          >
-            <Input type="text" autoComplete="organization" {...bind.name} />
-          </Field>
-          <Field id="tradingName" label={<>{t('tradingName')} {optional}</>} error={errorOf('tradingName')}>
-            <Input
-              type="text"
-              placeholder={t('tradingNamePlaceholder')}
-              {...bind.tradingName}
-            />
-          </Field>
-          <Field id="industry" label={t('industry')} error={errorOf('industry')}>
-            <Select {...bind.industry}>
-              <option value="">{t('industryChoose')}</option>
-              {INDUSTRY_KEYS.map((key) => (
-                <option key={key} value={t(`industries.${key}`)}>
-                  {t(`industries.${key}`)}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          <Field
-            id="timezone"
-            label={t('timeZone')}
-            hint={t('timeZoneHint')}
-            error={errorOf('timezone')}
-          >
-            <Select {...bind.timezone}>
-              {zones.map((option) => (
-                <option key={option.zone} value={option.zone}>
-                  {t('timeZoneOption', { zone: option.zone, offset: option.offset })}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          <Field id="currency" label={t('currency')} hint={t('currencyHint')} error={errorOf('currency')}>
-            <Select
-              {...bind.currency}
-              onChange={(event: ChangeEvent<HTMLSelectElement>) => {
-                currencyPicked.current = true
-                void bind.currency.onChange(event)
-              }}
-            >
-              {CURRENCIES.map((code) => (
-                <option key={code} value={code}>
-                  {currencyLabel(code)}
-                </option>
-              ))}
-            </Select>
-          </Field>
+      <section className="form-section" aria-labelledby="ob-business">
+        <h2 id="ob-business">{t('sectionBusiness')}</h2>
+        <div className="form-wrap">
+          <div className="form-grid">
+            <Field id="name" className="span-2" label={t('legalName')} error={errorOf('name')}>
+              <Input type="text" autoComplete="organization" {...bind.name} />
+            </Field>
+            <Field id="tradingName" label={<>{t('tradingName')} {optional}</>} error={errorOf('tradingName')}>
+              <Input type="text" placeholder={t('tradingNamePlaceholder')} {...bind.tradingName} />
+            </Field>
+            <Field id="legalForm" label={t('legalForm')} error={errorOf('legalForm')}>
+              <Select {...bind.legalForm}>
+                {LEGAL_FORMS.map((form) => (
+                  <option key={form} value={form}>
+                    {t(`legalForms.${form}`)}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field id="industry" label={t('industry')} error={errorOf('industry')}>
+              <Select {...bind.industry}>
+                <option value="">{t('industryChoose')}</option>
+                {INDUSTRY_KEYS.map((key) => (
+                  <option key={key} value={t(`industries.${key}`)}>
+                    {t(`industries.${key}`)}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field id="taxId" label={<>{t('taxId')} {optional}</>} error={errorOf('taxId')}>
+              <Input type="text" autoComplete="off" placeholder={t('taxIdPlaceholder')} {...bind.taxId} />
+            </Field>
+          </div>
         </div>
-      </div>
+      </section>
+
+      <section className="form-section" aria-labelledby="ob-books">
+        <h2 id="ob-books">{t('sectionBooks')}</h2>
+        <div className="form-wrap">
+          <div className="form-grid">
+            <Field id="currency" label={t('currency')} hint={t('currencyHint')} error={errorOf('currency')}>
+              <Select
+                {...bind.currency}
+                onChange={(event: ChangeEvent<HTMLSelectElement>) => {
+                  currencyPicked.current = true
+                  void bind.currency.onChange(event)
+                }}
+              >
+                {CURRENCIES.map((code) => (
+                  <option key={code} value={code}>
+                    {currencyLabel(code)}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field id="timezone" label={t('timeZone')} hint={t('timeZoneHint')} error={errorOf('timezone')}>
+              <Select {...bind.timezone}>
+                {zones.map((option) => (
+                  <option key={option.zone} value={option.zone}>
+                    {t('timeZoneOption', { zone: option.zone, offset: option.offset })}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <div className="field span-2">
+              <span className="label" id="framework-label">
+                {t('framework')}
+              </span>
+              <div className="seg" role="group" aria-labelledby="framework-label">
+                {FRAMEWORKS.map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    aria-pressed={framework === value}
+                    onClick={() => setValue('framework', value)}
+                  >
+                    {t(`frameworks.${value}`)}
+                  </button>
+                ))}
+              </div>
+              <span className="hint">{t('frameworkHint')}</span>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <details
         className="disclosure"

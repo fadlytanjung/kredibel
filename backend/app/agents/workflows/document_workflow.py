@@ -43,6 +43,8 @@ def build_document_workflow(deps: PipelineDeps) -> Workflow:
                 if doc.get("status") == "NEEDS_INPUT":
                     return doc
                 doc = await ctx.run_node(n.parse_ledger(deps), doc)
+                if doc.get("status") == "NEEDS_INPUT":
+                    return doc  # AC-005-12: too many bad rows reopened the mapping item
             else:
 
                 async def read(page_no: int, context: dict[str, Any] | None):

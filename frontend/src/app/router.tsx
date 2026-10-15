@@ -4,12 +4,16 @@
  * Normative references: docs/specs/001-foundation/spec.md AC-001-3, AC-001-4, and docs/11 §4.2.
  */
 
-import { lazy, Suspense, type ReactNode } from 'react'
+import { Suspense, lazy, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Navigate, Route, Routes, useNavigate } from 'react-router-dom'
+import { useReviewItems } from '../entities/review'
 import { useAuth } from '../entities/session'
 import { shellPropsFromWorkspace, useWorkspace } from '../entities/workspace'
+import { DashboardPage } from '../pages/DashboardPage'
+import { LoginPage } from '../pages/LoginPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
+import { CurrentMonthRedirect } from '../pages/CurrentMonthRedirect'
 import { ContactPage } from '../pages/public/ContactPage'
 import { FaqPage } from '../pages/public/FaqPage'
 import { HowItWorksPage } from '../pages/public/HowItWorksPage'
@@ -21,30 +25,32 @@ import { TermsPage } from '../pages/public/TermsPage'
 import { AppShell, Button } from '../shared/ui'
 import { TrialBanner } from '../widgets/TrialBanner'
 
-// The public pages load eagerly (the landing is the first paint); the signed-in app, Login and
-// Onboarding are split out of the first load (spec 020, T020-19; docs/11 performance budget).
-const DashboardPage = lazy(() => import('../pages/DashboardPage').then((m) => ({ default: m.DashboardPage })))
+// Every app page but the dashboard is its own chunk (AC-010-11): the first paint ships the shell only.
+// The public pages load eagerly too: the landing is the first paint at `/` (spec 020).
+const ProfitLossPage = lazy(() => import('../pages/ProfitLossPage').then((m) => ({ default: m.ProfitLossPage })))
 const DocumentPage = lazy(() => import('../pages/DocumentPage').then((m) => ({ default: m.DocumentPage })))
 const DocumentsPage = lazy(() => import('../pages/DocumentsPage').then((m) => ({ default: m.DocumentsPage })))
-const LoginPage = lazy(() => import('../pages/LoginPage').then((m) => ({ default: m.LoginPage })))
-const OnboardingPage = lazy(() =>
-  import('../pages/OnboardingPage').then((m) => ({ default: m.OnboardingPage })),
-)
+const OnboardingPage = lazy(() => import('../pages/OnboardingPage').then((m) => ({ default: m.OnboardingPage })))
+const MonthPage = lazy(() => import('../pages/MonthPage').then((m) => ({ default: m.MonthPage })))
+const MonthsPage = lazy(() => import('../pages/MonthsPage').then((m) => ({ default: m.MonthsPage })))
+const AssistantPage = lazy(() => import('../pages/AssistantPage').then((m) => ({ default: m.AssistantPage })))
+const ReviewPage = lazy(() => import('../pages/ReviewPage').then((m) => ({ default: m.ReviewPage })))
+const RiskPage = lazy(() => import('../pages/RiskPage').then((m) => ({ default: m.RiskPage })))
 const SettingsPage = lazy(() => import('../pages/SettingsPage').then((m) => ({ default: m.SettingsPage })))
-const placeholder = (name: keyof typeof import('../pages/Placeholders')) =>
-  lazy(() => import('../pages/Placeholders').then((m) => ({ default: m[name] })))
-const AssistantPage = placeholder('AssistantPage')
-const CounterpartiesPage = placeholder('CounterpartiesPage')
-const LabelsPage = placeholder('LabelsPage')
-const MonthsPage = placeholder('MonthsPage')
-const ReviewPage = placeholder('ReviewPage')
-const RiskPage = placeholder('RiskPage')
-const RunsPage = placeholder('RunsPage')
-const OnboardingPreview = lazy(() =>
-  import('./OnboardingPreview').then((m) => ({ default: m.OnboardingPreview })),
-)
-const ShellPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.ShellPreview })))
+const CounterpartiesPage = lazy(() => import('../pages/Placeholders').then((m) => ({ default: m.CounterpartiesPage })))
+const LabelsPage = lazy(() => import('../pages/Placeholders').then((m) => ({ default: m.LabelsPage })))
+const RunsPage = lazy(() => import('../pages/Placeholders').then((m) => ({ default: m.RunsPage })))
+const OnboardingPreview = lazy(() => import('./OnboardingPreview').then((m) => ({ default: m.OnboardingPreview })))
+const AssistantPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.AssistantPreview })))
+const DocumentPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.DocumentPreview })))
+const MonthPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.MonthPreview })))
+const MonthsPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.MonthsPreview })))
+const ProfitLossPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.ProfitLossPreview })))
+const ReviewPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.ReviewPreview })))
 const SettingsPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.SettingsPreview })))
+const ShellPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.ShellPreview })))
+
+const PREVIEW_ROUTES = import.meta.env.DEV || import.meta.env.VITE_PREVIEW_ROUTES === '1'
 
 function FullPageLoading() {
   const { t } = useTranslation()
@@ -81,6 +87,7 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
   const { user, me, needsWorkspace, loading, meError } = useAuth()
   const navigate = useNavigate()
   const workspaceQuery = useWorkspace(Boolean(user && me?.orgId))
+  const reviewQuery = useReviewItems(Boolean(user && me?.orgId))
 
   if (loading) return <FullPageLoading />
   if (!user) return <Navigate to="/login" replace />
@@ -100,6 +107,7 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
   return (
     <AppShell
       user={{ name, role: me?.role }}
+      counts={{ review: reviewQuery.data?.items.length }}
       workspace={shell?.workspace}
       trial={shell?.trial}
       banner={shell?.trial && <TrialBanner trial={shell.trial} />}
@@ -139,20 +147,22 @@ const PUBLIC_ROUTES: { path: string; element: ReactNode }[] = [
   { path: '/terms', element: <TermsPage /> },
 ]
 
-// docs/11 §4.2; the dashboard is at /dashboard so `/` can be the public landing; P1 pages
-// (assistant, labels, runs) show placeholders until their specs.
+// docs/11 §4.2; the dashboard is at /dashboard so `/` can be the public landing (spec 020); labels
+// and runs show placeholders until their specs.
 const PROTECTED_ROUTES: { path: string; element: ReactNode }[] = [
   { path: '/dashboard', element: <DashboardPage /> },
   { path: '/documents', element: <DocumentsPage /> },
   { path: '/documents/:docId', element: <DocumentPage /> },
-  { path: '/months', element: <MonthsPage /> },
-  { path: '/months/:month', element: <MonthsPage /> },
+  { path: '/months', element: <CurrentMonthRedirect /> },
+  { path: '/months/all', element: <MonthsPage /> },
+  { path: '/months/:month', element: <MonthPage /> },
   { path: '/review', element: <ReviewPage /> },
   { path: '/review/:itemId', element: <ReviewPage /> },
   { path: '/risk', element: <RiskPage /> },
   { path: '/risk/:findingId', element: <RiskPage /> },
   { path: '/counterparties', element: <CounterpartiesPage /> },
   { path: '/counterparties/:id', element: <CounterpartiesPage /> },
+  { path: '/profit-loss', element: <ProfitLossPage /> },
   { path: '/assistant', element: <AssistantPage /> },
   { path: '/assistant/:threadId', element: <AssistantPage /> },
   { path: '/labels', element: <LabelsPage /> },
@@ -183,12 +193,21 @@ export function AppRouter() {
         {PROTECTED_ROUTES.map(({ path, element }) => (
           <Route key={path} path={path} element={<ProtectedRoute>{element}</ProtectedRoute>} />
         ))}
-        {/* Visual regression target for the shell (tests/visual); never part of a production build. */}
-        {import.meta.env.DEV && <Route path="/preview/shell" element={<ShellPreview />} />}
-        {import.meta.env.DEV && <Route path="/preview/onboarding" element={<OnboardingPreview />} />}
-        {import.meta.env.DEV && (
+        {/* Visual regression targets (tests/visual) on synthetic fixtures; never part of a production
+            build unless VITE_PREVIEW_ROUTES=1 asks for one to measure (Lighthouse, AC-010-11). */}
+        {PREVIEW_ROUTES && <Route path="/preview/shell" element={<ShellPreview />} />}
+        {PREVIEW_ROUTES && <Route path="/preview/onboarding" element={<OnboardingPreview />} />}
+        {PREVIEW_ROUTES && (
           <Route path="/preview/settings/:section" element={<SettingsPreview />} />
         )}
+        {PREVIEW_ROUTES && <Route path="/preview/documents/:docId" element={<DocumentPreview />} />}
+        {PREVIEW_ROUTES && <Route path="/preview/months" element={<MonthsPreview />} />}
+        {PREVIEW_ROUTES && <Route path="/preview/months/:month" element={<MonthPreview />} />}
+        {PREVIEW_ROUTES && <Route path="/preview/review" element={<ReviewPreview />} />}
+        {PREVIEW_ROUTES && <Route path="/preview/review/:itemId" element={<ReviewPreview />} />}
+        {PREVIEW_ROUTES && <Route path="/preview/profit-loss" element={<ProfitLossPreview />} />}
+        {PREVIEW_ROUTES && <Route path="/preview/assistant" element={<AssistantPreview />} />}
+        {PREVIEW_ROUTES && <Route path="/preview/assistant/:threadId" element={<AssistantPreview />} />}
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </Suspense>

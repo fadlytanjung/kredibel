@@ -283,3 +283,82 @@ class QueueUnavailableError(DomainError):
         super().__init__(
             code="QUEUE_UNAVAILABLE", status=503, title="Queue unavailable", detail=detail
         )
+
+
+class AlreadyMatchedError(DomainError):
+    """Raised when a bank line or document is already matched in an active match (409)."""
+
+    def __init__(self, record_id: str, match_id: str) -> None:
+        super().__init__(
+            code="ALREADY_MATCHED",
+            status=409,
+            title="Already matched",
+            detail=f"Record {record_id} is already matched in {match_id}.",
+            extras={"recordId": record_id, "matchId": match_id},
+        )
+
+
+class ToleranceExceededError(DomainError):
+    """Raised when the difference between amounts exceeds the reconciliation tolerance (422)."""
+
+    def __init__(self, difference: Decimal, max_tolerance: Decimal) -> None:
+        super().__init__(
+            code="TOLERANCE_EXCEEDED",
+            status=422,
+            title="Difference exceeds tolerance",
+            detail=f"Amount difference {difference} exceeds the allowed tolerance {max_tolerance}.",
+            extras={"difference": str(difference), "maxTolerance": str(max_tolerance)},
+        )
+
+
+class ActionNotAllowedError(DomainError):
+    """Raised when an action is not permitted for a review item's kind (422, AC-009-5)."""
+
+    def __init__(self, action: str, kind: str, allowed_actions: list[str]) -> None:
+        super().__init__(
+            code="ACTION_NOT_ALLOWED",
+            status=422,
+            title="Action not allowed",
+            detail=f"Action '{action}' is not allowed for review item of kind '{kind}'.",
+            extras={"allowedActions": allowed_actions, "action": action, "kind": kind},
+        )
+
+
+class ReasonRequiredError(DomainError):
+    """Raised when an ignore action lacks a sufficient explanation (422, AC-009-5)."""
+
+    def __init__(self, detail: str = "Say why.") -> None:
+        super().__init__(
+            code="REASON_REQUIRED",
+            status=422,
+            title="Reason required",
+            detail=detail,
+        )
+
+
+class MatchAmountMismatchError(DomainError):
+    """Raised when candidate amounts for a manual match do not align (422, AC-009-5)."""
+
+    def __init__(
+        self, detail: str = "Match amount mismatch.", difference: str | None = None
+    ) -> None:
+        super().__init__(
+            code="MATCH_AMOUNT_MISMATCH",
+            status=422,
+            title="Match amount mismatch",
+            detail=detail,
+            extras={"difference": difference} if difference is not None else None,
+        )
+
+
+class ItemAlreadyResolvedError(DomainError):
+    """Raised when attempting to resolve an already resolved review item (409, AC-009-5)."""
+
+    def __init__(self, item_id: str) -> None:
+        super().__init__(
+            code="ITEM_ALREADY_RESOLVED",
+            status=409,
+            title="Item already resolved",
+            detail=f"Review item {item_id} has already been resolved.",
+            extras={"itemId": item_id},
+        )

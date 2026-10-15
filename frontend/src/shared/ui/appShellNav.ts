@@ -116,10 +116,16 @@ export interface PageChrome {
 }
 
 export function isActivePath(pathname: string, path: string): boolean {
+  // The profit and loss report is reached from the dashboard (spec 018), so it keeps that item lit.
+  if (path === '/dashboard' && pathname === '/profit-loss') return true
   return pathname === path || pathname.startsWith(`${path}/`)
 }
 
 export function chromeFor(pathname: string): PageChrome {
+  if (pathname === '/profit-loss') return {
+    crumbs: [{ label: 'nav.dashboard.long', to: '/dashboard' }, { label: 'profitLoss:title' }],
+    back: { to: '/dashboard', labelKey: 'nav.dashboard.long' }, fab: false,
+  }
   const item = NAV_ITEMS.find((nav) => isActivePath(pathname, nav.path))
   if (!item) return { crumbs: [], fab: false }
   const own: Crumb = { label: `nav.${item.key}.long` }

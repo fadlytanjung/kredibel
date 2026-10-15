@@ -104,7 +104,7 @@ Tests and evals read this file; nobody hand-writes expected values.
 | Review actions | Every (kind, action) pair: allowed ones succeed and mark the month dirty; others → `422 ACTION_NOT_ALLOWED`; resolved twice → `409` |
 | Access (P1 roles) | Table-driven: every endpoint × role from [`10`](10-api-contract.md) §5 |
 | Plans | Every limit at, below and above the boundary; exact duplicates not counted; trial expiry by injected clock; concurrent uploads at the limit |
-| Grounding guard | `IDR 1,250,000`, `IDR 1.25 million`, `1,250,000`, `64%` all match their facts; `1.25M` is rejected as ambiguous; an unmatched number fails with the sentence quoted; turn-scoped `fact:q_…` IDs valid only in their answer |
+| Grounding guard | `IDR 1,250,000`, `IDR 1.25 million`, `1,250,000`, `64%` all match their facts; a signed fact (`-6000000.00`, a balance break) matches its number written with or without the sign ("a break of 6,000,000"); `1.25M` is rejected as ambiguous; an unmatched number fails with the sentence quoted; turn-scoped `fact:q_…` IDs valid only in their answer |
 | Workspace isolation | Every route with a foreign record ID → 404; no workspace → `403 WORKSPACE_REQUIRED` |
 | Scenario | S1–S5 produce exactly the expected P0 codes, verdicts, duplicates, matches, review items and risk levels |
 

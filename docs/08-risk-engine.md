@@ -79,9 +79,9 @@ longer applies becomes `RESOLVED`; `ACKNOWLEDGED` and `DISMISSED` keep their sta
 |---|---|---|---|---|
 | `D01_EXACT_FILE_DUPLICATE` | SHA-256 of the uploaded bytes equals an existing document's | INFO | Not read, not counted; library shows "Copy of …" | P0 |
 | `D02_STATEMENT_PERIOD_DUPLICATE` | Same account (bank + last 4 digits) and statement periods overlapping by ≥ 1 day | HIGH if the overlapping rows differ, MEDIUM if they are identical | Newer document held as possible duplicate | P0 |
-| `D03_INVOICE_DUPLICATE` | Same issuer (`token_set_ratio ≥ 90`) and invoice number, or same issuer, issue date and total | MEDIUM | Newer document held | P0 |
+| `D03_INVOICE_DUPLICATE` | Same issuer (`token_set_ratio ≥ 90`) and invoice number, or same issuer, issue date and total | MEDIUM; HIGH when the copy asks to be paid into another account than the original (a payment diversion signal; names both masked accounts) | Newer document held | P0 |
 | `D04_INVOICE_NUMBER_REUSED` | Same issuer and invoice number with a **different** total or date | HIGH | Both kept; flagged on the later document with the earlier one as evidence | P0 |
-| `D05_RECEIPT_DUPLICATE` | Same merchant, date and total (± 1 unit), or page perceptual hash distance ≤ `pHashMaxDistance` (8) | MEDIUM | Newer document held | P0 |
+| `D05_RECEIPT_DUPLICATE` | Same merchant, date and total (± 1 unit), or page perceptual hash distance ≤ `pHashMaxDistance` (8) without contradictory available merchant/date/total readings; layout similarity alone cannot override different receipt values | MEDIUM | Newer document held | P0 |
 | `D06_LEDGER_ENTRY_DUPLICATE` | Two ledger entries with the same date, amount, account and reference (from one or several imports) | MEDIUM | Later entry held | P0 |
 | `D07_DOUBLE_PAYMENT` | Two bank debits matched (or matchable) to the same purchase invoice or receipt | HIGH | Second payment goes to review | P0 |
 
@@ -129,13 +129,13 @@ printed (wrong) balance, which shows where the edit was made.
 | `X06_UNDECLARED_ACCOUNT` | A statement's account is not among the workspace's bank accounts (also creates a `BANK_ACCOUNT` suggestion) | LOW | P0 |
 | `X07_TAX_ID_MISMATCH` | A sales invoice's issuer tax ID differs from the workspace's tax ID | HIGH | P1 |
 | `X08_SUPPLIER_ACCOUNT_CHANGED` | A purchase invoice's pay-to account, or a bank debit to a known supplier, uses an account not seen before for that supplier while an earlier account exists | HIGH | P0 |
-| `X09_LEDGER_BANK_MISMATCH` | For a mapped bank account, ledger cash movement for the month differs from the statement's net movement by > tol; or a ledger cash entry has no bank line within the window | MEDIUM (per entry) / HIGH (month difference > 5%) | P0 |
+| `X09_LEDGER_BANK_MISMATCH` | For a mapped bank account with a statement that month, ledger cash movement for the month differs from the statement's net movement by > tol (the finding names the bank lines no ledger entry books, so the queue can ask about them); or a ledger cash entry has no bank line within the window | MEDIUM (per entry) / HIGH (month difference > 5%) | P0 |
 
 ### 2.7 Reconciliation and behaviour (per month)
 
 | Code | Rule | Severity | P |
 |---|---|---|---|
-| `R01_SALES_INVOICE_OVERDUE` | A sales invoice unpaid more than `graceDays` after its due date, statements covering that period present | LOW (MEDIUM if > 10% of the month's invoiced sales) | P0 |
+| `R01_SALES_INVOICE_OVERDUE` | A sales invoice unpaid more than `graceDays` after its due date, statements covering that period present (every day from issue to due + grace; otherwise it is waiting for a statement, not overdue); paid means a confirmed match in any month, and an invoice with a proposed payment waits for the person instead; reported in the month it becomes overdue | LOW (MEDIUM if > 10% of the invoiced sales of its issue month) | P0 |
 | `R02_SUPPLIER_INVOICE_UNKNOWN_PARTY` | A purchase invoice from a supplier with no bank history and no ledger entry, never paid | MEDIUM | P0 |
 | `R03_PAID_BEFORE_ISSUE` | A matched payment dated more than 3 days before the invoice issue date | MEDIUM | P1 |
 | `B01_GAMBLING_INDICATORS` | ≥ 1 bank line tagged `GAMBLING` | MEDIUM | P0 |
@@ -259,7 +259,9 @@ A rejected value is never suggested again (deterministic suggestion ID).
 ## 5. Month figures and money flows
 
 All `Decimal`. A month's figures use bank lines of the workspace's accounts dated in that month,
-excluding `NON_CASH` and lines of held (possible duplicate) statements.
+excluding `NON_CASH` and lines of held (possible duplicate), failed or quarantined statements and of
+documents whose printed currency was not accepted (ADR-025). Each eligible line counts once in bank
+cash whether or not a document supports it; a person's payment confirmation never adds bank cash.
 
 | Fact (`fact:<yyyy-mm>:<name>`) | Formula |
 |---|---|
@@ -268,8 +270,10 @@ excluding `NON_CASH` and lines of held (possible duplicate) statements.
 | `operating_in`, `operating_out` | by class `OPERATING` |
 | `opening`, `closing` | per account from statements; Σ over accounts |
 | `negative_days` | days with end-of-day balance < 0 |
-| `bank_lines`, `auto_matched`, `manually_matched`, `unmatched`, `excluded` | counts of bank lines by match state |
-| `auto_match_rate` | `auto_matched / (bank_lines − excluded)` |
+| `bank_lines`, `auto_matched`, `manually_matched`, `proposed`, `unmatched`, `excluded` | counts of bank lines by match state; `unmatched` lines are **Bank recorded · No supporting document**, still in cash; `excluded` are `NON_CASH` |
+| `auto_match_rate` | `auto_matched / (bank_lines − excluded)`, four decimals |
+| `uncategorized` | lines still `UNKNOWN` |
+| `category:<id>`, `line:<statement line>` | signed totals per category and per statement line (feeds §5.1) |
 | `invoiced_sales`, `invoiced_purchases`, `receipts_total` | Σ document totals dated in the month |
 | `ledger_cash_movement` | Σ ledger entries on mapped bank accounts |
 | `open_review_items` | count |
@@ -300,6 +304,33 @@ account, in both views. Internal transfers between own accounts are drawn as acc
 only when the user chooses "show transfers" (off by default). Switching the framework moves interest
 (and dividends, when present) between activities; nothing else changes, and the totals never do.
 
+Rules the code follows (`domain/money_flow.py`, T010-01; wording and groups from `categories.v1.yaml`):
+
+- **Sources.** A credit whose category rolls up to `REVENUE` counts for its client (the counterparty
+  read from the line); the five largest clients of the period get a node each and the rest go to
+  "Other clients". Revenue credits tagged `CASH_DEPOSIT`, or without a counterparty, go to "Cash
+  sales deposited". Every other credit goes to the node of its statement line in the framework's
+  wording; uncategorized credits to "Not categorized yet".
+- **Balance per account.** An account that paid out more than came in gets "Taken from balance" for
+  the difference; one that kept money sends it to "Kept" ("Kept in the account" in the counterparty
+  view). So Σ in = Σ out + kept holds per account by construction.
+- **Activity and line.** Debits go to their cash-flow class under the framework, then to their
+  statement line; lines marked `split` (operating expenses, loans and owner) show one node per
+  category. Uncategorized debits go to "Not categorized yet" in both columns.
+- **Who was paid.** The counterparty view groups debits by each category's `use` (suppliers, payroll,
+  rent and utilities, tax, loan payments, owner drawings, other spending).
+- **Transfers.** Lines in a `NON_CASH` category (between own accounts, reversals) are left out by
+  default. With "show transfers" they appear as "From own accounts" (a source) and "To own accounts"
+  (an activity or use), not as links between two account nodes, so the flow stays drawable (a
+  Sankey has no cycles) and each account still balances.
+- **Held lines** of possible duplicates are left out and their total returned as `excludedHeld`.
+- **IDs.** Node IDs are stable (`src:client:<hash of the name>`, `acc:<hash of the account>`,
+  `act:OPERATING`, `line:OPERATING_EXPENSES:RENT`, `use:SUPPLIERS`); a link's ID is
+  `<source>><target>`. `flow=<linkId>` on `/api/bank-lines` rebuilds the period's flow and returns
+  that link's lines, so links never store line IDs.
+- **Note.** When interest paid or received is in the period, `note` is the framework's sentence
+  from `frameworkNotes`.
+
 The same data gives the dashboard's **Bars** (statement lines grouped by activity) and **Table** views,
 so a person who cannot read a Sankey sees the same numbers.
 
@@ -317,11 +348,52 @@ so a person who cannot read a Sankey sees the same numbers.
 `opening + Σ byActivity = closing` is checked in code; a gap means a statement is missing or a month
 is incomplete, and the chart says so instead of drawing a balance that does not exist.
 
+Rules the code follows (`domain/cash_flow.py`, T010-01b; wording from `categories.v1.yaml`):
+
+- **Balances per account.** An account's opening is its first printed balance less the lines up to
+  and including it; its closing is its last printed balance plus the lines after it. The period's
+  opening and closing are their sums. A month's closing is the sum of each account's latest balance
+  up to that month.
+- **Activities.** Credits less debits per class under the framework. Uncategorized lines are their
+  own `UNCLASSIFIED` step ("Not categorized yet"), so they still add up. Lines between own accounts
+  and reversals (`NON_CASH`) are not activities.
+- **Gaps** (`gaps[]`, the UI words them; `balanced` is false when there is any):
+  `MISSING_MONTH` (an account has statements before and after a month of the period but none for
+  it), `NO_BALANCES` (an account's lines print no balance), `BALANCE_BREAK` (an account's opening
+  plus its lines does not reach its closing: pages or lines are missing; with the difference), and
+  `TRANSFERS_ELSEWHERE` (transfers between own accounts do not cancel out: money went to or came
+  from an account without statements; with the amount).
+- **Held lines** of possible duplicates are left out.
+
 ---
 
 ## 6. Reconciliation
 
 Policy: `contracts/policy/reconciliation.v1.yaml` (tolerances, windows, weights, thresholds).
+
+Bank statements anchor bank cash; document support is a separate dimension (ADR-025). An eligible
+bank row without support is **Bank recorded · No supporting document**, included once in cash
+totals. This is neither an authenticity guarantee nor an unsupported-expense accusation. Preserve
+integrity warnings. Documents without account/date coverage for their payment window wait for the
+statement, even if some other statement exists in that calendar month.
+
+Document approval and payment confirmation without bank evidence are separate audited inputs.
+Neither creates a bank row. Payment confirmation records amount, currency, date, method and reason;
+partial confirmation stays partial. Later bank evidence links the same payment without counting it
+twice. T007-06a owns the versioned contract before these decisions can be persisted.
+
+**Payment evidence** of an invoice or receipt is derived each run (`domain/evidence.py`), first
+match wins: `CURRENCY_TO_CONFIRM` (the printed currency differs and no agreement yet; a document
+that prints no currency is in the workspace currency, ADR-025),
+`PAID_BANK` (confirmed matches cover the total within tolerance; a grouped payment pays each invoice
+its own total; a confirmed net-of-tax adjustment counts as full), `PARTIAL_BANK`, `PROPOSED`,
+`CONFIRMED_BY_YOU` (a person's confirmation, shown apart, never bank cash), `PAID_CASH` (cash
+receipts), `WAITING_FOR_STATEMENT`, `NO_BANK_MATCH` (receipts), `NOT_DUE`, `UNPAID`. **Coverage**:
+every account that has statements covers every day from the issue date to the earlier of the
+payment window's end (`due + graceDays`, or `+ receiptDays`) and the evaluation date; payments before
+the issue date are not required to be covered. **Bank support** of a line: `EXCLUDED` (non-cash),
+`MATCHED`, `PROPOSED`, `NOT_REQUIRED` (a person said so, with a reason) or `NO_SUPPORT`
+(informational: "Bank recorded · No supporting document").
 
 ### 6.1 Order independence
 
@@ -346,31 +418,56 @@ is paid when its total is fully covered by bank lines (net-of-tax counts as full
 
 ### 6.3 Scoring and assignment
 
+Candidate eligibility requires amounts accepted in the fixed workspace currency, valid positive document totals, matching
+cash direction and no held inputs. Bank-to-ledger candidates additionally require the same confirmed
+bank-account mapping. Cash or unknown-method receipts cannot automatically be treated as bank
+debits. Different or missing printed currency requires an explicit audited agreement to treat the
+unchanged numbers as the workspace currency; no FX conversion. Without agreement, no candidate or
+contribution to totals. Missing required amount/date means no candidate; conflicting readings permit a
+proposal but never automation. Document-to-ledger links establish a booking, not proof of payment.
+
 For each left item, candidates within the window (`[issue − 3 days, due + graceDays]` for invoices,
 `±3 days` for receipts and ledger entries) are scored:
 
-- `amount_score` = 1.0 if within tol (max(IDR 1,000, 0.5%)); 0.8 if net of withholding
-  (`T·(1 − maxWithholding) ≤ c < T`); else 0.
+- `amount_score` = 1.0 if within tol (max(currency floor, 0.5%)); 0.8 for a possible withholding
+  shortfall on a bank-to-invoice pair (`T·(1 − maxWithholding) ≤ c < T`); else no candidate.
+  Floors are policy values in major units: IDR 1,000; MYR/SGD/USD 0.01; JPY 1. Always
+  use the **workspace** currency, never the printed foreign currency. Unsupported workspace
+  currencies have no fallback. Net-of-tax candidates require review until an explicit adjustment is confirmed;
+  amount proximity alone does not establish a tax treatment. Receipts and ledger amounts do not
+  receive this withholding exception.
 - `party_score` = `token_set_ratio(party, counterparty or description) / 100`, both upper-cased with
   accents and punctuation removed (`Daybreak Café` = `DAYBREAK CAFE`).
-- `reference_score` = 1.0 if the invoice number or ledger reference appears in the description, else 0.
+- `reference_score` = 1.0 if the whole invoice number or ledger reference appears in the description,
+  case/punctuation normalized, else 0 (`INV-12` must not match `INV-123`).
 - `date_score` = `1 − min(1, distance / window)`. For invoices the distance is the days **after the
   due date** (0 for a payment from `issue − 3 days` to the due date) and the window is `graceDays`; for
   receipts and ledger entries it is the days between the two dates and the window is `receiptDays` or
   `ledgerDays`.
 - `score = 0.45·amount + 0.25·party + 0.15·reference + 0.15·date`.
 
+Missing due dates use `defaultTermsDays`. Document-to-ledger uses `ledgerDays` around the issue/receipt
+date. Every scorer returns the four contributions, signed cash direction eligibility, reason codes
+and whether human review is required, without assigning a match. Amount + date alone scores 0.60:
+it may be proposed, but cannot auto-confirm. Reason cutoffs and the net-of-tax component score also
+live in the policy; code supplies no fallback thresholds.
+
 Assignment is greedy by score, then date, then ID (deterministic); an item is used at most once except
 in split or multi-invoice matches (subset sums of up to 3 items within tol, same party ≥ 0.8).
+Single, grouped (one bank row, 2–3 invoices of one party) and split (2–3 bank rows, one invoice)
+candidates are all scored first and compete; the runner-up for the ambiguity rule is the best other
+candidate sharing any record with the best. Groups need the exact total within tolerance and every
+part in its date window; they get no net-of-tax allowance. A person's manual matches are placed
+first and their records are not offered again; rejected match IDs never return.
 
 | Result | Rule | Status |
 |---|---|---|
-| **Auto-confirmed** | Best score ≥ `autoConfirmScore` (0.85) **and** the runner-up < best − `ambiguityMargin` (0.10) **and** no value used is `CONFLICT` | `CONFIRMED`, method `AUTO` |
+| **Auto-confirmed** | Best score ≥ `autoConfirmScore` (0.85) **and** the runner-up < best − `ambiguityMargin` (0.10) **and** no conflicting value or unconfirmed adjustment is used | `CONFIRMED`, method `AUTO` |
 | **Proposed** | Best score ≥ `proposeScore` (0.60) but not auto-confirmable | `PROPOSED`; becomes a review item with the candidates |
 | **None** | Otherwise | Left item stays unmatched |
 
 Every match stores its reason codes (`AMOUNT_EXACT`, `NET_OF_TAX`, `PARTY_MATCH`, `REFERENCE_IN_TEXT`,
-`DATE_NEAR`, `SPLIT`) shown as plain text in the UI ("Same amount, same client, invoice number in the
+`DATE_NEAR`, `SPLIT`, `GROUPED`) shown as plain text in the UI ("Same amount, same client, invoice number in the
 transfer description").
 
 ---
@@ -381,17 +478,20 @@ Created and closed by `reconcile_month` and the document workflow; never by a mo
 
 | Kind | Created when | Resolutions |
 |---|---|---|
-| `UNMATCHED_BANK_LINE` | A bank line of a month with a statement has no match after reconciliation | Match manually · categorize and mark "no document needed" · ignore with reason |
-| `UNMATCHED_DOCUMENT` | An invoice or receipt is unpaid while statements cover its window, or a ledger cash entry has no bank line | Match manually · mark as not yet paid · ignore with reason |
+| `UNMATCHED_BANK_LINE` | A bank line without support that a check names (an open finding cites the line, e.g. `X09` "deposited but never booked"); missing support alone is informational (ADR-025) | Match manually · categorize and mark "no document needed" · ignore with reason |
+| `UNMATCHED_DOCUMENT` | An invoice or receipt has no payment while statements cover its window (payment evidence `UNPAID` or `NO_BANK_MATCH`; never `NOT_DUE` or `WAITING_FOR_STATEMENT`), or a ledger cash entry has no bank line | Match manually · mark as not yet paid · ignore with reason |
 | `PROPOSED_MATCH` | A match is proposed (§6.3) | Confirm · choose another candidate · reject |
-| `POSSIBLE_DUPLICATE` | `D02`, `D03`, `D05`, `D06`, `D07` | Confirm duplicate · not a duplicate |
-| `LOW_CONFIDENCE_VALUE` | A value needed for matching or a check is `CONFLICT` or `SINGLE_SOURCE` | Correct the value on the page (both readings shown) · accept as read |
+| `POSSIBLE_DUPLICATE` | A copy held for a decision: `D02`, `D03`, `D05` (`D06`, `D07` with the ledger); one item, in the copy's first month; exact copies (`D01`) are never read and get none | Confirm duplicate · not a duplicate |
+| `LOW_CONFIDENCE_VALUE` | A value needed for matching (amount or total, date) is `CONFLICT`, or `SINGLE_SOURCE` and no bank match corroborates it; one item per record, before any `UNMATCHED_DOCUMENT` item of that record | Correct the value on the page (both readings shown) · accept as read |
 | `LEDGER_DIFFERENCE` | `X09` for a month | Explain (note) · match entries · ignore with reason |
 | `CONFIRM_TYPE` | `E03` | Choose the document type |
 | `CONFIRM_LEDGER_MAPPING` | A ledger file layout seen for the first time | Confirm or edit the proposed column mapping |
 
 One problem, one item: a bank line that is already the subject of a `LEDGER_DIFFERENCE` or
-`POSSIBLE_DUPLICATE` item gets no `UNMATCHED_BANK_LINE` item of its own. A month whose statement is
+`POSSIBLE_DUPLICATE` item gets no `UNMATCHED_BANK_LINE` item of its own, and a held copy's records
+get no item but the copy's. Each run recomputes the month's items: an open item whose cause is gone
+closes as `RESOLVED` by `system` (no action), and opens again if the cause comes back; an item a
+person resolved stays resolved. A month whose statement is
 missing keeps documents as "waiting for the bank statement" rather than creating `UNMATCHED_DOCUMENT`
 items. Resolving an item writes an event, marks the month dirty and re-runs `reconcile_month`.
 
@@ -412,8 +512,10 @@ and (c) these month rules:
 |---|---|
 | Any `X08_SUPPLIER_ACCOUNT_CHANGED` open | `HIGH` |
 | `D07_DOUBLE_PAYMENT` open | `HIGH` |
-| `auto_match_rate < 0.5` with a statement present | `MEDIUM` |
 | `X09` month difference > 5% | `HIGH` |
+
+Support coverage and auto-match rate are progress measures, not fraud findings by themselves
+(ADR-025). Bank-only rows therefore do not raise the month risk solely for lacking an invoice.
 
 A **risk score** 0–100 is stored for sorting only: `min(100, 40·critical + 20·high + 8·medium +
 2·low)` over open findings. The level, not the score, is shown.

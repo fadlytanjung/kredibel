@@ -1,7 +1,8 @@
 """Bank lines on Firestore (docs/09 §3.6): upsert by ID, drop lines a re-read no longer has."""
 
 import uuid
-from datetime import date
+from dataclasses import replace
+from datetime import UTC, date, datetime
 from decimal import Decimal
 
 import pytest
@@ -9,6 +10,7 @@ from google.cloud.firestore import AsyncClient
 
 from app.adapters.firestore.bank_line_repo import FirestoreBankLineRepository
 from app.domain.models.bank_line import BankLine
+from app.domain.models.events import AuditEvent
 
 
 def _line(tx: str, doc: str, row: int, day: int, amount: str, month: str = "2026-09") -> BankLine:
@@ -83,3 +85,36 @@ async def test_lines_filter_by_month(repo):
     assert [ln.tx_id for ln in await repo.list_lines("org_1", doc_id="doc_a", month="2026-09")] == [
         "tx_2"
     ]
+
+
+async def test_save_correction_updates_line_and_records_audit_event(repo):
+    line = _line("tx_1", "doc_a", 1, 20, "-1500000.00", "2026-08")
+    await repo.replace_document_lines("org_1", "doc_a", [line])
+
+    now = datetime(2026, 8, 25, 10, 0, tzinfo=UTC)
+    fixed = replace(
+        line,
+        amount=Decimal("-1470000.00"),
+        corrected_fields=["amount"],
+        corrected_by="u-1",
+        corrected_at=now,
+    )
+    event = AuditEvent(
+        event_id="evt_corr_1",
+        type="VALUE_CORRECTED",
+        actor_uid="u-1",
+        actor_role="owner",
+        at=now,
+        subject={"recordId": "tx_1", "docId": "doc_a"},
+        details={"field": "amount"},
+    )
+    await repo.save_correction("org_1", fixed, event)
+
+    fetched = await repo.get_line("org_1", "tx_1")
+    assert fetched is not None
+    assert fetched.amount == Decimal("-1470000.00")
+    assert fetched.amount_minor == -147000000
+    assert fetched.corrected_fields == ["amount"]
+    assert fetched.corrected_by == "u-1"
+    assert fetched.corrected_at == now
+

@@ -4,11 +4,13 @@
 # `invoke_node`, `call_llm` and `execute_tool` spans form one trace; the trace ID is stored on the
 # run (`runs.traceId`) and bound to every log line, so a run opens in Cloud Trace and Logs Explorer.
 
+import json
 from typing import Any, cast
 
 import structlog
 from google.adk import Runner, Workflow
 from google.adk.sessions import InMemorySessionService
+from opentelemetry import context as otel_context
 from opentelemetry import trace
 from structlog.contextvars import bind_contextvars, unbind_contextvars
 
@@ -38,10 +40,36 @@ async def run_workflow(
 ) -> dict[str, Any]:
     """Execute `workflow` with the run input in session state; returns the last node's output."""
     attributes = {k: str(v) for k, v in node_input.items() if k in ("docId", "month", "generation")}
+    # Langfuse (ADR-026) groups a document's or a month's runs as one session, a workspace's as
+    # one user; tracing.RunAttributes copies these onto every span of the run.
+    session = node_input.get("docId") or f"month:{node_input.get('month')}"
+    viewer = {
+        "langfuse.trace.name": workflow.name,
+        "langfuse.session.id": str(session),
+        "langfuse.user.id": org_id,
+        "langfuse.trace.tags": (workflow.name,),
+    }
+    # One run, one trace: a run started inside another run (the inline queue runs a month task
+    # within the document run that queued it) starts its own trace, linked to the run that caused
+    # it.
+    current = trace.get_current_span()
+    caused_by = getattr(current, "name", "").startswith("workflow:")
     with _tracer.start_as_current_span(
         f"workflow:{workflow.name}",
-        attributes={"orgId": org_id, "runId": run_id, "workflow": workflow.name, **attributes},
+        context=otel_context.Context() if caused_by else None,
+        links=[trace.Link(current.get_span_context())] if caused_by else None,
+        attributes={
+            "orgId": org_id,
+            "runId": run_id,
+            "workflow": workflow.name,
+            **attributes,
+            **viewer,
+        },
     ) as span:
+        # The run's input and outcome as identifiers only, never document content (ADR-026): a
+        # viewer's default "with input and output" view then lists every run.
+        ids = {"workflow": workflow.name, "runId": run_id, **attributes}
+        span.set_attribute("langfuse.observation.input", json.dumps(ids, sort_keys=True))
         context = span.get_span_context()
         trace_bound = context.is_valid
         if trace_bound:
@@ -66,10 +94,13 @@ async def run_workflow(
                 output = getattr(event, "output", None)
                 if isinstance(output, dict):
                     last = cast(dict[str, Any], output)
+            span.set_attribute("langfuse.observation.output", json.dumps({"outcome": "done"}))
             return last
         except Exception as exc:
             span.record_exception(exc)
             span.set_status(trace.Status(trace.StatusCode.ERROR, type(exc).__name__))
+            failed = {"outcome": "failed", "error": type(exc).__name__}
+            span.set_attribute("langfuse.observation.output", json.dumps(failed))
             raise
         finally:
             if trace_bound:

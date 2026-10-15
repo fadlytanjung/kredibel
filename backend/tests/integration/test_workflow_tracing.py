@@ -65,6 +65,16 @@ async def test_ac004_12_a_month_run_is_one_trace_recorded_on_the_run():
     assert root.attributes is not None
     assert root.attributes["runId"] == "run_t"
     assert root.attributes["orgId"] == "org_t"
+    # Langfuse groups a month's runs by session, workspaces by user (ADR-026).
+    assert root.attributes["langfuse.trace.name"] == "month_workflow"
+    # Identifiers in, outcome out; no document content (ADR-026).
+    assert root.attributes["langfuse.observation.input"] == (
+        '{"generation": "1", "month": "2026-03", "runId": "run_t", "workflow": "month_workflow"}'
+    )
+    assert root.attributes["langfuse.observation.output"] == '{"outcome": "done"}'
+    assert root.attributes["langfuse.session.id"] == "month:2026-03"
+    assert root.attributes["langfuse.user.id"] == "org_t"
+    assert root.attributes["langfuse.trace.tags"] == ("month_workflow",)
     node_spans = [s for s in spans if s.name.startswith("node:")]
     assert node_spans, "node spans were not recorded"
     assert {_trace_id(s) for s in node_spans} == {_trace_id(root)}
@@ -105,3 +115,35 @@ async def test_ac004_12_the_adk_session_is_the_run():
     ]
     assert workflow_span.attributes is not None
     assert workflow_span.attributes["gen_ai.conversation.id"] == "run_u"
+
+
+async def test_ac004_12_a_run_started_inside_another_run_is_its_own_trace():
+    """The inline queue runs a month task inside the document run that queued it; on Cloud Run it
+    is its own request. Either way the month run is its own trace, linked to the run that caused
+    it (Langfuse and Cloud Trace list one run per trace)."""
+    _EXPORTER.clear()
+    runs = FakeRunRepository()
+    await runs.create("org_t", Run(run_id="run_m", kind=RunKind.MONTH, target="2026-03"))
+    months = FakeMonthRepository()
+    months.months[("org_t", "2026-03")] = Month(
+        month="2026-03", generation=1, state=MonthState.COLLECTING
+    )
+    deps = PipelineDeps(
+        settings=Settings(), run_repo=runs, doc_repo=FakeDocumentRepository(), month_repo=months
+    )
+    tracer = trace.get_tracer("test")
+    with tracer.start_as_current_span("workflow:document_workflow") as outer:
+        await run_workflow(
+            build_month_workflow(deps),
+            org_id="org_t",
+            run_id="run_m",
+            node_input={"orgId": "org_t", "month": "2026-03", "generation": 1, "runId": "run_m"},
+            run_repo=runs,
+            settings=deps.settings,
+        )
+    [month_root] = [
+        s for s in _EXPORTER.get_finished_spans() if s.name == "workflow:month_workflow"
+    ]
+    assert _trace_id(month_root) != outer.get_span_context().trace_id
+    assert month_root.parent is None
+    assert [link.context.span_id for link in month_root.links] == [outer.get_span_context().span_id]

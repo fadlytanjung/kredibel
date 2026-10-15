@@ -141,3 +141,32 @@ def test_an_amount_printed_as_a_word_is_not_an_amount():
     assert inv.lines[-1].amount is None
     assert "lines.3.amount" not in inv.consensus
     assert not any("Included" in n for n in inv.notes)
+
+
+def test_the_documents_type_follows_the_kind_decided_in_code():
+    """The classifier cannot tell sales from purchase; the workspace's names can (AC-005-1), and the
+    document's type then follows, so the library's purchase filter is not empty."""
+    from app.domain.invoice_records import document_type_of
+
+    assert document_type_of(["PURCHASE"], "SALES_INVOICE") == "PURCHASE_INVOICE"
+    assert document_type_of(["SALES", "SALES"], "PURCHASE_INVOICE") == "SALES_INVOICE"
+    assert document_type_of(["SALES", "PURCHASE"], "SALES_INVOICE") == "SALES_INVOICE"
+    assert document_type_of([], "PURCHASE_INVOICE") == "PURCHASE_INVOICE"
+
+
+def test_quantities_are_read_in_the_documents_number_style():
+    """"1,692" on an English-style invoice is one thousand six hundred and ninety-two (the synthetic
+    end-to-end run read it as 1.692 and raised A04 on every such line)."""
+    from decimal import Decimal as D
+
+    from app.domain.invoice_records import _quantity
+
+    assert _quantity("1,692", "EN") == D("1692")
+    assert _quantity("12,345.5 kg", "EN") == D("12345.5")
+    assert _quantity("1.5", "EN") == D("1.5")
+    assert _quantity("1.692", "EN") == D("1.692")
+    assert _quantity("1.692", "EU") == D("1692")
+    assert _quantity("1,5", "EU") == D("1.5")
+    assert _quantity("1.692,5", "EU") == D("1692.5")
+    assert _quantity("2 pcs", "EN") == D("2")
+    assert _quantity("box", "EN") is None

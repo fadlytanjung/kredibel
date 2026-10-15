@@ -11,11 +11,16 @@ from google.cloud.firestore import AsyncClient
 
 from app.adapters.cloud_tasks import CloudTasksQueue, InlineTaskQueue
 from app.adapters.firebase_identity import FirebaseIdentityAdmin
+from app.adapters.firestore.assistant_repo import FirestoreAssistantRepository
 from app.adapters.firestore.bank_line_repo import FirestoreBankLineRepository
+from app.adapters.firestore.decision_repo import FirestoreDecisionRepository
 from app.adapters.firestore.document_repo import FirestoreDocumentRepository
 from app.adapters.firestore.finding_repo import FirestoreFindingRepository
+from app.adapters.firestore.ledger_repo import FirestoreLedgerRepository
+from app.adapters.firestore.match_repo import FirestoreMatchRepository
 from app.adapters.firestore.month_repo import FirestoreMonthRepository
 from app.adapters.firestore.record_repo import firestore_invoices, firestore_receipts
+from app.adapters.firestore.review_item_repo import FirestoreReviewItemRepo
 from app.adapters.firestore.run_repo import FirestoreRunRepository
 from app.adapters.firestore.usage_repo import FirestoreUsageRepository
 from app.adapters.firestore.workspace_repo import FirestoreWorkspaceRepository
@@ -23,22 +28,35 @@ from app.adapters.gcs_storage import GcsDocumentStorage
 from app.adapters.gemini_reader import GeminiDocumentReader
 from app.adapters.page_renderer import DefaultPageRenderer
 from app.adapters.pdf_inspector import PdfInspector
-from app.adapters.policy_files import load_category_policy, load_forensics, load_plans
+from app.adapters.policy_files import (
+    load_category_policy,
+    load_forensics,
+    load_plans,
+    load_profit_loss_policy,
+    load_reconciliation_policy,
+    load_risk_policy,
+)
 from app.adapters.spreadsheet_reader import DefaultSpreadsheetReader
 from app.adapters.text_layer import PdfTextLayer
 from app.agents.deps import PipelineDeps
 from app.agents.runtime import run_workflow
 from app.agents.workflows.document_workflow import build_document_workflow
 from app.agents.workflows.month_workflow import build_month_workflow
+from app.api.assistant import create_assistant_router
 from app.api.bank_accounts import create_bank_accounts_router
 from app.api.bank_lines import create_bank_lines_router
+from app.api.decisions import create_decisions_router
 from app.api.documents import create_documents_router
 from app.api.findings import create_findings_router
 from app.api.health import create_health_router
+from app.api.insights import create_insights_router
+from app.api.matches import create_matches_router
 from app.api.me import create_me_router
 from app.api.months import create_months_router
 from app.api.plans import create_plans_router
+from app.api.profit_loss import create_profit_loss_router
 from app.api.records import create_records_router
+from app.api.review_items import create_review_items_router
 from app.api.runs import create_runs_router
 from app.api.static import mount_static_spa
 from app.api.tasks import create_tasks_router
@@ -62,27 +80,41 @@ from app.domain.categorize import CategoryPolicy
 from app.domain.checks.policy import ForensicsPolicy
 from app.domain.models.invoice import Invoice, Receipt
 from app.domain.plans import PlanCatalog
+from app.domain.reconciliation_policy import ReconciliationPolicy
+from app.domain.risk import RiskPolicy
 from app.observability.tracing import setup_tracing
+from app.ports.assistant_repository import AssistantRepository
 from app.ports.bank_line_repository import BankLineRepository
+from app.ports.decision_repository import DecisionRepository
 from app.ports.document_reader import DocumentReader
 from app.ports.document_repository import DocumentRepository
 from app.ports.document_storage import DocumentStorage
 from app.ports.file_inspector import FileInspector
 from app.ports.finding_repository import FindingRepository
 from app.ports.identity_admin import IdentityAdmin
+from app.ports.ledger_repository import LedgerRepository
+from app.ports.match_repository import MatchRepository
 from app.ports.month_repository import MonthRepository
 from app.ports.page_renderer import PageRenderer
 from app.ports.page_text import PageText
 from app.ports.record_repository import DocumentRecords
+from app.ports.review_item_repository import ReviewItemRepository
 from app.ports.run_repository import RunRepository
 from app.ports.spreadsheet_reader import SpreadsheetReader
 from app.ports.task_queue import TaskQueue
 from app.ports.workspace_repository import UsageRepository, WorkspaceRepository
+from app.services.assistant_service import AssistantService
 from app.services.bank_line_service import BankLineService
+from app.services.decision_service import DecisionService
 from app.services.document_service import DocumentService
 from app.services.entitlement_service import EntitlementService
+from app.services.finding_service import FindingService
+from app.services.insight_service import InsightService
+from app.services.match_service import MatchService
 from app.services.month_service import MonthService
+from app.services.profit_loss_service import ProfitLossService
 from app.services.record_service import RecordService
+from app.services.review_service import ReviewService
 from app.services.runs import DocumentWorkflowRunner, MonthWorkflowRunner, RunService
 from app.services.workspace_service import WorkspaceService
 
@@ -120,6 +152,11 @@ class AppDeps:
         invoices: DocumentRecords[Invoice] | None = None,
         receipts: DocumentRecords[Receipt] | None = None,
         findings: FindingRepository | None = None,
+        decisions: DecisionRepository | None = None,
+        matches: MatchRepository | None = None,
+        review_items: ReviewItemRepository | None = None,
+        assistant_repo: AssistantRepository | None = None,
+        ledger: LedgerRepository | None = None,
     ) -> None:
         self.settings = settings
         self._plans = plans
@@ -143,6 +180,11 @@ class AppDeps:
         self._invoices = invoices
         self._receipts = receipts
         self._findings = findings
+        self._decisions = decisions
+        self._matches = matches
+        self._review_items = review_items
+        self._assistant_repo = assistant_repo
+        self._ledger = ledger
         self._built: dict[str, Any] = {}
 
     def _once(self, name: str, build: Callable[[], T]) -> T:
@@ -331,6 +373,109 @@ class AppDeps:
         )
 
     @property
+    def decisions(self) -> DecisionRepository:
+        return self._once(
+            "decisions", lambda: self._decisions or FirestoreDecisionRepository(self.firestore)
+        )
+
+    @property
+    def matches(self) -> MatchRepository:
+        return self._once(
+            "matches", lambda: self._matches or FirestoreMatchRepository(self.firestore)
+        )
+
+    @property
+    def reconciliation(self) -> ReconciliationPolicy:
+        return self._once(
+            "reconciliation",
+            lambda: load_reconciliation_policy(
+                self.settings.contract_path(self.settings.policy_dir)
+            ),
+        )
+
+    @property
+    def risk_policy(self) -> RiskPolicy:
+        return self._once(
+            "risk_policy",
+            lambda: load_risk_policy(self.settings.contract_path(self.settings.policy_dir)),
+        )
+
+    @property
+    def decision_service(self) -> DecisionService:
+        return self._once(
+            "decision_service",
+            lambda: DecisionService(
+                decisions=self.decisions,
+                doc_repo=self.doc_repo,
+                invoices=self.invoices,
+                receipts=self.receipts,
+                bank_lines=self.bank_lines,
+                workspaces=self.workspace_repo,
+                month_repo=self.month_repo,
+                task_queue=self.task_queue,
+                clock=self.clock,
+                month_run_delay_seconds=self.settings.month_run_delay_seconds,
+            ),
+        )
+
+    @property
+    def match_service(self) -> MatchService:
+        return self._once(
+            "match_service",
+            lambda: MatchService(
+                matches=self.matches,
+                bank_lines=self.bank_lines,
+                invoices=self.invoices,
+                receipts=self.receipts,
+                workspaces=self.workspace_repo,
+                month_repo=self.month_repo,
+                task_queue=self.task_queue,
+                reconciliation=self.reconciliation,
+                clock=self.clock,
+                month_run_delay_seconds=self.settings.month_run_delay_seconds,
+            ),
+        )
+
+    @property
+    def finding_service(self) -> FindingService:
+        return self._once(
+            "finding_service",
+            lambda: FindingService(
+                finding_repo=self.findings,
+                month_repo=self.month_repo,
+                doc_repo=self.doc_repo,
+                clock=self.clock,
+            ),
+        )
+
+    @property
+    def review_items(self) -> ReviewItemRepository:
+        return self._once(
+            "review_items",
+            lambda: self._review_items or FirestoreReviewItemRepo(self.firestore),
+        )
+
+    @property
+    def review_service(self) -> ReviewService:
+        return self._once(
+            "review_service",
+            lambda: ReviewService(
+                review_items=self.review_items,
+                matches=self.match_service,
+                decisions=self.decision_service,
+                bank_line_service=self.bank_line_service,
+                months=self.month_service,
+                doc_repo=self.doc_repo,
+                bank_lines=self.bank_lines,
+                invoices=self.invoices,
+                receipts=self.receipts,
+                clock=self.clock,
+                workspaces=self.workspace_repo,
+                task_queue=self.task_queue,
+            ),
+        )
+
+    @property
     def forensics(self) -> ForensicsPolicy:
         return self._once(
             "forensics",
@@ -378,6 +523,12 @@ class AppDeps:
         )
 
     @property
+    def ledger_repo(self) -> LedgerRepository:
+        return self._once(
+            "ledger_repo", lambda: self._ledger or FirestoreLedgerRepository(self.firestore)
+        )
+
+    @property
     def document_workflow_runner(self) -> DocumentWorkflowRunner:
         if self._document_workflow_runner is not None:
             return self._document_workflow_runner
@@ -401,6 +552,9 @@ class AppDeps:
                 forensics=self.forensics,
                 findings=self.findings,
                 categories=self.categories,
+                risk_policy=self.risk_policy,
+                ledger=self.ledger_repo,
+                review_items=self.review_items,
             )
             await run_workflow(
                 build_document_workflow(pipeline_deps),
@@ -425,6 +579,20 @@ class AppDeps:
                 month_repo=self.month_repo,
                 task_queue=self.task_queue,
                 clock=self.clock,
+                bank_lines=self.bank_lines,
+                invoices=self.invoices,
+                receipts=self.receipts,
+                workspaces=self.workspace_repo,
+                forensics=self.forensics,
+                findings=self.findings,
+                categories=self.categories,
+                matches=self.matches,
+                decisions=self.decisions,
+                reconciliation=self.reconciliation,
+                risk_policy=self.risk_policy,
+                review_items=self.review_items,
+                ledger=self.ledger_repo,  # X09 and the ledger figures read the imported rows
+                reader=self.reader,  # explain_month words the month's risk (spec 008)
             )
             return await run_workflow(
                 build_month_workflow(pipeline_deps),
@@ -468,10 +636,47 @@ class AppDeps:
         )
 
     @property
+    def profit_loss_service(self) -> ProfitLossService:
+        return self._once(
+            "profit_loss_service",
+            lambda: ProfitLossService(
+                ledger=self._ledger or FirestoreLedgerRepository(self.firestore),
+                workspaces=self.workspace_repo,
+                documents=self.doc_repo,
+                clock=self.clock,
+                policy=load_profit_loss_policy(
+                    self.settings.contract_path(self.settings.policy_dir)
+                ),
+            ),
+        )
+
+    @property
+    def insight_service(self) -> InsightService:
+        return self._once(
+            "insight_service",
+            lambda: InsightService(
+                workspaces=self.workspace_repo,
+                doc_repo=self.doc_repo,
+                bank_lines=self.bank_lines,
+                months=self.month_repo,
+                findings=self.findings,
+                decisions=self.decisions,
+                categories=self.categories,
+                review_items=self.review_items,
+            ),
+        )
+
+    @property
     def bank_line_service(self) -> BankLineService:
         return self._once(
             "bank_line_service",
-            lambda: BankLineService(bank_lines=self.bank_lines, workspaces=self.workspace_repo),
+            lambda: BankLineService(
+                bank_lines=self.bank_lines,
+                workspaces=self.workspace_repo,
+                categories=self.categories,
+                clock=self.clock,
+                months=self.month_service,
+            ),
         )
 
     @property
@@ -481,6 +686,31 @@ class AppDeps:
             lambda: MonthService(
                 month_repo=self.month_repo,
                 run_service=self.run_service,
+            ),
+        )
+
+    @property
+    def assistant_repo(self) -> AssistantRepository:
+        return self._assistant_repo or self._once(
+            "assistant_repo", lambda: FirestoreAssistantRepository(self.firestore)
+        )
+
+    @property
+    def assistant_service(self) -> AssistantService:
+        return self._once(
+            "assistant_service",
+            lambda: AssistantService(
+                assistant_repo=self.assistant_repo,
+                profit_loss=lambda: self.profit_loss_service,
+                month_repo=self.month_repo,
+                finding_repo=self.findings,
+                bank_line_repo=self.bank_lines,
+                doc_repo=self.doc_repo,
+                review_item_repo=self.review_items,
+                reader=self.reader,
+                invoices=self.invoices,
+                receipts=self.receipts,
+                entitlements=self.entitlement_service,
             ),
         )
 
@@ -543,8 +773,14 @@ def create_app(
         app.include_router(create_runs_router(deps, workspace_dep))
         app.include_router(create_months_router(deps, workspace_dep))
         app.include_router(create_bank_lines_router(deps, workspace_dep))
+        app.include_router(create_insights_router(deps, workspace_dep))
+        app.include_router(create_profit_loss_router(deps, workspace_dep))
         app.include_router(create_records_router(deps, workspace_dep))
         app.include_router(create_findings_router(deps, workspace_dep))
+        app.include_router(create_decisions_router(deps, workspace_dep))
+        app.include_router(create_matches_router(deps, workspace_dep))
+        app.include_router(create_review_items_router(deps, workspace_dep))
+        app.include_router(create_assistant_router(deps, workspace_dep))
 
     # 3. Worker role endpoints
     if active_settings.app_role in ("worker", "all"):

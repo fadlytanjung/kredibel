@@ -12,15 +12,19 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.domain.errors import (
+    ActionNotAllowedError,
     AlreadyInWorkspaceError,
     BankAccountExistsError,
     DocumentTooLargeError,
     DomainError,
     EncryptedDocumentError,
     ForbiddenError,
+    ItemAlreadyResolvedError,
     LanguageNotAvailableError,
+    MatchAmountMismatchError,
     NotFoundError,
     PlanLimitReachedError,
+    ReasonRequiredError,
     RunQuotaExceededError,
     SignupClosedError,
     TooManyPagesError,
@@ -35,15 +39,19 @@ from app.domain.errors import (
 _log = structlog.get_logger()
 
 __all__ = [
+    "ActionNotAllowedError",
     "AlreadyInWorkspaceError",
     "BankAccountExistsError",
     "DocumentTooLargeError",
     "DomainError",
     "EncryptedDocumentError",
     "ForbiddenError",
+    "ItemAlreadyResolvedError",
     "LanguageNotAvailableError",
+    "MatchAmountMismatchError",
     "NotFoundError",
     "PlanLimitReachedError",
+    "ReasonRequiredError",
     "RunQuotaExceededError",
     "SignupClosedError",
     "TooManyPagesError",

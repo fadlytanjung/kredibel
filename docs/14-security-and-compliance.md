@@ -194,8 +194,8 @@ No service account keys are created. Everything uses Application Default Credent
 The CSP is verified on the deployed URL (Google sign-in popups and Firestore listeners must work).
 `https://apis.google.com` is in `script-src` because Firebase Auth loads the Google API loader there to
 open the sign-in popup. The pdf.js worker and the Archivo font are bundled and served from `'self'`.
-FastAPI's interactive API page (`/docs`) is the one exception: it also allows `https://cdn.jsdelivr.net`
-for its scripts and styles; nothing else is served under that policy.
+FastAPI's interactive API page (`/docs`, `/redoc`) is the one exception: it allows `https://cdn.jsdelivr.net`
+for its scripts, styles and assets, inline script initialization, and `https://fastapi.tiangolo.com` for favicon; nothing else is served under that policy.
 
 Firebase Hosting sets the same headers on the SPA it serves (`firebase.json` → `hosting.headers`,
 [ADR-018](adr/ADR-018-firebase-hosting-in-front-of-cloud-run.md)); a test keeps both in step.

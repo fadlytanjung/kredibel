@@ -36,7 +36,8 @@ evidence viewer let a person see why, look at the page, and acknowledge or dismi
   is not a cited fact or finding value and a marker that does not resolve; one retry with the
   problems; then the template text (`grounding: TEMPLATE`). The UI labels "Written by Gemini · figures
   verified by Kredibel" or "Standard wording".
-- **AC-008-6** The explainer is skipped when the month's facts and findings hash is unchanged.
+- **AC-008-6** The explainer is skipped when the month's facts and findings hash is unchanged and the
+  stored explanation is Gemini's (`VERIFIED`); a template stands in only until the next run tries again.
 
 ### US-008-3: The Risk page and the evidence viewer
 

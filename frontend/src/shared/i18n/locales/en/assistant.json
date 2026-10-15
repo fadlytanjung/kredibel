@@ -1,0 +1,94 @@
+{
+  "title": "Assistant",
+  "preview": "Preview",
+  "subtitle": "Ask about your books. Numbers come from your reconciled data, never from memory, and every answer shows its source.",
+  "newThread": "New question",
+  "newChat": "New chat",
+  "recentConversations": "Recent conversations",
+  "history": "Chat history",
+  "closeHistory": "Close history",
+  "preferences": "Preferences",
+  "rememberedCount": "Preferences ({{count}})",
+  "defaultThreadTitle": "Conversation",
+  "threadsTitle": "Recent conversations",
+  "noThreads": "No conversations yet",
+  "noThreadsPrompt": "Start a new conversation below to inspect your books.",
+  "suggestedQuestions": "Suggested questions",
+  "earlierQuestions": "Earlier questions",
+  "openEvidence": "Open the evidence",
+  "goToMonth": "Go to month",
+  "viewFullDiagram": "View diagram",
+  "seeFullDiagramClick": "See full interactive diagram on Dashboard",
+  "seeInvoicesClick": "View all invoices in Documents",
+  "loadMoreThreads": "Load earlier questions",
+  "welcome": {
+    "title": "How can I help with your books today?",
+    "subtitle": "Ask anything about your cash flow, profit & loss, reconciliation, or forensic risk findings.",
+    "prompts": {
+      "flow": "Money flow & cash flow",
+      "unpaid": "Outstanding invoices",
+      "risk": "Forensic risk score",
+      "pnl": "Profit & loss breakdown"
+    }
+  },
+  "newThreadTitle": "Question {{date}}",
+  "errors": {
+    "interrupted": "Response interrupted: {{message}}",
+    "retrieve": "I could not retrieve that information ({{message}}). Please try asking again.",
+    "send": "I could not send your message ({{message}}). Please try asking again.",
+    "sendFailed": "Failed to send message"
+  },
+  "charts": {
+    "moneyFlow": "Money Flow (Sankey)",
+    "monthlyInOut": "Monthly In / Out",
+    "categoryBreakdown": "Category Breakdown",
+    "unpaidInvoices": "Outstanding Invoices",
+    "profitLoss": "Company Profit & Loss Breakdown"
+  },
+  "starters": {
+    "unpaid": "Which invoices are still unpaid?",
+    "q2": "Where did the money go in Q2?",
+    "clients": "Who are my biggest clients?",
+    "riskJune": "Why is June risk scored as Medium?",
+    "pnl": "Show my profit and loss for 2026-03"
+  },
+  "composer": {
+    "placeholder": "Ask about your books",
+    "send": "Send",
+    "sending": "Checking your books...",
+    "disclaimer": "Numbers come from your reconciled data, never from memory, and every answer shows its source."
+  },
+  "messages": {
+    "user": "You",
+    "assistant": "Kredibel Assistant",
+    "citations": "Sources",
+    "toolsUsed": "Tools queried",
+    "groundingAgreed": "Every number checked against your books",
+    "groundingTemplate": "Safe summary fallback"
+  },
+  "remembered": {
+    "title": "Remembered for you",
+    "forgetAll": "Forget all",
+    "forget": "Forget",
+    "empty": "No preferences remembered yet.",
+    "footer": "Only preferences are remembered. Figures are always read fresh from your books."
+  },
+  "activity": {
+    "running": "Exploring workspace books...",
+    "completed": "Explored workspace data",
+    "lookup": "lookup",
+    "lookups": "lookups",
+    "toggle": "Toggle activity details",
+    "thinking": "Thinking"
+  },
+
+  "matchSuggestion": {
+    "title": "AI Match Analysis",
+    "analyzing": "Analyzing counterparty & transaction...",
+    "recommended": "Recommended document",
+    "confidence": "Confidence",
+    "advice": "Missing document advice",
+    "selectRecommended": "Select recommended document",
+    "noCandidate": "No candidate document matches this transaction."
+  }
+}

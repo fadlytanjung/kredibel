@@ -11,7 +11,7 @@ export function NotFoundPage() {
         <h1 className="mt-4 text-xl font-semibold text-ink">{t('notFound.title')}</h1>
         <p className="mt-2 text-sm text-ink-muted">{t('notFound.body')}</p>
         <Link
-          to="/"
+          to="/dashboard"
           className="inline-block mt-6 rounded-sm bg-brand px-4 py-2 text-sm font-semibold text-on-brand shadow-xs hover:bg-brand-hover"
         >
           {t('notFound.backToDashboard')}

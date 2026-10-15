@@ -1,21 +1,38 @@
 /**
- * DocumentPage: Document detail view with page viewer, read values, findings, and deletion.
+ * DocumentPage: one document, its page viewer beside what was read from it (transactions or
+ * records, a page at a time), its findings and its details.
  *
  * Normative references:
- * - spec 003 US-003-3 (AC-003-9) and US-003-4 (AC-003-10)
- * - docs/11 §6
+ * - spec 003 US-003-3 (AC-003-9) and US-003-4 (AC-003-10); spec 005 T005-11; spec 006
+ * - docs/11 §6.3; mock design/mocks/document.html
  */
 
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { type BankLine, lineBox, StatementLines, useBankLines } from '../entities/bank-line'
-import { downloadOriginal, PageImage, useDeleteDocument, useDocument } from '../entities/document'
+import { type BankLine, isIncoming, lineBox, StatementLines, useBankLines } from '../entities/bank-line'
+import { type Document, DOC_TYPE_BADGE, downloadOriginal, PageViewer, useDeleteDocument, useDocument } from '../entities/document'
 import { FindingList, useDocumentFindings } from '../entities/finding'
 import { InvoiceCard, ReceiptCard, useInvoices, useReceipts, type ValueFocus } from '../entities/record'
+import { useReviewItems } from '../entities/review'
+import { sumDecimals } from '../shared/lib/decimal'
 import { formatDate } from '../shared/lib/formatDate'
 import { formatMoney } from '../shared/lib/formatMoney'
 import { Badge, Button, Icon } from '../shared/ui'
+
+type Tab = 'records' | 'findings' | 'details'
+type Money = { amount: string; currency: string } | null | undefined
+
+const VERDICT = {
+  CLEAN: { variant: 'clean', icon: 'shield-check' },
+  SUSPICIOUS: { variant: 'high', icon: 'shield-alert' },
+  TAMPERED: { variant: 'tampered', icon: 'shield-x' },
+  UNVERIFIABLE: { variant: 'medium', icon: 'shield-alert' },
+} as const
+
+function money(value: Money): string {
+  return value ? formatMoney(value.amount, { currency: value.currency }) : '—'
+}
 
 export function DocumentPage() {
   const { docId } = useParams<{ docId: string }>()
@@ -27,13 +44,20 @@ export function DocumentPage() {
   const isStatement = read && doc?.docType === 'BANK_STATEMENT'
   const isInvoice = read && (doc?.docType === 'SALES_INVOICE' || doc?.docType === 'PURCHASE_INVOICE')
   const isReceipt = read && doc?.docType === 'RECEIPT'
-  const { data: linePage } = useBankLines(isStatement ? docId : undefined)
+  const isLedger = doc?.docType === 'LEDGER_EXPORT'
+  const { data: linePage, isLoading: linesLoading } = useBankLines(isStatement ? docId : undefined)
   const { data: invoicePage } = useInvoices(isInvoice ? docId : undefined)
   const { data: receiptPage } = useReceipts(isReceipt ? docId : undefined)
   const { data: findingPage } = useDocumentFindings(doc?.integrity ? docId : undefined)
+  // A ledger export with a new layout waits for its columns to be checked (T005-11).
+  const needsColumns = Boolean(isLedger && doc?.status === 'NEEDS_INPUT' && doc.ledgerMeta?.mappingStatus === 'PROPOSED')
+  const { data: openItems } = useReviewItems(needsColumns)
+  const mappingItem = openItems?.items.find(
+    (item) => item.kind === 'CONFIRM_LEDGER_MAPPING' && (item.docId === docId || item.subject.docIds?.includes(docId ?? '')),
+  )
   const [focus, setFocus] = useState<ValueFocus | null>(null)
-
   const [selectedPage, setSelectedPage] = useState<number>(1)
+  const [tab, setTab] = useState<Tab | null>(null)
   const [showConfirmDelete, setShowConfirmDelete] = useState<boolean>(false)
 
   if (isLoading) {
@@ -62,7 +86,8 @@ export function DocumentPage() {
   }
 
   const pagesCount = doc.pageCount || doc.pages?.length || 0
-  // One value at a time is lit on its page: a statement line's amount, or an invoice or receipt field.
+  // One value at a time is lit on its page: a statement line's amount, an invoice or receipt
+  // field, or a finding's evidence.
   const showValue = (value: ValueFocus) => {
     setFocus(value)
     setSelectedPage(value.page)
@@ -73,64 +98,170 @@ export function DocumentPage() {
     else if (line.page) setSelectedPage(line.page)
   }
   const highlight = focus && focus.page === selectedPage ? focus.bbox : undefined
-  const meta = doc.statementMeta
-  const reading = doc.reading
+  const lines = linePage?.items ?? []
+  const findings = (findingPage?.items ?? []).filter((f) => f.status === 'OPEN' || f.status === 'ACKNOWLEDGED')
+  const recordCount = isStatement
+    ? lines.length
+    : isInvoice
+      ? (invoicePage?.items.length ?? 0)
+      : isReceipt
+        ? (receiptPage?.items.length ?? 0)
+        : (doc.ledgerMeta?.rowsImported ?? doc.ledgerMeta?.rows ?? 0)
+  const tabs: Tab[] = [
+    ...(isStatement || isInvoice || isReceipt || isLedger ? (['records'] as const) : []),
+    ...(doc.integrity || findings.length > 0 ? (['findings'] as const) : []),
+    'details',
+  ]
+  const active = tab && tabs.includes(tab) ? tab : tabs[0]
+  const recordsLabel = isStatement ? 'transactions' : isInvoice ? 'invoices' : isReceipt ? 'receipts' : 'ledger'
+  const tabLabel = { records: t(`documents:detail.tabs.${recordsLabel}`), findings: t('documents:detail.tabs.findings'), details: t('documents:detail.tabs.details') }
+  const tabCount = { records: recordCount, findings: doc.integrity || findings.length > 0 ? findings.length : undefined, details: undefined }
+
+  const pane = (
+    <section className="doc-pane" aria-label={t('documents:detail.pane')}>
+      {isStatement && <StatementFigures doc={doc} lines={linesLoading ? undefined : lines} />}
+      {isLedger && <LedgerFigures doc={doc} />}
+      <div className="tabs" role="tablist" aria-label={t('documents:detail.tabs.label')}>
+        {tabs.map((key) => (
+          <button
+            key={key}
+            type="button"
+            role="tab"
+            id={`doc-tab-${key}`}
+            aria-controls="doc-tabpanel"
+            aria-selected={active === key}
+            className="tab"
+            onClick={() => setTab(key)}
+          >
+            {tabLabel[key]}
+            {tabCount[key] !== undefined && (
+              <span className={`count ${key === 'findings' && tabCount[key] ? 'is-attn' : ''}`}>{tabCount[key]}</span>
+            )}
+          </button>
+        ))}
+      </div>
+      <div role="tabpanel" id="doc-tabpanel" aria-labelledby={`doc-tab-${active}`} className="stack gap-3">
+        {active === 'records' && isStatement && (
+          linesLoading ? (
+            <p className="muted small">{t('documents:detail.loadingLines')}</p>
+          ) : (
+            <StatementLines lines={lines} selectedTxId={focus?.key} onSelect={selectLine} />
+          )
+        )}
+        {active === 'records' && isInvoice && (
+          <>
+            {doc.reading && (
+              <p className="small muted">
+                {t('documents:detail.recordsSummary', {
+                  agreed: doc.reading.fieldsAgreed ?? 0,
+                  compared: doc.reading.fieldsCompared ?? 0,
+                })}
+              </p>
+            )}
+            {invoicePage?.items.map((inv) => (
+              <InvoiceCard key={inv.invoiceId} record={inv} focused={focus?.key} onFocus={showValue} />
+            ))}
+          </>
+        )}
+        {active === 'records' &&
+          isReceipt &&
+          receiptPage?.items.map((rc) => (
+            <ReceiptCard key={rc.receiptId} record={rc} focused={focus?.key} onFocus={showValue} />
+          ))}
+        {active === 'records' && isLedger && (
+          <div className="card p-4 stack gap-4">
+            <div className="row spread items-center flex-wrap gap-2">
+              <div>
+                <strong>{t('documents:detail.spreadsheet')}</strong>
+                <p className="small muted">
+                  {t('documents:detail.rowsSummary', { count: doc.ledgerMeta?.rowsImported ?? doc.ledgerMeta?.rows ?? 0 })}
+                </p>
+              </div>
+              <Link to="/profit-loss" className="button button-secondary">
+                <Icon name="bar-chart" size="sm" />
+                <span>{t('documents:detail.viewProfitLoss')}</span>
+              </Link>
+            </div>
+            {doc.months?.length ? (
+              <div className="row gap-2 items-center flex-wrap">
+                <span className="muted small">{t('documents:detail.period')}:</span>
+                {doc.months.map((m) => (
+                  <Link key={m} to={`/months/${m}`} className="badge badge-brand">
+                    {m}
+                  </Link>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        )}
+        {active === 'findings' &&
+          (doc.integrity ? (
+            <FindingList findings={findingPage?.items ?? []} focused={focus?.key} onFocus={showValue} />
+          ) : (
+            <p className="muted small">{t('documents:detail.checksAfterReading')}</p>
+          ))}
+        {active === 'details' && <DocumentDetails doc={doc} pagesCount={pagesCount} />}
+      </div>
+    </section>
+  )
 
   return (
-    <div className="page stack gap-6">
-      <div className="page-head">
-        <div className="row items-center gap-2">
-          <Link className="link small" to="/documents">
-            &larr; {t('documents:detail.back')}
-          </Link>
-        </div>
-        <div className="spread items-center">
-          <div>
-            <h1 className="type-title">{doc.fileName}</h1>
-            <p className="muted small">
-              {doc.docType} &middot; {formatDate(doc.uploadedAt)}
-            </p>
-          </div>
-          <div className="row gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => void downloadOriginal(doc.docId, doc.fileName)}
-            >
+    <div className="page stack gap-5">
+      <header className="stack gap-2">
+        <h1 className="type-title">{doc.fileName}</h1>
+        <p className="muted">{summary(doc, t)}</p>
+        <div className="doc-status">
+          {doc.docType && doc.docType !== 'UNKNOWN' && (
+            <Badge variant={DOC_TYPE_BADGE[doc.docType]?.variant ?? 'outline'}>
+              {t(`documents:detail.docType.${doc.docType}`, { defaultValue: doc.docType })}
+            </Badge>
+          )}
+          <StatusBadge doc={doc} />
+          {doc.integrity?.verdict && (
+            <Badge variant={VERDICT[doc.integrity.verdict].variant}>
+              <Icon name={VERDICT[doc.integrity.verdict].icon} size="sm" />
+              {t(`documents:detail.verdictBadge.${doc.integrity.verdict}`)}
+            </Badge>
+          )}
+          <span className="spacer" />
+          <span className="row">
+            <Button variant="secondary" size="sm" onClick={() => void downloadOriginal(doc.docId, doc.fileName)}>
               <Icon name="download" size="sm" />
               {t('documents:detail.downloadOriginal')}
             </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setShowConfirmDelete(true)}
-            >
+            <Button variant="ghost" size="sm" onClick={() => setShowConfirmDelete(true)}>
               <Icon name="trash" size="sm" />
               {t('documents:detail.deleteDocument')}
             </Button>
-          </div>
+          </span>
         </div>
-      </div>
+      </header>
 
       {showConfirmDelete && (
         <div className="banner banner-critical" role="alert">
           <p>{t('documents:detail.confirmDelete', { name: doc.fileName })}</p>
           <div className="row gap-2 mt-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={deleteMutation.isPending}
-              onClick={() => void handleDelete()}
-            >
+            <Button variant="secondary" size="sm" disabled={deleteMutation.isPending} onClick={() => void handleDelete()}>
               {t('documents:detail.confirm')}
             </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setShowConfirmDelete(false)}
-            >
+            <Button variant="secondary" size="sm" onClick={() => setShowConfirmDelete(false)}>
               {t('documents:detail.cancel')}
             </Button>
+          </div>
+        </div>
+      )}
+
+      {needsColumns && (
+        <div className="found" role="status">
+          <Icon name="table" />
+          <div className="stack gap-1">
+            <strong>{t('documents:status.needsInput')}</strong>
+            <p className="small">{t('documents:detail.needsColumns')}</p>
+            {mappingItem && (
+              <Link className="link small" to={`/review/${mappingItem.itemId}`}>
+                {t('documents:detail.checkColumns')}
+              </Link>
+            )}
           </div>
         </div>
       )}
@@ -148,184 +279,173 @@ export function DocumentPage() {
         </div>
       )}
 
-      {/* Pages & Viewer */}
-      {pagesCount > 0 && (
-        <section className="stack gap-4">
-          <h2 className="type-h2">{t('documents:detail.pages')} ({pagesCount})</h2>
-          <div className="row gap-4 items-start flex-wrap">
-            {/* Thumbnails strip */}
-            <div
-              className="stack gap-2 shrink-0 overflow-y-auto"
-              style={{ width: '140px', maxHeight: '500px' }} /* allow-raw-style: thumbnail strip viewport */
-            >
-              {Array.from({ length: pagesCount }, (_, i) => i + 1).map((pNo) => (
-                <button
-                  key={pNo}
-                  type="button"
-                  onClick={() => setSelectedPage(pNo)}
-                  className={`card p-2 text-left cursor-pointer ${selectedPage === pNo ? 'border-brand' : ''}`}
-                >
-                  <PageImage
-                    docId={doc.docId}
-                    pageNo={pNo}
-                    variant="thumb"
-                    alt={t('documents:detail.page', { page: pNo })}
-                    className="w-full h-auto block"
-                  />
-                  <span className="small muted block text-center mt-1">
-                    {t('documents:detail.page', { page: pNo })}
-                  </span>
-                </button>
-              ))}
-            </div>
-
-            {/* Selected Page Full Viewer */}
-            <div
-              className="card p-4 stack gap-2 flex-1 justify-center"
-              style={{ minWidth: '280px' }} /* allow-raw-style: page viewer minimum width */
-            >
-              <div className="spread items-center">
-                <span className="font-medium">
-                  {t('documents:detail.page', { page: selectedPage })}
-                </span>
-                {doc.pages?.[selectedPage - 1] && (
-                  <Badge variant="outline">
-                    {doc.pages[selectedPage - 1].witness === 'TEXT_LAYER'
-                      ? t('documents:detail.digital')
-                      : t('documents:detail.scanned')}
-                  </Badge>
-                )}
-              </div>
-              <div className="overflow-auto text-center" style={{ maxHeight: '650px' }} /* allow-raw-style: viewer max viewport height */>
-                <PageImage
-                  docId={doc.docId}
-                  pageNo={selectedPage}
-                  variant="full"
-                  alt={t('documents:detail.page', { page: selectedPage })}
-                  className="max-w-full h-auto m-auto"
-                  highlight={highlight}
-                />
-              </div>
-            </div>
-          </div>
-        </section>
+      {pagesCount > 0 ? (
+        <div className="doc-layout">
+          <PageViewer
+            docId={doc.docId}
+            fileName={doc.fileName}
+            pageCount={pagesCount}
+            page={selectedPage}
+            onPage={setSelectedPage}
+            highlight={highlight}
+            witness={doc.pages?.[selectedPage - 1]?.witness}
+          />
+          {pane}
+        </div>
+      ) : (
+        pane
       )}
+    </div>
+  )
+}
 
-      {/* Extracted values */}
-      <section className="stack gap-3">
-        <h2 className="type-h2">{t('documents:detail.extractedValues')}</h2>
-        {doc.statementMeta && (
-          <div className="card p-4 stack gap-2">
-            <div className="row spread">
-              <span className="muted">{t('documents:detail.bank')}</span>
-              <strong>{String(doc.statementMeta['bankName'] || '—')}</strong>
-            </div>
-            <div className="row spread">
-              <span className="muted">{t('documents:detail.account')}</span>
-              <strong>{String(doc.statementMeta['accountMasked'] || '—')}</strong>
-            </div>
-            <div className="row spread">
-              <span className="muted">{t('documents:detail.period')}</span>
-              <strong>
-                {String(doc.statementMeta['periodStart'] || '—')} {t('documents:detail.to')}{' '}
-                {String(doc.statementMeta['periodEnd'] || '—')}
-              </strong>
-            </div>
-            {meta?.opening && (
-              <div className="row spread">
-                <span className="muted">{t('documents:detail.opening')}</span>
-                <strong>{formatMoney(meta.opening.amount, { currency: meta.opening.currency })}</strong>
-              </div>
-            )}
-            {meta?.closing && (
-              <div className="row spread">
-                <span className="muted">{t('documents:detail.closing')}</span>
-                <strong>{formatMoney(meta.closing.amount, { currency: meta.closing.currency })}</strong>
-              </div>
-            )}
-          </div>
-        )}
-        {linePage && linePage.items.length > 0 && (
-          <div className="stack gap-2">
-            <div className="spread items-center">
-              <h3 className="type-h3">{t('documents:detail.transactions')}</h3>
-              {reading && (
-                <span className="small muted">
-                  {t('documents:detail.transactionsSummary', {
-                    count: linePage.items.length,
-                    agreed: reading.fieldsAgreed ?? 0,
-                    compared: reading.fieldsCompared ?? 0,
-                  })}
-                </span>
-              )}
-            </div>
-            <StatementLines lines={linePage.items} selectedTxId={focus?.key} onSelect={selectLine} />
-          </div>
-        )}
-        {invoicePage && invoicePage.items.length > 0 && (
-          <div className="stack gap-2">
-            <div className="spread items-center">
-              <h3 className="type-h3">{t('documents:detail.invoices')}</h3>
-              {reading && (
-                <span className="small muted">
-                  {t('documents:detail.recordsSummary', {
-                    agreed: reading.fieldsAgreed ?? 0,
-                    compared: reading.fieldsCompared ?? 0,
-                  })}
-                </span>
-              )}
-            </div>
-            {invoicePage.items.map((inv) => (
-              <InvoiceCard key={inv.invoiceId} record={inv} focused={focus?.key} onFocus={showValue} />
-            ))}
-          </div>
-        )}
-        {receiptPage && receiptPage.items.length > 0 && (
-          <div className="stack gap-2">
-            <h3 className="type-h3">{t('documents:detail.receipts')}</h3>
-            {receiptPage.items.map((rc) => (
-              <ReceiptCard key={rc.receiptId} record={rc} focused={focus?.key} onFocus={showValue} />
-            ))}
-          </div>
-        )}
-        {doc.ledgerMeta && (
-          <div className="card p-4 stack gap-2">
-            <div className="row spread">
-              <span className="muted">{t('documents:detail.rowsImported')}</span>
-              <strong>{String(doc.ledgerMeta['rowsImported'] || doc.ledgerMeta['rows'] || '—')}</strong>
-            </div>
-          </div>
-        )}
-        {!doc.statementMeta && !doc.ledgerMeta && !read && (
-          <p className="muted small">{t('documents:status.reading')}</p>
-        )}
-      </section>
+type T = ReturnType<typeof useTranslation>['t']
 
-      {/* Findings */}
-      <section className="stack gap-3">
-        <h2 className="type-h2">{t('documents:detail.findings')}</h2>
-        {doc.integrity?.verdict ? (
-          <div className="row items-center gap-2">
-            <span className="muted small">{t('documents:detail.verdictLabel')}</span>
-            <Badge
-              variant={
-                doc.integrity.verdict === 'CLEAN'
-                  ? 'clean'
-                  : doc.integrity.verdict === 'TAMPERED'
-                  ? 'tampered'
-                  : 'critical'
-              }
-            >
-              {t(`documents:verdict.${doc.integrity.verdict.toLowerCase()}`)}
-            </Badge>
-          </div>
-        ) : (
-          <p className="muted small">{t('documents:detail.noFindings')}</p>
-        )}
-        {findingPage && (
-          <FindingList findings={findingPage.items} focused={focus?.key} onFocus={showValue} />
-        )}
-      </section>
+function summary(doc: Document, t: T): string {
+  const type = t(`documents:detail.docType.${doc.docType ?? 'UNKNOWN'}`)
+  const uploaded = formatDate(doc.uploadedAt)
+  const meta = doc.statementMeta
+  if (meta?.periodStart && meta.periodEnd) {
+    const account = [meta.bankName, meta.accountMasked].filter(Boolean).join(' ')
+    return t('documents:detail.summary.statement', {
+      type,
+      account,
+      start: formatDate(meta.periodStart),
+      end: formatDate(meta.periodEnd),
+      uploaded,
+    })
+  }
+  return t('documents:detail.summary.other', { type, uploaded })
+}
+
+function StatusBadge({ doc }: { doc: Document }) {
+  const { t } = useTranslation('documents')
+  if (doc.reading && (doc.reading.fieldsCompared ?? 0) > 0) {
+    return (
+      <Badge variant="brand">
+        <Icon name="check" size="sm" />
+        {t('detail.readBadge', { agreed: doc.reading.fieldsAgreed ?? 0, compared: doc.reading.fieldsCompared ?? 0 })}
+      </Badge>
+    )
+  }
+  if (doc.heldAsDuplicate) return <Badge variant="evidence">{t('status.possibleCopy')}</Badge>
+  if (doc.status === 'FAILED') return <Badge variant="critical">{t('status.failed')}</Badge>
+  if (doc.status === 'DUPLICATE') return <Badge variant="outline">{t('status.duplicate')}</Badge>
+  if (doc.status === 'NEEDS_INPUT') return <Badge variant="medium">{t('status.needsInput')}</Badge>
+  if (doc.status === 'DONE') return <Badge variant="brand">{t('status.done')}</Badge>
+  return <Badge variant="outline">{t('status.reading')}</Badge>
+}
+
+/** Opening and closing as printed, and the lines' money in and out, added exactly. */
+function StatementFigures({ doc, lines }: { doc: Document; lines?: BankLine[] }) {
+  const { t } = useTranslation('documents')
+  const meta = doc.statementMeta
+  const currency = meta?.currency ?? lines?.[0]?.amount.currency ?? meta?.opening?.currency
+  const credits = lines?.filter(isIncoming) ?? []
+  const debits = lines?.filter((line) => !isIncoming(line)) ?? []
+  const total = (items: BankLine[]) =>
+    lines && currency ? formatMoney(sumDecimals(items.map((l) => l.amount.amount.replace(/^-/, ''))), { currency }) : '—'
+  return (
+    <dl className="ledger-figures">
+      <div>
+        <dt>{t('detail.opening')}</dt>
+        <dd className="v">{money(meta?.opening)}</dd>
+        {meta?.periodStart && <dd className="n">{t('detail.figures.asPrinted', { date: formatDate(meta.periodStart) })}</dd>}
+      </div>
+      <div>
+        <dt>{t('detail.closing')}</dt>
+        <dd className="v">{money(meta?.closing)}</dd>
+        {meta?.periodEnd && <dd className="n">{t('detail.figures.asPrinted', { date: formatDate(meta.periodEnd) })}</dd>}
+      </div>
+      <div>
+        <dt>{t('detail.figures.moneyIn')}</dt>
+        <dd className="v">{total(credits)}</dd>
+        {lines && <dd className="n">{t('detail.figures.credits', { count: credits.length })}</dd>}
+      </div>
+      <div>
+        <dt>{t('detail.figures.moneyOut')}</dt>
+        <dd className="v">{total(debits)}</dd>
+        {lines && <dd className="n">{t('detail.figures.debits', { count: debits.length })}</dd>}
+      </div>
+    </dl>
+  )
+}
+
+function LedgerFigures({ doc }: { doc: Document }) {
+  const { t } = useTranslation('documents')
+  const meta = doc.ledgerMeta
+  const rows = meta?.rowsImported ?? meta?.rows ?? 0
+  return (
+    <dl className="ledger-figures">
+      <div>
+        <dt>{t('detail.rowsImported')}</dt>
+        <dd className="v">{rows}</dd>
+        <dd className="n">{t('status.imported')}</dd>
+      </div>
+      <div>
+        <dt>{t('detail.period')}</dt>
+        <dd className="v">
+          {meta?.dateFrom && meta?.dateTo
+            ? `${formatDate(meta.dateFrom)} – ${formatDate(meta.dateTo)}`
+            : '—'}
+        </dd>
+        {doc.months?.length ? <dd className="n">{doc.months.join(', ')}</dd> : null}
+      </div>
+      <div>
+        <dt>{t('detail.info.type')}</dt>
+        <dd className="v">{t('detail.spreadsheet')}</dd>
+        <dd className="n">{doc.contentType || 'CSV'}</dd>
+      </div>
+    </dl>
+  )
+}
+
+function DocumentDetails({ doc, pagesCount }: { doc: Document; pagesCount: number }) {
+  const { t } = useTranslation('documents')
+  const meta = doc.statementMeta
+  const witness = doc.pages?.[0]?.witness
+  const rows: [string, string][] = [[t('detail.info.type'), t(`detail.docType.${doc.docType ?? 'UNKNOWN'}`)]]
+  if (meta) {
+    rows.push(
+      [t('detail.bank'), meta.bankName || '—'],
+      [t('detail.account'), meta.accountMasked || '—'],
+      [
+        t('detail.period'),
+        meta.periodStart && meta.periodEnd
+          ? `${formatDate(meta.periodStart)} ${t('detail.to')} ${formatDate(meta.periodEnd)}`
+          : '—',
+      ],
+      [t('detail.currency'), meta.currency || '—'],
+    )
+  }
+  if (pagesCount > 0) {
+    const kind = witness === 'TEXT_LAYER' ? t('detail.digital') : witness === 'OCR' ? t('detail.scanned') : ''
+    rows.push([t('detail.info.pages'), kind ? `${pagesCount} · ${kind}` : String(pagesCount)])
+  }
+  if (doc.reading && (doc.reading.fieldsCompared ?? 0) > 0) {
+    rows.push([
+      t('detail.info.valuesFound'),
+      t('detail.info.valuesFoundValue', { agreed: doc.reading.fieldsAgreed ?? 0, compared: doc.reading.fieldsCompared ?? 0 }),
+    ])
+  }
+  if (doc.ledgerMeta) {
+    rows.push([t('detail.rowsImported'), String(doc.ledgerMeta['rowsImported'] || doc.ledgerMeta['rows'] || '—')])
+    if (doc.ledgerMeta['dateFrom'] && doc.ledgerMeta['dateTo']) {
+      rows.push([
+        t('detail.period'),
+        `${formatDate(doc.ledgerMeta['dateFrom'])} ${t('detail.to')} ${formatDate(doc.ledgerMeta['dateTo'])}`,
+      ])
+    }
+  }
+  rows.push([t('detail.info.uploaded'), formatDate(doc.uploadedAt)])
+  return (
+    <div className="card p-4 stack gap-2">
+      {rows.map(([label, value]) => (
+        <div key={label} className="row spread">
+          <span className="muted">{label}</span>
+          <strong>{value}</strong>
+        </div>
+      ))}
     </div>
   )
 }

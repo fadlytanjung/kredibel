@@ -2,7 +2,9 @@
 
 ## Phase 1 — Duplicates
 
-- [x] **T006-01** **TDD** `duplicates.py`: `D02` overlap vs adjacent periods and identical vs different rows; `D03` vs `D04`; `D05` total tolerance and pHash 8 vs 9; `D06` within and across files. (AC-006-1…4)
+- [x] **T006-01** **TDD** `duplicates.py`: `D02` overlap vs adjacent periods and identical vs different rows; `D03` vs `D04`; `D05` total tolerance and pHash 8 vs 9. (AC-006-1…3) `D06` within and across files (AC-006-4) is not built: it waits with the ledger copy's item (docs/20).
+- [x] **T006-01a** **TDD** D05 image fallback respects contradictory receipt readings; unrelated
+  S1 till rolls remain eligible, while missing-field duplicate photos still hold. (AC-006-3)
 - [ ] **T006-02** **TDD** holding: held records excluded from a figures function and from matching inputs; `DuplicateService` decisions flip and mark months dirty. (AC-006-5, AC-006-6) (holding done: document and records flagged, released when the earlier copy goes; exclusion from figures and matching comes with spec 007, decisions with spec 009)
 - [ ] **T006-03** `detect_content_duplicates` node and `POSSIBLE_DUPLICATE` items. (AC-006-5) (node done for `D02`, `D03`, `D04`, `D05` incl. the page-1 image hash; the review item comes with spec 009; `D06` with ledger import)
 
@@ -16,8 +18,12 @@
 
 ## Phase 3 — Scenarios
 
-- [ ] **T006-09** Scenario tests S1, S2, S3. (AC-006-12, AC-006-13)
+- [x] **T006-09** Scenario tests S1, S2, S3. (AC-006-12, AC-006-13) `test_scenario_forensics.py`: every S1 statement `CLEAN`, S2's March `TAMPERED` with `A01` at the edited row, `A02`, `M01`–`M03` (`M04` on the workflow path), S3's `D02`/`D03`/`D05` held and `D01` refused at upload; S3's figures equal S1's through the API (009). `D06` stays open with the ledger copy.
 
 ## Phase 4 — Close
 
+- [x] **T006-11** **TDD** `D03` on a copy whose pay-to account differs from the original's is `HIGH`,
+  names both masked accounts and says so in its title: a payment diversion signal that `X08` cannot
+  see while the copy is held. Decided 13 Oct 2026 after the synthetic run (S1 then S4), where the
+  diverted Roastline invoice was held as a plain `MEDIUM` copy. (AC-006-5)
 - [ ] **T006-10** Update `docs/20-implementation-status.md`.

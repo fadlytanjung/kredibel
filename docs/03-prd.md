@@ -89,7 +89,7 @@ items are visible in the UI and not built.
 | P0-07 | **Document integrity forensics:** running balance, opening/closing, invoice arithmetic, PDF metadata and revisions, font anomalies, statement continuity across months, account holder |
 | P0-08 | Transaction categorization: rules first, Gemini for the rest; cash-flow classes (IAS 7) and risk tags |
 | P0-09 | **Month reconciliation, any upload order:** bank lines ↔ invoices, receipts and ledger cash entries; exact, split and net-of-tax matches; incremental re-run when a month's data changes; every match has reasons |
-| P0-10 | **Review queue:** unmatched bank lines, unpaid or unmatched documents, low-confidence values, possible duplicates, ledger-bank differences; fix by manual match, value correction on the page, duplicate confirmation, or ignore with a reason; audited |
+| P0-10 | **Review queue:** ambiguous matches, unpaid documents with covering statements, low-confidence values, possible duplicates, ledger-bank differences; bank rows without supporting documents are informational by default (ADR-025); fixes and manual confirmations are audited |
 | P0-11 | **Fraud risk:** findings with severity and evidence → risk level per document and per month from `risk.v1.yaml`; Gemini explains and recommends next steps, citing findings only |
 | P0-12 | **Dashboard:** money in, money out, net, auto-match rate, review count; money-flow **Sankey**; month strip with status and risk; top alerts |
 | P0-13 | Evidence viewer: page with the value highlighted, both readings, the calculation behind a finding |
@@ -173,12 +173,24 @@ several entities · real customer data (P8).
 - **FR-032** Supported matches: one bank line to one document; one to many (split payments, several
   invoices paid at once); net of withholding tax; bank line to ledger cash entry; document to ledger
   entry.
-- **FR-033** Unmatched bank lines, unmatched or unpaid documents, ledger-bank differences, low
-  confidence values and possible duplicates become **review items**.
+- **FR-033** Ambiguous matches, unpaid documents whose payment windows are covered, ledger-bank
+  differences, low-confidence values and possible duplicates become **review items**. Missing bank
+  support alone is informational; documents without covering statements wait (ADR-025).
 - **FR-034** A review item is resolved by a manual match, a value correction, a duplicate decision or
   "ignore" with a reason; the resolution is audited and the month re-reconciles.
 - **FR-035** A month's summary shows money in and out, opening and closing balance, auto-match rate,
   open review items and risk level.
+- **FR-036** Bank cash totals use statement transactions once, independently of document support.
+  Show bank evidence, support, processing and integrity separately. One statement's presence never
+  proves month reconciliation; account/date coverage and actual computed results are required.
+- **FR-037** A person can separately approve a document or confirm payment without a bank match,
+  with an audited reason; payment confirmation includes amount, currency, date and method. It never
+  invents bank cash or bank evidence. Later statement matching preserves history without counting
+  payment twice; partial payments remain partial.
+- **FR-038** A workspace uses the fixed currency selected at onboarding, with no FX conversion.
+  A different or missing printed currency requires agreement to use the unchanged numbers as the
+  workspace currency; preserve the printed currency and decision. Exclude pending documents from
+  totals/matching. All tolerances use the workspace currency.
 
 ### 7.5 Fraud risk
 
@@ -206,6 +218,11 @@ several entities · real customer data (P8).
 - **FR-053** The dashboard shows money in and out by month (with net and month-end balance) and the
   cash-flow statement from opening to closing balance by activity; every chart takes the full content
   width, one per row.
+
+- **FR-054** A company management P&L uses posted GL income/expense entries with confirmed account
+  and subledger classifications, signed Decimal totals, source drill-down and explicit coverage.
+- **FR-055** Owners/accountants confirm workspace account mappings with an audit event; models never
+  change them. Missing ledger data is unavailable, never inferred from bank cash.
 
 ### 7.7 Profile and counterparties
 

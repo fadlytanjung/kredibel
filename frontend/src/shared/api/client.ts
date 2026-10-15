@@ -72,6 +72,15 @@ export async function apiBlob(path: string, options: RequestInit = {}): Promise<
   return response.blob()
 }
 
+/**
+ * Streaming responses (Server-Sent Events) with the same token and problem handling.
+ */
+export async function apiStream(path: string, options: RequestInit = {}): Promise<Response> {
+  const headers = new Headers(options.headers || {})
+  if (!headers.has('Accept')) headers.set('Accept', 'text/event-stream')
+  return authedFetch(path, { ...options, headers })
+}
+
 async function authedFetch(path: string, options: RequestInit): Promise<Response> {
   const headers = new Headers(options.headers || {})
 

@@ -1,0 +1,156 @@
+{
+  "periods": {
+    "label": "Period",
+    "recent": "Last 3 months",
+    "year": "{{year}}",
+    "all": "All months"
+  },
+  "periodRange": "{{first}} to {{last}}",
+  "greeting": "{{name}}, {{range}}",
+  "overview": "Financial Overview",
+  "reconciliationHealth": "Reconciliation & Findings",
+  "reconciled_one": "{{done}} of {{count}} month is reconciled.",
+  "reconciled_other": "{{done}} of {{count}} months are reconciled.",
+  "openFindings_one": "{{count}} finding is open.",
+  "openFindings_other": "{{count}} findings are open.",
+  "nothingOpen": "No findings are open.",
+  "seeMonth": "See {{month}}",
+  "askAboutThis": "Ask about this",
+  "allFindings": "All findings",
+  "figuresAria": "Figures for {{range}}",
+  "kpi": {
+    "MONEY_IN": "Money in",
+    "MONEY_OUT": "Money out",
+    "NET": "Net",
+    "AUTO_MATCH_RATE": "Matched by Kredibel",
+    "DOCUMENTS_WAITING": "Waiting for you",
+    "OPEN_REVIEW_ITEMS": "To review"
+  },
+  "previous": "Previous period: {{value}}",
+  "noPrevious": "No earlier period to compare",
+  "kept": "Kept in the accounts",
+  "taken": "Taken from the balances",
+  "documentsWaiting_one": "{{count}} document to decide on",
+  "documentsWaiting_other": "{{count}} documents to decide on",
+  "nothingWaiting": "No document waits for you",
+  "risk": "Risk",
+  "noAlerts": "No open findings in your books.",
+  "flowTitle": "Where the money went",
+  "flowIn": "Most money came from",
+  "flowOut": "Most money went to",
+  "noFlow": "No money in or out in this period yet.",
+  "monthsTitle": "Months",
+  "reconciliation": "Reconciliation",
+  "states": {
+    "COLLECTING": "Collecting",
+    "RECONCILING": "Reconciling",
+    "NEEDS_REVIEW": "Needs review",
+    "RECONCILED": "Reconciled",
+    "SIGNED_OFF": "Signed off"
+  },
+  "matchedShare": "matched by Kredibel",
+  "statements": "{{present}} of {{expected}} statements",
+  "noRisk": "No risk found",
+  "riskLevel": {
+    "LOW": "Low",
+    "MEDIUM": "Medium",
+    "HIGH": "High",
+    "CRITICAL": "Critical"
+  },
+  "loading": "Loading your books…",
+  "loadFailed": "The dashboard could not be loaded.",
+  "reviewWaiting_one": "{{count}} item to decide",
+  "reviewWaiting_other": "{{count}} items to decide",
+  "nothingToReview": "Nothing to review",
+  "review": "To review",
+  "allReview": "Open the queue",
+  "charts": {
+    "title": "Where the money went",
+    "subtitle": "{{range}}, grouped the way your accounting framework groups cash flows.",
+    "framework": "Framework",
+    "frameworks": {
+      "IFRS": "IFRS",
+      "US_GAAP": "US GAAP"
+    },
+    "flowTitle": "Money flow",
+    "flowSubtitle": {
+      "flow": "From your clients, through your bank accounts, to each line of the cash-flow statement. Click a band to list its bank lines.",
+      "bars": "Each statement line, grouped by activity. Click one to list its bank lines.",
+      "table": "Every band of the flow, largest first.",
+      "parties": "From your clients, through your bank accounts, to who was paid."
+    },
+    "viewLabel": "Money flow view",
+    "views": {
+      "flow": "Flow",
+      "bars": "Bars",
+      "table": "Table",
+      "parties": "By client and supplier"
+    },
+    "columns": {
+      "source": "Money in",
+      "account": "Account",
+      "activity": "Activity ({{framework}})",
+      "line": "Statement line",
+      "use": "Paid to"
+    },
+    "band": "{{source}} to {{target}}: {{amount}}",
+    "lines_one": "{{count}} bank line",
+    "lines_other": "{{count}} bank lines",
+    "flowAria": "Money flow from {{sources}} sources through your accounts to where it went",
+    "loading": "Loading the charts…",
+    "noFlow": "No money moved in this period yet.",
+    "units": {
+      "millions": "Millions",
+      "thousands": "Thousands",
+      "units": "Amount",
+      "millionsNote": "Amounts in millions.",
+      "thousandsNote": "Amounts in thousands.",
+      "unitsNote": ""
+    },
+    "activities": {
+      "operating": "Operating activities",
+      "investing": "Investing activities",
+      "financing": "Financing activities",
+      "unclassified": "Not categorized yet",
+      "kept": "Kept in the account"
+    },
+    "table": {
+      "from": "From",
+      "to": "To",
+      "lines": "Lines",
+      "search": "Search the flow"
+    },
+    "cameFrom": "Where it came from",
+    "wentTo": "Where it went",
+    "sheet": {
+      "close": "Close",
+      "loading": "Loading the bank lines…",
+      "total": "{{lines}}, {{currency}} {{total}} in all"
+    },
+    "monthsTitle": "Money in and out by month",
+    "monthsSubtitle": "Net above each pair.",
+    "monthsSubtitleHot": "Net above each pair. Outlined: {{months}}, with a high or critical risk.",
+    "monthsViewLabel": "Months view",
+    "inOut": "In and out",
+    "netBalance": "Net and balance",
+    "moneyIn": "Money in",
+    "moneyOut": "Money out",
+    "net": "Net",
+    "balance": "Month-end balance",
+    "barsAria": "Money in and out for each month",
+    "netAria": "Net for each month and the month-end balance",
+    "waterfallTitle": "Cash-flow statement",
+    "waterfallSubtitle": "Opening balance to closing balance, by activity. {{framework}}.",
+    "byMonth": "By month",
+    "opening": "Opening balance",
+    "closing": "Closing balance",
+    "waterfallAria": "Opening balance, the net of each activity, and the closing balance",
+    "notBalanced": "The balances do not add up for this period, so the statement is not drawn:",
+    "gaps": {
+      "MISSING_MONTH": "{{account}} has no statement for {{month}}.",
+      "NO_BALANCES": "{{account}}'s statements print no opening or closing balance.",
+      "TRANSFERS_ELSEWHERE": "{{account}} moved {{amount}} to or from an account without statements.",
+      "BALANCE_BREAK": "{{account}}'s balance breaks in {{month}}."
+    }
+  }
+}

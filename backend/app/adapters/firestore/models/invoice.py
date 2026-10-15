@@ -1,8 +1,10 @@
 """orgs/{orgId}/invoices/{invoiceId} and receipts/{receiptId} as stored (docs/09 §3.7)."""
 
+from datetime import datetime
 from typing import Any
 
-from pydantic import Field
+from pydantic import BaseModel, ConfigDict, Field
+from pydantic.alias_generators import to_camel
 
 from app.adapters.firestore.models.base import FirestoreModel
 
@@ -11,14 +13,16 @@ def _unpaid() -> dict[str, Any]:
     return {"state": "UNPAID", "paidMinor": 0, "matchIds": []}
 
 
-class InvoiceLineDoc(FirestoreModel):
+class InvoiceLineDoc(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="ignore")
     description: str
     qty: str | None = None  # a decimal string: quantities are not money
     unit_price_minor: int | None = None
     amount_minor: int | None = None
 
 
-class PayToDoc(FirestoreModel):
+class PayToDoc(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="ignore")
     bank_name: str | None = None
     account_masked: str | None = None
 
@@ -46,11 +50,17 @@ class InvoiceDoc(FirestoreModel):
     consensus: dict[str, Any] = Field(default_factory=dict)
     notes: list[str] = Field(default_factory=list)
     payment: dict[str, Any] = Field(default_factory=_unpaid)
+    evidence: dict[str, Any] | None = None
+    # A person's corrections through review (T009-03a); optional, so older documents read as none.
+    corrected_fields: list[str] = Field(default_factory=list)
+    corrected_by: str | None = None
+    corrected_at: datetime | None = None
     held_as_duplicate: bool = False
     counterparty_id: str | None = None
 
 
-class ReceiptItemDoc(FirestoreModel):
+class ReceiptItemDoc(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="ignore")
     description: str
     amount_minor: int | None = None
 
@@ -73,4 +83,9 @@ class ReceiptDoc(FirestoreModel):
     consensus: dict[str, Any] = Field(default_factory=dict)
     notes: list[str] = Field(default_factory=list)
     payment: dict[str, Any] = Field(default_factory=_unpaid)
+    evidence: dict[str, Any] | None = None
+    # A person's corrections through review (T009-03a); optional, so older documents read as none.
+    corrected_fields: list[str] = Field(default_factory=list)
+    corrected_by: str | None = None
+    corrected_at: datetime | None = None
     held_as_duplicate: bool = False

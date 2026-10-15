@@ -60,5 +60,6 @@ async def test_t001_11_api_docs_page_only_adds_its_cdn():
         res = await client.get("/docs")
 
     csp = res.headers["Content-Security-Policy"]
-    assert "script-src 'self' https://apis.google.com https://cdn.jsdelivr.net;" in csp
+    expected_script = "script-src 'self' 'unsafe-inline' https://apis.google.com https://cdn.jsdelivr.net"
+    assert expected_script in csp
     assert "frame-ancestors 'none'" in csp

@@ -1,0 +1,524 @@
+{
+  "scenario": "S1",
+  "seed": 1,
+  "documents": [
+    {
+      "file": "statement-2026-03.pdf",
+      "key": "statement-2026-03",
+      "docType": "BANK_STATEMENT",
+      "bank": "Archipelago Commerce Bank",
+      "accountNumber": "9900004821",
+      "holder": "SUNRISE COFFEE ROASTERS",
+      "holderAddress": [
+        "12 Roastery Lane",
+        "Bandung 40135"
+      ],
+      "currency": "IDR",
+      "period": {
+        "start": "2026-03-01",
+        "end": "2026-03-31"
+      },
+      "opening": "184048975.00",
+      "closing": "147727195.00",
+      "totalDebits": "122703340.00",
+      "totalCredits": "86381560.00",
+      "rows": [
+        {
+          "key": "st-03#1",
+          "rowIndex": 1,
+          "page": 1,
+          "date": "2026-03-01",
+          "description": "WAREHOUSE RENT MAR",
+          "bankRef": "REF 26030138590",
+          "debit": "15000000.00",
+          "credit": null,
+          "balance": "169048975.00",
+          "category": "RENT",
+          "riskTags": []
+        },
+        {
+          "key": "st-03#2",
+          "rowIndex": 2,
+          "page": 1,
+          "date": "2026-03-04",
+          "description": "CASH DEPOSIT",
+          "bankRef": "REF 26030417682",
+          "debit": null,
+          "credit": "2500000.00",
+          "balance": "171548975.00",
+          "category": "SALES_RECEIPT",
+          "riskTags": []
+        },
+        {
+          "key": "st-03#3",
+          "rowIndex": 3,
+          "page": 1,
+          "date": "2026-03-05",
+          "description": "LOAN INSTALLMENT LN-0071-2291",
+          "bankRef": "REF 26030575562",
+          "debit": "8450000.00",
+          "credit": null,
+          "balance": "163098975.00",
+          "category": "LOAN_REPAYMENT",
+          "riskTags": []
+        },
+        {
+          "key": "st-03#4",
+          "rowIndex": 4,
+          "page": 1,
+          "date": "2026-03-06",
+          "description": "CASH DEPOSIT",
+          "bankRef": "REF 26030619870",
+          "debit": null,
+          "credit": "1750000.00",
+          "balance": "164848975.00",
+          "category": "SALES_RECEIPT",
+          "riskTags": []
+        },
+        {
+          "key": "st-03#5",
+          "rowIndex": 5,
+          "page": 1,
+          "date": "2026-03-08",
+          "description": "DEBIT CARD SWIFT COURIER",
+          "bankRef": "REF 26030836325",
+          "debit": "355200.00",
+          "credit": null,
+          "balance": "164493775.00",
+          "category": "OTHER_OPERATING_EXPENSE",
+          "riskTags": []
+        },
+        {
+          "key": "st-03#6",
+          "rowIndex": 6,
+          "page": 1,
+          "date": "2026-03-09",
+          "description": "TRANSFER OUT GREEN VALLEY FARMS 7312",
+          "bankRef": "REF 26030908073",
+          "debit": "27250500.00",
+          "credit": null,
+          "balance": "137243275.00",
+          "category": "INVENTORY_PURCHASE",
+          "riskTags": []
+        },
+        {
+          "key": "st-03#7",
+          "rowIndex": 7,
+          "page": 1,
+          "date": "2026-03-11",
+          "description": "VAT PAYMENT FEB",
+          "bankRef": "REF 26031113153",
+          "debit": "5252000.00",
+          "credit": null,
+          "balance": "131991275.00",
+          "category": "TAX_PAYMENT",
+          "riskTags": []
+        },
+        {
+          "key": "st-03#8",
+          "rowIndex": 8,
+          "page": 1,
+          "date": "2026-03-12",
+          "description": "TRANSFER OUT ROASTLINE EQUIPMENT SERVICE 3318",
+          "bankRef": "REF 26031243706",
+          "debit": "5183700.00",
+          "credit": null,
+          "balance": "126807575.00",
+          "category": "SUPPLIER_PAYMENT",
+          "riskTags": []
+        },
+        {
+          "key": "st-03#9",
+          "rowIndex": 9,
+          "page": 1,
+          "date": "2026-03-12",
+          "description": "INTERNET BILL 0227814455",
+          "bankRef": "REF 26031258925",
+          "debit": "1150000.00",
+          "credit": null,
+          "balance": "125657575.00",
+          "category": "UTILITIES",
+          "riskTags": []
+        },
+        {
+          "key": "st-03#10",
+          "rowIndex": 10,
+          "page": 1,
+          "date": "2026-03-13",
+          "description": "INSTANT TRANSFER IN SPICE ROUTE RESTAURANT INV/SCR/2026/03/0011",
+          "bankRef": "REF 26031311793",
+          "debit": null,
+          "credit": "24358950.00",
+          "balance": "150016525.00",
+          "category": "SALES_RECEIPT",
+          "riskTags": []
+        },
+        {
+          "key": "st-03#11",
+          "rowIndex": 11,
+          "page": 1,
+          "date": "2026-03-14",
+          "description": "CASH DEPOSIT",
+          "bankRef": "REF 26031435284",
+          "debit": null,
+          "credit": "1250000.00",
+          "balance": "151266525.00",
+          "category": "SALES_RECEIPT",
+          "riskTags": []
+        },
+        {
+          "key": "st-03#12",
+          "rowIndex": 12,
+          "page": 1,
+          "date": "2026-03-15",
+          "description": "TRANSFER OUT PRIMEPACK PACKAGING 6645",
+          "bankRef": "REF 26031557137",
+          "debit": "6265340.00",
+          "credit": null,
+          "balance": "145001185.00",
+          "category": "INVENTORY_PURCHASE",
+          "riskTags": []
+        },
+        {
+          "key": "st-03#13",
+          "rowIndex": 13,
+          "page": 1,
+          "date": "2026-03-16",
+          "description": "WATER BILL 4471-0938",
+          "bankRef": "REF 26031690421",
+          "debit": "368000.00",
+          "credit": null,
+          "balance": "144633185.00",
+          "category": "UTILITIES",
+          "riskTags": []
+        },
+        {
+          "key": "st-03#14",
+          "rowIndex": 14,
+          "page": 1,
+          "date": "2026-03-17",
+          "description": "CASH DEPOSIT",
+          "bankRef": "REF 26031783622",
+          "debit": null,
+          "credit": "3400000.00",
+          "balance": "148033185.00",
+          "category": "SALES_RECEIPT",
+          "riskTags": []
+        },
+        {
+          "key": "st-03#15",
+          "rowIndex": 15,
+          "page": 1,
+          "date": "2026-03-18",
+          "description": "ELECTRICITY BILL 532110987421",
+          "bankRef": "REF 26031891640",
+          "debit": "3126000.00",
+          "credit": null,
+          "balance": "144907185.00",
+          "category": "UTILITIES",
+          "riskTags": []
+        },
+        {
+          "key": "st-03#16",
+          "rowIndex": 16,
+          "page": 1,
+          "date": "2026-03-20",
+          "description": "DEBIT CARD CORNER BAKERY",
+          "bankRef": "REF 26032039969",
+          "debit": "142080.00",
+          "credit": null,
+          "balance": "144765105.00",
+          "category": "OTHER_OPERATING_EXPENSE",
+          "riskTags": []
+        },
+        {
+          "key": "st-03#17",
+          "rowIndex": 17,
+          "page": 1,
+          "date": "2026-03-21",
+          "description": "INSTANT TRANSFER IN DAYBREAK CAFE INV/SCR/2026/03/0009",
+          "bankRef": "REF 26032152814",
+          "debit": null,
+          "credit": "19597050.00",
+          "balance": "164362155.00",
+          "category": "SALES_RECEIPT",
+          "riskTags": []
+        },
+        {
+          "key": "st-03#18",
+          "rowIndex": 18,
+          "page": 1,
+          "date": "2026-03-21",
+          "description": "DEBIT CARD CORNER BAKERY",
+          "bankRef": "REF 26032109276",
+          "debit": "35520.00",
+          "credit": null,
+          "balance": "164326635.00",
+          "category": "OTHER_OPERATING_EXPENSE",
+          "riskTags": []
+        },
+        {
+          "key": "st-03#19",
+          "rowIndex": 19,
+          "page": 1,
+          "date": "2026-03-21",
+          "description": "CASH DEPOSIT",
+          "bankRef": "REF 26032113558",
+          "debit": null,
+          "credit": "2450000.00",
+          "balance": "166776635.00",
+          "category": "SALES_RECEIPT",
+          "riskTags": []
+        },
+        {
+          "key": "st-03#20",
+          "rowIndex": 20,
+          "page": 2,
+          "date": "2026-03-22",
+          "description": "TRANSFER OUT ANDI PRATAMA",
+          "bankRef": "REF 26032263226",
+          "debit": "6000000.00",
+          "credit": null,
+          "balance": "160776635.00",
+          "category": "OWNER_DRAWING",
+          "riskTags": []
+        },
+        {
+          "key": "st-03#21",
+          "rowIndex": 21,
+          "page": 2,
+          "date": "2026-03-23",
+          "description": "TRANSFER IN SPICE ROUTE RESTAURANT INV/SCR/2026/02/0008",
+          "bankRef": "REF 26032337899",
+          "debit": null,
+          "credit": "19980000.00",
+          "balance": "180756635.00",
+          "category": "SALES_RECEIPT",
+          "riskTags": []
+        },
+        {
+          "key": "st-03#22",
+          "rowIndex": 22,
+          "page": 2,
+          "date": "2026-03-23",
+          "description": "TRANSFER IN HIGHLAND RESORT & SPA INV/SCR/2026/03/0010",
+          "bankRef": "REF 26032300762",
+          "debit": null,
+          "credit": "11095560.00",
+          "balance": "191852195.00",
+          "category": "SALES_RECEIPT",
+          "riskTags": []
+        },
+        {
+          "key": "st-03#23",
+          "rowIndex": 23,
+          "page": 2,
+          "date": "2026-03-25",
+          "description": "PAYROLL MAR",
+          "bankRef": "REF 26032589358",
+          "debit": "44100000.00",
+          "credit": null,
+          "balance": "147752195.00",
+          "category": "PAYROLL",
+          "riskTags": []
+        },
+        {
+          "key": "st-03#24",
+          "rowIndex": 24,
+          "page": 2,
+          "date": "2026-03-31",
+          "description": "ADMIN FEE",
+          "bankRef": "REF 26033193810",
+          "debit": "25000.00",
+          "credit": null,
+          "balance": "147727195.00",
+          "category": "BANK_FEES",
+          "riskTags": []
+        }
+      ],
+      "tampering": [],
+      "expected": {
+        "verdict": "CLEAN",
+        "riskLevel": "LOW",
+        "findingsP0": [],
+        "duplicate": null
+      }
+    },
+    {
+      "file": "inv-sales-2026-03-01.pdf",
+      "key": "inv-sales-2026-03-01",
+      "docType": "SALES_INVOICE",
+      "number": "INV/SCR/2026/03/0009",
+      "issueDate": "2026-03-12",
+      "dueDate": "2026-03-26",
+      "issuer": {
+        "name": "Sunrise Coffee Roasters",
+        "address": [
+          "12 Roastery Lane",
+          "Bandung 40135"
+        ],
+        "taxId": "99-731.204.5-018.000"
+      },
+      "billTo": {
+        "name": "Daybreak Café",
+        "address": [
+          "4 Morning Street",
+          "Bandung 40132"
+        ],
+        "taxId": "99-208.551.9-423.000"
+      },
+      "lines": [
+        {
+          "description": "Drip bags, box of 20",
+          "quantity": 93,
+          "unitPrice": "95000.00",
+          "amount": "8835000.00"
+        },
+        {
+          "description": "Robusta roasted beans, 1 kg",
+          "quantity": 49,
+          "unitPrice": "180000.00",
+          "amount": "8820000.00"
+        }
+      ],
+      "subtotal": "17655000.00",
+      "vatRate": "0.11",
+      "vat": "1942050.00",
+      "total": "19597050.00",
+      "currency": "IDR",
+      "payTo": {
+        "bankName": "Archipelago Commerce Bank",
+        "accountNumber": "9900004821",
+        "holder": "SUNRISE COFFEE ROASTERS"
+      },
+      "expected": {
+        "verdict": "CLEAN",
+        "riskLevel": "LOW",
+        "findingsP0": [],
+        "duplicate": null,
+        "payment": "PAID"
+      }
+    },
+    {
+      "file": "inv-purchase-2026-03-01.pdf",
+      "key": "inv-purchase-2026-03-01",
+      "docType": "PURCHASE_INVOICE",
+      "number": "GVF-2026-0303",
+      "issueDate": "2026-03-03",
+      "dueDate": "2026-04-02",
+      "issuer": {
+        "name": "Green Valley Farms",
+        "address": [
+          "Km 14 Ciwidey Road",
+          "Bandung Regency 40973"
+        ],
+        "taxId": "99-114.906.4-445.000"
+      },
+      "billTo": {
+        "name": "Sunrise Coffee Roasters",
+        "address": [
+          "12 Roastery Lane",
+          "Bandung 40135"
+        ],
+        "taxId": "99-731.204.5-018.000"
+      },
+      "lines": [
+        {
+          "description": "Green beans, Arabica Java Preanger, 60 kg sack",
+          "quantity": 3,
+          "unitPrice": "6900000.00",
+          "amount": "20700000.00"
+        },
+        {
+          "description": "Green beans, Robusta Temanggung, 60 kg sack",
+          "quantity": 1,
+          "unitPrice": "3850000.00",
+          "amount": "3850000.00"
+        }
+      ],
+      "subtotal": "24550000.00",
+      "vatRate": "0.11",
+      "vat": "2700500.00",
+      "total": "27250500.00",
+      "currency": "IDR",
+      "payTo": {
+        "bankName": "Archipelago Commerce Bank",
+        "accountNumber": "9900007312",
+        "holder": "GREEN VALLEY FARMS"
+      },
+      "expected": {
+        "verdict": "CLEAN",
+        "riskLevel": "LOW",
+        "findingsP0": [],
+        "duplicate": null,
+        "payment": "PAID"
+      }
+    },
+    {
+      "file": "receipt-2026-03-01.pdf",
+      "key": "receipt-2026-03-01",
+      "docType": "RECEIPT",
+      "merchant": {
+        "name": "Swift Courier",
+        "address": [
+          "Jl. Pasteur 77",
+          "Bandung"
+        ]
+      },
+      "receiptNo": "SC-0308-527",
+      "issuedAt": "2026-03-08T09:48:00",
+      "items": [
+        {
+          "description": "Express parcel, Jakarta",
+          "quantity": 5,
+          "unitPrice": "64000.00",
+          "amount": "320000.00"
+        }
+      ],
+      "subtotal": "320000.00",
+      "vat": "35200.00",
+      "total": "355200.00",
+      "payment": "DEBIT CARD ••4821",
+      "form": "pdf",
+      "expected": {
+        "verdict": "CLEAN",
+        "riskLevel": "LOW",
+        "findingsP0": [],
+        "duplicate": null
+      }
+    },
+    {
+      "file": "receipt-2026-03-02.pdf",
+      "key": "receipt-2026-03-02",
+      "docType": "RECEIPT",
+      "merchant": {
+        "name": "Cendana Fuel Station",
+        "address": [
+          "Jl. Setiabudi 210",
+          "Bandung"
+        ]
+      },
+      "receiptNo": "CFS-0310-882",
+      "issuedAt": "2026-03-10T12:38:00",
+      "items": [
+        {
+          "description": "Diesel, litre",
+          "quantity": 86,
+          "unitPrice": "6800.00",
+          "amount": "584800.00"
+        }
+      ],
+      "subtotal": "584800.00",
+      "vat": "64328.00",
+      "total": "649128.00",
+      "payment": "CASH",
+      "form": "pdf",
+      "expected": {
+        "verdict": "CLEAN",
+        "riskLevel": "LOW",
+        "findingsP0": [],
+        "duplicate": null
+      }
+    }
+  ]
+}

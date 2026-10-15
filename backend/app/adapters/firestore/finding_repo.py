@@ -32,6 +32,19 @@ def _to_doc(f: Finding) -> FindingDoc:
     )
 
 
+def _evidence_to_domain(e: EvidenceDoc) -> Evidence:
+    return Evidence(
+        doc_id=e.doc_id,
+        page=e.page,
+        bbox=e.bbox,
+        tx_id=e.tx_id,
+        invoice_id=e.invoice_id,
+        receipt_id=e.receipt_id,
+        ledger_entry_id=e.ledger_entry_id,
+        label=e.label,
+    )
+
+
 def _to_domain(d: FindingDoc) -> Finding:
     return Finding(
         finding_id=d.finding_id,
@@ -40,7 +53,7 @@ def _to_domain(d: FindingDoc) -> Finding:
         severity=d.severity,  # type: ignore[arg-type]
         title=d.title,
         facts=d.facts,
-        evidence=[Evidence(**e.model_dump()) for e in d.evidence],
+        evidence=[_evidence_to_domain(e) for e in d.evidence],
         scope=d.scope,  # type: ignore[arg-type]
         doc_id=d.doc_id,
         month=d.month,
@@ -83,6 +96,23 @@ class FirestoreFindingRepository(FindingRepository):
         await batch.commit()
         return merged
 
+    async def replace_month_findings(
+        self, org_id: str, month: str, fresh: list[Finding], *, run_id: str | None
+    ) -> list[Finding]:
+        existing = [
+            f
+            for f in await self.list_findings(org_id, month=month, limit=1000)
+            if f.scope == "MONTH"
+        ]
+        for f in fresh:
+            f.last_seen_run_id = run_id
+        merged = merge_findings(existing, fresh)
+        batch = self._db.batch()
+        for f in merged:
+            batch.set(self._col(org_id).document(f.finding_id), dump(_to_doc(f)))
+        await batch.commit()
+        return merged
+
     async def list_findings(
         self,
         org_id: str,
@@ -101,3 +131,12 @@ class FirestoreFindingRepository(FindingRepository):
             async for s in query.limit(limit).stream()
         ]
         return sorted(found, key=lambda f: (f.severity_rank, f.code, f.finding_id))
+
+    async def get_finding(self, org_id: str, finding_id: str) -> Finding | None:
+        snap = await self._col(org_id).document(finding_id).get()
+        if not snap.exists:
+            return None
+        return _to_domain(FindingDoc.model_validate(snap.to_dict()))
+
+    async def save_finding(self, org_id: str, finding: Finding) -> None:
+        await self._col(org_id).document(finding.finding_id).set(dump(_to_doc(finding)))

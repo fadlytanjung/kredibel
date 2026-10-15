@@ -1,10 +1,8 @@
 /** A document's findings with their facts, next step and evidence (spec 006, docs/08 §1). */
 
 import { useTranslation } from 'react-i18next'
-import { Badge } from '../../shared/ui'
 import { evidenceFocus, type EvidenceFocus, type Finding } from './api'
-
-const SEVERITY = { CRITICAL: 'critical', HIGH: 'high', MEDIUM: 'medium', LOW: 'low', INFO: 'default' } as const
+import { SeverityBadge } from './SeverityBadge'
 
 interface FindingListProps {
   findings: Finding[]
@@ -23,7 +21,7 @@ export function FindingList({ findings, focused, onFocus }: FindingListProps) {
         return (
           <li key={f.findingId} className={`card p-4 stack gap-2 ${focused === f.findingId ? 'is-selected' : ''}`}>
             <div className="row items-center gap-2 flex-wrap">
-              <Badge variant={SEVERITY[f.severity]}>{t(`detail.severity.${f.severity}`)}</Badge>
+              <SeverityBadge severity={f.severity} />
               <strong>{f.title}</strong>
             </div>
             {Object.keys(f.facts ?? {}).length > 0 && (

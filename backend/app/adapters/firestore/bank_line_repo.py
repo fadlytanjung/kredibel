@@ -6,8 +6,10 @@ from decimal import Decimal
 from google.cloud.firestore import AsyncClient, FieldFilter
 
 from app.adapters.firestore.models.bank_line import BankLineDoc
+from app.adapters.firestore.models.workspace import EventDoc
 from app.adapters.firestore.txn import dump
 from app.domain.models.bank_line import BankLine
+from app.domain.models.events import AuditEvent
 from app.ports.bank_line_repository import BankLineRepository
 
 _BATCH = 400
@@ -36,6 +38,11 @@ def _to_doc(line: BankLine) -> BankLineDoc:
         category_confidence=None
         if line.category_confidence is None
         else str(line.category_confidence),
+        match={"state": line.match_state, "matchIds": line.match_ids},
+        support=line.support,
+        corrected_fields=list(line.corrected_fields),
+        corrected_by=line.corrected_by,
+        corrected_at=line.corrected_at,
     )
 
 
@@ -62,6 +69,12 @@ def _to_domain(doc: BankLineDoc) -> BankLine:
         category_confidence=None
         if doc.category_confidence is None
         else Decimal(doc.category_confidence),
+        match_state=str(doc.match.get("state", "UNMATCHED")),
+        match_ids=list(doc.match.get("matchIds") or []),
+        support=doc.support,
+        corrected_fields=list(doc.corrected_fields or []),
+        corrected_by=doc.corrected_by,
+        corrected_at=doc.corrected_at,
     )
 
 
@@ -102,6 +115,65 @@ class FirestoreBankLineRepository(BankLineRepository):
             for ref in refs[start : start + _BATCH]:
                 batch.update(ref, {"heldAsDuplicate": held})
             await batch.commit()
+
+    async def set_support(
+        self, org_id: str, updates: dict[str, tuple[str, list[str], str]]
+    ) -> None:
+        items = sorted(updates.items())
+        for start in range(0, len(items), _BATCH):
+            batch = self._db.batch()
+            for tx_id, (state, match_ids, support) in items[start : start + _BATCH]:
+                batch.update(
+                    self._col(org_id).document(tx_id),
+                    {"match": {"state": state, "matchIds": match_ids}, "support": support},
+                )
+            await batch.commit()
+
+    async def set_category(self, org_id: str, line: BankLine, event: AuditEvent) -> None:
+        batch = self._db.batch()
+        batch.update(
+            self._col(org_id).document(line.tx_id),
+            {
+                "category": line.category,
+                "cashflowClass": line.cashflow_class,
+                "categorizedBy": line.categorized_by,
+                "categoryConfidence": None,
+            },
+        )
+        batch.set(
+            self._db.collection("orgs")
+            .document(org_id)
+            .collection("events")
+            .document(event.event_id),
+            dump(EventDoc(org_id=org_id, **event.model_dump())),
+        )
+        await batch.commit()
+
+    async def save_correction(self, org_id: str, line: BankLine, event: AuditEvent) -> None:
+        batch = self._db.batch()
+        batch.update(
+            self._col(org_id).document(line.tx_id),
+            {
+                "amountMinor": line.amount_minor,
+                "date": line.date.isoformat(),
+                "month": line.month,
+                "correctedFields": list(line.corrected_fields),
+                "correctedBy": line.corrected_by,
+                "correctedAt": line.corrected_at.isoformat() if line.corrected_at else None,
+            },
+        )
+        batch.set(
+            self._db.collection("orgs")
+            .document(org_id)
+            .collection("events")
+            .document(event.event_id),
+            dump(EventDoc(org_id=org_id, **event.model_dump())),
+        )
+        await batch.commit()
+
+    async def get_line(self, org_id: str, tx_id: str) -> BankLine | None:
+        snap = await self._col(org_id).document(tx_id).get()
+        return _to_domain(BankLineDoc.model_validate(snap.to_dict())) if snap.exists else None
 
     async def list_lines(
         self, org_id: str, *, doc_id: str | None = None, month: str | None = None, limit: int = 500

@@ -20,8 +20,10 @@
 - [x] **T010-05** `ChartPanel`, `SegmentedControl`, `SankeyChart`, `StatementBars`, `FlowTable`, `FlowList`, `MonthBars`, `CashFlowWaterfall`; keyboard focus on bands; three drawings per chart; stories at 390, 834 and 1440. (AC-010-6, AC-010-7, AC-010-12…14)
 - [ ] **T010-06** `DashboardPage` at three widths; empty states; links with filters; visual tests and Lighthouse. (AC-010-2…4, AC-010-11)
   Done: status sentence, figures, risk, where the money went in short, months, period picker,
-  empty state, links to months and findings; no overflow at 390, 834 and 1440 px. Open: the charts
-  section (T010-05), visual tests and Lighthouse.
+  empty state, links to months and findings; no overflow at 390, 834 and 1440 px; visual tests
+  (spec 019); Lighthouse mobile on the synthetic dashboard 83 performance / 100 accessibility
+  (15 Oct 2026, from 63: lazy page chunks, auth popup resolver on demand, Firestore SDK on first
+  live subscription). Open: performance ≥ 85 and links with filters on the figures.
 
 ## Phase 3 — Scenario and close
 

@@ -7,8 +7,7 @@
  */
 
 import { useEffect, useState } from 'react'
-import { collection, onSnapshot, query, orderBy, limit } from 'firebase/firestore'
-import { db } from '../../shared/firebase/app'
+import { subscribeLive } from '../../shared/firebase/live'
 import type { Document, DocType } from './types'
 
 export interface DocumentLiveFilters {
@@ -36,32 +35,38 @@ export function useDocumentsLive(
   useEffect(() => {
     if (!orgId) return
 
-    const colRef = collection(db, 'orgs', orgId, 'documents')
-    const q = query(colRef, orderBy('uploadedAt', 'desc'), limit(LIVE_LIMIT))
-
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        let docs = snapshot.docs.map((docSnap) => ({
-          docId: docSnap.id,
-          ...(docSnap.data() as Omit<Document, 'docId'>),
-        }))
-        if (filters?.type) {
-          docs = docs.filter((d) => d.docType === filters.type)
-        }
-        if (filters?.duplicate !== undefined) {
-          docs = docs.filter((d) => Boolean(d.heldAsDuplicate) === filters.duplicate)
-        }
-        setDocuments(docs)
-        setLoading(false)
-      },
+    return subscribeLive(
+      ({ collection, limit, onSnapshot, orderBy, query }, db) =>
+        onSnapshot(
+          query(
+            collection(db, 'orgs', orgId, 'documents'),
+            orderBy('uploadedAt', 'desc'),
+            limit(LIVE_LIMIT),
+          ),
+          (snapshot) => {
+            let docs = snapshot.docs.map((docSnap) => ({
+              docId: docSnap.id,
+              ...(docSnap.data() as Omit<Document, 'docId'>),
+            }))
+            if (filters?.type) {
+              docs = docs.filter((d) => d.docType === filters.type)
+            }
+            if (filters?.duplicate !== undefined) {
+              docs = docs.filter((d) => Boolean(d.heldAsDuplicate) === filters.duplicate)
+            }
+            setDocuments(docs)
+            setLoading(false)
+          },
+          (err) => {
+            setError(err)
+            setLoading(false)
+          },
+        ),
       (err) => {
         setError(err)
         setLoading(false)
       },
     )
-
-    return () => unsubscribe()
   }, [orgId, filters?.type, filters?.duplicate])
 
   if (!orgId) {

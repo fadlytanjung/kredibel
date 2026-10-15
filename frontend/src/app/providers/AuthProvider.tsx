@@ -6,6 +6,7 @@
 
 import {
   browserLocalPersistence,
+  browserPopupRedirectResolver,
   onAuthStateChanged,
   setPersistence,
   signInWithEmailAndPassword,
@@ -90,7 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithGoogle = async () => {
     await setPersistence(auth, browserLocalPersistence)
-    const result = await signInWithPopup(auth, googleAuthProvider)
+    const result = await signInWithPopup(auth, googleAuthProvider, browserPopupRedirectResolver)
     setUser(result.user)
     setTokenProvider(async () => result.user.getIdToken())
     await fetchMe()

@@ -6,8 +6,7 @@
  */
 
 import { useEffect, useState } from 'react'
-import { doc, onSnapshot } from 'firebase/firestore'
-import { db } from '../../shared/firebase/app'
+import { subscribeLive } from '../../shared/firebase/live'
 import type { Document } from './types'
 
 export interface UseDocumentLiveResult {
@@ -27,29 +26,31 @@ export function useDocumentLive(
   useEffect(() => {
     if (!orgId || !docId) return
 
-    const docRef = doc(db, 'orgs', orgId, 'documents', docId)
-    const unsubscribe = onSnapshot(
-      docRef,
-      (snapshot) => {
-        if (!snapshot.exists()) {
-          setDocument(null)
-        } else {
-          setDocument({
-            docId: snapshot.id,
-            ...(snapshot.data() as Omit<Document, 'docId'>),
-          })
-        }
-        setLoading(false)
-      },
+    return subscribeLive(
+      ({ doc, onSnapshot }, db) =>
+        onSnapshot(
+          doc(db, 'orgs', orgId, 'documents', docId),
+          (snapshot) => {
+            if (!snapshot.exists()) {
+              setDocument(null)
+            } else {
+              setDocument({
+                docId: snapshot.id,
+                ...(snapshot.data() as Omit<Document, 'docId'>),
+              })
+            }
+            setLoading(false)
+          },
+          (err) => {
+            setError(err)
+            setLoading(false)
+          },
+        ),
       (err) => {
         setError(err)
         setLoading(false)
       },
     )
-
-    return () => {
-      unsubscribe()
-    }
   }, [orgId, docId])
 
   if (!orgId || !docId) {

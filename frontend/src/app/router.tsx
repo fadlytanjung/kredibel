@@ -4,35 +4,44 @@
  * Normative references: docs/specs/001-foundation/spec.md AC-001-3, AC-001-4, and docs/11 §4.2.
  */
 
-import type { ReactNode } from 'react'
+import { Suspense, lazy, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import { useReviewItems } from '../entities/review'
 import { useAuth } from '../entities/session'
 import { shellPropsFromWorkspace, useWorkspace } from '../entities/workspace'
-import { ProfitLossPage } from '../pages/ProfitLossPage'
 import { DashboardPage } from '../pages/DashboardPage'
-import { DocumentPage } from '../pages/DocumentPage'
-import { DocumentsPage } from '../pages/DocumentsPage'
 import { LoginPage } from '../pages/LoginPage'
 import { NotFoundPage } from '../pages/NotFoundPage'
-import { OnboardingPage } from '../pages/OnboardingPage'
-import { MonthPage } from '../pages/MonthPage'
-import { MonthsPage } from '../pages/MonthsPage'
 import { CurrentMonthRedirect } from '../pages/CurrentMonthRedirect'
-import { AssistantPage } from '../pages/AssistantPage'
-import {
-  CounterpartiesPage,
-  LabelsPage,
-  RunsPage,
-} from '../pages/Placeholders'
-import { ReviewPage } from '../pages/ReviewPage'
-import { RiskPage } from '../pages/RiskPage'
-import { SettingsPage } from '../pages/SettingsPage'
 import { AppShell, Button } from '../shared/ui'
-import { OnboardingPreview } from './OnboardingPreview'
 import { TrialBanner } from '../widgets/TrialBanner'
-import { AssistantPreview, DocumentPreview, MonthPreview, MonthsPreview, ProfitLossPreview, ReviewPreview, SettingsPreview, ShellPreview } from './ShellPreview'
+
+// Every page but the dashboard is its own chunk (AC-010-11): the first paint ships the shell only.
+const ProfitLossPage = lazy(() => import('../pages/ProfitLossPage').then((m) => ({ default: m.ProfitLossPage })))
+const DocumentPage = lazy(() => import('../pages/DocumentPage').then((m) => ({ default: m.DocumentPage })))
+const DocumentsPage = lazy(() => import('../pages/DocumentsPage').then((m) => ({ default: m.DocumentsPage })))
+const OnboardingPage = lazy(() => import('../pages/OnboardingPage').then((m) => ({ default: m.OnboardingPage })))
+const MonthPage = lazy(() => import('../pages/MonthPage').then((m) => ({ default: m.MonthPage })))
+const MonthsPage = lazy(() => import('../pages/MonthsPage').then((m) => ({ default: m.MonthsPage })))
+const AssistantPage = lazy(() => import('../pages/AssistantPage').then((m) => ({ default: m.AssistantPage })))
+const ReviewPage = lazy(() => import('../pages/ReviewPage').then((m) => ({ default: m.ReviewPage })))
+const RiskPage = lazy(() => import('../pages/RiskPage').then((m) => ({ default: m.RiskPage })))
+const SettingsPage = lazy(() => import('../pages/SettingsPage').then((m) => ({ default: m.SettingsPage })))
+const CounterpartiesPage = lazy(() => import('../pages/Placeholders').then((m) => ({ default: m.CounterpartiesPage })))
+const LabelsPage = lazy(() => import('../pages/Placeholders').then((m) => ({ default: m.LabelsPage })))
+const RunsPage = lazy(() => import('../pages/Placeholders').then((m) => ({ default: m.RunsPage })))
+const OnboardingPreview = lazy(() => import('./OnboardingPreview').then((m) => ({ default: m.OnboardingPreview })))
+const AssistantPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.AssistantPreview })))
+const DocumentPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.DocumentPreview })))
+const MonthPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.MonthPreview })))
+const MonthsPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.MonthsPreview })))
+const ProfitLossPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.ProfitLossPreview })))
+const ReviewPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.ReviewPreview })))
+const SettingsPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.SettingsPreview })))
+const ShellPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.ShellPreview })))
+
+const PREVIEW_ROUTES = import.meta.env.DEV || import.meta.env.VITE_PREVIEW_ROUTES === '1'
 
 function FullPageLoading() {
   const { t } = useTranslation()
@@ -136,34 +145,37 @@ const PROTECTED_ROUTES: { path: string; element: ReactNode }[] = [
 
 export function AppRouter() {
   return (
-    <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route
-        path="/onboarding"
-        element={
-          <OnboardingRoute>
-            <OnboardingPage />
-          </OnboardingRoute>
-        }
-      />
-      {PROTECTED_ROUTES.map(({ path, element }) => (
-        <Route key={path} path={path} element={<ProtectedRoute>{element}</ProtectedRoute>} />
-      ))}
-      {/* Visual regression target for the shell (tests/visual); never part of a production build. */}
-      {import.meta.env.DEV && <Route path="/preview/shell" element={<ShellPreview />} />}
-      {import.meta.env.DEV && <Route path="/preview/onboarding" element={<OnboardingPreview />} />}
-      {import.meta.env.DEV && (
-        <Route path="/preview/settings/:section" element={<SettingsPreview />} />
-      )}
-      {import.meta.env.DEV && <Route path="/preview/documents/:docId" element={<DocumentPreview />} />}
-      {import.meta.env.DEV && <Route path="/preview/months" element={<MonthsPreview />} />}
-      {import.meta.env.DEV && <Route path="/preview/months/:month" element={<MonthPreview />} />}
-      {import.meta.env.DEV && <Route path="/preview/review" element={<ReviewPreview />} />}
-      {import.meta.env.DEV && <Route path="/preview/review/:itemId" element={<ReviewPreview />} />}
-      {import.meta.env.DEV && <Route path="/preview/profit-loss" element={<ProfitLossPreview />} />}
-      {import.meta.env.DEV && <Route path="/preview/assistant" element={<AssistantPreview />} />}
-      {import.meta.env.DEV && <Route path="/preview/assistant/:threadId" element={<AssistantPreview />} />}
-      <Route path="*" element={<NotFoundPage />} />
-    </Routes>
+    <Suspense fallback={<FullPageLoading />}>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route
+          path="/onboarding"
+          element={
+            <OnboardingRoute>
+              <OnboardingPage />
+            </OnboardingRoute>
+          }
+        />
+        {PROTECTED_ROUTES.map(({ path, element }) => (
+          <Route key={path} path={path} element={<ProtectedRoute>{element}</ProtectedRoute>} />
+        ))}
+        {/* Visual regression targets (tests/visual) on synthetic fixtures; never part of a production
+            build unless VITE_PREVIEW_ROUTES=1 asks for one to measure (Lighthouse, AC-010-11). */}
+        {PREVIEW_ROUTES && <Route path="/preview/shell" element={<ShellPreview />} />}
+        {PREVIEW_ROUTES && <Route path="/preview/onboarding" element={<OnboardingPreview />} />}
+        {PREVIEW_ROUTES && (
+          <Route path="/preview/settings/:section" element={<SettingsPreview />} />
+        )}
+        {PREVIEW_ROUTES && <Route path="/preview/documents/:docId" element={<DocumentPreview />} />}
+        {PREVIEW_ROUTES && <Route path="/preview/months" element={<MonthsPreview />} />}
+        {PREVIEW_ROUTES && <Route path="/preview/months/:month" element={<MonthPreview />} />}
+        {PREVIEW_ROUTES && <Route path="/preview/review" element={<ReviewPreview />} />}
+        {PREVIEW_ROUTES && <Route path="/preview/review/:itemId" element={<ReviewPreview />} />}
+        {PREVIEW_ROUTES && <Route path="/preview/profit-loss" element={<ProfitLossPreview />} />}
+        {PREVIEW_ROUTES && <Route path="/preview/assistant" element={<AssistantPreview />} />}
+        {PREVIEW_ROUTES && <Route path="/preview/assistant/:threadId" element={<AssistantPreview />} />}
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+    </Suspense>
   )
 }

@@ -1,4 +1,4 @@
-import { act, renderHook } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useDocumentLive } from './useDocumentLive'
 
@@ -20,7 +20,7 @@ vi.mock('firebase/firestore', () => ({
 }))
 
 vi.mock('../../shared/firebase/app', () => ({
-  db: {},
+  liveDb: () => Promise.resolve({}),
 }))
 
 describe('useDocumentLive (AC-004-8)', () => {
@@ -29,8 +29,9 @@ describe('useDocumentLive (AC-004-8)', () => {
     vi.clearAllMocks()
   })
 
-  it('subscribes to document and updates state on snapshot', () => {
+  it('subscribes to document and updates state on snapshot', async () => {
     const { result } = renderHook(() => useDocumentLive('org_test', 'doc_123'))
+    await waitFor(() => expect(snapshotCallback).not.toBeNull())
 
     expect(result.current.loading).toBe(true)
     expect(result.current.document).toBeNull()
@@ -54,8 +55,9 @@ describe('useDocumentLive (AC-004-8)', () => {
     expect(result.current.document?.pages?.length).toBe(2)
   })
 
-  it('cleans up subscription on unmount', () => {
+  it('cleans up subscription on unmount', async () => {
     const { unmount } = renderHook(() => useDocumentLive('org_test', 'doc_123'))
+    await waitFor(() => expect(snapshotCallback).not.toBeNull())
     unmount()
     expect(unsubscribeMock).toHaveBeenCalled()
   })

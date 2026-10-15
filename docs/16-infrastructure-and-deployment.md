@@ -324,7 +324,8 @@ make env-push      # add a version from .env.production; then make deploy
 `VITE_FIREBASE_APP_ID`, `VITE_FIRESTORE_DATABASE` (from `kredibel-env`; the build stops when the API
 key is empty), `VITE_APP_VERSION` (the commit). **`VITE_` values are inlined into the public bundle.**
 Never put a server-side value behind a `VITE_` name. Restrict the Firebase web API key to the app's
-domains in the console.
+domains in the console. `VITE_PREVIEW_ROUTES=1` keeps the synthetic preview routes in a build so
+Lighthouse can measure the dashboard locally; it is never set for a deployed build.
 
 ---
 

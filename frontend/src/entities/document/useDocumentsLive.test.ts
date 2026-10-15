@@ -1,4 +1,4 @@
-import { act, renderHook } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useDocumentsLive } from './useDocumentsLive'
 
@@ -24,7 +24,7 @@ vi.mock('firebase/firestore', () => ({
 }))
 
 vi.mock('../../shared/firebase/app', () => ({
-  db: {},
+  liveDb: () => Promise.resolve({}),
 }))
 
 describe('useDocumentsLive (push-based realtime documents)', () => {
@@ -33,8 +33,9 @@ describe('useDocumentsLive (push-based realtime documents)', () => {
     vi.clearAllMocks()
   })
 
-  it('subscribes to documents collection and updates state on snapshot', () => {
+  it('subscribes to documents collection and updates state on snapshot', async () => {
     const { result } = renderHook(() => useDocumentsLive('org_test'))
+    await waitFor(() => expect(snapshotCallback).not.toBeNull())
 
     expect(result.current.loading).toBe(true)
     expect(result.current.documents).toEqual([])
@@ -72,10 +73,11 @@ describe('useDocumentsLive (push-based realtime documents)', () => {
     expect(result.current.documents[1].status).toBe('READING')
   })
 
-  it('applies client-side filters on live updates', () => {
+  it('applies client-side filters on live updates', async () => {
     const { result } = renderHook(() =>
       useDocumentsLive('org_test', { type: 'BANK_STATEMENT' }),
     )
+    await waitFor(() => expect(snapshotCallback).not.toBeNull())
 
     act(() => {
       snapshotCallback?.({
@@ -104,8 +106,9 @@ describe('useDocumentsLive (push-based realtime documents)', () => {
     expect(result.current.documents[0].docId).toBe('doc_1')
   })
 
-  it('cleans up subscription on unmount', () => {
+  it('cleans up subscription on unmount', async () => {
     const { unmount } = renderHook(() => useDocumentsLive('org_test'))
+    await waitFor(() => expect(snapshotCallback).not.toBeNull())
     unmount()
     expect(unsubscribeMock).toHaveBeenCalled()
   })

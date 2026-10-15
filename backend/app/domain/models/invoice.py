@@ -42,6 +42,7 @@ class Invoice:
     consensus: dict[str, dict[str, Any]] = field(default_factory=dict)
     notes: list[str] = field(default_factory=list)
     evidence: dict[str, Any] | None = None  # written by the month run (ADR-025)
+    counterparty_id: str | None = None  # written by the month run (spec 014)
     # A person's corrections through review (T009-03a); the readings stay in consensus.raw.
     corrected_fields: list[str] = field(default_factory=list)
     corrected_by: str | None = None
@@ -73,6 +74,7 @@ class Receipt:
     consensus: dict[str, dict[str, Any]] = field(default_factory=dict)
     notes: list[str] = field(default_factory=list)
     evidence: dict[str, Any] | None = None  # written by the month run (ADR-025)
+    counterparty_id: str | None = None  # written by the month run (spec 014)
     # A person's corrections through review (T009-03a); the readings stay in consensus.raw.
     corrected_fields: list[str] = field(default_factory=list)
     corrected_by: str | None = None

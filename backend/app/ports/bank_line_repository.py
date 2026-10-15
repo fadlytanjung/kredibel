@@ -12,9 +12,19 @@ class BankLineRepository(Protocol):
         ...
 
     async def list_lines(
-        self, org_id: str, *, doc_id: str | None = None, month: str | None = None, limit: int = 500
+        self,
+        org_id: str,
+        *,
+        doc_id: str | None = None,
+        month: str | None = None,
+        counterparty_id: str | None = None,
+        limit: int = 500,
     ) -> list[BankLine]:
         """Lines in printed order (date, then row)."""
+        ...
+
+    async def set_counterparties(self, org_id: str, updates: dict[str, str | None]) -> None:
+        """Write the month run's counterparty per line (spec 014)."""
         ...
 
     async def set_held(self, org_id: str, doc_id: str, held: bool) -> None:

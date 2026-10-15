@@ -21,6 +21,8 @@ class Category:
     ifrs: str
     us_gaap: str
     use: str | None = None  # who was paid, for the money flow's counterparty view
+    role: str | None = None  # the counterparty role its lines imply (docs/08 §4.2)
+    bucket: str | None = None  # the named bucket for its unnamed lines ("Bank fees")
 
     def cashflow_class(self, framework: Framework) -> str:
         return self.ifrs if framework == "IFRS" else self.us_gaap
@@ -69,7 +71,15 @@ class CategoryPolicy:
 def parse_category_policy(categories: dict[str, Any], rules: dict[str, Any]) -> CategoryPolicy:
     cats = {
         c["id"]: Category(
-            c["id"], c["direction"], c["line"], c["label"], c["ifrs"], c["usGaap"], c.get("use")
+            c["id"],
+            c["direction"],
+            c["line"],
+            c["label"],
+            c["ifrs"],
+            c["usGaap"],
+            c.get("use"),
+            c.get("counterpartyRole"),
+            c.get("bucket"),
         )
         for c in categories["categories"]
     }

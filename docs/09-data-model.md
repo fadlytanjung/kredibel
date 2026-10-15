@@ -279,7 +279,8 @@ or `DECISION_WITHDRAWN` event in the same batch; never deleted.
 
 `field` (`BANK_ACCOUNT`, `TAX_ID`, `ADDRESS`, `ALIAS`, `RELATED_PARTY`), `value`, `display`,
 `confidence`, `basis`, `evidence[]`, `status` (`PENDING`, `CONFLICT`, `ACCEPTED`, `REJECTED`),
-`conflictWith?`, `decidedBy?`, `decidedAt?`.
+`conflictWith?`, `decidedBy?`, `decidedAt?`. A `BANK_ACCOUNT` suggestion's keyed hash lives in
+`orgPrivate/{orgId}/suggestionSecrets/{suggestionId}`, never in the readable document.
 
 ### 3.15 `orgs/{orgId}/runs/{runId}`
 

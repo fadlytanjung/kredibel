@@ -11,8 +11,18 @@ class DocumentRecords[T](Protocol):
         ...
 
     async def list_records(
-        self, org_id: str, *, doc_id: str | None = None, month: str | None = None, limit: int = 200
+        self,
+        org_id: str,
+        *,
+        doc_id: str | None = None,
+        month: str | None = None,
+        counterparty_id: str | None = None,
+        limit: int = 200,
     ) -> list[T]: ...
+
+    async def set_counterparties(self, org_id: str, updates: dict[str, str | None]) -> None:
+        """Write the month run's counterparty per record (spec 014)."""
+        ...
 
     async def set_held(self, org_id: str, doc_id: str, held: bool) -> None:
         """Hold or release a document's records as a possible duplicate (AC-006-5)."""

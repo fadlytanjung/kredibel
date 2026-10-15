@@ -235,8 +235,9 @@ counterparty name and kind for rows the rules cannot parse.
 | `GOVERNMENT` | Counterparty of `TAX_PAYMENT` |
 | `OTHER` | Anyone else |
 
-Unnamed rows (e.g. `VAT PAYMENT MAR`) go to named buckets ("VAT payments", "Bank fees") so totals stay
-complete. Each counterparty keeps totals per month, first and last date, **the bank accounts seen for
+Unnamed rows (e.g. `VAT PAYMENT MAR`) go to named buckets ("Tax payments", "Bank fees") so totals stay
+complete; each category's role and bucket wording live in `categories.v1.yaml` (`counterpartyRole`,
+`bucket`). Each counterparty keeps totals per month, first and last date, **the bank accounts seen for
 it** (masked, with a hash in `orgPrivate`; this feeds `X08`) and sample evidence.
 
 ### 4.3 Profile suggestions
@@ -253,6 +254,9 @@ it** (masked, with a hash in `orgPrivate`; this feeds `X08`) and sample evidence
 
 A suggestion that contradicts a single-valued field is stored as `CONFLICT` with the current value.
 A rejected value is never suggested again (deterministic suggestion ID).
+The account suggestion is made where the statement is read, with the digits' keyed hash kept in
+`orgPrivate/{orgId}/suggestionSecrets/{suggestionId}`; accepting it declares the account from the mask
+and that hash. Tax IDs are suggested masked, as records keep them.
 
 ---
 

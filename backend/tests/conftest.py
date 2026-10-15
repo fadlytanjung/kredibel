@@ -21,6 +21,7 @@ def _never_a_real_model_or_store(monkeypatch: pytest.MonkeyPatch) -> None:
     """An AppDeps a test did not give a reader or bank line store gets fakes, never Gemini through
     the developer's credentials or a Firestore the build machine does not run (docs/15 §2)."""
     from tests.fakes.bank_line_repository import FakeBankLineRepository
+    from tests.fakes.counterparty_repository import FakeCounterpartyRepository
     from tests.fakes.decision_repository import FakeDecisionRepository
     from tests.fakes.document_reader import FakeDocumentReader
     from tests.fakes.finding_repository import FakeFindingRepository
@@ -28,6 +29,7 @@ def _never_a_real_model_or_store(monkeypatch: pytest.MonkeyPatch) -> None:
     from tests.fakes.match_repository import FakeMatchRepository
     from tests.fakes.record_repository import fake_invoices, fake_receipts
     from tests.fakes.review_item_repository import FakeReviewItemRepository
+    from tests.fakes.suggestion_repository import FakeSuggestionRepository
 
     monkeypatch.setattr("app.main.GeminiDocumentReader", lambda settings: FakeDocumentReader())
     monkeypatch.setattr("app.main.FirestoreBankLineRepository", lambda db: FakeBankLineRepository())
@@ -38,6 +40,12 @@ def _never_a_real_model_or_store(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("app.main.FirestoreMatchRepository", lambda db: FakeMatchRepository())
     monkeypatch.setattr("app.main.FirestoreReviewItemRepo", lambda db: FakeReviewItemRepository())
     monkeypatch.setattr("app.main.FirestoreLedgerRepository", lambda db: FakeLedgerRepository())
+    monkeypatch.setattr(
+        "app.main.FirestoreCounterpartyRepository", lambda db: FakeCounterpartyRepository()
+    )
+    monkeypatch.setattr(
+        "app.main.FirestoreSuggestionRepository", lambda db: FakeSuggestionRepository()
+    )
 
 
 @pytest.fixture

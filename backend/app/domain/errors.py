@@ -362,3 +362,16 @@ class ItemAlreadyResolvedError(DomainError):
             detail=f"Review item {item_id} has already been resolved.",
             extras={"itemId": item_id},
         )
+
+
+class SuggestionAlreadyDecidedError(DomainError):
+    """A profile suggestion is decided once (409, spec 014 AC-014-5)."""
+
+    def __init__(self, suggestion_id: str, status: str) -> None:
+        super().__init__(
+            code="SUGGESTION_ALREADY_DECIDED",
+            status=409,
+            title="Suggestion already decided",
+            detail=f"Suggestion {suggestion_id} is already {status.lower()}.",
+            extras={"suggestionId": suggestion_id, "status": status},
+        )

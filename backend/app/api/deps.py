@@ -9,6 +9,7 @@ from app.ports.finding_repository import FindingRepository
 from app.ports.match_repository import MatchRepository
 from app.services.assistant_service import AssistantService
 from app.services.bank_line_service import BankLineService
+from app.services.counterparty_service import CounterpartyService
 from app.services.decision_service import DecisionService
 from app.services.document_service import DocumentService
 from app.services.entitlement_service import EntitlementService
@@ -20,6 +21,7 @@ from app.services.profit_loss_service import ProfitLossService
 from app.services.record_service import RecordService
 from app.services.review_service import ReviewService
 from app.services.runs import RunService
+from app.services.suggestion_service import SuggestionService
 from app.services.workspace_service import WorkspaceService
 
 
@@ -77,6 +79,12 @@ class ServiceProvider(Protocol):
 
     @property
     def assistant_service(self) -> AssistantService: ...
+
+    @property
+    def counterparty_service(self) -> CounterpartyService: ...
+
+    @property
+    def suggestion_service(self) -> SuggestionService: ...
 
 
 def org_of(principal: Principal) -> str:

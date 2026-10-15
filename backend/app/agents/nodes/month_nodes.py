@@ -1,6 +1,7 @@
 """Month workflow node factories with stubs for specs 004-008 (docs/06 §3, §4)."""
 
 import hashlib
+from datetime import date
 from decimal import Decimal
 from typing import Any
 
@@ -25,6 +26,7 @@ from app.agents.month_result import MonthResult, PendingMonths, run_key
 from app.agents.stages import stage
 from app.domain.categorize import Framework
 from app.domain.checks.month import MonthContext, run_month_checks
+from app.domain.counterparties import build_counterparties as group_counterparties
 from app.domain.evidence import document_evidence, line_support
 from app.domain.figures import month_figures
 from app.domain.findings import Finding, merge_findings
@@ -35,6 +37,11 @@ from app.domain.models.month import Month, MonthState
 from app.domain.models.run import RunStatus
 from app.domain.money_flow import build_money_flow
 from app.domain.next_steps import next_steps_for_findings
+from app.domain.profile_suggestions import (
+    InvoiceFacts,
+    StatementFacts,
+    build_profile_suggestions,
+)
 from app.domain.reconcile import assign_matches
 from app.domain.review_items import (
     Check,
@@ -284,18 +291,113 @@ def check_month(deps: PipelineDeps, pending: PendingMonths):
     return _node
 
 
+async def _own_names(deps: PipelineDeps, org_id: str) -> list[str]:
+    workspace = await deps.workspaces.get_workspace(org_id) if deps.workspaces else None
+    if workspace is None:
+        return []
+    profile = workspace.profile
+    names = [workspace.name, profile.legal_name, profile.trading_name, *profile.aliases]
+    return [n for n in names if n]
+
+
+# Clients and suppliers from every eligible line, invoice and receipt (spec 014, AC-014-1): the
+# whole picture is rebuilt by code on each run, so it never depends on the order months ran.
 def build_counterparties(deps: PipelineDeps):
     @stage(deps, "build_counterparties")
     async def _node(ctx: Context, node_input: dict[str, Any]) -> dict[str, Any]:
-        return {**node_input, "summary": "Skipped: counterparty building is not implemented"}
+        org_id, month = _org_month(node_input)
+        if deps.counterparties is None or deps.categories is None:
+            return {**node_input, "summary": "Skipped: counterparty store not configured"}
+        data = await read_month(deps, org_id, month)
+        if data is None:
+            return {**node_input, "summary": "Skipped: the books are not readable"}
+        parties = group_counterparties(
+            data.all_lines,
+            data.invoices,
+            data.receipts,
+            policy=deps.categories,
+            own_names=await _own_names(deps, org_id),
+        )
+        await deps.counterparties.replace_all(org_id, parties)
+        if deps.bank_lines is not None:
+            await deps.bank_lines.set_counterparties(
+                org_id, {tx: p.counterparty_id for p in parties for tx in p.bank_line_ids}
+            )
+        if deps.invoices is not None:
+            await deps.invoices.set_counterparties(
+                org_id, {i: p.counterparty_id for p in parties for i in p.invoice_ids}
+            )
+        if deps.receipts is not None:
+            await deps.receipts.set_counterparties(
+                org_id, {r: p.counterparty_id for p in parties for r in p.receipt_ids}
+            )
+        return {**node_input, "summary": f"{len(parties)} counterpart(ies)"}
 
     return _node
 
 
+def _agreed(consensus: dict[str, dict[str, Any]], field: str) -> bool:
+    return consensus.get(field, {}).get("status") == "AGREED"
+
+
+# Profile suggestions from the documents (spec 014, AC-014-4): tax ID and address here; the
+# account suggestion is made where the statement is read, with the digits' hash in hand.
 def suggest_profile(deps: PipelineDeps):
     @stage(deps, "suggest_profile")
     async def _node(ctx: Context, node_input: dict[str, Any]) -> dict[str, Any]:
-        return {**node_input, "summary": "Skipped: profile suggestions are not implemented"}
+        org_id, _ = _org_month(node_input)
+        if deps.suggestions is None or deps.workspaces is None or deps.invoices is None:
+            return {**node_input, "summary": "Skipped: suggestion store not configured"}
+        workspace = await deps.workspaces.get_workspace(org_id)
+        if workspace is None:
+            return {**node_input, "summary": "Skipped: no workspace"}
+        docs, _ = await deps.doc_repo.list_documents(org_id, limit=500)
+        statements: list[StatementFacts] = []
+        for d in docs:
+            meta = d.statement_meta or {}
+            if d.doc_type != DocType.BANK_STATEMENT or d.status != DocStatus.DONE or not meta:
+                continue
+            start = meta.get("periodStart")
+            statements.append(
+                StatementFacts(
+                    doc_id=d.doc_id,
+                    page=1,
+                    bank_name=meta.get("bankName"),
+                    account_masked=meta.get("accountMasked"),
+                    account_hash=None,
+                    holder_name=meta.get("accountHolder"),
+                    holder_address=meta.get("holderAddress"),
+                    period_start=date.fromisoformat(start) if start else None,
+                    agreed=float((d.reading or {}).get("agreement") or 0) >= 0.99,
+                )
+            )
+        invoices = [
+            InvoiceFacts(
+                invoice_id=inv.invoice_id,
+                doc_id=inv.doc_id,
+                page=inv.pages[0] if inv.pages else 1,
+                kind=inv.kind,
+                issuer_name=inv.issuer_name,
+                issuer_tax_id=inv.issuer_tax_id,
+                issue_date=inv.issue_date,
+                agreed=_agreed(inv.consensus, "issuerTaxId"),
+            )
+            for inv in await deps.invoices.list_records(org_id, limit=2000)
+        ]
+        rejected = {
+            s.suggestion_id
+            for s in await deps.suggestions.list_suggestions(org_id, status="REJECTED")
+        }
+        fresh = build_profile_suggestions(
+            profile=workspace.profile,
+            accounts=await deps.workspaces.list_bank_accounts(org_id),
+            statements=statements,
+            invoices=invoices,
+            own_names=await _own_names(deps, org_id),
+            rejected=rejected,
+        )
+        await deps.suggestions.upsert_open(org_id, fresh)
+        return {**node_input, "summary": f"{len(fresh)} profile suggestion(s)"}
 
     return _node
 

@@ -143,13 +143,19 @@ def create_records_router(provider: ServiceProvider, workspace_dep: Any) -> APIR
         doc_id: str | None = Query(default=None, alias="docId"),
         kind: str | None = Query(default=None, pattern="^(SALES|PURCHASE)$"),
         month: str | None = Query(default=None, pattern=_MONTH),
+        counterparty_id: str | None = Query(default=None, alias="counterpartyId"),
         limit: int = Query(default=200, ge=1, le=500),
         principal: Principal = Depends(workspace_dep),
     ) -> dict[str, Any]:
         org_id = org_of(principal)
         service = provider.record_service
         found = await service.list_invoices(
-            org_id, doc_id=doc_id, month=month, kind=kind, limit=limit
+            org_id,
+            doc_id=doc_id,
+            month=month,
+            kind=kind,
+            limit=limit,
+            counterparty_id=counterparty_id,
         )
         currency = await service.currency(org_id)
         return {"items": [invoice_body(i, currency) for i in found], "nextCursor": None}
@@ -158,12 +164,15 @@ def create_records_router(provider: ServiceProvider, workspace_dep: Any) -> APIR
     async def list_receipts(
         doc_id: str | None = Query(default=None, alias="docId"),
         month: str | None = Query(default=None, pattern=_MONTH),
+        counterparty_id: str | None = Query(default=None, alias="counterpartyId"),
         limit: int = Query(default=200, ge=1, le=500),
         principal: Principal = Depends(workspace_dep),
     ) -> dict[str, Any]:
         org_id = org_of(principal)
         service = provider.record_service
-        found = await service.list_receipts(org_id, doc_id=doc_id, month=month, limit=limit)
+        found = await service.list_receipts(
+            org_id, doc_id=doc_id, month=month, limit=limit, counterparty_id=counterparty_id
+        )
         currency = await service.currency(org_id)
         return {"items": [receipt_body(r, currency) for r in found], "nextCursor": None}
 

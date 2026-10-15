@@ -55,7 +55,7 @@ def invoice_to_doc(inv: Invoice) -> InvoiceDoc:
         ],
         supply_kind=inv.supply_kind, pages=inv.pages, consensus=inv.consensus, notes=inv.notes,
         evidence=inv.evidence, corrected_fields=inv.corrected_fields, corrected_by=inv.corrected_by,
-        corrected_at=inv.corrected_at,
+        corrected_at=inv.corrected_at, counterparty_id=inv.counterparty_id,
     )  # fmt: skip
 
 
@@ -82,7 +82,7 @@ def invoice_from_doc(doc: InvoiceDoc) -> Invoice:
         ],
         pages=doc.pages, consensus=doc.consensus, notes=doc.notes, evidence=doc.evidence,
         corrected_fields=doc.corrected_fields, corrected_by=doc.corrected_by,
-        corrected_at=doc.corrected_at,
+        corrected_at=doc.corrected_at, counterparty_id=doc.counterparty_id,
     )  # fmt: skip
 
 
@@ -97,7 +97,7 @@ def receipt_to_doc(r: Receipt) -> ReceiptDoc:
                for i in r.items],
         pages=r.pages, consensus=r.consensus, notes=r.notes, evidence=r.evidence,
         corrected_fields=r.corrected_fields, corrected_by=r.corrected_by,
-        corrected_at=r.corrected_at,
+        corrected_at=r.corrected_at, counterparty_id=r.counterparty_id,
     )  # fmt: skip
 
 
@@ -111,7 +111,7 @@ def receipt_from_doc(doc: ReceiptDoc) -> Receipt:
         items=[ReceiptItem(i.description, _money(i.amount_minor)) for i in doc.items],
         pages=doc.pages, consensus=doc.consensus, notes=doc.notes, evidence=doc.evidence,
         corrected_fields=doc.corrected_fields, corrected_by=doc.corrected_by,
-        corrected_at=doc.corrected_at,
+        corrected_at=doc.corrected_at, counterparty_id=doc.counterparty_id,
     )  # fmt: skip
 
 
@@ -166,6 +166,16 @@ class FirestoreRecordRepository[T, D: FirestoreModel](DocumentRecords[T]):
                 batch.update(ref, {"heldAsDuplicate": held})
             await batch.commit()
 
+    async def set_counterparties(self, org_id: str, updates: dict[str, str | None]) -> None:
+        items = sorted(updates.items())
+        for start in range(0, len(items), _BATCH):
+            batch = self._db.batch()
+            for record_id, counterparty_id in items[start : start + _BATCH]:
+                batch.update(
+                    self._col(org_id).document(record_id), {"counterpartyId": counterparty_id}
+                )
+            await batch.commit()
+
     async def set_evidence(self, org_id: str, updates: dict[str, dict[str, Any]]) -> None:
         items = sorted(updates.items())
         for start in range(0, len(items), _BATCH):
@@ -193,13 +203,21 @@ class FirestoreRecordRepository[T, D: FirestoreModel](DocumentRecords[T]):
         return self._from_doc(self._model.model_validate(snap.to_dict())) if snap.exists else None
 
     async def list_records(
-        self, org_id: str, *, doc_id: str | None = None, month: str | None = None, limit: int = 200
+        self,
+        org_id: str,
+        *,
+        doc_id: str | None = None,
+        month: str | None = None,
+        counterparty_id: str | None = None,
+        limit: int = 200,
     ) -> list[T]:
         query = self._col(org_id)
         if doc_id:
             query = query.where(filter=FieldFilter("docId", "==", doc_id))
         if month:
             query = query.where(filter=FieldFilter("month", "==", month))
+        if counterparty_id:
+            query = query.where(filter=FieldFilter("counterpartyId", "==", counterparty_id))
         found = [
             self._from_doc(self._model.model_validate(s.to_dict()))
             async for s in query.limit(limit).stream()

@@ -32,30 +32,32 @@ lines:
   NONE:               { order: 9, ifrs: "Not a cash flow",            usGaap: "Not a cash flow" }
 
 categories:
+  # counterpartyRole: the role a line's party gets from this category (docs/08 §4.2);
+  # bucket: the named counterparty for rows of this category that name nobody.
   # ---------------------------------------------------------------- money in
-  - { id: SALES_RECEIPT,          direction: in,  line: REVENUE,            label: "Sales receipts",            ifrs: OPERATING, usGaap: OPERATING }
-  - { id: OTHER_OPERATING_INCOME, direction: in,  line: OTHER_INCOME,       label: "Other operating income",    ifrs: OPERATING, usGaap: OPERATING }
-  - { id: INTEREST_RECEIVED,      direction: in,  line: OTHER_INCOME,       label: "Interest received",         ifrs: INVESTING, usGaap: OPERATING }
-  - { id: ASSET_SALE,             direction: in,  line: INVESTING,          label: "Sale of equipment",         ifrs: INVESTING, usGaap: INVESTING }
-  - { id: LOAN_DISBURSEMENT,      direction: in,  line: FINANCING,          label: "Loan received",             ifrs: FINANCING, usGaap: FINANCING }
-  - { id: OWNER_CAPITAL,          direction: in,  line: FINANCING,          label: "Owner's capital",           ifrs: FINANCING, usGaap: FINANCING }
+  - { id: SALES_RECEIPT,          direction: in,  line: REVENUE,            label: "Sales receipts",            ifrs: OPERATING, usGaap: OPERATING, counterpartyRole: CLIENT, bucket: "Cash sales" }
+  - { id: OTHER_OPERATING_INCOME, direction: in,  line: OTHER_INCOME,       label: "Other operating income",    ifrs: OPERATING, usGaap: OPERATING, counterpartyRole: OTHER, bucket: "Other income" }
+  - { id: INTEREST_RECEIVED,      direction: in,  line: OTHER_INCOME,       label: "Interest received",         ifrs: INVESTING, usGaap: OPERATING, counterpartyRole: OTHER, bucket: "Bank interest" }
+  - { id: ASSET_SALE,             direction: in,  line: INVESTING,          label: "Sale of equipment",         ifrs: INVESTING, usGaap: INVESTING, counterpartyRole: OTHER, bucket: "Asset sales" }
+  - { id: LOAN_DISBURSEMENT,      direction: in,  line: FINANCING,          label: "Loan received",             ifrs: FINANCING, usGaap: FINANCING, counterpartyRole: LENDER, bucket: "Loans received" }
+  - { id: OWNER_CAPITAL,          direction: in,  line: FINANCING,          label: "Owner's capital",           ifrs: FINANCING, usGaap: FINANCING, counterpartyRole: OWNER, bucket: "Owner capital" }
   # ---------------------------------------------------------------- money out
-  - { id: INVENTORY_PURCHASE,      direction: out, line: COST_OF_SALES,      label: "Purchases for sale or production", ifrs: OPERATING, usGaap: OPERATING, use: SUPPLIERS }
-  - { id: SUPPLIER_PAYMENT,        direction: out, line: OPERATING_EXPENSES, label: "Other suppliers and services",    ifrs: OPERATING, usGaap: OPERATING, use: SUPPLIERS }
-  - { id: PAYROLL,                 direction: out, line: OPERATING_EXPENSES, label: "Payroll",                 ifrs: OPERATING, usGaap: OPERATING, use: PAYROLL }
-  - { id: RENT,                    direction: out, line: OPERATING_EXPENSES, label: "Rent",                    ifrs: OPERATING, usGaap: OPERATING, use: RENT_UTILITIES }
-  - { id: UTILITIES,               direction: out, line: OPERATING_EXPENSES, label: "Utilities",               ifrs: OPERATING, usGaap: OPERATING, use: RENT_UTILITIES }
-  - { id: BANK_FEES,               direction: out, line: OPERATING_EXPENSES, label: "Bank fees",               ifrs: OPERATING, usGaap: OPERATING, use: OTHER }
-  - { id: OTHER_OPERATING_EXPENSE, direction: out, line: OPERATING_EXPENSES, label: "Other spending",          ifrs: OPERATING, usGaap: OPERATING, use: OTHER }
-  - { id: TAX_PAYMENT,             direction: out, line: INCOME_TAX,         label: "Tax",                     ifrs: OPERATING, usGaap: OPERATING, use: TAX }
-  - { id: INTEREST_PAID,           direction: out, line: FINANCE_COSTS,      label: "Interest paid",           ifrs: FINANCING, usGaap: OPERATING, use: LOANS }
-  - { id: ASSET_PURCHASE,          direction: out, line: INVESTING,          label: "Equipment bought",        ifrs: INVESTING, usGaap: INVESTING, use: SUPPLIERS }
-  - { id: LOAN_REPAYMENT,          direction: out, line: FINANCING,          label: "Loan principal repaid",   ifrs: FINANCING, usGaap: FINANCING, use: LOANS }
-  - { id: OWNER_DRAWING,           direction: out, line: FINANCING,          label: "Owner drawings",          ifrs: FINANCING, usGaap: FINANCING, use: OWNER }
+  - { id: INVENTORY_PURCHASE,      direction: out, line: COST_OF_SALES,      label: "Purchases for sale or production", ifrs: OPERATING, usGaap: OPERATING, use: SUPPLIERS, counterpartyRole: SUPPLIER, bucket: "Purchases" }
+  - { id: SUPPLIER_PAYMENT,        direction: out, line: OPERATING_EXPENSES, label: "Other suppliers and services",    ifrs: OPERATING, usGaap: OPERATING, use: SUPPLIERS, counterpartyRole: SUPPLIER, bucket: "Suppliers and services" }
+  - { id: PAYROLL,                 direction: out, line: OPERATING_EXPENSES, label: "Payroll",                 ifrs: OPERATING, usGaap: OPERATING, use: PAYROLL, counterpartyRole: OTHER, bucket: "Payroll" }
+  - { id: RENT,                    direction: out, line: OPERATING_EXPENSES, label: "Rent",                    ifrs: OPERATING, usGaap: OPERATING, use: RENT_UTILITIES, counterpartyRole: OTHER, bucket: "Rent" }
+  - { id: UTILITIES,               direction: out, line: OPERATING_EXPENSES, label: "Utilities",               ifrs: OPERATING, usGaap: OPERATING, use: RENT_UTILITIES, counterpartyRole: OTHER, bucket: "Utilities" }
+  - { id: BANK_FEES,               direction: out, line: OPERATING_EXPENSES, label: "Bank fees",               ifrs: OPERATING, usGaap: OPERATING, use: OTHER, counterpartyRole: OTHER, bucket: "Bank fees" }
+  - { id: OTHER_OPERATING_EXPENSE, direction: out, line: OPERATING_EXPENSES, label: "Other spending",          ifrs: OPERATING, usGaap: OPERATING, use: OTHER, counterpartyRole: OTHER, bucket: "Other spending" }
+  - { id: TAX_PAYMENT,             direction: out, line: INCOME_TAX,         label: "Tax",                     ifrs: OPERATING, usGaap: OPERATING, use: TAX, counterpartyRole: GOVERNMENT, bucket: "Tax payments" }
+  - { id: INTEREST_PAID,           direction: out, line: FINANCE_COSTS,      label: "Interest paid",           ifrs: FINANCING, usGaap: OPERATING, use: LOANS, counterpartyRole: LENDER, bucket: "Loan interest" }
+  - { id: ASSET_PURCHASE,          direction: out, line: INVESTING,          label: "Equipment bought",        ifrs: INVESTING, usGaap: INVESTING, use: SUPPLIERS, counterpartyRole: SUPPLIER, bucket: "Equipment and assets" }
+  - { id: LOAN_REPAYMENT,          direction: out, line: FINANCING,          label: "Loan principal repaid",   ifrs: FINANCING, usGaap: FINANCING, use: LOANS, counterpartyRole: LENDER, bucket: "Loan payments" }
+  - { id: OWNER_DRAWING,           direction: out, line: FINANCING,          label: "Owner drawings",          ifrs: FINANCING, usGaap: FINANCING, use: OWNER, counterpartyRole: OWNER, bucket: "Owner drawings" }
   # ---------------------------------------------------------------- not cash flows of the business
-  - { id: INTERNAL_TRANSFER,       direction: either, line: NONE, label: "Between own accounts", ifrs: NON_CASH, usGaap: NON_CASH }
-  - { id: REVERSAL,                direction: either, line: NONE, label: "Reversal",             ifrs: NON_CASH, usGaap: NON_CASH }
-  - { id: UNKNOWN,                 direction: either, line: NONE, label: "Not categorized yet",  ifrs: UNCLASSIFIED, usGaap: UNCLASSIFIED, use: UNCATEGORIZED }
+  - { id: INTERNAL_TRANSFER,       direction: either, line: NONE, label: "Between own accounts", ifrs: NON_CASH, usGaap: NON_CASH, counterpartyRole: OWN_ACCOUNT, bucket: "Own accounts" }
+  - { id: REVERSAL,                direction: either, line: NONE, label: "Reversal",             ifrs: NON_CASH, usGaap: NON_CASH, counterpartyRole: OTHER, bucket: "Reversals" }
+  - { id: UNKNOWN,                 direction: either, line: NONE, label: "Not categorized yet",  ifrs: UNCLASSIFIED, usGaap: UNCLASSIFIED, use: UNCATEGORIZED, counterpartyRole: OTHER, bucket: "Not categorized yet" }
 
 # ---------------------------------------------------------------- money-flow chart (docs/08 §5.1)
 # Statement lines with `split: true` show one node per category in the chart's last column. `use`

@@ -70,10 +70,16 @@ class BankLineService:
         return changed, workspace.currency
 
     async def list_lines(
-        self, org_id: str, *, doc_id: str | None, month: str | None, limit: int
+        self,
+        org_id: str,
+        *,
+        doc_id: str | None,
+        month: str | None,
+        limit: int,
+        counterparty_id: str | None = None,
     ) -> tuple[list[BankLine], str]:
         workspace = await self._workspaces.get_workspace(org_id)
         currency = workspace.currency if workspace else "IDR"
         return await self._lines.list_lines(
-            org_id, doc_id=doc_id, month=month, limit=limit
+            org_id, doc_id=doc_id, month=month, counterparty_id=counterparty_id, limit=limit
         ), currency

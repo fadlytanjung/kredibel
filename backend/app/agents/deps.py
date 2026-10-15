@@ -10,6 +10,7 @@ from app.domain.models.invoice import Invoice, Receipt
 from app.domain.reconciliation_policy import ReconciliationPolicy
 from app.domain.risk import RiskPolicy
 from app.ports.bank_line_repository import BankLineRepository
+from app.ports.counterparty_repository import CounterpartyRepository
 from app.ports.decision_repository import DecisionRepository
 from app.ports.document_reader import DocumentReader
 from app.ports.document_repository import DocumentRepository
@@ -23,6 +24,7 @@ from app.ports.page_text import PageText
 from app.ports.record_repository import DocumentRecords
 from app.ports.review_item_repository import ReviewItemRepository
 from app.ports.run_repository import RunRepository
+from app.ports.suggestion_repository import SuggestionRepository
 from app.ports.task_queue import TaskQueue
 from app.ports.workspace_repository import WorkspaceRepository
 
@@ -61,3 +63,6 @@ class PipelineDeps:
     review_items: ReviewItemRepository | None = None
     # Ledger repository (spec 018).
     ledger: LedgerRepository | None = None
+    # Clients and suppliers, profile suggestions (spec 014).
+    counterparties: CounterpartyRepository | None = None
+    suggestions: SuggestionRepository | None = None

@@ -14,6 +14,7 @@ from pydantic import BaseModel
 
 from app.agents.deps import PipelineDeps
 from app.agents.stages import stage
+from app.domain.accounts import account_hash
 from app.domain.categorize import (
     Categorized,
     CategoryPolicy,
@@ -56,6 +57,7 @@ from app.domain.models.document import (
     PageStatus,
 )
 from app.domain.page_triage import TextLayerStatus
+from app.domain.profile_suggestions import StatementFacts, build_profile_suggestions
 from app.domain.reading import (
     CategorizeResult,
     InvoicePageReading,
@@ -586,6 +588,8 @@ def verify_pages(deps: PipelineDeps):
             },
         )
         await deps.doc_repo.save_document(org_id, updated)
+        if outcome.statement_meta and outcome.account_hash:
+            await _suggest_account(deps, org_id, updated.doc_id, outcome)
         return {
             **doc_data,
             "months": outcome.months,
@@ -607,6 +611,7 @@ class _Verified:
     notes: list[str]
     statement_meta: dict[str, Any] | None = None
     doc_type: str | None = None  # an invoice document's type, decided in code (AC-005-1)
+    account_hash: str | None = None  # keyed hash of the statement's account digits (spec 014)
 
     @property
     def agreement(self) -> float:
@@ -636,10 +641,12 @@ async def _statement(
         page_agreement=result.page_agreement,
         months=result.months,
         notes=result.notes,
+        account_hash=account_hash(org_id, meta.account_digits) if meta.account_digits else None,
         statement_meta={
             "bankName": meta.bank_name,
             "accountHolder": meta.account_holder,
             "accountMasked": meta.account_masked,
+            "holderAddress": meta.holder_address,
             "currency": meta.currency,
             "periodStart": meta.period_start.isoformat() if meta.period_start else None,
             "periodEnd": meta.period_end.isoformat() if meta.period_end else None,
@@ -647,6 +654,43 @@ async def _statement(
             "closingMinor": _minor(meta.closing),
         },
     )
+
+
+async def _suggest_account(
+    deps: PipelineDeps, org_id: str, doc_id: str, outcome: "_Verified"
+) -> None:
+    """A statement account the workspace has not declared becomes a suggestion (spec 014); the
+    digits' keyed hash travels with it to orgPrivate, never the digits."""
+    if deps.suggestions is None or deps.workspaces is None:
+        return
+    workspace = await deps.workspaces.get_workspace(org_id)
+    if workspace is None:
+        return
+    meta = outcome.statement_meta or {}
+    start = meta.get("periodStart")
+    facts = StatementFacts(
+        doc_id=doc_id,
+        page=1,
+        bank_name=meta.get("bankName"),
+        account_masked=meta.get("accountMasked"),
+        account_hash=outcome.account_hash,
+        holder_name=meta.get("accountHolder"),
+        holder_address=meta.get("holderAddress"),
+        period_start=date.fromisoformat(start) if start else None,
+        agreed=outcome.agreement >= 0.99,
+    )
+    rejected = {
+        s.suggestion_id for s in await deps.suggestions.list_suggestions(org_id, status="REJECTED")
+    }
+    fresh = build_profile_suggestions(
+        profile=workspace.profile,
+        accounts=await deps.workspaces.list_bank_accounts(org_id),
+        statements=[facts],
+        invoices=[],
+        own_names=[n for n in await _own_names(deps, org_id) if n],
+        rejected=rejected,
+    )
+    await deps.suggestions.upsert_open(org_id, [s for s in fresh if s.field == "BANK_ACCOUNT"])
 
 
 async def _own_names(deps: PipelineDeps, org_id: str) -> list[str]:

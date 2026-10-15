@@ -70,6 +70,7 @@
       "corrected_at": "datetime | None",
       "corrected_by": "str | None",
       "corrected_fields": "list[str]",
+      "counterparty_id": "str | None",
       "counterparty_name": "str | None",
       "date": "str",
       "description": "str",
@@ -86,6 +87,28 @@
       "tx_id": "str"
     },
     "file": "bank_line.py",
+    "schemaVersion": null
+  },
+  "CounterpartyDoc": {
+    "fields": {
+      "accounts_seen": "list[dict[str, Any]]",
+      "aliases": "list[str]",
+      "bank_line_ids": "list[str]",
+      "bucket": "bool",
+      "counterparty_id": "str",
+      "first_date": "str | None",
+      "invoice_ids": "list[str]",
+      "kind": "str",
+      "last_date": "str | None",
+      "name": "str",
+      "name_fold": "str",
+      "open_invoices": "int",
+      "receipt_ids": "list[str]",
+      "roles": "list[str]",
+      "sample_evidence": "list[dict[str, Any]]",
+      "totals_by_month": "dict[str, dict[str, int]]"
+    },
+    "file": "counterparty.py",
     "schemaVersion": null
   },
   "DecisionDoc": {
@@ -339,6 +362,7 @@
       "corrected_at": "datetime | None",
       "corrected_by": "str | None",
       "corrected_fields": "list[str]",
+      "counterparty_id": "str | None",
       "currency": "str | None",
       "date": "str | None",
       "doc_id": "str",
@@ -449,6 +473,23 @@
       "uid": "str"
     },
     "file": "workspace.py",
+    "schemaVersion": null
+  },
+  "SuggestionDoc": {
+    "fields": {
+      "basis": "str",
+      "confidence": "str",
+      "conflict_with": "str | None",
+      "decided_at": "datetime | None",
+      "decided_by": "str | None",
+      "display": "str",
+      "evidence": "list[dict[str, Any]]",
+      "field": "str",
+      "status": "str",
+      "suggestion_id": "str",
+      "value": "dict[str, Any]"
+    },
+    "file": "suggestion.py",
     "schemaVersion": null
   },
   "ThreadDoc": {

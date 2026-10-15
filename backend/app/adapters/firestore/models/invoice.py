@@ -84,6 +84,7 @@ class ReceiptDoc(FirestoreModel):
     notes: list[str] = Field(default_factory=list)
     payment: dict[str, Any] = Field(default_factory=_unpaid)
     evidence: dict[str, Any] | None = None
+    counterparty_id: str | None = None
     # A person's corrections through review (T009-03a); optional, so older documents read as none.
     corrected_fields: list[str] = Field(default_factory=list)
     corrected_by: str | None = None

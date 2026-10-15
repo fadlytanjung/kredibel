@@ -18,6 +18,7 @@ from typing import Any
 import pytest
 
 from app.adapters.cloud_tasks import InlineTaskQueue
+from app.domain.accounts import mask_tax_id
 from app.domain.categorize import by_rules
 from app.domain.models.bank_line import BankLine
 from app.domain.models.document import (
@@ -55,6 +56,10 @@ def scenario_file(scenario: str, name: str) -> Path:
 
 def doc_id_of(key: str) -> str:
     return f"doc_{key}"
+
+
+def _masked_tax(raw: str | None) -> str | None:
+    return mask_tax_id(raw) if raw else None
 
 
 def _money(text: str | None) -> Decimal | None:
@@ -139,8 +144,11 @@ def bank_lines(entry: dict[str, Any], doc_id: str, policy, framework: str) -> li
 
 
 def statement_meta(entry: dict[str, Any]) -> dict[str, Any]:
+    address = entry.get("holderAddress")
     return {
         "bankName": entry["bank"],
+        "accountHolder": entry.get("holder"),
+        "holderAddress": "\n".join(address) if isinstance(address, list) else address,
         "accountMasked": f"••••{entry['accountNumber'][-4:]}",
         "currency": entry["currency"],
         "periodStart": entry["period"]["start"],
@@ -164,14 +172,17 @@ def invoice(entry: dict[str, Any], doc_id: str, own_name: str) -> Invoice:
         month=entry["issueDate"][:7],
         total=Decimal(entry["total"]),
         currency=entry["currency"],
-        issuer_tax_id=entry["issuer"].get("taxId"),
-        buyer_tax_id=entry["billTo"].get("taxId"),
+        issuer_tax_id=_masked_tax(entry["issuer"].get("taxId")),  # stored masked (docs/14 §6)
+        buyer_tax_id=_masked_tax(entry["billTo"].get("taxId")),
         due_date=date.fromisoformat(entry["dueDate"]),
         subtotal=_money(entry.get("subtotal")),
         tax=_money(entry.get("vat")),
         pay_to_bank=(entry.get("payTo") or {}).get("bankName"),
         pay_to_masked=f"••••{pay_to[-4:]}" if pay_to else None,
         supply_kind="GOODS",
+        consensus={
+            f: {"status": "AGREED", "page": 1} for f in ("issuerTaxId", "total", "issueDate")
+        },
         lines=[
             InvoiceLine(
                 ln["description"],

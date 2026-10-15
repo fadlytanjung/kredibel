@@ -36,7 +36,13 @@ class FakeRecords[T](DocumentRecords[T]):
         return self.records.get((org_id, record_id))
 
     async def list_records(
-        self, org_id: str, *, doc_id: str | None = None, month: str | None = None, limit: int = 200
+        self,
+        org_id: str,
+        *,
+        doc_id: str | None = None,
+        month: str | None = None,
+        counterparty_id: str | None = None,
+        limit: int = 200,
     ) -> list[T]:
         found = [
             v
@@ -44,8 +50,15 @@ class FakeRecords[T](DocumentRecords[T]):
             if o == org_id
             and (doc_id is None or v.doc_id == doc_id)  # type: ignore[attr-defined]
             and (month is None or v.month == month)  # type: ignore[attr-defined]
+            and (counterparty_id is None or v.counterparty_id == counterparty_id)  # type: ignore[attr-defined]
         ]
         return sorted(found, key=self._order)[:limit]
+
+    async def set_counterparties(self, org_id: str, updates: dict[str, str | None]) -> None:
+        for record_id, counterparty_id in updates.items():
+            record = self.records.get((org_id, record_id))
+            if record is not None:
+                record.counterparty_id = counterparty_id  # type: ignore[attr-defined]
 
     async def set_held(self, org_id: str, doc_id: str, held: bool) -> None:
         (self.held.add if held else self.held.discard)((org_id, doc_id))

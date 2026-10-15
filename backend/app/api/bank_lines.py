@@ -31,7 +31,7 @@ def bank_line_body(line: BankLine, currency: str) -> dict[str, Any]:
         "date": line.date.isoformat(),
         "month": line.month,
         "description": line.description,
-        "counterpartyId": None,
+        "counterpartyId": line.counterparty_id,
         "counterpartyName": line.counterparty_name,
         "amount": _money(line.amount, currency),
         "balance": _money(line.balance, currency),
@@ -77,6 +77,7 @@ def create_bank_lines_router(provider: ServiceProvider, workspace_dep: Any) -> A
         doc_id: str | None = Query(default=None, alias="docId"),
         month: str | None = Query(default=None, pattern=r"^\d{4}-(0[1-9]|1[0-2])$"),
         flow: str | None = Query(default=None, max_length=300),
+        counterparty_id: str | None = Query(default=None, alias="counterpartyId"),
         period: str = Query(default="all", pattern=PERIOD),
         view: Literal["STATEMENT", "COUNTERPARTIES"] = Query(default="STATEMENT"),
         framework: Literal["IFRS", "US_GAAP"] | None = Query(default=None),
@@ -97,7 +98,11 @@ def create_bank_lines_router(provider: ServiceProvider, workspace_dep: Any) -> A
             lines = lines[:limit]
         else:
             lines, currency = await provider.bank_line_service.list_lines(
-                org_of(principal), doc_id=doc_id, month=month, limit=limit
+                org_of(principal),
+                doc_id=doc_id,
+                month=month,
+                limit=limit,
+                counterparty_id=counterparty_id,
             )
         total = sum((line.amount for line in lines), Decimal("0"))
         return {

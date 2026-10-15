@@ -16,6 +16,7 @@ class BankLineDoc(FirestoreModel):
     month: str
     description: str
     counterparty_name: str | None = None
+    counterparty_id: str | None = None
     amount_minor: int
     balance_minor: int | None = None
     source: str = "AI"
@@ -33,4 +34,3 @@ class BankLineDoc(FirestoreModel):
     corrected_fields: list[str] = Field(default_factory=list)
     corrected_by: str | None = None
     corrected_at: datetime | None = None
-

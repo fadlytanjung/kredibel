@@ -25,6 +25,7 @@ def _to_doc(line: BankLine) -> BankLineDoc:
         month=line.month,
         description=line.description,
         counterparty_name=line.counterparty_name,
+        counterparty_id=line.counterparty_id,
         amount_minor=line.amount_minor,
         balance_minor=line.balance_minor,
         source=line.source,
@@ -58,6 +59,7 @@ def _to_domain(doc: BankLineDoc) -> BankLine:
         amount=Decimal(doc.amount_minor) / 100,
         balance=None if doc.balance_minor is None else Decimal(doc.balance_minor) / 100,
         counterparty_name=doc.counterparty_name,
+        counterparty_id=doc.counterparty_id,
         source="WITNESS" if doc.source == "WITNESS" else "AI",
         consensus=doc.consensus,
         notes=doc.notes,
@@ -114,6 +116,14 @@ class FirestoreBankLineRepository(BankLineRepository):
             batch = self._db.batch()
             for ref in refs[start : start + _BATCH]:
                 batch.update(ref, {"heldAsDuplicate": held})
+            await batch.commit()
+
+    async def set_counterparties(self, org_id: str, updates: dict[str, str | None]) -> None:
+        items = sorted(updates.items())
+        for start in range(0, len(items), _BATCH):
+            batch = self._db.batch()
+            for tx_id, counterparty_id in items[start : start + _BATCH]:
+                batch.update(self._col(org_id).document(tx_id), {"counterpartyId": counterparty_id})
             await batch.commit()
 
     async def set_support(
@@ -176,13 +186,21 @@ class FirestoreBankLineRepository(BankLineRepository):
         return _to_domain(BankLineDoc.model_validate(snap.to_dict())) if snap.exists else None
 
     async def list_lines(
-        self, org_id: str, *, doc_id: str | None = None, month: str | None = None, limit: int = 500
+        self,
+        org_id: str,
+        *,
+        doc_id: str | None = None,
+        month: str | None = None,
+        counterparty_id: str | None = None,
+        limit: int = 500,
     ) -> list[BankLine]:
         query = self._col(org_id)
         if doc_id:
             query = query.where(filter=FieldFilter("docId", "==", doc_id))
         if month:
             query = query.where(filter=FieldFilter("month", "==", month))
+        if counterparty_id:
+            query = query.where(filter=FieldFilter("counterpartyId", "==", counterparty_id))
         lines = [
             _to_domain(BankLineDoc.model_validate(s.to_dict()))
             async for s in query.limit(limit).stream()

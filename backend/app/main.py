@@ -13,6 +13,7 @@ from app.adapters.cloud_tasks import CloudTasksQueue, InlineTaskQueue
 from app.adapters.firebase_identity import FirebaseIdentityAdmin
 from app.adapters.firestore.assistant_repo import FirestoreAssistantRepository
 from app.adapters.firestore.bank_line_repo import FirestoreBankLineRepository
+from app.adapters.firestore.counterparty_repo import FirestoreCounterpartyRepository
 from app.adapters.firestore.decision_repo import FirestoreDecisionRepository
 from app.adapters.firestore.document_repo import FirestoreDocumentRepository
 from app.adapters.firestore.finding_repo import FirestoreFindingRepository
@@ -22,6 +23,7 @@ from app.adapters.firestore.month_repo import FirestoreMonthRepository
 from app.adapters.firestore.record_repo import firestore_invoices, firestore_receipts
 from app.adapters.firestore.review_item_repo import FirestoreReviewItemRepo
 from app.adapters.firestore.run_repo import FirestoreRunRepository
+from app.adapters.firestore.suggestion_repo import FirestoreSuggestionRepository
 from app.adapters.firestore.usage_repo import FirestoreUsageRepository
 from app.adapters.firestore.workspace_repo import FirestoreWorkspaceRepository
 from app.adapters.gcs_storage import GcsDocumentStorage
@@ -45,6 +47,7 @@ from app.agents.workflows.month_workflow import build_month_workflow
 from app.api.assistant import create_assistant_router
 from app.api.bank_accounts import create_bank_accounts_router
 from app.api.bank_lines import create_bank_lines_router
+from app.api.counterparties import create_counterparties_router
 from app.api.decisions import create_decisions_router
 from app.api.documents import create_documents_router
 from app.api.findings import create_findings_router
@@ -59,6 +62,7 @@ from app.api.records import create_records_router
 from app.api.review_items import create_review_items_router
 from app.api.runs import create_runs_router
 from app.api.static import mount_static_spa
+from app.api.suggestions import create_suggestions_router
 from app.api.tasks import create_tasks_router
 from app.api.workspace import create_workspace_router
 from app.core.auth import (
@@ -85,6 +89,7 @@ from app.domain.risk import RiskPolicy
 from app.observability.tracing import setup_tracing
 from app.ports.assistant_repository import AssistantRepository
 from app.ports.bank_line_repository import BankLineRepository
+from app.ports.counterparty_repository import CounterpartyRepository
 from app.ports.decision_repository import DecisionRepository
 from app.ports.document_reader import DocumentReader
 from app.ports.document_repository import DocumentRepository
@@ -101,10 +106,12 @@ from app.ports.record_repository import DocumentRecords
 from app.ports.review_item_repository import ReviewItemRepository
 from app.ports.run_repository import RunRepository
 from app.ports.spreadsheet_reader import SpreadsheetReader
+from app.ports.suggestion_repository import SuggestionRepository
 from app.ports.task_queue import TaskQueue
 from app.ports.workspace_repository import UsageRepository, WorkspaceRepository
 from app.services.assistant_service import AssistantService
 from app.services.bank_line_service import BankLineService
+from app.services.counterparty_service import CounterpartyService
 from app.services.decision_service import DecisionService
 from app.services.document_service import DocumentService
 from app.services.entitlement_service import EntitlementService
@@ -116,6 +123,7 @@ from app.services.profit_loss_service import ProfitLossService
 from app.services.record_service import RecordService
 from app.services.review_service import ReviewService
 from app.services.runs import DocumentWorkflowRunner, MonthWorkflowRunner, RunService
+from app.services.suggestion_service import SuggestionService
 from app.services.workspace_service import WorkspaceService
 
 T = TypeVar("T")
@@ -157,6 +165,8 @@ class AppDeps:
         review_items: ReviewItemRepository | None = None,
         assistant_repo: AssistantRepository | None = None,
         ledger: LedgerRepository | None = None,
+        counterparties: CounterpartyRepository | None = None,
+        suggestions: SuggestionRepository | None = None,
     ) -> None:
         self.settings = settings
         self._plans = plans
@@ -185,6 +195,8 @@ class AppDeps:
         self._review_items = review_items
         self._assistant_repo = assistant_repo
         self._ledger = ledger
+        self._counterparties = counterparties
+        self._suggestions = suggestions
         self._built: dict[str, Any] = {}
 
     def _once(self, name: str, build: Callable[[], T]) -> T:
@@ -529,6 +541,38 @@ class AppDeps:
         )
 
     @property
+    def counterparty_repo(self) -> CounterpartyRepository:
+        return self._once(
+            "counterparty_repo",
+            lambda: self._counterparties or FirestoreCounterpartyRepository(self.firestore),
+        )
+
+    @property
+    def suggestion_repo(self) -> SuggestionRepository:
+        return self._once(
+            "suggestion_repo",
+            lambda: self._suggestions or FirestoreSuggestionRepository(self.firestore),
+        )
+
+    @property
+    def counterparty_service(self) -> CounterpartyService:
+        return self._once(
+            "counterparty_service",
+            lambda: CounterpartyService(
+                counterparties=self.counterparty_repo, workspaces=self.workspace_repo
+            ),
+        )
+
+    @property
+    def suggestion_service(self) -> SuggestionService:
+        return self._once(
+            "suggestion_service",
+            lambda: SuggestionService(
+                suggestions=self.suggestion_repo, workspaces=self.workspace_repo, clock=self.clock
+            ),
+        )
+
+    @property
     def document_workflow_runner(self) -> DocumentWorkflowRunner:
         if self._document_workflow_runner is not None:
             return self._document_workflow_runner
@@ -555,6 +599,7 @@ class AppDeps:
                 risk_policy=self.risk_policy,
                 ledger=self.ledger_repo,
                 review_items=self.review_items,
+                suggestions=self.suggestion_repo,
             )
             await run_workflow(
                 build_document_workflow(pipeline_deps),
@@ -592,6 +637,8 @@ class AppDeps:
                 risk_policy=self.risk_policy,
                 review_items=self.review_items,
                 ledger=self.ledger_repo,  # X09 and the ledger figures read the imported rows
+                counterparties=self.counterparty_repo,
+                suggestions=self.suggestion_repo,
                 reader=self.reader,  # explain_month words the month's risk (spec 008)
             )
             return await run_workflow(
@@ -780,6 +827,8 @@ def create_app(
         app.include_router(create_decisions_router(deps, workspace_dep))
         app.include_router(create_matches_router(deps, workspace_dep))
         app.include_router(create_review_items_router(deps, workspace_dep))
+        app.include_router(create_counterparties_router(deps, workspace_dep))
+        app.include_router(create_suggestions_router(deps, workspace_dep))
         app.include_router(create_assistant_router(deps, workspace_dep))
 
     # 3. Worker role endpoints

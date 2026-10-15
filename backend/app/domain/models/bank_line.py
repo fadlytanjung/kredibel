@@ -18,6 +18,7 @@ class BankLine:
     amount: Decimal  # signed: + credit, − debit
     balance: Decimal | None
     counterparty_name: str | None = None
+    counterparty_id: str | None = None  # written by the month run (spec 014)
     source: Literal["AI", "WITNESS"] = "AI"
     consensus: dict[str, dict[str, Any]] = field(default_factory=dict)
     notes: list[str] = field(default_factory=list)

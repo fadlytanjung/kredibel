@@ -18,7 +18,13 @@ class FakeBankLineRepository(BankLineRepository):
             self.lines[(org_id, line.tx_id)] = line
 
     async def list_lines(
-        self, org_id: str, *, doc_id: str | None = None, month: str | None = None, limit: int = 500
+        self,
+        org_id: str,
+        *,
+        doc_id: str | None = None,
+        month: str | None = None,
+        counterparty_id: str | None = None,
+        limit: int = 500,
     ) -> list[BankLine]:
         out = [
             v
@@ -26,8 +32,15 @@ class FakeBankLineRepository(BankLineRepository):
             if o == org_id
             and (doc_id is None or v.doc_id == doc_id)
             and (month is None or v.month == month)
+            and (counterparty_id is None or v.counterparty_id == counterparty_id)
         ]
         return sorted(out, key=lambda ln: (ln.date, ln.doc_id, ln.row_index))[:limit]
+
+    async def set_counterparties(self, org_id: str, updates: dict[str, str | None]) -> None:
+        for tx_id, counterparty_id in updates.items():
+            line = self.lines.get((org_id, tx_id))
+            if line is not None:
+                line.counterparty_id = counterparty_id
 
     async def set_held(self, org_id: str, doc_id: str, held: bool) -> None:
         (self.held.add if held else self.held.discard)((org_id, doc_id))

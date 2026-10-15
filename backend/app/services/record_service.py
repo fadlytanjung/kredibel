@@ -23,12 +23,29 @@ class RecordService:
         return workspace.currency if workspace else "IDR"
 
     async def list_invoices(
-        self, org_id: str, *, doc_id: str | None, month: str | None, kind: str | None, limit: int
+        self,
+        org_id: str,
+        *,
+        doc_id: str | None,
+        month: str | None,
+        kind: str | None,
+        limit: int,
+        counterparty_id: str | None = None,
     ) -> list[Invoice]:
-        found = await self._invoices.list_records(org_id, doc_id=doc_id, month=month, limit=limit)
+        found = await self._invoices.list_records(
+            org_id, doc_id=doc_id, month=month, counterparty_id=counterparty_id, limit=limit
+        )
         return [i for i in found if kind is None or i.kind == kind]
 
     async def list_receipts(
-        self, org_id: str, *, doc_id: str | None, month: str | None, limit: int
+        self,
+        org_id: str,
+        *,
+        doc_id: str | None,
+        month: str | None,
+        limit: int,
+        counterparty_id: str | None = None,
     ) -> list[Receipt]:
-        return await self._receipts.list_records(org_id, doc_id=doc_id, month=month, limit=limit)
+        return await self._receipts.list_records(
+            org_id, doc_id=doc_id, month=month, counterparty_id=counterparty_id, limit=limit
+        )

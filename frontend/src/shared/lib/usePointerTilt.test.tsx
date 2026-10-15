@@ -20,7 +20,7 @@ function renderProbe() {
 
 afterEach(() => vi.unstubAllGlobals())
 
-describe('usePointerTilt (spec 018, AC-018-12)', () => {
+describe('usePointerTilt (spec 020, AC-020-12)', () => {
   it('follows a fine pointer: the lamp position and the pointer flag', () => {
     stubMedia({ [FINE_POINTER]: true })
     const probe = renderProbe()

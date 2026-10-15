@@ -1,8 +1,8 @@
 import { test, expect, type Page } from '@playwright/test'
 
-// Public pages (spec 018). Baselines are recorded on the CI image (`make test-visual`); the landing
+// Public pages (spec 020). Baselines are recorded on the CI image (`make test-visual`); the landing
 // is the logged-out entry, so no session or network is needed. The pages are shot with reduced motion
-// so every depth scene is settled and nothing waits for a scroll reveal (docs/12 §12, AC-018-12).
+// so every depth scene is settled and nothing waits for a scroll reveal (docs/12 §12, AC-020-12).
 test.use({ reducedMotion: 'reduce' })
 
 async function settle(page: Page) {

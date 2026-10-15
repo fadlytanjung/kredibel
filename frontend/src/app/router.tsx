@@ -22,7 +22,7 @@ import { AppShell, Button } from '../shared/ui'
 import { TrialBanner } from '../widgets/TrialBanner'
 
 // The public pages load eagerly (the landing is the first paint); the signed-in app, Login and
-// Onboarding are split out of the first load (spec 018, T018-19; docs/11 performance budget).
+// Onboarding are split out of the first load (spec 020, T020-19; docs/11 performance budget).
 const DashboardPage = lazy(() => import('../pages/DashboardPage').then((m) => ({ default: m.DashboardPage })))
 const DocumentPage = lazy(() => import('../pages/DocumentPage').then((m) => ({ default: m.DocumentPage })))
 const DocumentsPage = lazy(() => import('../pages/DocumentsPage').then((m) => ({ default: m.DocumentsPage })))
@@ -120,7 +120,7 @@ export function OnboardingRoute({ children }: { children: ReactNode }) {
   return <>{children}</>
 }
 
-/** `/` is public: the landing for visitors, the dashboard for a signed-in user (spec 018, AC-018-1/9). */
+/** `/` is public: the landing for visitors, the dashboard for a signed-in user (spec 020, AC-020-1/9). */
 export function IndexRoute() {
   const { user, loading } = useAuth()
   if (loading) return <FullPageLoading />
@@ -128,7 +128,7 @@ export function IndexRoute() {
   return <LandingPage />
 }
 
-// Public pages served by the same SPA (spec 018, AC-018-6).
+// Public pages served by the same SPA (spec 020, AC-020-6).
 const PUBLIC_ROUTES: { path: string; element: ReactNode }[] = [
   { path: '/pricing', element: <PricingPage /> },
   { path: '/how-it-works', element: <HowItWorksPage /> },

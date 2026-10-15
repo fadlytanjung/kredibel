@@ -30,7 +30,7 @@ function stubObserver() {
 
 afterEach(() => vi.unstubAllGlobals())
 
-describe('useInViewAttr (spec 018, AC-018-12)', () => {
+describe('useInViewAttr (spec 020, AC-020-12)', () => {
   it('counts as in view when the browser has no IntersectionObserver', () => {
     stubMedia({})
     vi.stubGlobal('IntersectionObserver', undefined)

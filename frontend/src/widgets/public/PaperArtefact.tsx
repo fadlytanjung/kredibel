@@ -1,5 +1,5 @@
 /**
- * A textless paper sheet built from the product's shapes (spec 018; docs/12 §12): a statement, an
+ * A textless paper sheet built from the product's shapes (spec 020; docs/12 §12): a statement, an
  * invoice, a receipt or a ledger export. Purely decorative — hidden from assistive technology and
  * carrying no words, so it never repeats what the page says.
  */

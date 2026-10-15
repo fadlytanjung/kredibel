@@ -9,7 +9,7 @@ export interface InViewOptions {
 }
 
 /**
- * The `data-inview` attribute for a reveal (spec 018, AC-018-12; docs/12 §12): `"false"` until the
+ * The `data-inview` attribute for a reveal (spec 020, AC-020-12; docs/12 §12): `"false"` until the
  * element enters the viewport, then `"true"`. Where nothing should wait — no IntersectionObserver,
  * or reduced motion — it is `"true"` from the start, so content is never hidden behind a reveal.
  * Spread the result on the element: `<section ref={ref} {...useInViewAttr(ref)}>`.

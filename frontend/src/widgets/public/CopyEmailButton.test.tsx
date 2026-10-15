@@ -11,7 +11,7 @@ function renderButton() {
 
 afterEach(() => vi.unstubAllGlobals())
 
-describe('CopyEmailButton (spec 018, AC-018-7)', () => {
+describe('CopyEmailButton (spec 020, AC-020-7)', () => {
   it('copies the address and says so in a live region', async () => {
     const writeText = vi.fn(() => Promise.resolve())
     const user = userEvent.setup()

@@ -5,7 +5,7 @@ import { PublicShell } from '../../widgets/PublicShell'
 
 const SECTIONS = ['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8'] as const
 
-/** Terms of Service (spec 018 AC-018-7), as a reading layout with a contents rail. */
+/** Terms of Service (spec 020 AC-020-7), as a reading layout with a contents rail. */
 export function TermsPage() {
   const { t } = useTranslation('public')
 

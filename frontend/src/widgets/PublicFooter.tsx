@@ -5,7 +5,7 @@ import { useInViewAttr } from '../shared/lib/useInViewAttr'
 import { FOOTER_COMPANY, FOOTER_LEGAL, FOOTER_PRODUCT } from './publicNav'
 
 /**
- * The public site footer (spec 018, AC-018-6): the tagline set wide as a closing statement (it opens
+ * The public site footer (spec 020, AC-020-6): the tagline set wide as a closing statement (it opens
  * from a condensed width once, on arrival), the brand blurb, the product/company/legal columns and the
  * small print, on ink ledger paper.
  */

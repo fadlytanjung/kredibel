@@ -12,7 +12,7 @@ const PROPS = {
 
 afterEach(() => vi.unstubAllGlobals())
 
-describe('ReadTwiceScene (spec 018, AC-018-2)', () => {
+describe('ReadTwiceScene (spec 020, AC-020-2)', () => {
   it('shows the figure, both readings, the result and the caption', () => {
     render(<ReadTwiceScene {...PROPS} />)
     expect(screen.getByText('32,100,000')).toBeInTheDocument()

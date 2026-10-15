@@ -33,7 +33,7 @@ afterEach(() => {
   act(() => scroll.progress?.set(0))
 })
 
-describe('useScrollProgress (spec 018, AC-018-12)', () => {
+describe('useScrollProgress (spec 020, AC-020-12)', () => {
   it('writes the progress as --p on the element', () => {
     stubMedia({})
     render(<Probe />)

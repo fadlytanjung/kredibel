@@ -3,7 +3,7 @@ import { Button } from './Button'
 import { Icon } from './Icon'
 
 /**
- * The one live interaction on the landing (spec 018 AC-018-3): a possible copy is held, and choosing
+ * The one live interaction on the landing (spec 020 AC-020-3): a possible copy is held, and choosing
  * "Same document" keeps the running total while "Different" counts it. This is the product's rule
  * (constitution P5): copies are recorded, never read, until a person decides. Client-side only.
  */

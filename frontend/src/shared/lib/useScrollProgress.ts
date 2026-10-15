@@ -14,7 +14,7 @@ export interface ScrollProgressOptions {
 }
 
 /**
- * Scroll progress as the CSS custom property `--p` (0…1) on the element (spec 018, AC-018-12;
+ * Scroll progress as the CSS custom property `--p` (0…1) on the element (spec 020, AC-020-12;
  * docs/12 §12). Every visual that follows the scroll reads `--p` in `kit.css`; nothing here sets a
  * style value of its own. Under reduced motion nothing is written and the chapter stays 0, and the
  * CSS shows every scene settled.

@@ -5,7 +5,7 @@ import { useScrollProgress } from '../../shared/lib/useScrollProgress'
 import { PageHero } from './PageHero'
 
 /**
- * A legal page as a reading layout (spec 018, AC-018-7; docs/12 §12): the ink hero, then the text with
+ * A legal page as a reading layout (spec 020, AC-020-7; docs/12 §12): the ink hero, then the text with
  * a sticky contents rail that marks the section being read and a double-rule reading-progress line.
  * Copy comes from `public.json` under `privacy` or `terms` (`intro`, `<s>Title`, `<s>Body`).
  */

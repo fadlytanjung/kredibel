@@ -33,7 +33,7 @@ function renderIndex(auth: AuthContextType) {
   )
 }
 
-describe('IndexRoute (spec 018, AC-018-1/9)', () => {
+describe('IndexRoute (spec 020, AC-020-1/9)', () => {
   it('shows the landing for a visitor', () => {
     renderIndex(makeAuth())
     expect(screen.getByRole('heading', { level: 1, name: /Every number has a source/i })).toBeInTheDocument()

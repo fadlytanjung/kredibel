@@ -1,4 +1,4 @@
-/** The public site's navigation (spec 018): header links, mobile menu and footer groups. */
+/** The public site's navigation (spec 020): header links, mobile menu and footer groups. */
 export interface PublicNavItem {
   key: 'how' | 'security' | 'pricing' | 'faq' | 'contact'
   to: string

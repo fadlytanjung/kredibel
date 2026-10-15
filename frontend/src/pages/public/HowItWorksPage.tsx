@@ -18,7 +18,7 @@ const SHOTS: readonly { src: string; caption: string }[] = [
 ]
 
 /**
- * How Kredibel works (spec 018 AC-018-6; docs/12 §12): the seven steps scroll past a sticky document
+ * How Kredibel works (spec 020 AC-020-6; docs/12 §12): the seven steps scroll past a sticky document
  * that changes with the step in view (stacked → copy held → two readings → ledger columns → the lamp
  * → ticks → the explanation), then the reading cost as a printed receipt and the real screens.
  */

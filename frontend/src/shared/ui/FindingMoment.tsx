@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { Icon } from './Icon'
 
 /**
- * A finding as the product shows it (docs/12 §6.7, spec 018): severity, the code beside the human
+ * A finding as the product shows it (docs/12 §6.7, spec 020): severity, the code beside the human
  * title, the consequence, a calculation of how the balance should add up, and what to do next.
  * Numbers come from code, never from a model (constitution P2).
  */

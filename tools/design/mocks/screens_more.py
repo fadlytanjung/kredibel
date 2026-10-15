@@ -400,7 +400,7 @@ context: account ••4821, period 01–31 Mar 2026</pre></details>
 
 
 def landing() -> str:
-    """The public landing mock (spec 018): ink hero, the two readings, one live decision, the story."""
+    """The public landing mock (spec 020): ink hero, the two readings, one live decision, the story."""
     brand = "../brand"
     shots = "../../docs/assets/mocks"
     nav = "".join(

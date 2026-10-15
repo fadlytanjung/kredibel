@@ -17,7 +17,7 @@ const BLOCKS = [
 ] as const
 
 /**
- * Security and trust (spec 018 AC-018-6, AC-018-7; docs/12 §12): a seal that draws itself, then the
+ * Security and trust (spec 020 AC-020-6, AC-020-7; docs/12 §12): a seal that draws itself, then the
  * product's seven honesty rules as plates in a vault, flipping up in turn.
  */
 export function SecurityPage() {

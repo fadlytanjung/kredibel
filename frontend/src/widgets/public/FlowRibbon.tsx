@@ -2,7 +2,7 @@ import { useRef } from 'react'
 import { useInViewAttr } from '../../shared/lib/useInViewAttr'
 
 /**
- * Money-flow ribbons that draw themselves as they arrive (spec 018, AC-018-4; docs/12 §12): money in
+ * Money-flow ribbons that draw themselves as they arrive (spec 020, AC-020-4; docs/12 §12): money in
  * gathers into the account and leaves for suppliers, payroll and tax, with one payment to a new
  * account lit by the lamp. Decorative — the words are in the legend and the chapter; the dashboard's
  * real chart is `MoneyFlow` (docs/12 §6.4).

@@ -11,7 +11,7 @@ const PLAN_KEYS = ['starter', 'professional', 'enterprise'] as const
 const HIGHLIGHT_KEYS = ['1', '2', '3'] as const
 
 /**
- * Pricing / Plans (spec 018 AC-018-5; docs/12 §12). Static copy mirroring contracts/plans.v1.yaml:
+ * Pricing / Plans (spec 020 AC-020-5; docs/12 §12). Static copy mirroring contracts/plans.v1.yaml:
  * the free trial is available — lifted forward, tilting toward the pointer — and the paid tiers are
  * frosted further back, coming soon with no price. It does not call GET /api/plans, which needs a
  * token.

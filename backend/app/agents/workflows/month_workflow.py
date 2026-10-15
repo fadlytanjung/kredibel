@@ -15,10 +15,10 @@ def build_month_workflow(deps: PipelineDeps) -> Workflow:
     check_month = m.check_month(deps, pending)
     build_counterparties = m.build_counterparties(deps)
     suggest_profile = m.suggest_profile(deps)
-    score_risk = m.score_risk(deps)
-    explain_month = m.explain_month(deps)
+    score_risk = m.score_risk(deps, pending)
+    explain_month = m.explain_month(deps, pending)
     build_flows = m.build_flows(deps, pending)
-    sync_review_items = m.sync_review_items(deps)
+    sync_review_items = m.sync_review_items(deps, pending)
     finalize_month = m.finalize_month(deps, pending)
 
     return Workflow(

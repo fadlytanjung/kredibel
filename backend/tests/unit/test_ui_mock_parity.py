@@ -163,7 +163,7 @@ def test_ac019_5_task_claims_and_implementation_status_audit():
     assert "map_ledger_columns.md" in status_doc and "MODEL_LITE" in status_doc, "mapper recorded"
     assert (ROOT / "backend" / "app" / "agents" / "prompts" / "map_ledger_columns.md").exists()
     # Tasks that stay open keep their owners (AC-019-5).
-    open_tasks = (("010-dashboard-and-money-flow", "T010-06"), ("009-review-queue", "T009-07"))
+    open_tasks = (("010-dashboard-and-money-flow", "T010-06"),)
     for spec, task in open_tasks:
         tasks = (ROOT / "docs" / "specs" / spec / "tasks.md").read_text(encoding="utf-8")
         assert f"- [ ] **{task}**" in tasks, f"{task} is not built yet"

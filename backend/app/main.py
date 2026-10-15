@@ -591,6 +591,7 @@ class AppDeps:
                 reconciliation=self.reconciliation,
                 risk_policy=self.risk_policy,
                 review_items=self.review_items,
+                ledger=self.ledger_repo,  # X09 and the ledger figures read the imported rows
                 reader=self.reader,  # explain_month words the month's risk (spec 008)
             )
             return await run_workflow(
@@ -636,11 +637,18 @@ class AppDeps:
 
     @property
     def profit_loss_service(self) -> ProfitLossService:
-        return self._once('profit_loss_service', lambda: ProfitLossService(
-            ledger=self._ledger or FirestoreLedgerRepository(self.firestore),
-            workspaces=self.workspace_repo, documents=self.doc_repo, clock=self.clock,
-            policy=load_profit_loss_policy(self.settings.contract_path(self.settings.policy_dir)),
-        ))
+        return self._once(
+            "profit_loss_service",
+            lambda: ProfitLossService(
+                ledger=self._ledger or FirestoreLedgerRepository(self.firestore),
+                workspaces=self.workspace_repo,
+                documents=self.doc_repo,
+                clock=self.clock,
+                policy=load_profit_loss_policy(
+                    self.settings.contract_path(self.settings.policy_dir)
+                ),
+            ),
+        )
 
     @property
     def insight_service(self) -> InsightService:

@@ -300,7 +300,21 @@ def suggest_profile(deps: PipelineDeps):
     return _node
 
 
-def score_risk(deps: PipelineDeps):
+async def _live_month_findings(
+    deps: PipelineDeps, pending: PendingMonths | None, node_input: dict[str, Any], month: str
+) -> list[Finding]:
+    """The month's findings as this run will store them: the stored ones with the run's fresh
+    checks merged over them, so the risk and its wording never lag a run behind."""
+    assert deps.findings is not None
+    org_id = str(node_input.get("orgId") or node_input.get("org_id") or "")
+    stored = await deps.findings.list_findings(org_id, month=month)
+    result = pending.get(run_key(node_input)) if pending is not None else None
+    if result is None or result.findings is None:
+        return stored
+    return merge_findings([f for f in stored if f.scope == "MONTH"], result.findings)
+
+
+def score_risk(deps: PipelineDeps, pending: PendingMonths | None = None):
     @stage(deps, "score_risk")
     async def _node(ctx: Context, node_input: dict[str, Any]) -> dict[str, Any]:
         org_id = str(node_input.get("orgId") or node_input.get("org_id") or "")
@@ -327,7 +341,7 @@ def score_risk(deps: PipelineDeps):
                 v = d.integrity.get("verdict")
                 doc_assessments.append(assess_document_risk(v, d_findings, deps.risk_policy))
 
-        month_findings = await deps.findings.list_findings(org_id, month=month_str)
+        month_findings = await _live_month_findings(deps, pending, node_input, month_str)
         m_risk = assess_month_risk(doc_assessments, month_findings, deps.risk_policy)
 
         risk_data = {
@@ -355,7 +369,7 @@ def _compute_explanation_hash(level: str, findings: list[Finding], figures: dict
     return hashlib.sha256("|".join(components).encode("utf-8")).hexdigest()
 
 
-def explain_month(deps: PipelineDeps):
+def explain_month(deps: PipelineDeps, pending: PendingMonths | None = None):
     @stage(deps, "explain_month")
     async def _node(ctx: Context, node_input: dict[str, Any]) -> dict[str, Any]:
         org_id = str(node_input.get("orgId") or node_input.get("org_id") or "")
@@ -367,7 +381,7 @@ def explain_month(deps: PipelineDeps):
             return {**node_input, "summary": "Skipped: findings repo not configured"}
 
         # 1. Gather all findings (month scoped + document scoped for documents in month)
-        month_findings = await deps.findings.list_findings(org_id, month=month_str)
+        month_findings = await _live_month_findings(deps, pending, node_input, month_str)
         docs, _ = await deps.doc_repo.list_documents(org_id, limit=500)
         month_docs = [d for d in docs if month_str in d.months and d.status != DocStatus.FAILED]
         all_findings_list: list[Finding] = list(month_findings)
@@ -602,9 +616,9 @@ def _checks(consensus: dict[str, dict[str, Any]], fields: tuple[str, ...]) -> tu
     return tuple((f, str(consensus[f].get("status"))) for f in fields if f in consensus)
 
 
-def sync_review_items(deps: PipelineDeps):
-    """The month's review items (spec 009, docs/08 §7) from what this run stored: payment evidence,
-    line support, proposed matches, held copies and the findings that name a line."""
+def sync_review_items(deps: PipelineDeps, pending: PendingMonths | None = None):
+    """The month's review items (spec 009, docs/08 §7) from what this run computed; the stores
+    still hold the previous run until finalize_month writes."""
 
     @stage(deps, "sync_review_items")
     async def _node(ctx: Context, node_input: dict[str, Any]) -> dict[str, Any]:
@@ -616,14 +630,15 @@ def sync_review_items(deps: PipelineDeps):
         currency = workspace.currency if workspace else ""
         risk = node_input.get("risk") or {}
         risk_level = str(risk.get("level", "LOW")) if isinstance(risk, dict) else "LOW"
+        result = pending.get(run_key(node_input)) if pending is not None else None
 
         docs, _ = await deps.doc_repo.list_documents(org_id, limit=500)
         held_docs = {d.doc_id for d in docs if d.held_as_duplicate}
         held: list[HeldCopy] = []
         for d in docs:
             dup = d.duplicate
-            pending = dup is not None and dup.kind == DuplicateKind.CONTENT
-            if not (pending and dup and dup.decision == DuplicateDecision.PENDING):
+            held_copy = dup is not None and dup.kind == DuplicateKind.CONTENT
+            if not (held_copy and dup and dup.decision == DuplicateDecision.PENDING):
                 continue
             if not d.months or d.months[0] != month:
                 continue  # one item per copy, in its first month
@@ -637,11 +652,20 @@ def sync_review_items(deps: PipelineDeps):
 
         cited: dict[str, set[str]] = {}
         if deps.findings is not None:
-            for f in await deps.findings.list_findings(org_id, month=month):
+            for f in await _live_month_findings(deps, pending, node_input, month):
                 if f.status == "OPEN":
                     for e in f.evidence:
                         if e.tx_id:
                             cited.setdefault(e.tx_id, set()).add(f.code)
+        fresh_support = result.support if result is not None else {}
+        fresh_payment: dict[str, dict[str, Any]] = (
+            {**result.invoice_evidence, **result.receipt_evidence} if result is not None else {}
+        )
+
+        def payment_of(record_id: str, stored: dict[str, Any] | None) -> str | None:
+            body = fresh_payment.get(record_id, stored or {})
+            return body.get("payment")
+
         lines = (
             await deps.bank_lines.list_lines(org_id, month=month, limit=5000)
             if deps.bank_lines
@@ -653,7 +677,8 @@ def sync_review_items(deps: PipelineDeps):
                 ln.doc_id,
                 ln.date,
                 ln.amount,
-                ln.support or "NO_SUPPORT",
+                (fresh_support[ln.tx_id][2] if ln.tx_id in fresh_support else ln.support)
+                or "NO_SUPPORT",
                 held=ln.doc_id in held_docs,
                 checks=_checks(ln.consensus, ("amount", "date")),
                 cited_by=tuple(sorted(cited.get(ln.tx_id, ()))),
@@ -673,7 +698,7 @@ def sync_review_items(deps: PipelineDeps):
                         inv.number,
                         inv.issue_date,
                         inv.total,
-                        (inv.evidence or {}).get("payment"),
+                        payment_of(inv.invoice_id, inv.evidence),
                         held=inv.doc_id in held_docs,
                         checks=_checks(inv.consensus, ("total", "issueDate")),
                     )
@@ -688,7 +713,7 @@ def sync_review_items(deps: PipelineDeps):
                         rc.number,
                         rc.date,
                         rc.total,
-                        (rc.evidence or {}).get("payment"),
+                        payment_of(rc.receipt_id, rc.evidence),
                         held=rc.doc_id in held_docs,
                         checks=_checks(rc.consensus, ("total", "date")),
                     )
@@ -706,7 +731,9 @@ def sync_review_items(deps: PipelineDeps):
                 tuple(m.reasons),
             )
             for m in (
-                await deps.matches.list_matches(org_id, month=month, status="PROPOSED")
+                [m for m in result.matches if m.status == "PROPOSED"]
+                if result is not None
+                else await deps.matches.list_matches(org_id, month=month, status="PROPOSED")
                 if deps.matches
                 else []
             )
@@ -733,6 +760,23 @@ def sync_review_items(deps: PipelineDeps):
     return _node
 
 
+def _months_paid_elsewhere(result: MonthResult, month: str) -> set[str]:
+    """Months other than this one whose invoices or receipts changed payment evidence."""
+    out: set[str] = set()
+    for records, fresh in (
+        (result.data.invoices, result.invoice_evidence),
+        (result.data.receipts, result.receipt_evidence),
+    ):
+        for record in records:
+            record_id = getattr(record, "invoice_id", None) or getattr(record, "receipt_id", "")
+            body = fresh.get(record_id)
+            if body is None or not record.month or record.month == month:
+                continue
+            if (record.evidence or {}).get("payment") != body.get("payment"):
+                out.add(record.month)
+    return out
+
+
 def finalize_month(deps: PipelineDeps, pending: PendingMonths):
     @stage(deps, "finalize_month")
     async def _node(ctx: Context, node_input: dict[str, Any]) -> dict[str, Any]:
@@ -754,6 +798,7 @@ def finalize_month(deps: PipelineDeps, pending: PendingMonths):
 
         if result is not None:
             assert deps.matches and deps.bank_lines and deps.invoices and deps.receipts
+            paid_elsewhere = _months_paid_elsewhere(result, month_str)  # before the stores change
             await deps.matches.replace_month_matches(org_id, month_str, result.matches)
             await deps.bank_lines.set_support(org_id, result.support)
             await deps.invoices.set_evidence(org_id, result.invoice_evidence)
@@ -761,6 +806,15 @@ def finalize_month(deps: PipelineDeps, pending: PendingMonths):
             if result.findings is not None and deps.findings is not None:
                 await deps.findings.replace_month_findings(
                     org_id, month_str, result.findings, run_id=run_id
+                )
+            # A payment found here settles a document of another month: that month's items and
+            # figures follow (docs/08 §7: each run recomputes its own month only).
+            for other in sorted(paid_elsewhere):
+                if deps.task_queue is None:
+                    break
+                gen, _ = await deps.month_repo.bump_generation(org_id, other, dirty=True)
+                await deps.task_queue.enqueue_month_task(
+                    org_id, other, gen, delay_seconds=deps.settings.month_run_delay_seconds
                 )
 
         has_statement = bool(node_input.get("has_statement", False))

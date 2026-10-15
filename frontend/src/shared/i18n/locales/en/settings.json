@@ -94,7 +94,14 @@
     "holderName": "Account holder",
     "adding": "Adding...",
     "exists": "This account is already in the workspace.",
-    "subline": "{{bank}} {{masked}}, {{holder}}"
+    "subline": "{{bank}} {{masked}}, {{holder}}",
+    "filterAll": "All",
+    "filterLabel": "Filter bank accounts",
+    "search": "Search bank accounts",
+    "colAccount": "Account",
+    "colSource": "Source",
+    "colLedger": "Ledger account",
+    "colActions": "Actions"
   },
   "language": {
     "intro": "English is the only language today. More are coming.",
@@ -104,5 +111,9 @@
     "dateExample": "Day, month, year: {{example}}",
     "readOnly": "Set by your workspace; it cannot change yet.",
     "currencyFixed": "Chosen when the workspace was created. Changing the currency is coming soon."
+  },
+  "entityTypes": {
+    "COMPANY": "A company",
+    "INDIVIDUAL": "Myself"
   }
 }

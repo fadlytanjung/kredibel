@@ -26,17 +26,39 @@
     <li class="index-card">
       <a class="index-shot" href="dashboard.html"><img src="../../docs/assets/mocks/dashboard-desktop.png" alt="" loading="lazy"/></a>
       <div class="index-text">
-        <h2 class="type-h3"><a href="dashboard.html">Dashboard</a></h2>
-        <p>One sentence says where the books stand, then what needs you and the open risks. Below, full-width charts grouped by IFRS or US GAAP: money flow (flow, bars, table or by client and supplier), money in and out by month, and the cash-flow statement.</p>
+        <div class="index-card-head">
+          <h2 class="type-h3"><a href="dashboard.html">Dashboard</a></h2>
+          <span class="badge badge-clean">Implemented</span>
+        </div>
+        <p class="index-route"><strong>Route:</strong> <code>/dashboard</code> <span class="muted">(Spec 001, 010, 018)</span></p>
+        <p>One sentence says where the books stand, then what needs you and the open risks. Below, full-width charts grouped by IFRS or US GAAP: money flow, money in and out by month, and the cash-flow statement.</p>
         <p class="index-sizes"><a href="../../docs/assets/mocks/dashboard-mobile.png">Phone</a>
         <a href="../../docs/assets/mocks/dashboard-tablet.png">Tablet</a>
         <a href="../../docs/assets/mocks/dashboard-desktop.png">Desktop</a></p>
       </div>
     </li>
     <li class="index-card">
+      <a class="index-shot" href="profit-loss.html"><img src="../../docs/assets/mocks/profit-loss-desktop.png" alt="" loading="lazy"/></a>
+      <div class="index-text">
+        <div class="index-card-head">
+          <h2 class="type-h3"><a href="profit-loss.html">Company profit and loss</a></h2>
+          <span class="badge badge-clean">Implemented</span>
+        </div>
+        <p class="index-route"><strong>Route:</strong> <code>/profit-loss</code> <span class="muted">(Spec 018)</span></p>
+        <p>Accrual management P&L from posted ledger activity, with company account classifications and source rows.</p>
+        <p class="index-sizes"><a href="../../docs/assets/mocks/profit-loss-mobile.png">Phone</a>
+        <a href="../../docs/assets/mocks/profit-loss-tablet.png">Tablet</a>
+        <a href="../../docs/assets/mocks/profit-loss-desktop.png">Desktop</a></p>
+      </div>
+    </li>
+    <li class="index-card">
       <a class="index-shot" href="documents.html"><img src="../../docs/assets/mocks/documents-desktop.png" alt="" loading="lazy"/></a>
       <div class="index-text">
-        <h2 class="type-h3"><a href="documents.html">Documents</a></h2>
+        <div class="index-card-head">
+          <h2 class="type-h3"><a href="documents.html">Documents</a></h2>
+          <span class="badge badge-clean">Implemented</span>
+        </div>
+        <p class="index-route"><strong>Route:</strong> <code>/documents</code> <span class="muted">(Spec 003)</span></p>
         <p>Upload anything in any order. Exact copies are recognised at once; possible copies wait for you; ledgers ask for their columns once.</p>
         <p class="index-sizes"><a href="../../docs/assets/mocks/documents-mobile.png">Phone</a>
         <a href="../../docs/assets/mocks/documents-tablet.png">Tablet</a>
@@ -44,29 +66,153 @@
       </div>
     </li>
     <li class="index-card">
+      <a class="index-shot" href="document.html"><img src="../../docs/assets/mocks/document-desktop.png" alt="" loading="lazy"/></a>
+      <div class="index-text">
+        <div class="index-card-head">
+          <h2 class="type-h3"><a href="document.html">Document</a></h2>
+          <span class="badge badge-clean">Implemented</span>
+        </div>
+        <p class="index-route"><strong>Route:</strong> <code>/documents/:docId</code> <span class="muted">(Spec 003, 005, 006)</span></p>
+        <p>One read document: the page viewer with the selected value lit, beside what was read from it, a paginated list with reading marks, its findings and details.</p>
+        <p class="index-sizes"><a href="../../docs/assets/mocks/document-mobile.png">Phone</a>
+        <a href="../../docs/assets/mocks/document-tablet.png">Tablet</a>
+        <a href="../../docs/assets/mocks/document-desktop.png">Desktop</a></p>
+      </div>
+    </li>
+    <li class="index-card">
+      <a class="index-shot" href="document-ledger.html"><img src="../../docs/assets/mocks/document-ledger-desktop.png" alt="" loading="lazy"/></a>
+      <div class="index-text">
+        <div class="index-card-head">
+          <h2 class="type-h3"><a href="document-ledger.html">Document: ledger export</a></h2>
+          <span class="badge badge-low">Implemented state</span>
+        </div>
+        <p class="index-route"><strong>Route:</strong> <code>/documents/:docId</code> <span class="muted">(Spec 003, 005, 019)</span></p>
+        <p>A ledger export after import: rows and period, and the link to the profit and loss.</p>
+        <p class="index-sizes"><a href="../../docs/assets/mocks/document-ledger-mobile.png">Phone</a>
+        <a href="../../docs/assets/mocks/document-ledger-tablet.png">Tablet</a>
+        <a href="../../docs/assets/mocks/document-ledger-desktop.png">Desktop</a></p>
+      </div>
+    </li>
+    <li class="index-card">
+      <a class="index-shot" href="document-ledger-columns.html"><img src="../../docs/assets/mocks/document-ledger-columns-desktop.png" alt="" loading="lazy"/></a>
+      <div class="index-text">
+        <div class="index-card-head">
+          <h2 class="type-h3"><a href="document-ledger-columns.html">Document: ledger export awaiting its columns</a></h2>
+          <span class="badge badge-low">Implemented state</span>
+        </div>
+        <p class="index-route"><strong>Route:</strong> <code>/documents/:docId</code> <span class="muted">(Spec 003, 005)</span></p>
+        <p>A ledger export with a new layout: nothing imported yet, the page says so and points to the column check.</p>
+        <p class="index-sizes"><a href="../../docs/assets/mocks/document-ledger-columns-mobile.png">Phone</a>
+        <a href="../../docs/assets/mocks/document-ledger-columns-tablet.png">Tablet</a>
+        <a href="../../docs/assets/mocks/document-ledger-columns-desktop.png">Desktop</a></p>
+      </div>
+    </li>
+    <li class="index-card">
       <a class="index-shot" href="month.html"><img src="../../docs/assets/mocks/month-desktop.png" alt="" loading="lazy"/></a>
       <div class="index-text">
-        <h2 class="type-h3"><a href="month.html">Month reconciliation</a></h2>
-        <p>One month's reconciliation: figures with their provenance marks, the explained risk with next steps, and every bank line with its match and reason.</p>
+        <div class="index-card-head">
+          <h2 class="type-h3"><a href="month.html">Month reconciliation</a></h2>
+          <span class="badge badge-clean">Implemented</span>
+        </div>
+        <p class="index-route"><strong>Route:</strong> <code>/months/:month</code> <span class="muted">(Spec 007, 008)</span></p>
+        <p>One month's reconciliation: the figures, the explained risk with its citations and next steps, the match meter, and every bank line with its category, support and action.</p>
         <p class="index-sizes"><a href="../../docs/assets/mocks/month-mobile.png">Phone</a>
         <a href="../../docs/assets/mocks/month-tablet.png">Tablet</a>
         <a href="../../docs/assets/mocks/month-desktop.png">Desktop</a></p>
       </div>
     </li>
     <li class="index-card">
+      <a class="index-shot" href="months.html"><img src="../../docs/assets/mocks/months-desktop.png" alt="" loading="lazy"/></a>
+      <div class="index-text">
+        <div class="index-card-head">
+          <h2 class="type-h3"><a href="months.html">All months</a></h2>
+          <span class="badge badge-clean">Implemented</span>
+        </div>
+        <p class="index-route"><strong>Route:</strong> <code>/months/all</code> <span class="muted">(Spec 007)</span></p>
+        <p>All months in one table: state, risk and statements, newest first; each row opens its month.</p>
+        <p class="index-sizes"><a href="../../docs/assets/mocks/months-mobile.png">Phone</a>
+        <a href="../../docs/assets/mocks/months-tablet.png">Tablet</a>
+        <a href="../../docs/assets/mocks/months-desktop.png">Desktop</a></p>
+      </div>
+    </li>
+    <li class="index-card">
+      <a class="index-shot" href="reconciliation.html"><img src="../../docs/assets/mocks/reconciliation-desktop.png" alt="" loading="lazy"/></a>
+      <div class="index-text">
+        <div class="index-card-head">
+          <h2 class="type-h3"><a href="reconciliation.html">Bank evidence and document support</a></h2>
+          <span class="badge badge-brand">Synthetic preview</span>
+        </div>
+        <p class="index-route"><strong>Route:</strong> <code>/months/:month</code> <span class="muted">(Spec 007)</span></p>
+        <p>A separate synthetic MYR workspace preview: grouped and split payments, bank-only rows, documents before statements, separate approval/payment confirmation and currency agreement without conversion.</p>
+        <p class="index-sizes"><a href="../../docs/assets/mocks/reconciliation-mobile.png">Phone</a>
+        <a href="../../docs/assets/mocks/reconciliation-tablet.png">Tablet</a>
+        <a href="../../docs/assets/mocks/reconciliation-desktop.png">Desktop</a></p>
+      </div>
+    </li>
+    <li class="index-card">
       <a class="index-shot" href="review.html"><img src="../../docs/assets/mocks/review-desktop.png" alt="" loading="lazy"/></a>
       <div class="index-text">
-        <h2 class="type-h3"><a href="review.html">Review queue</a></h2>
-        <p>One queue for everything AI could not settle. Each item shows the evidence, the candidates and only the fixes that make sense.</p>
+        <div class="index-card-head">
+          <h2 class="type-h3"><a href="review.html">Review queue</a></h2>
+          <span class="badge badge-clean">Implemented</span>
+        </div>
+        <p class="index-route"><strong>Route:</strong> <code>/review</code> <span class="muted">(Spec 009)</span></p>
+        <p>One queue for everything AI could not settle, in the shared table with chips by kind; an item opens the fix drawer.</p>
         <p class="index-sizes"><a href="../../docs/assets/mocks/review-mobile.png">Phone</a>
         <a href="../../docs/assets/mocks/review-tablet.png">Tablet</a>
         <a href="../../docs/assets/mocks/review-desktop.png">Desktop</a></p>
       </div>
     </li>
     <li class="index-card">
+      <a class="index-shot" href="review-match.html"><img src="../../docs/assets/mocks/review-match-desktop.png" alt="" loading="lazy"/></a>
+      <div class="index-text">
+        <div class="index-card-head">
+          <h2 class="type-h3"><a href="review-match.html">Review: choose a match</a></h2>
+          <span class="badge badge-low">Implemented drawer</span>
+        </div>
+        <p class="index-route"><strong>Route:</strong> <code>/review/:itemId</code> <span class="muted">(Spec 009)</span></p>
+        <p>The fix drawer for a proposed match: the bank line, the invoice it fits, why, and Confirm the match.</p>
+        <p class="index-sizes"><a href="../../docs/assets/mocks/review-match-mobile.png">Phone</a>
+        <a href="../../docs/assets/mocks/review-match-tablet.png">Tablet</a>
+        <a href="../../docs/assets/mocks/review-match-desktop.png">Desktop</a></p>
+      </div>
+    </li>
+    <li class="index-card">
+      <a class="index-shot" href="review-correction.html"><img src="../../docs/assets/mocks/review-correction-desktop.png" alt="" loading="lazy"/></a>
+      <div class="index-text">
+        <div class="index-card-head">
+          <h2 class="type-h3"><a href="review-correction.html">Review: check a value</a></h2>
+          <span class="badge badge-low">Implemented drawer</span>
+        </div>
+        <p class="index-route"><strong>Route:</strong> <code>/review/:itemId</code> <span class="muted">(Spec 009)</span></p>
+        <p>A value to check: the receipt beside the panel, the correction form open (T009-03a).</p>
+        <p class="index-sizes"><a href="../../docs/assets/mocks/review-correction-mobile.png">Phone</a>
+        <a href="../../docs/assets/mocks/review-correction-tablet.png">Tablet</a>
+        <a href="../../docs/assets/mocks/review-correction-desktop.png">Desktop</a></p>
+      </div>
+    </li>
+    <li class="index-card">
+      <a class="index-shot" href="review-mapping.html"><img src="../../docs/assets/mocks/review-mapping-desktop.png" alt="" loading="lazy"/></a>
+      <div class="index-text">
+        <div class="index-card-head">
+          <h2 class="type-h3"><a href="review-mapping.html">Review: check columns</a></h2>
+          <span class="badge badge-low">Implemented drawer</span>
+        </div>
+        <p class="index-route"><strong>Route:</strong> <code>/review/:itemId</code> <span class="muted">(Spec 005, 009)</span></p>
+        <p>A ledger export with a new layout: which column of the file holds each field, the first rows as read, confirmed once per layout (T005-11).</p>
+        <p class="index-sizes"><a href="../../docs/assets/mocks/review-mapping-mobile.png">Phone</a>
+        <a href="../../docs/assets/mocks/review-mapping-tablet.png">Tablet</a>
+        <a href="../../docs/assets/mocks/review-mapping-desktop.png">Desktop</a></p>
+      </div>
+    </li>
+    <li class="index-card">
       <a class="index-shot" href="evidence-viewer.html"><img src="../../docs/assets/mocks/evidence-viewer-desktop.png" alt="" loading="lazy"/></a>
       <div class="index-text">
-        <h2 class="type-h3"><a href="evidence-viewer.html">Evidence viewer</a></h2>
+        <div class="index-card-head">
+          <h2 class="type-h3"><a href="evidence-viewer.html">Evidence viewer</a></h2>
+          <span class="badge badge-clean">Implemented overlay</span>
+        </div>
+        <p class="index-route"><strong>Route:</strong> <code>In-app overlay (/review, /documents/:id, /months/:m, /risk)</code> <span class="muted">(Spec 005, 006, 009)</span></p>
         <p>The lamp on the printed value, the calculation, and both readings side by side. Phones open zoomed to the evidence.</p>
         <p class="index-sizes"><a href="../../docs/assets/mocks/evidence-viewer-mobile.png">Phone</a>
         <a href="../../docs/assets/mocks/evidence-viewer-tablet.png">Tablet</a>
@@ -76,7 +222,11 @@
     <li class="index-card">
       <a class="index-shot" href="assistant.html"><img src="../../docs/assets/mocks/assistant-desktop.png" alt="" loading="lazy"/></a>
       <div class="index-text">
-        <h2 class="type-h3"><a href="assistant.html">Finance Assistant</a></h2>
+        <div class="index-card-head">
+          <h2 class="type-h3"><a href="assistant.html">Finance Assistant</a></h2>
+          <span class="badge badge-clean">Implemented (dev runtime)</span>
+        </div>
+        <p class="index-route"><strong>Route:</strong> <code>/assistant</code> <span class="muted">(Spec 011)</span></p>
         <p>Questions about your books, answered from tools with citations and a small chart; only preferences are remembered.</p>
         <p class="index-sizes"><a href="../../docs/assets/mocks/assistant-mobile.png">Phone</a>
         <a href="../../docs/assets/mocks/assistant-tablet.png">Tablet</a>
@@ -84,9 +234,41 @@
       </div>
     </li>
     <li class="index-card">
+      <a class="index-shot" href="assistant-welcome.html"><img src="../../docs/assets/mocks/assistant-welcome-desktop.png" alt="" loading="lazy"/></a>
+      <div class="index-text">
+        <div class="index-card-head">
+          <h2 class="type-h3"><a href="assistant-welcome.html">Finance Assistant: welcome</a></h2>
+          <span class="badge badge-low">Implemented state</span>
+        </div>
+        <p class="index-route"><strong>Route:</strong> <code>/assistant</code> <span class="muted">(Spec 011, 019)</span></p>
+        <p>An empty thread: the welcome prompts to start from, the history rail and the composer.</p>
+        <p class="index-sizes"><a href="../../docs/assets/mocks/assistant-welcome-mobile.png">Phone</a>
+        <a href="../../docs/assets/mocks/assistant-welcome-tablet.png">Tablet</a>
+        <a href="../../docs/assets/mocks/assistant-welcome-desktop.png">Desktop</a></p>
+      </div>
+    </li>
+    <li class="index-card">
+      <a class="index-shot" href="assistant-history.html"><img src="../../docs/assets/mocks/assistant-history-desktop.png" alt="" loading="lazy"/></a>
+      <div class="index-text">
+        <div class="index-card-head">
+          <h2 class="type-h3"><a href="assistant-history.html">Finance Assistant: history drawer</a></h2>
+          <span class="badge badge-low">Implemented drawer</span>
+        </div>
+        <p class="index-route"><strong>Route:</strong> <code>/assistant</code> <span class="muted">(Spec 011, 019)</span></p>
+        <p>The history drawer phones open from the Chat history button; wide screens show the rail instead.</p>
+        <p class="index-sizes"><a href="../../docs/assets/mocks/assistant-history-mobile.png">Phone</a>
+        <a href="../../docs/assets/mocks/assistant-history-tablet.png">Tablet</a>
+        <a href="../../docs/assets/mocks/assistant-history-desktop.png">Desktop</a></p>
+      </div>
+    </li>
+    <li class="index-card">
       <a class="index-shot" href="plan-usage.html"><img src="../../docs/assets/mocks/plan-usage-desktop.png" alt="" loading="lazy"/></a>
       <div class="index-text">
-        <h2 class="type-h3"><a href="plan-usage.html">Plan and usage</a></h2>
+        <div class="index-card-head">
+          <h2 class="type-h3"><a href="plan-usage.html">Plan and usage</a></h2>
+          <span class="badge badge-clean">Implemented</span>
+        </div>
+        <p class="index-route"><strong>Route:</strong> <code>/settings/plan</code> <span class="muted">(Spec 013)</span></p>
         <p>Trial days, usage that warns before a limit, coming-soon plans and features that cannot be clicked.</p>
         <p class="index-sizes"><a href="../../docs/assets/mocks/plan-usage-mobile.png">Phone</a>
         <a href="../../docs/assets/mocks/plan-usage-tablet.png">Tablet</a>
@@ -96,7 +278,11 @@
     <li class="index-card">
       <a class="index-shot" href="onboarding.html"><img src="../../docs/assets/mocks/onboarding-desktop.png" alt="" loading="lazy"/></a>
       <div class="index-text">
-        <h2 class="type-h3"><a href="onboarding.html">Onboarding</a></h2>
+        <div class="index-card-head">
+          <h2 class="type-h3"><a href="onboarding.html">Onboarding</a></h2>
+          <span class="badge badge-clean">Implemented</span>
+        </div>
+        <p class="index-route"><strong>Route:</strong> <code>/onboarding</code> <span class="muted">(Spec 001, 013)</span></p>
         <p>Individual or company in one question; the brand panel explains the promise with a ledger.</p>
         <p class="index-sizes"><a href="../../docs/assets/mocks/onboarding-mobile.png">Phone</a>
         <a href="../../docs/assets/mocks/onboarding-tablet.png">Tablet</a>
@@ -106,51 +292,127 @@
     <li class="index-card">
       <a class="index-shot" href="risk.html"><img src="../../docs/assets/mocks/risk-desktop.png" alt="" loading="lazy"/></a>
       <div class="index-text">
-        <h2 class="type-h3"><a href="risk.html">Risk</a></h2>
+        <div class="index-card-head">
+          <h2 class="type-h3"><a href="risk.html">Risk</a></h2>
+          <span class="badge badge-clean">Implemented</span>
+        </div>
+        <p class="index-route"><strong>Route:</strong> <code>/risk</code> <span class="muted">(Spec 008)</span></p>
         <p>Findings grouped by month with their severity and status; each opens the evidence viewer.</p>
         <p class="index-sizes"><a href="../../docs/assets/mocks/risk-mobile.png">Phone</a>
         <a href="../../docs/assets/mocks/risk-tablet.png">Tablet</a>
         <a href="../../docs/assets/mocks/risk-desktop.png">Desktop</a></p>
       </div>
     </li>
-    <li class="index-card">
+    <li class="index-card" data-design-only="true">
       <a class="index-shot" href="clients.html"><img src="../../docs/assets/mocks/clients-desktop.png" alt="" loading="lazy"/></a>
       <div class="index-text">
-        <h2 class="type-h3"><a href="clients.html">Clients and suppliers</a></h2>
-        <p>Clients and suppliers built from the books; a supplier paid to a new account is flagged.</p>
+        <div class="index-card-head">
+          <h2 class="type-h3"><a href="clients.html">Clients and suppliers</a></h2>
+          <span class="badge badge-outline">Design only (P1)</span>
+        </div>
+        <p class="index-route"><strong>Route:</strong> <code>/counterparties</code> <span class="muted">(Spec 014)</span></p>
+        <p>Clients and suppliers built from the books; a supplier paid to a new account is flagged. Placeholder in current app (spec 014).</p>
         <p class="index-sizes"><a href="../../docs/assets/mocks/clients-mobile.png">Phone</a>
         <a href="../../docs/assets/mocks/clients-tablet.png">Tablet</a>
         <a href="../../docs/assets/mocks/clients-desktop.png">Desktop</a></p>
       </div>
     </li>
-    <li class="index-card">
+    <li class="index-card" data-design-only="true">
       <a class="index-shot" href="labels.html"><img src="../../docs/assets/mocks/labels-desktop.png" alt="" loading="lazy"/></a>
       <div class="index-text">
-        <h2 class="type-h3"><a href="labels.html">Labels</a></h2>
-        <p>Every AI decision a person can check, lowest confidence first, with per-page types, extraction files, runs and dataset use.</p>
+        <div class="index-card-head">
+          <h2 class="type-h3"><a href="labels.html">Labels</a></h2>
+          <span class="badge badge-outline">Design only (P1)</span>
+        </div>
+        <p class="index-route"><strong>Route:</strong> <code>/labels</code> <span class="muted">(Spec 016)</span></p>
+        <p>Every AI decision a person can check, lowest confidence first, with per-page types, extraction files, runs and dataset use. Placeholder in current app (spec 016).</p>
         <p class="index-sizes"><a href="../../docs/assets/mocks/labels-mobile.png">Phone</a>
         <a href="../../docs/assets/mocks/labels-tablet.png">Tablet</a>
         <a href="../../docs/assets/mocks/labels-desktop.png">Desktop</a></p>
       </div>
     </li>
-    <li class="index-card">
+    <li class="index-card" data-design-only="true">
       <a class="index-shot" href="runs.html"><img src="../../docs/assets/mocks/runs-desktop.png" alt="" loading="lazy"/></a>
       <div class="index-text">
-        <h2 class="type-h3"><a href="runs.html">Runs</a></h2>
-        <p>Run history like a tracing tool: runs, a span waterfall, and the selected model call with its request, response and label.</p>
+        <div class="index-card-head">
+          <h2 class="type-h3"><a href="runs.html">Runs</a></h2>
+          <span class="badge badge-outline">Design only (P1)</span>
+        </div>
+        <p class="index-route"><strong>Route:</strong> <code>/runs</code> <span class="muted">(Spec 017)</span></p>
+        <p>Run history like a tracing tool: runs, a span waterfall, and the selected model call with its request, response and label. Placeholder in current app (spec 017).</p>
         <p class="index-sizes"><a href="../../docs/assets/mocks/runs-mobile.png">Phone</a>
         <a href="../../docs/assets/mocks/runs-tablet.png">Tablet</a>
         <a href="../../docs/assets/mocks/runs-desktop.png">Desktop</a></p>
       </div>
     </li>
     <li class="index-card">
-      <a class="index-shot" href="landing.html"><img src="../../docs/assets/mocks/landing-desktop.png" alt="" loading="lazy"/></a>
+      <a class="index-shot" href="profit-loss-empty.html"><img src="../../docs/assets/mocks/profit-loss-empty-desktop.png" alt="" loading="lazy"/></a>
       <div class="index-text">
-        <h2 class="type-h3"><a href="landing.html">Landing</a></h2>
-        <p>The public landing page: the two readings converge on one printed figure, then one live duplicate decision, then the story.</p>
-        <p class="index-sizes"><a href="../../docs/assets/mocks/landing-mobile.png">Phone</a>
-        <a href="../../docs/assets/mocks/landing-tablet.png">Tablet</a>
-        <a href="../../docs/assets/mocks/landing-desktop.png">Desktop</a></p>
+        <div class="index-card-head">
+          <h2 class="type-h3"><a href="profit-loss-empty.html">Profit and loss: empty</a></h2>
+          <span class="badge badge-low">Implemented state</span>
+        </div>
+        <p class="index-route"><strong>Route:</strong> <code>/profit-loss</code> <span class="muted">(Spec 018)</span></p>
+        <p>Accrual management P&L empty state when no transactions or ledger entries are posted.</p>
+        <p class="index-sizes"><a href="../../docs/assets/mocks/profit-loss-empty-mobile.png">Phone</a>
+        <a href="../../docs/assets/mocks/profit-loss-empty-tablet.png">Tablet</a>
+        <a href="../../docs/assets/mocks/profit-loss-empty-desktop.png">Desktop</a></p>
+      </div>
+    </li>
+    <li class="index-card">
+      <a class="index-shot" href="profit-loss-partial.html"><img src="../../docs/assets/mocks/profit-loss-partial-desktop.png" alt="" loading="lazy"/></a>
+      <div class="index-text">
+        <div class="index-card-head">
+          <h2 class="type-h3"><a href="profit-loss-partial.html">Profit and loss: partial</a></h2>
+          <span class="badge badge-low">Implemented state</span>
+        </div>
+        <p class="index-route"><strong>Route:</strong> <code>/profit-loss</code> <span class="muted">(Spec 018)</span></p>
+        <p>Accrual management P&L partial state when some accounts remain unclassified.</p>
+        <p class="index-sizes"><a href="../../docs/assets/mocks/profit-loss-partial-mobile.png">Phone</a>
+        <a href="../../docs/assets/mocks/profit-loss-partial-tablet.png">Tablet</a>
+        <a href="../../docs/assets/mocks/profit-loss-partial-desktop.png">Desktop</a></p>
+      </div>
+    </li>
+    <li class="index-card">
+      <a class="index-shot" href="profit-loss-loading.html"><img src="../../docs/assets/mocks/profit-loss-loading-desktop.png" alt="" loading="lazy"/></a>
+      <div class="index-text">
+        <div class="index-card-head">
+          <h2 class="type-h3"><a href="profit-loss-loading.html">Profit and loss: loading</a></h2>
+          <span class="badge badge-low">Implemented state</span>
+        </div>
+        <p class="index-route"><strong>Route:</strong> <code>/profit-loss</code> <span class="muted">(Spec 018)</span></p>
+        <p>Accrual management P&L loading skeleton state while fetching report figures.</p>
+        <p class="index-sizes"><a href="../../docs/assets/mocks/profit-loss-loading-mobile.png">Phone</a>
+        <a href="../../docs/assets/mocks/profit-loss-loading-tablet.png">Tablet</a>
+        <a href="../../docs/assets/mocks/profit-loss-loading-desktop.png">Desktop</a></p>
+      </div>
+    </li>
+    <li class="index-card">
+      <a class="index-shot" href="profit-loss-error.html"><img src="../../docs/assets/mocks/profit-loss-error-desktop.png" alt="" loading="lazy"/></a>
+      <div class="index-text">
+        <div class="index-card-head">
+          <h2 class="type-h3"><a href="profit-loss-error.html">Profit and loss: error</a></h2>
+          <span class="badge badge-low">Implemented state</span>
+        </div>
+        <p class="index-route"><strong>Route:</strong> <code>/profit-loss</code> <span class="muted">(Spec 018)</span></p>
+        <p>Accrual management P&L error state when report generation fails.</p>
+        <p class="index-sizes"><a href="../../docs/assets/mocks/profit-loss-error-mobile.png">Phone</a>
+        <a href="../../docs/assets/mocks/profit-loss-error-tablet.png">Tablet</a>
+        <a href="../../docs/assets/mocks/profit-loss-error-desktop.png">Desktop</a></p>
+      </div>
+    </li>
+    <li class="index-card">
+      <a class="index-shot" href="profit-loss-entries.html"><img src="../../docs/assets/mocks/profit-loss-entries-desktop.png" alt="" loading="lazy"/></a>
+      <div class="index-text">
+        <div class="index-card-head">
+          <h2 class="type-h3"><a href="profit-loss-entries.html">Profit and loss: source entries</a></h2>
+          <span class="badge badge-low">Implemented drawer</span>
+        </div>
+        <p class="index-route"><strong>Route:</strong> <code>/profit-loss</code> <span class="muted">(Spec 018)</span></p>
+        <p>Slide-out source drawer showing underlying ledger entries for an account classification.</p>
+        <p class="index-sizes"><a href="../../docs/assets/mocks/profit-loss-entries-mobile.png">Phone</a>
+        <a href="../../docs/assets/mocks/profit-loss-entries-tablet.png">Tablet</a>
+        <a href="../../docs/assets/mocks/profit-loss-entries-desktop.png">Desktop</a></p>
       </div>
     </li>
   </ul>

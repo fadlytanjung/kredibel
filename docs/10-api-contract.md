@@ -66,6 +66,7 @@
 | `PATCH /api/bank-lines/{txId}` | Change the category (`categorizedBy: USER`); same as correcting its `CATEGORY` label (§2.10); marks the month dirty | P0 |
 | `GET /api/invoices?docId=&kind=&month=&paymentState=&counterpartyId=` · `GET /api/invoices/{invoiceId}` | Sales and purchase invoices with payment state, matches and each value's readings; `docId` gives the invoices read from one document (a PDF can hold several) | P0 |
 | `GET /api/receipts?docId=&month=&paymentState=` · `GET /api/receipts/{receiptId}` | Receipts with each value's readings; `docId` gives one document's | P0 |
+| `GET /api/decisions?kind=&docId=&recordId=` · `POST /api/decisions` · `DELETE /api/decisions/{decisionId}` | A person's audited decisions (ADR-025): document approval, payment confirmation without bank evidence (amount in the workspace currency, date, method, reason; several for partial payments), agreement to use a document's amounts unchanged in the workspace currency, bank line support not required. None creates bank cash or a match; the months concerned re-reconcile; withdrawing keeps the history | P0 |
 | `GET /api/ledger-entries?month=&isBankCash=&matchState=&accountCode=` | Imported ledger entries | P0 |
 
 ### 2.4 Months and reconciliation
@@ -105,8 +106,8 @@ ledger difference, document type, ledger mapping) is closed through this one end
 
 | Method & path | Purpose | P |
 |---|---|---|
-| `GET /api/dashboard?period=` | KPIs (money in, money out, net, auto-match rate, open review items, documents waiting), months with risk, top alerts, review preview | P0 |
-| `GET /api/money-flow?period=&view=&framework=&accountId=&showTransfers=` | Sankey `{nodes, links}`. `view=STATEMENT` (default): sources → accounts → activity → statement line under the framework (default: the workspace's); `view=COUNTERPARTIES`: sources → accounts → who was paid ([`08`](08-risk-engine.md) §5.1). Each link has an ID usable as `flow=` on `/api/bank-lines` | P0 |
+| `GET /api/dashboard?period=` | KPIs (money in, money out, net, auto-match rate, open review items, documents waiting), months with risk, top alerts, review preview. `period` defaults to `recent` here (the last 3 months with data). Money and the match rate compare with the previous period of equal length (`previous`, null without data). Documents waiting: documents waiting for a person (a possible copy to decide, or columns to confirm). Open review items and the review preview come from the review queue (spec 009) and are left out until it runs | P0 |
+| `GET /api/money-flow?period=&view=&framework=&accountId=&showTransfers=` | Sankey `{nodes, links}`. `view=STATEMENT` (default): sources → accounts → activity → statement line under the framework (default: the workspace's); `view=COUNTERPARTIES`: sources → accounts → who was paid ([`08`](08-risk-engine.md) §5.1). Each link has an ID usable as `flow=` on `/api/bank-lines`, with the same `period`, `view`, `framework` and `showTransfers`: the flow is rebuilt and the link's lines returned (links store no line IDs) | P0 |
 | `GET /api/cash-flow?period=&framework=` | Months in, out, net and closing balance; the cash-flow statement by activity and by line, with the opening-to-closing check ([`08`](08-risk-engine.md) §5.2) | P0 |
 | `GET /api/counterparties?role=&q=` · `GET /api/counterparties/{counterpartyId}` | Clients and suppliers with totals per month and accounts seen | P0 |
 | `GET /api/suggestions?status=` · `PATCH /api/suggestions/{suggestionId}` | Profile suggestions from documents; accept or reject | P0 |
@@ -212,7 +213,7 @@ All errors use **RFC 9457** `application/problem+json`:
 | `UNMATCHED_BANK_LINE` | `MATCH` {…} · `NO_DOCUMENT_NEEDED` {`category`} · `IGNORE` {`reason`} |
 | `UNMATCHED_DOCUMENT` | `MATCH` {…} · `NOT_YET_PAID` · `IGNORE` {`reason`} |
 | `POSSIBLE_DUPLICATE` | `CONFIRM_DUPLICATE` · `NOT_DUPLICATE` |
-| `LOW_CONFIDENCE_VALUE` | `CORRECT_VALUE` {`field`, `value`} · `ACCEPT_AS_READ` |
+| `LOW_CONFIDENCE_VALUE` | `CORRECT_VALUE` {`field`, `value`}: an invoice's or receipt's `total` (decimal string) or date (`YYYY-MM-DD`); a bank line's values later (T009-03b; its items offer only `ACCEPT_AS_READ`) · `ACCEPT_AS_READ` |
 | `LEDGER_DIFFERENCE` | `EXPLAIN` {`note`} · `MATCH` {…} · `IGNORE` {`reason`} |
 | `CONFIRM_TYPE` | `SET_TYPE` {`docType`} |
 | `CONFIRM_LEDGER_MAPPING` | `CONFIRM_MAPPING` {`mapping`} (as proposed or edited) |
@@ -368,3 +369,11 @@ Content-Type: multipart/form-data; boundary=…
   }
 }
 ```
+
+## Company P&L (spec 018)
+
+`GET /api/profit-loss?period=` returns accrual management totals, status, coverage, source entries,
+exclusion counts and gaps; decimal strings, null when unavailable. `GET /api/profit-loss/accounts`
+returns imported accounts and policy catalogs. `PUT /api/profit-loss/accounts` confirms
+`{accountCode, pnlLine, subledger}` for an owner/accountant, with atomic audit. All scopes come from
+the principal. Unknown catalog/account or reversed period → 422; other roles → 403.

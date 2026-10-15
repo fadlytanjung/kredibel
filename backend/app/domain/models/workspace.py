@@ -6,7 +6,7 @@ adapters/firestore/models/.
 
 from datetime import datetime
 from decimal import Decimal
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
@@ -85,7 +85,8 @@ class WorkspaceCreate(DomainModel):
     """POST /api/workspaces (contracts/openapi.yaml WorkspaceCreate, AC-013-2)."""
 
     name: str = Field(min_length=2, max_length=100)
-    entity_type: EntityType
+    # Kredibel is for businesses (AC-013-2): a new workspace is always a company.
+    entity_type: Literal["COMPANY"] = "COMPANY"
     profile: Profile | None = None
     tax_id: str | None = Field(default=None, max_length=30)
     country: Literal["ID"] = "ID"
@@ -120,6 +121,8 @@ class Workspace(DomainModel):
     default_language: str
     subscription: Subscription
     share_verified_labels: bool = False
+    # docs/09 §3.8: per file layout signature, the column mapping a person confirmed (spec 005).
+    ledger_mappings: dict[str, dict[str, Any]] = Field(default_factory=dict)
     created_by: str
     created_at: datetime
 

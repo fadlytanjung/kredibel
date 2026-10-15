@@ -25,8 +25,9 @@ description: Architecture boundaries and the model/code boundary. Applies to all
 - Model output never writes matches, risk levels, review resolutions, duplicate decisions, policy,
   plan limits or the workspace profile (profile data and ledger mappings only as proposals a person
   accepts).
-- The AI page reader gets the page **image** only; the text layer and OCR are the witness. Never give
-  the reader the witness's words (it would destroy the independence the corroboration rule needs).
+- The AI page reader gets the page **image** plus the page's numbered layout chunks (text layer or OCR)
+  and cites the chunk of every value; `domain/verify.py` grounds each value in that chunk's words
+  (ADR-023). The model never decides whether its own value is grounded.
 - Plan limits are checked through `EntitlementService` (pure rules in `domain/plans.py`); never
   hard-code a limit or branch on a plan ID.
 

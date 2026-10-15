@@ -294,7 +294,9 @@ for hashed assets. Firebase Hosting (`kredibel-app.web.app`) serves the same fil
 | `POLICY_DIR` | `/app/contracts/policy` | both |
 | `EXPLAINER_MAX_ATTEMPTS` / `DOCUMENT_RUN_BUDGET_SECONDS` / `MONTH_RUN_BUDGET_SECONDS` | `2` / `600` / `120` | worker |
 | `FEATURE_MODEL_ARMOR`, `FEATURE_VISUAL_FORENSICS`, `FEATURE_REVISION_DIFF`, `FEATURE_ASSISTANT`, `FEATURE_ROLES`, `FEATURE_RUN_GRAPH`, `FEATURE_SIGN_OFF`, `FEATURE_LABELS`, `FEATURE_AGENT_ANALYTICS`, `FEATURE_DATASET_EXPORT` | `false` | both |
-| `TRACE_EXPORT` | `cloud` on Cloud Run \| `none` (default: tests and local runs) | both: where workflow spans go ([`17`](17-observability.md) §2) |
+| `TRACE_EXPORT` | `cloud` on Cloud Run \| `otlp` for local Jaeger \| `langfuse` for Langfuse (ADR-026) \| `none` (default) | both: where workflow spans go ([`17`](17-observability.md) §2) |
+| `LANGFUSE_HOST`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` | `http://127.0.0.1:3000`; keys from `infra/langfuse/.env` | the Langfuse project spans go to when `TRACE_EXPORT=langfuse`; the secret key is a secret |
+| `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` | `http://127.0.0.1:4318/v1/traces` | local traces-only OTLP/HTTP endpoint when `TRACE_EXPORT=otlp` |
 | `LOG_LEVEL` | `INFO` | both |
 | `BACKUPS_BUCKET` | `<PROJECT_ID>-kredibel-backups` | migrate job |
 | `MIGRATION_MAX_OPS_PER_SEC` / `MIGRATION_PAGE_SIZE` | `500` / `300` | migrate job |
@@ -322,7 +324,8 @@ make env-push      # add a version from .env.production; then make deploy
 `VITE_FIREBASE_APP_ID`, `VITE_FIRESTORE_DATABASE` (from `kredibel-env`; the build stops when the API
 key is empty), `VITE_APP_VERSION` (the commit). **`VITE_` values are inlined into the public bundle.**
 Never put a server-side value behind a `VITE_` name. Restrict the Firebase web API key to the app's
-domains in the console.
+domains in the console. `VITE_PREVIEW_ROUTES=1` keeps the synthetic preview routes in a build so
+Lighthouse can measure the dashboard locally; it is never set for a deployed build.
 
 ---
 

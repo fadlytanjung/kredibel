@@ -29,6 +29,14 @@ class BankLine:
     risk_tags: list[str] = field(default_factory=list)
     categorized_by: str = "NONE"
     category_confidence: Decimal | None = None
+    # Written by the month run (ADR-025): match state and support are not the same as cash.
+    match_state: str = "UNMATCHED"
+    match_ids: list[str] = field(default_factory=list)
+    support: str | None = None
+    # Corrections (T009-03b)
+    corrected_fields: list[str] = field(default_factory=list)
+    corrected_by: str | None = None
+    corrected_at: Any = None
 
     @property
     def amount_minor(self) -> int:

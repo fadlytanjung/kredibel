@@ -20,15 +20,18 @@
 | FR-013 | Documents library with live status and filters | 003 | AC-003-7…10 | `tests/integration/test_documents_api.py`, `pages/DocumentsPage.test.tsx` |
 | FR-020 | Classification; uncertain type asks the user | 005 | AC-005-1…3 | `tests/scenarios/test_reading.py` |
 | FR-021 | AI reader + witness + verifier with provenance | 005 | AC-005-4…9 | `tests/unit/test_verify.py`, `test_normalize.py`, `tests/scenarios/test_reading.py` |
-| FR-022 | Ledger import with a confirmed mapping | 005 | AC-005-10…12 | `tests/unit/test_ledger_parse.py`, `tests/scenarios/test_ledger.py` |
+| FR-022 | Ledger import with a confirmed mapping | 005 | AC-005-10…12 | `tests/unit/test_ledger_parse.py`, `tests/unit/test_ledger_mapping.py`, `tests/unit/test_ledger_mapping_workflow.py`, `tests/integration/test_ledger_mapping_api.py`, `frontend/tests/visual/review.spec.ts` (column check), `tests/scenarios/test_ledger.py` |
 | FR-023 | Integrity checks with evidence and verdicts | 006 | AC-006-7…12 | `tests/unit/checks/*`, `tests/scenarios/test_s2_tampered.py` |
 | FR-024 | Categorization with precedence | 007 | AC-007-1, AC-007-2 | `tests/unit/test_categorize.py` |
 | FR-030 | Months reconcile on every change, order-independent | 004, 007 | AC-004-4…7, AC-007-3, AC-007-7 | `tests/unit/test_reconcile_order.py` (hypothesis), `tests/scenarios/test_s5_reverse.py` |
-| FR-031 | Deterministic, explainable matching; automatic only when unique | 007 | AC-007-5, AC-007-8 | `tests/unit/test_reconcile.py` |
+| FR-031 | Deterministic, explainable matching; automatic only when unique | 007 | AC-007-5, AC-007-8, AC-007-17 | `tests/unit/test_reconcile_scoring.py`, `tests/unit/test_reconcile.py` |
 | FR-032 | Exact, split, multi-invoice, net-of-tax, ledger matches | 007 | AC-007-4, AC-007-6 | `test_reconcile.py` |
 | FR-033 | Exceptions become review items | 009 | AC-009-1…3 | `tests/unit/test_review_items.py` |
 | FR-034 | Resolve by match, correction, duplicate decision or ignore; audited; month re-runs | 009, 007 | AC-009-4…7, AC-007-13 | `tests/unit/test_review_service.py`, `tests/integration/test_review_api.py` |
 | FR-035 | Month summary (figures, auto-match rate, items, risk) | 007 | AC-007-9, AC-007-12 | `tests/unit/test_figures.py`, `pages/MonthPage.test.tsx` |
+| FR-036 | Bank cash evidence separate from document support; honest month completion | 007 | AC-007-14, AC-007-15, AC-007-18 | `tests/unit/test_month_workflow.py`, `design/mocks/reconciliation.html`; state/figure tests in T007-04…08 |
+| FR-037 | Separate document approval and payment confirmation without bank evidence | 007 | AC-007-16 | `design/mocks/reconciliation.html`; audited API and migration tests in T007-06a |
+| FR-038 | Fixed workspace currency; explicit agreement for differently printed currency, no FX | 007 | AC-007-19 | `tests/unit/test_reconcile_scoring.py`; persistence and UI in T007-06a/T007-10 |
 | FR-040 | Cross-document and month checks | 007 | AC-007-10, AC-007-11 | `tests/unit/checks/test_month_checks.py`, `tests/scenarios/test_s4_diversion.py` |
 | FR-041 | Risk level per document and month from policy | 008 | AC-008-1…3, AC-008-11 | `tests/unit/test_risk.py` |
 | FR-042 | Explanation and next steps, grounded or template | 008 | AC-008-4…6 | `tests/unit/test_grounding.py`, `tests/scenarios/test_explanations.py` |
@@ -40,6 +43,7 @@
 | FR-060 | Profile and bank accounts (masked) | 013 | AC-013-2, AC-013-14 | `test_workspace_service.py`, `tests/unit/test_accounts.py` |
 | FR-061 | Profile suggestions with evidence; user decides | 014 | AC-014-4…7 | `tests/unit/test_profile_suggestions.py`, `tests/scenarios/test_profile.py` |
 | FR-062 | Clients and suppliers with accounts seen | 014 | AC-014-1…3 | `tests/unit/test_counterparties.py` |
+| FR-054, FR-055 | Company account/subledger classifications and P&L | 018 | AC-018-1…7 | `test_profit_loss.py`, `test_profit_loss_api.py`, P&L UI tests |
 | FR-070 | Finance Assistant: tools, retrieval, memory (P1) | 011 | AC-011-1…13 | `tests/unit/test_finance_tools.py`, `backend/evals/assistant/` |
 | FR-071 | Roles restrict actions (P1) | 013 | AC-013-17…19 | `tests/unit/test_access.py` (table-driven) |
 | FR-072 | Model Armor screening and quarantine (P1) | 015 | AC-015-1 | `tests/scenarios/test_s6_injection.py` |
@@ -61,11 +65,11 @@
 | NFR-07 | ≤ USD 0.01 per page; ≤ USD 0.40 for S1's statements and invoices; exact duplicates free | E-EXT, E-PERF; [`21`](21-cost-analysis.md) |
 | NFR-08 | WCAG AA contrast; no colour-only meaning; chart table alternatives | axe in stories and E2E; AC-008-10, AC-010-7 |
 | NFR-09 | Idempotent workflows; order-independent months | AC-004-3, AC-004-5, AC-007-7 |
-| NFR-10 | Correlated logs and traces | AC-004-12; manual check in Cloud Logging and Trace |
+| NFR-10 | Correlated logs and traces | AC-004-12, AC-017-9; tracing unit/integration tests, `make trace-smoke`, manual check in Cloud Logging and Trace |
 | NFR-11 | English UI, all strings externalized | ESLint `i18next/no-literal-string` in `make check`; AC-001-14 |
 | NFR-12 | Personal data minimization | `test_accounts.py`, log review, AC-003-4, AC-013-2 |
 | NFR-13 | Responsive and touch-friendly | Visual tests at 390/834/1440; 360 px check; AC-001-16 |
-| NFR-14 | UI quality gates | `make check` (tokens-check, no_raw_styles), Storybook axe, visual tests, Lighthouse; AC-001-15, AC-001-17, AC-001-18, AC-010-11 |
+| NFR-14 | UI quality gates | `make check` (tokens-check, no_raw_styles), Storybook axe, visual tests, Lighthouse; AC-001-15, AC-001-17, AC-001-18, AC-010-11; AC-019-1…5 mock/application parity and status audit |
 | NFR-15 | Safe data evolution | Upcaster and migration tests, schema drift gate; AC-001-19 – AC-001-22 |
 
 ## 3. Judging criteria → evidence

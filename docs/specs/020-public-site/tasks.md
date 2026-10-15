@@ -59,6 +59,9 @@
   **303 KB** with `motion` and the revamp. Still over the 250 KB budget: the main chunk carries the
   Firebase SDK including Firestore, which `shared/firebase/app.ts` loads eagerly; splitting Firestore
   out of the first load is the next step (not in this spec).
+  After merging main (15 Oct 2026): main's AC-010-11 keeps the dashboard and Login in the first
+  paint and splits every other app page; with the public pages eager too, first-load JS is
+  **232 KB** gzip, inside the budget.
 - [x] **T020-20** **TDD** `useInViewAttr`, `useScrollProgress`, `usePointerTilt`: with and without the
   browser APIs; no writes under reduced motion. (AC-020-12)
 - [x] **T020-21** `kit.css` foundations: `pub-` stage, depth, reveal, pin rules, lamp, reduced-motion
@@ -77,5 +80,6 @@
   Privacy/Terms contents rail. (AC-020-6, 7)
 - [ ] **T020-30** Extend `PublicPages.test.tsx`; Playwright with `reducedMotion: 'reduce'`,
   `animations: 'disabled'` and fonts ready; record the baselines (closes T020-16). (AC-020-11)
-  Tests extended and the spec updated; the baselines are still to record on the CI image
+  Tests extended and the spec updated; the stale landing mock is retired (spec 019, AC-019-1: an
+  implemented screen never keeps a deprecated mock); the baselines are still to record on the CI image
   (`make test-visual`), and the axe pass in Storybook is still to run (`make storybook-build`).

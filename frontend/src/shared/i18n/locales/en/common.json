@@ -156,6 +156,32 @@
     "cancel": "Cancel",
     "back": "Back"
   },
+  "search": {
+    "placeholder": "Search books or ask assistant...",
+    "navigateHint": "Navigate with ↑ ↓ and Enter",
+    "closeHint": "Close with ESC",
+    "askAssistant": "Ask Assistant",
+    "askAssistantDesc": "Search workspace books and answer with citations",
+    "dashboardDesc": "Overview, KPIs, and Cash Flow",
+    "profitLossDesc": "Dynamic Sankey flow and ledger breakdown",
+    "documentsDesc": "Bank statements, invoices, and receipts",
+    "reviewDesc": "Exceptions, proposed matches, and duplicates",
+    "riskDesc": "Forensic checks and tamper findings",
+    "assistantDesc": "Grounded AI answers from your books"
+  },
+  "table": {
+    "searchPlaceholder": "Search...",
+    "searchAria": "Search items",
+    "clearSearch": "Clear search",
+    "showingRange": "{{from}} to {{to}} of {{total}}",
+    "previous": "Previous",
+    "next": "Next",
+    "page": "Page {{current}} of {{total}}",
+    "filter": "Filter items",
+    "noResults": "No items match your search or filter.",
+    "clearFilters": "Clear filters",
+    "empty": "No items to display."
+  },
   "progress": {
     "label": "Progress",
     "readingPage": "Reading page {{current}} of {{total}}",

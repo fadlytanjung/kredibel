@@ -6,8 +6,7 @@
  */
 
 import { useEffect, useState } from 'react'
-import { doc, onSnapshot } from 'firebase/firestore'
-import { db } from '../../shared/firebase/app'
+import { subscribeLive } from '../../shared/firebase/live'
 import type { Month } from './types'
 
 export interface UseMonthLiveResult {
@@ -27,29 +26,31 @@ export function useMonthLive(
   useEffect(() => {
     if (!orgId || !monthKey) return
 
-    const docRef = doc(db, 'orgs', orgId, 'months', monthKey)
-    const unsubscribe = onSnapshot(
-      docRef,
-      (snapshot) => {
-        if (!snapshot.exists()) {
-          setMonth(null)
-        } else {
-          setMonth({
-            month: snapshot.id,
-            ...(snapshot.data() as Omit<Month, 'month'>),
-          })
-        }
-        setLoading(false)
-      },
+    return subscribeLive(
+      ({ doc, onSnapshot }, db) =>
+        onSnapshot(
+          doc(db, 'orgs', orgId, 'months', monthKey),
+          (snapshot) => {
+            if (!snapshot.exists()) {
+              setMonth(null)
+            } else {
+              setMonth({
+                month: snapshot.id,
+                ...(snapshot.data() as Omit<Month, 'month'>),
+              })
+            }
+            setLoading(false)
+          },
+          (err) => {
+            setError(err)
+            setLoading(false)
+          },
+        ),
       (err) => {
         setError(err)
         setLoading(false)
       },
     )
-
-    return () => {
-      unsubscribe()
-    }
   }, [orgId, monthKey])
 
   if (!orgId || !monthKey) {

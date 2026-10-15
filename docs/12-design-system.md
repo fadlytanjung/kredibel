@@ -51,6 +51,17 @@ The design loop is the `/ui-screen` skill (`.agents/skills/ui-screen/SKILL.md`):
 screenshots at 390, 834 and 1440 px → critique against §1 and §10 → component → stories → visual
 baseline.
 
+Every UI change updates its generated mock source and React implementation in the same change,
+including text and empty/loading/error states. Regenerate mocks and shared CSS, capture affected
+screens at 390/834/1440, inspect 360/1600 bounds, and update stories/visual baselines. A behaviour-only
+change must still have a representative mock state; do not edit generated HTML or app kit.css.
+`tools/checks/mock_sync.py` runs in `make check` and fails stale generated mock artifacts. Visual
+parity remains a screenshot review; source freshness alone does not prove it.
+
+P&L uses `.pnl-bars`, `.pnl-row`, `.pnl-track`, `.pnl-account` and `.pnl-source` from the kit. These
+HTML bars keep readable labels at every width; bar width alone uses computed geometry. The report
+shows signed values and source links; colours never imply that the books are complete or verified.
+
 Gates that keep it honest ([`15`](15-testing-and-evaluation.md) §2.6): `make tokens-check` (generated
 CSS is current, contrast pairs pass), `tools/checks/no_raw_styles.py` (no hex, `rgb()`, arbitrary
 Tailwind values or inline styles outside the allow-list), Storybook interaction and axe tests,
@@ -144,6 +155,11 @@ from lucide; the text is always present. Fraud risk levels of months and documen
 
 Match chips: **auto** (brand soft, link icon), **manual** (low soft, hand icon, "Matched by Maya on
 12 Jul"), **proposed** (medium soft, "Choose a match"), **no match** (sunken, unlink icon).
+
+Reconciliation evidence (ADR-025): **Bank recorded** is a neutral outline badge; **No supporting
+document** and **Waiting for statement** use neutral chips. User approval/payment confirmation uses
+the hand icon and always states whether bank evidence exists. Use `.seg-touch` for the evidence
+view switcher (token touch-target height at every width); decision actions use `.button-lg`.
 
 ### 2.3 Charts
 
@@ -394,6 +410,7 @@ component has a Storybook story per state and size class. The mock class names i
 | Component | Variants / props | Rules |
 |---|---|---|
 | `ReadingMark` | `reading`, `sourceRef?` | §6.1 |
+| `DataTable` | `columns[]`, `filters[]`, `searchable`, `pageSize` (default 10) | Every list of records (documents, months, bank lines, invoices and receipts, findings, bank accounts): filter chips with counts, search, 10 rows a page with "1 to 10 of 45", sortable columns, keyboard rows; below 760 px the rows become cards. Short summaries on the dashboard (top five) are lists, not tables |
 | `MonthStrip` / `MonthTab` | `months[]` | §6.2 |
 | `EvidenceBox` | `boxes[] {bbox, index, label}`, `mode` (`page`, `magnifier`) | §6.3 |
 | `SankeyChart`, `StatementBars`, `FlowList`, `FlowTable` | `nodes[]`, `links[]`, `view`, `framework`, `hot?` | §6.4 |
@@ -563,13 +580,16 @@ make mock-shots    tools/design/shoot_mocks.py at 390, 834, 1440 px → docs/ass
 | Mock | Shows | Spec |
 |---|---|---|
 | `onboarding.html` | Myself or a company, the trial terms, the brand panel | 013 |
-| `landing.html` | The first public landing (before the 2026-10 revamp, §12); its classes left `kit.css` with the revamp, so it no longer renders as designed. The React page is the reference | 020 |
-| `dashboard.html` | Status sentence, figures, Needs you, Risk, then full-width charts with the IFRS / US GAAP switch: money flow (Flow, Bars, Table, By client and supplier), money in and out by month, cash-flow statement; months as binder tabs | 010 |
+| `dashboard.html` | Period switch, figures, the P&L panel, then full-width charts with the IFRS / US GAAP switch: money flow (Flow, Bars, Table, By client and supplier), money in and out by month, cash-flow statement; the reconciliation sentence, Risk, To review and Where the money went, months as binder tabs. Drawn from `contracts/design/fixtures/dashboard.json`, the same payload the browser parity check serves | 010, 018, 019 |
 | `documents.html` | Upload tray with an exact copy, a held copy, a page being read and a new ledger layout; the library | 003, 006 |
-| `month.html` | March 2026: figures, the critical explanation with citations and next steps, bank lines with matches | 007, 008 |
-| `review.html` | The queue by month and the fix panel for a bank line that fits two invoices | 009 |
+| `document.html` | One read statement: page viewer (pages, zoom, the lamp) beside the figures and the transactions with reading marks, filters and pages. Drawn from `contracts/design/fixtures/document.json` | 003, 005, 006 |
+| `document-ledger.html`, `document-ledger-columns.html` | A ledger export after import: rows, period, the link to the profit and loss; and one with a new layout, nothing imported yet, pointing to the column check | 003, 005, 019 |
+| `month.html` | March 2026: figures, the critical explanation with citation chips and next steps, the match meter, bank lines with category, support, reason and action. Drawn from `contracts/design/fixtures/month.json` | 007, 008 |
+| `months.html` | All months in the shared table: state, risk, statements, newest first | 007 |
+| `review.html`, `review-match.html`, `review-correction.html`, `review-mapping.html` | The queue in the shared table; the fix drawer for a proposed match; a value to check with the receipt's page beside the correction form; a ledger export's column mapping with the first rows as read. Drawn from `contracts/design/fixtures/review.json` | 005, 009, 019 |
 | `evidence-viewer.html` | The lamp, calculation, two readings; magnifier on compact | 005, 008 |
-| `assistant.html` | Finance Assistant answer with a citation chip, a small chart, and what is remembered (P1) | 011 |
+| `assistant.html` | Finance Assistant: the history rail, three grounded answers with citation chips and a small chart, a fourth answer being written (activity trail), the composer | 011, 019 |
+| `assistant-welcome.html`, `assistant-history.html` | The welcome prompts of an empty thread; the history drawer phones open from Chat history | 011, 019 |
 | `plan-usage.html` | Trial track, usage meters, plan cards, coming-soon features | 013 |
 | `risk.html` | Findings grouped by month with severity, code, where and status | 008 |
 | `clients.html` | Clients and suppliers with shares; a supplier paid to a new account and one never paid are flagged | 014 |

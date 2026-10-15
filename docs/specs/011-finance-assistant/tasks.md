@@ -13,8 +13,9 @@
 
 ## Phase 3 — API and UI
 
-- [ ] **T011-06** Assistant routes with SSE; memories list and purge. (AC-011-10)
-- [ ] **T011-07** `AssistantPage`, `AnswerParts`, "Ask about this". (AC-011-4, AC-011-11, AC-011-12)
+- [x] **T011-06** Assistant routes with SSE; memories list and purge. (AC-011-10)
+- [x] **T011-07** `AssistantPage`, `AnswerParts`, "Ask about this". (AC-011-4, AC-011-11, AC-011-12)
+
 
 ## Phase 4 — Evaluation and close
 

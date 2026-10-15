@@ -1,6 +1,7 @@
 """In-memory WorkspaceRepository; a lock stands in for the Firestore transaction."""
 
 import asyncio
+from typing import Any
 
 from app.domain.models.events import AuditEvent
 from app.domain.models.workspace import BankAccount, Workspace
@@ -57,6 +58,16 @@ class FakeWorkspaceRepository(WorkspaceRepository):
         async with self._txn:
             self.workspaces[workspace.org_id] = workspace
             self.events.setdefault(workspace.org_id, []).append(event)
+
+    async def save_ledger_mapping(
+        self, org_id: str, layout_signature: str, mapping: dict[str, Any], event: AuditEvent
+    ) -> None:
+        async with self._txn:
+            ws = self.workspaces[org_id]
+            self.workspaces[org_id] = ws.model_copy(
+                update={"ledger_mappings": {**ws.ledger_mappings, layout_signature: mapping}}
+            )
+            self.events.setdefault(org_id, []).append(event)
 
     async def count_members(self, org_id: str) -> int:
         return len(self.members.get(org_id, {}))

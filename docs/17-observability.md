@@ -42,12 +42,25 @@ the run (`runs.traceId`) and each stage keeps its `traceSpanId`.
 
 **Export to Cloud Trace** (`backend/app/observability/tracing.py`, called once by `create_app`):
 with `TRACE_EXPORT=cloud` (both Cloud Run services) it installs ADK's exporter,
-`get_gcp_exporters(enable_cloud_tracing=True)` through `maybe_set_otel_providers`, with the service
-name and version as the resource. `TRACE_EXPORT=none` (the default) keeps spans in the process: tests,
+`get_gcp_exporters(enable_cloud_tracing=True)` through `maybe_set_otel_providers`, with ADK's
+`get_gcp_resource(GOOGLE_CLOUD_PROJECT)` merged with the service name and version as the resource.
+The Telemetry API (`telemetry.googleapis.com`) refuses a batch whose resource lacks `gcp.project_id`
+with 400, so the resource is not optional. `TRACE_EXPORT=none` (the default) keeps spans in the process: tests,
 local runs, and the dev UI, which has its own in-memory trace view. `app/agents/runtime.run_workflow`
 opens the `workflow:<name>` root span, stores its trace ID on the run and binds the trace field to every
 log line of the run; `stage()` tags `node:` spans with the ADK invocation ID so the dev UI groups them.
-How to find a run's trace: [`23`](23-agents-and-tracing-guide.md) §5.
+How to find a run's trace: [`23`](23-agents-and-tracing-guide.md) §6; run history and Gemini usage: §5 and §3.4.
+
+**Local OTLP/HTTP**: `TRACE_EXPORT=otlp` installs a traces-only provider using
+`OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` (default `http://127.0.0.1:4318/v1/traces`). `make trace-up`
+starts Jaeger on loopback; `make dev-traced` runs the API and inline worker with this exporter and
+content capture off. The viewer is `http://localhost:16686`; `make trace-smoke` verifies ingestion.
+This local open-source tool does not add a managed service. No OpenInference instrumentor is needed.
+
+The document reader uses the Gemini SDK directly. Its `generate_content <model>` span records
+each request attempt, prompt version, input/output token counts, latency and sanitized error type
+(numeric API status or exception class). Request/response content and exception messages are omitted,
+including on schema-validation failures. Cached reads naturally have no model-request span.
 
 **Content capture follows the data** (`AI_CONTENT_CAPTURE`, [ADR-017](adr/ADR-017-agent-observability-on-google-cloud.md)).
 Outside Agent Runtime, ADK records prompts and responses in span attributes unless
@@ -229,6 +242,12 @@ and the assistant gets its own app when it is built (specs 005–011), with reco
 `tests/integration/test_dev_apps.py` loads and runs every dev app as `adk web` does, so one that cannot
 open fails `make check`. Step-by-step use, the API behind the UI and troubleshooting:
 [`23`](23-agents-and-tracing-guide.md) §4.
+
+**Langfuse** ([ADR-026](adr/ADR-026-langfuse-trace-viewer.md)): `make langfuse-up` then
+`make dev-langfuse` sends every run to a local Langfuse at http://localhost:3000, where a document
+or month run is one trace, each Gemini call a generation with model and tokens, grouped by document
+or month and workspace. Prompts and responses only with synthetic data. Steps:
+[`23`](23-agents-and-tracing-guide.md) §5.2.
 
 ## 10. Feedback, datasets and evals (P1)
 

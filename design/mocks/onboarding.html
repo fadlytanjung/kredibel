@@ -11,7 +11,7 @@
 <script src="assets/proto.js" defer></script>
 </head>
 <body>
-<div class="viewport"><div class="onboard">
+<div class="viewport"><div class="onboard"><div class="topbar-status hide-compact" style="grid-column:1/-1;text-align:right"><div class="topbar-status hide-compact"><span class="badge badge-clean" title="Route: /onboarding">Implemented · <code>/onboarding</code></span></div></div>
 <section class="onboard-brand" aria-label="Kredibel">
   <img class="logo" src="../brand/kredibel-logo-on-dark.svg" alt="Kredibel"/>
   <div class="stack gap-6">
@@ -30,18 +30,19 @@
   <p class="small-print">Kredibel only reads your documents. It never moves money and never changes your accounting system.</p>
 </section>
 <section class="onboard-form" aria-labelledby="ob-h">
-  <div class="stack gap-2"><h1 class="type-title" id="ob-h">Whose books are these?</h1><p class="muted">One workspace is one business or one person. You can add details later; Kredibel will suggest them from your documents.</p></div>
-  <div class="who-choice" role="radiogroup" aria-label="Workspace type">
-    <div class="who" role="radio" aria-checked="false" tabindex="-1"><span class="ico"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5c1-3.8 4-6 7.5-6s6.5 2.2 7.5 6"/></svg></span><strong>Myself</strong><span class="d">A freelancer or sole trader with a business account</span></div>
-    <div class="who is-checked" role="radio" aria-checked="true" tabindex="0"><span class="tick"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span><span class="ico"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V5.5A1.5 1.5 0 0 1 5.5 4h8A1.5 1.5 0 0 1 15 5.5V21"/><path d="M15 10h3.5a1.5 1.5 0 0 1 1.5 1.5V21M3 21h18M8 8h3M8 12h3M8 16h3"/></svg></span><strong>A company</strong><span class="d">A partnership or a limited company</span></div>
-  </div>
-  <div class="form-wrap"><div class="form-grid">
+  <div class="stack gap-2"><h1 class="type-title" id="ob-h">Set up your business</h1><p class="muted">One workspace is one business. You can add details later; Kredibel will suggest them from your documents.</p></div>
+  <section class="form-section" aria-labelledby="ob-biz"><h2 id="ob-biz">Your business</h2><div class="form-wrap"><div class="form-grid">
     <div class="field span-2"><label for="n">Legal name</label><input class="input" id="n" value="Sunrise Coffee Roasters"/></div>
     <div class="field"><label for="t">Trading name <span class="muted">(optional)</span></label><input class="input" id="t" placeholder="As on your invoices"/></div>
+    <div class="field"><label for="f">Legal form</label><select class="select" id="f"><option>Partnership</option></select></div>
     <div class="field"><label for="i">Industry</label><select class="select" id="i"><option>Food and drink, wholesale</option></select></div>
-    <div class="field"><label for="z">Time zone</label><select class="select" id="z"><option>Asia/Jakarta (UTC+7)</option></select><span class="hint">Months are counted in this time zone.</span></div>
+    <div class="field"><label for="x">Tax ID <span class="muted">(optional)</span></label><input class="input" id="x" placeholder="Stored masked"/></div>
+  </div></div></section>
+  <section class="form-section" aria-labelledby="ob-books"><h2 id="ob-books">Your books</h2><div class="form-wrap"><div class="form-grid">
     <div class="field"><label for="c">Currency</label><select class="select" id="c"><option>Indonesian Rupiah (IDR)</option></select><span class="hint">The currency of your books. Changing it later is coming soon.</span></div>
-  </div></div>
+    <div class="field"><label for="z">Time zone</label><select class="select" id="z"><option>Asia/Jakarta (UTC+7)</option></select><span class="hint">Months are counted in this time zone.</span></div>
+    <div class="field span-2"><span class="label" id="fw-l">Accounting framework</span><div class="seg" role="group" aria-label="Accounting framework"><button type="button" data-group="obfw" data-value="IFRS" aria-pressed="true">IFRS</button><button type="button" data-group="obfw" data-value="US_GAAP" aria-pressed="false">US GAAP</button></div><span class="hint">How cash flows are grouped on your dashboard. You can switch the view any time.</span></div>
+  </div></div></section>
   <details class="disclosure"><summary><span>Main bank account<span class="opt">optional</span></span><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9.5 6 6 6-6"/></svg></summary></details>
   <p class="trial-note"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span><strong>30-day free trial.</strong> 150 documents and 400 pages a month. No card, no payment. Paid plans are coming soon.</span></p>
   <a class="button button-primary button-lg button-block" href="documents.html">Start the free trial</a>

@@ -2,12 +2,13 @@
 plus its layout chunks. Implemented with Gemini; tests use a recorded fake."""
 
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Any, Protocol
 
 from app.domain.reading import (
     CategorizeResult,
     DocClassification,
     InvoicePageReading,
+    LedgerMappingProposal,
     ReceiptPageReading,
     StatementPageReading,
     TransactionItem,
@@ -55,4 +56,38 @@ class DocumentReader(Protocol):
         self, items: list[TransactionItem], vocabulary: str
     ) -> ReaderCall[CategorizeResult]:
         """Categories for up to 100 bank lines the keyword rules left (docs/08 §4.1)."""
+        ...
+
+    async def map_ledger_columns(
+        self, header: list[str], shapes: list[list[str]]
+    ) -> ReaderCall[LedgerMappingProposal]:
+        """Which column of a ledger export holds each field, from the header words and the value
+        shapes only (AC-005-11); the fallback for headers the code's synonyms miss."""
+        ...
+
+    async def explain_month(
+        self,
+        level: str,
+        findings_facts: str,
+        figures_summary: str,
+        catalog_steps: list[str],
+        retry_problems: list[str] | None = None,
+    ) -> ReaderCall[Any]:
+        """Gemini explanation for the month's fraud risk level (spec 008, AC-008-4)."""
+        ...
+
+    async def suggest_match(
+        self,
+        bank_line_info: str,
+        candidates_info: str,
+    ) -> ReaderCall[Any]:
+        """Gemini recommendation and reasoning for matching a bank line with candidate documents."""
+        ...
+
+    async def ask_assistant(
+        self,
+        history: list[dict[str, str]],
+        context: str,
+    ) -> ReaderCall[str]:
+        """Ask the finance assistant with facts and context."""
         ...

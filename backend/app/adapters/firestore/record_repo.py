@@ -15,7 +15,9 @@ from app.adapters.firestore.models.invoice import (
     ReceiptDoc,
     ReceiptItemDoc,
 )
+from app.adapters.firestore.models.workspace import EventDoc
 from app.adapters.firestore.txn import dump
+from app.domain.models.events import AuditEvent
 from app.domain.models.invoice import Invoice, InvoiceLine, Receipt, ReceiptItem, SupplyKind
 from app.ports.record_repository import DocumentRecords
 
@@ -52,6 +54,8 @@ def invoice_to_doc(inv: Invoice) -> InvoiceDoc:
             for ln in inv.lines
         ],
         supply_kind=inv.supply_kind, pages=inv.pages, consensus=inv.consensus, notes=inv.notes,
+        evidence=inv.evidence, corrected_fields=inv.corrected_fields, corrected_by=inv.corrected_by,
+        corrected_at=inv.corrected_at,
     )  # fmt: skip
 
 
@@ -76,7 +80,9 @@ def invoice_from_doc(doc: InvoiceDoc) -> Invoice:
             )
             for ln in doc.lines
         ],
-        pages=doc.pages, consensus=doc.consensus, notes=doc.notes,
+        pages=doc.pages, consensus=doc.consensus, notes=doc.notes, evidence=doc.evidence,
+        corrected_fields=doc.corrected_fields, corrected_by=doc.corrected_by,
+        corrected_at=doc.corrected_at,
     )  # fmt: skip
 
 
@@ -89,7 +95,9 @@ def receipt_to_doc(r: Receipt) -> ReceiptDoc:
         payment_method=r.payment_method,
         items=[ReceiptItemDoc(description=i.description, amount_minor=_minor(i.amount))
                for i in r.items],
-        pages=r.pages, consensus=r.consensus, notes=r.notes,
+        pages=r.pages, consensus=r.consensus, notes=r.notes, evidence=r.evidence,
+        corrected_fields=r.corrected_fields, corrected_by=r.corrected_by,
+        corrected_at=r.corrected_at,
     )  # fmt: skip
 
 
@@ -101,7 +109,9 @@ def receipt_from_doc(doc: ReceiptDoc) -> Receipt:
         merchant_tax_id=doc.merchant_tax_id, number=doc.number, time=doc.time,
         tax=_money(doc.tax_minor), payment_method=method,  # type: ignore[arg-type]
         items=[ReceiptItem(i.description, _money(i.amount_minor)) for i in doc.items],
-        pages=doc.pages, consensus=doc.consensus, notes=doc.notes,
+        pages=doc.pages, consensus=doc.consensus, notes=doc.notes, evidence=doc.evidence,
+        corrected_fields=doc.corrected_fields, corrected_by=doc.corrected_by,
+        corrected_at=doc.corrected_at,
     )  # fmt: skip
 
 
@@ -155,6 +165,32 @@ class FirestoreRecordRepository[T, D: FirestoreModel](DocumentRecords[T]):
             for ref in refs[start : start + _BATCH]:
                 batch.update(ref, {"heldAsDuplicate": held})
             await batch.commit()
+
+    async def set_evidence(self, org_id: str, updates: dict[str, dict[str, Any]]) -> None:
+        items = sorted(updates.items())
+        for start in range(0, len(items), _BATCH):
+            batch = self._db.batch()
+            for record_id, evidence in items[start : start + _BATCH]:
+                batch.update(self._col(org_id).document(record_id), {"evidence": evidence})
+            await batch.commit()
+
+    async def save_correction(self, org_id: str, record: T, event: AuditEvent) -> None:
+        batch = self._db.batch()
+        batch.set(
+            self._col(org_id).document(self._id(record)), dump(self._to_doc(record)), merge=True
+        )
+        batch.set(
+            self._db.collection("orgs")
+            .document(org_id)
+            .collection("events")
+            .document(event.event_id),
+            dump(EventDoc(org_id=org_id, **event.model_dump())),
+        )
+        await batch.commit()
+
+    async def get_record(self, org_id: str, record_id: str) -> T | None:
+        snap = await self._col(org_id).document(record_id).get()
+        return self._from_doc(self._model.model_validate(snap.to_dict())) if snap.exists else None
 
     async def list_records(
         self, org_id: str, *, doc_id: str | None = None, month: str | None = None, limit: int = 200

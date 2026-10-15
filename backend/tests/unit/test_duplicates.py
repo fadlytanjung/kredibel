@@ -1,7 +1,10 @@
 """Content duplicates (spec 006, AC-006-1…3): when two files hold the same statement or invoice."""
 
+from dataclasses import replace
 from datetime import UTC, date, datetime
 from decimal import Decimal
+
+import pytest
 
 from app.domain.checks.policy import Duplicates
 from app.domain.duplicates import (
@@ -69,8 +72,9 @@ def _inv(
     total: str,
     when=LATER,
     issuer="Sunrise Coffee Roasters",
+    pay_to: str | None = None,
 ):
-    return InvoiceKey(doc, when, issuer, number, day, Decimal(total))
+    return InvoiceKey(doc, when, issuer, number, day, Decimal(total), pay_to)
 
 
 def test_the_same_invoice_again_is_held_a_reused_number_keeps_both():
@@ -99,6 +103,51 @@ def test_the_same_invoice_again_is_held_a_reused_number_keeps_both():
     assert invoice_duplicate(other_issuer, [old], POLICY) is None
 
 
+def test_a_copy_that_asks_to_be_paid_elsewhere_is_high():
+    """The same invoice with another pay-to account: a payment diversion signal (T006-11)."""
+    old = _inv(
+        "doc_a", "RL-2026-0503", date(2026, 5, 6), "8250000.00", EARLIER, "Roastline", "••••3318"
+    )
+    diverted = invoice_duplicate(
+        _inv(
+            "doc_b",
+            "RL-2026-0503",
+            date(2026, 5, 6),
+            "8250000.00",
+            issuer="Roastline",
+            pay_to="••••3108",
+        ),
+        [old],
+        POLICY,
+    )
+    assert diverted is not None
+    assert (diverted.code, diverted.severity, diverted.hold) == (
+        "D03_INVOICE_DUPLICATE",
+        "HIGH",
+        True,
+    )
+    assert (diverted.facts["payTo"], diverted.facts["otherPayTo"]) == ("••••3108", "••••3318")
+    same_account = invoice_duplicate(
+        _inv(
+            "doc_b",
+            "RL-2026-0503",
+            date(2026, 5, 6),
+            "8250000.00",
+            issuer="Roastline",
+            pay_to="••••3318",
+        ),
+        [old],
+        POLICY,
+    )
+    assert same_account is not None and same_account.severity == "MEDIUM"
+    unread = invoice_duplicate(
+        _inv("doc_b", "RL-2026-0503", date(2026, 5, 6), "8250000.00", issuer="Roastline"),
+        [old],
+        POLICY,
+    )
+    assert unread is not None and unread.severity == "MEDIUM"  # no account read: no claim
+
+
 def _rc(doc: str, total: str, when=LATER, p_hash: str | None = None) -> ReceiptKey:
     return ReceiptKey(doc, when, "KEDAI RUNCIT MAJU", date(2026, 9, 12), Decimal(total), p_hash)
 
@@ -115,3 +164,23 @@ def test_a_receipt_photo_close_to_another_is_held_by_its_image_hash():
     assert receipt_duplicate(near, [old], POLICY) is not None
     nine = ReceiptKey("doc_b", LATER, None, None, None, "ff00ff00ff01ffff")  # 9 bits apart
     assert receipt_duplicate(nine, [old], POLICY) is None
+
+
+@pytest.mark.parametrize(
+    "changed",
+    [
+        {"merchant": "Swift Courier"},
+        {"day": date(2026, 9, 13)},
+        {"total": Decimal("6.51")},
+    ],
+)
+def test_matching_layout_does_not_override_different_receipt_values(changed):
+    old = _rc("doc_a", "5.50", when=EARLIER, p_hash="ff00ff00ff00ff00")
+    new = replace(old, doc_id="doc_b", uploaded_at=LATER, **changed)
+    assert receipt_duplicate(new, [old], POLICY) is None
+
+
+def test_image_fallback_with_missing_fields_and_total_at_tolerance_still_holds():
+    old = _rc("doc_a", "5.50", when=EARLIER, p_hash="ff00ff00ff00ff00")
+    new = replace(old, doc_id="doc_b", uploaded_at=LATER, merchant=None, total=Decimal("6.50"))
+    assert receipt_duplicate(new, [old], POLICY) is not None

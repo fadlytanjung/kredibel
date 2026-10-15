@@ -6,7 +6,7 @@ React-first: build the public pages as SPA routes on the existing tokens and `ki
 dashboard moves from `/` to `/dashboard` so `/` can be the public landing; every other app route keeps
 its path. A new `PublicShell` (tone-aware header + footer) wraps the public pages; `PageMeta` sets the
 document title and description per page (React 19 renders `<title>`/`<meta>` natively). All copy lives
-in `locales/en/public.json`. One HTML mock (`design/mocks/landing.html`) is generated for the landing
+in `locales/en/public.json`. One HTML mock (`design/mocks/landing.html`, retired with the revamp, see below) was generated for the landing
 only; the other public pages rely on Storybook stories and Playwright baselines.
 
 No backend change: the SPA catch-all serves every path, and the security headers already allow
@@ -26,7 +26,7 @@ gradients, illustrations or stock photos. *Superseded for the public site by the
 - `design/mocks/assets/kit.css` — public-surface classes (`.site*`, `.hero*`, `.statement*`,
   `.read-twice`, `.decision*`, `.section*`, `.prose`, `.faq`, `.pricing` reuses `.plans`) and the hero
   motion; `make tokens` copies it to `frontend/src/app/styles/kit.css`.
-- `tools/design/mocks/screens_more.py` — `landing()` screen; registered in `SCREENS_MORE`/`NOTES_MORE`.
+- `tools/design/mocks/screens_more.py` — `landing()` screen (retired with the revamp).
 - `frontend/src/shared/i18n/locales/en/public.json` + `setup.ts` — the `public` namespace.
 - `frontend/src/shared/lib/usePrefersReducedMotion.ts` — motion preference hook (used by the hero).
 - `frontend/src/shared/ui/PageMeta.tsx`, `ReadTwiceScene.tsx`, `StatementSheet.tsx`,

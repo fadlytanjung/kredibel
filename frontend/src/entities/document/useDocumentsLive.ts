@@ -1,0 +1,77 @@
+/**
+ * Realtime documents collection hook using Firestore onSnapshot (spec 004, AC-004-8).
+ *
+ * Listens to /orgs/{orgId}/documents in realtime using Firestore's push stream
+ * (SSE/Websocket) so document status transitions and page triage reflect immediately
+ * without polling the REST API.
+ */
+
+import { useEffect, useState } from 'react'
+import { subscribeLive } from '../../shared/firebase/live'
+import type { Document, DocType } from './types'
+
+export interface DocumentLiveFilters {
+  type?: DocType
+  duplicate?: boolean
+}
+
+export interface UseDocumentsLiveResult {
+  documents: Document[]
+  loading: boolean
+  error: Error | null
+}
+
+// The library lists the workspace's documents in one table (pages of 10, filtered in the browser).
+const LIVE_LIMIT = 500
+
+export function useDocumentsLive(
+  orgId: string | undefined | null,
+  filters?: DocumentLiveFilters,
+): UseDocumentsLiveResult {
+  const [documents, setDocuments] = useState<Document[]>([])
+  const [loading, setLoading] = useState<boolean>(Boolean(orgId))
+  const [error, setError] = useState<Error | null>(null)
+
+  useEffect(() => {
+    if (!orgId) return
+
+    return subscribeLive(
+      ({ collection, limit, onSnapshot, orderBy, query }, db) =>
+        onSnapshot(
+          query(
+            collection(db, 'orgs', orgId, 'documents'),
+            orderBy('uploadedAt', 'desc'),
+            limit(LIVE_LIMIT),
+          ),
+          (snapshot) => {
+            let docs = snapshot.docs.map((docSnap) => ({
+              docId: docSnap.id,
+              ...(docSnap.data() as Omit<Document, 'docId'>),
+            }))
+            if (filters?.type) {
+              docs = docs.filter((d) => d.docType === filters.type)
+            }
+            if (filters?.duplicate !== undefined) {
+              docs = docs.filter((d) => Boolean(d.heldAsDuplicate) === filters.duplicate)
+            }
+            setDocuments(docs)
+            setLoading(false)
+          },
+          (err) => {
+            setError(err)
+            setLoading(false)
+          },
+        ),
+      (err) => {
+        setError(err)
+        setLoading(false)
+      },
+    )
+  }, [orgId, filters?.type, filters?.duplicate])
+
+  if (!orgId) {
+    return { documents: [], loading: false, error: null }
+  }
+
+  return { documents, loading, error }
+}

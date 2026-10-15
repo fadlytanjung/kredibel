@@ -29,6 +29,7 @@ class Evidence:
     tx_id: str | None = None
     invoice_id: str | None = None
     receipt_id: str | None = None
+    ledger_entry_id: str | None = None
     label: str | None = None
 
 

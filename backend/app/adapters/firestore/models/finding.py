@@ -2,18 +2,25 @@
 
 from typing import Any
 
-from pydantic import Field
+from pydantic import BaseModel, ConfigDict, Field
+from pydantic.alias_generators import to_camel
 
 from app.adapters.firestore.models.base import FirestoreModel
 
 
-class EvidenceDoc(FirestoreModel):
+class EvidenceDoc(BaseModel):
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+        extra="ignore",
+    )
     doc_id: str | None = None
     page: int | None = None
     bbox: dict[str, float] | None = None
     tx_id: str | None = None
     invoice_id: str | None = None
     receipt_id: str | None = None
+    ledger_entry_id: str | None = None
     label: str | None = None
 
 

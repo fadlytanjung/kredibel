@@ -5,9 +5,14 @@
  */
 
 import { getApp, getApps, initializeApp } from 'firebase/app'
-import { getAuth, GoogleAuthProvider } from 'firebase/auth'
-
-import { getFirestore } from 'firebase/firestore'
+import {
+  browserLocalPersistence,
+  getAuth,
+  GoogleAuthProvider,
+  indexedDBLocalPersistence,
+  initializeAuth,
+} from 'firebase/auth'
+import type { Firestore } from 'firebase/firestore'
 
 // An empty API key makes the Firebase SDK throw at import, which blanks the whole SPA — including
 // the public pages, which need no sign-in at all. So without configuration we use a placeholder
@@ -32,8 +37,26 @@ const firebaseConfig = configured
     }
 
 export const firebaseApp = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig)
-export const auth = getAuth(firebaseApp)
-// Kredibel's own database in the shared project (ADR-021).
-export const db = getFirestore(firebaseApp, import.meta.env.VITE_FIRESTORE_DATABASE || '(default)')
+// No popup/redirect resolver at start-up: the sign-in iframe and gapi (about 130 KB) load only
+// when someone signs in, so the first paint does not wait for them (AC-010-11).
+function startAuth() {
+  try {
+    return initializeAuth(firebaseApp, {
+      persistence: [indexedDBLocalPersistence, browserLocalPersistence],
+    })
+  } catch {
+    return getAuth(firebaseApp) // already initialized (hot reload, tests)
+  }
+}
+export const auth = startAuth()
+// Kredibel's own database in the shared project (ADR-021), opened with the Firestore SDK the
+// first time a page listens for live updates (AC-010-11).
+let firestore: Promise<Firestore> | null = null
+export function liveDb(): Promise<Firestore> {
+  firestore ??= import('firebase/firestore').then((sdk) =>
+    sdk.getFirestore(firebaseApp, import.meta.env.VITE_FIRESTORE_DATABASE || '(default)'),
+  )
+  return firestore
+}
 export const googleAuthProvider = new GoogleAuthProvider()
 

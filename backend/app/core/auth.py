@@ -145,7 +145,6 @@ class GoogleOidcTokenVerifier:
         return dict(claims)
 
 
-
 class NoopTaskTokenVerifier:
     """No-op verifier for testing and inline queue mode."""
 

@@ -4,7 +4,7 @@
 > a component. Statuses: **Specified** → **In progress** → **Built** (tests green) → **Deployed**
 > (running on Cloud Run) · **Cut** (deliberately dropped, with reason).
 
-_Last updated: 12 Oct 2026 — Specs 001, 003, 004 and 013 (P0) built; spec 005 reads statements, invoices and receipts with grounding (ledger import, OCR for scans and escalation still open); production configuration from the `kredibel-env` secret (ADR-024). Spec 020 adds the public site (landing at `/`, dashboard at `/dashboard`)._
+_Last updated: 15 Oct 2026 — Spec 019: every implemented screen's mock is generated from a shared synthetic fixture and proven against the app in the browser (78 Playwright checks at three widths, 360/1600 bounds, axe). Three screen bugs found by the checks are fixed. The scenario gates run through the API on seeded books (`tests/integration/scenario_books.py`): S1's queue, figures and money flow, S2's tampered statement, S3's held copies (T006-09, T009-07, T010-07). They found and fixed three month-run bugs: the ledger never reached the month run, review items and the month's risk were computed from the previous run's stores, and a mapping keyed by account id raised spurious `X09` findings. A production document run is one Cloud Trace trace with every node span under it (T004-11, verified on the 15 Oct 2026 deploy). Open: `D06`, Lighthouse (T010-06), the deployed-environment sign-up check (T013-18). Spec 020 adds the public site (landing at `/`, dashboard at `/dashboard`)._
 
 ## Foundation & platform
 
@@ -19,6 +19,8 @@ _Last updated: 12 Oct 2026 — Specs 001, 003, 004 and 013 (P0) built; spec 005 
 | i18n scaffold (English only) | 001 | Built | `i18next` + `react-i18next` with `en` bundle (AC-001-14) |
 | Synthetic books S1–S5, scan variant, fixtures | 002 | Built | `tools/synthetic` (`make synth`): books as data, AUTO/PROPOSED proven against the reconciliation policy, deterministic PDFs/JPEGs/CSV/XLSX, T1 and T7–T13, `truth.json`, `--scan`, 8 fixtures; 213 generator tests in `make check`. Demo set generated, not committed |
 | Synthetic S6 (hidden instructions) | 002 | Specified (P1) | |
+
+| Current UI and mock parity | 019 | Built | Screen inventory with route and status on every mock (`tools/design/mocks/inventory.py`); dashboard, assistant (welcome, conversation, history drawer), document (statement, ledger export), month, all months and review (queue, proposal drawer, value correction) mocks generated from shared synthetic fixtures (`contracts/design/fixtures/*.json`) with the app's own words; Playwright parity specs serve the same fixtures to the dev preview routes and compare the visible outline of mock and screen at 390/834/1440 px, record baselines, check 360/1600 px and axe (`frontend/tests/visual/`). Planned parts stay in the mocks labelled as planned (profile suggestions 014, column confirmation T005-11). Rule `.agents/rules/35-ui-sync.md` makes the inventory entry, the shared fixture and the browser check mandatory. See "Spec 019 validation" below |
 
 ## Workspace & plans
 
@@ -49,38 +51,46 @@ _Last updated: 12 Oct 2026 — Specs 001, 003, 004 and 013 (P0) built; spec 005 
 | Gemini page readers: statements, invoices, receipts | 005 | Built | Image plus numbered layout chunks with citations (ADR-023), `thinking_level=low`, timeout and one retry, cached per page image + model + prompt. Real RHB statement: 13 pages, 178 lines, 718/718 values grounded; real MY/ID invoices and receipts 90–100 % |
 | Witness: text layer + Document AI OCR | 005 | In progress | Text layer → layout chunks built (`parse_pages`); Enterprise OCR for scans and photos waits for spike S3, so a scan's values are `SINGLE_SOURCE` |
 | Normalization + verifier + provenance | 005 | Built | `normalize.py` (EN/EU and dot-grouped amounts, `Rp.`/`RM`, English, Malay and Indonesian months), `layout.py` chunks, `verify.py` grounding, records with per-value `consensus` (status, page, box, raw readings); the document page lights each value on its page |
-| Ledger import (mapper proposes, user confirms, code parses) | 005 | Specified | |
+| Ledger import (code proposes, user confirms once per layout, code parses) | 005 | Built | `ledger_parse.py`: delimiter sniffed, layout signature, `LedgerMapping` (debit/credit or one signed amount with its sign convention, date format, decimal separator), `propose_mapping` from the header words (English and Indonesian) and the value shapes, parse through a mapping, five sample rows as read (T005-04, T005-09, T005-11; AC-005-10…12). The document workflow reuses a mapping the workspace confirmed for the layout (`orgs/{orgId}.ledgerMappings`, docs/09 §3.8), confirms standard English layouts by code, and otherwise stops at `NEEDS_INPUT` with a `CONFIRM_LEDGER_MAPPING` item; more than 2% bad rows reopen it (the run no longer finalizes such a file as `DONE`, fixed 15 Oct 2026). `GET /api/documents/{docId}/ledger-mapping`, `CONFIRM_MAPPING` (validated, audited as `LEDGER_MAPPING_CONFIRMED`, the document read again). Review drawer `MappingEditor` with the first rows as read; the document page points a waiting export to its item. Mocks `review-mapping.html`, `document-ledger-columns.html` with browser parity. The `MODEL_LITE` mapper (`map_ledger_columns.md`) is called only when code's synonyms leave a required column unmapped; it sees the header and the first rows' value shapes, and code keeps only answers that name a real column, never overriding its own choices. XLSX exports still go through the CSV path's reader |
 | Escalation to Form/Invoice Parser, thorough mode | 005 | Specified (P1) | |
-| Content duplicates `D02`–`D06` (held) | 006 | In progress | `D02`–`D05` built: the newer document and its records are held, a `DUPLICATE` finding names the earlier one, and deleting the earlier copy re-reads and releases it; library and document page show "Possible copy". Exclusion from month figures (007), the `POSSIBLE_DUPLICATE` item and decisions (009) and `D06` (ledger import) still to come |
+| Content duplicates `D02`–`D06` (held) | 006 | In progress | `D02`–`D05` built: the newer document and its records are held, a `DUPLICATE` finding names the earlier one, and deleting the earlier copy re-reads and releases it; library and document page show "Possible copy". D05 image similarity no longer overrides contradictory merchant/date/total readings (T006-01a): different till rolls remain eligible. `POSSIBLE_DUPLICATE` items and decisions are built (009); S3's `D02`/`D03`/`D05` copies and the refused `D01` exact copy are proven in `test_scenario_forensics.py` and through the API (T006-09, 15 Oct 2026). `D06` (ledger entry copies) remains open |
 | Integrity checks `A01`, `A02`, `A04`, `M01`–`M04`, `M06`, `E01`, `E02`, `E05`, `X05`, `X06`; verdict; findings API and document page | 006 | Built | `inspect_file` (pikepdf metadata, saves excluding linearization, what each later save changed, fonts of values) and `check_document` (policy-enabled checks, upsert by ID with the re-run rules, verdict). S2's edited March statement → `TAMPERED` with all six expected codes; S1 → `CLEAN`. `M04` is measured per page, not per column (docs/08 §2.4) |
 | Integrity checks `A01`, `A02`, `A04`, `M01`–`M04`, `M06`, `E0x`, `X05`, `X06` + verdict | 006 | Specified | |
-| Categorization | 007 | In progress | `categorize_bank_lines`: keyword rules first (`categorization-rules.v1.yaml`), then `MODEL_LITE` in cached batches of 100 with only the categories allowed for the line's direction; confidence < 0.5 → `UNKNOWN`; cash-flow class from the workspace's framework; risk tags; the model also cleans counterparty names. Match-decided and user categories come with matching and the month page |
-| `reconcile_month` (order-independent) + figures | 007 | Specified | |
-| Month checks `X01`, `X02`, `X08`, `X09`, `R01`, `R02`, `B01`, `B04`, `C02`, `D07` | 007 | Specified | |
-| Months page, manual match and unmatch | 007 | Specified | |
+| Categorization | 007 | In progress | Keyword rules then `MODEL_LITE` in cached batches of 100; confidence < 0.5 → `UNKNOWN`; framework cash-flow class and risk tags. `PATCH /api/bank-lines/{txId}` validates category/direction, audits `USER` choices and reruns figures. User choices survive re-extraction. Match-driven categories and the month-page controls remain open |
+| Candidate scoring and eligibility | 007 | Built | Decimal amount/date/party/reference contributions, fixed-currency tolerance, explicit printed-currency agreement without conversion, direction/account/receipt-method gates and review-only tax shortfalls; wired into month assignment |
+| `reconcile_month` (order-independent) + figures | 007 | Built | Scoring, deterministic assignment (single, grouped, split; manual matches kept, rejections never return; Hypothesis order test), payment evidence and coverage, bank support, figures as facts, a person's decisions (`/api/decisions`), and the month run writing matches, evidence, support, figures and an honest state. Statement + invoice end to end: `AUTO` match with all reasons, `PAID_BANK`, month `RECONCILED`. S1 (≥ 85% match rate, 0 wrong automatic matches, Feb ambiguous pair `PROPOSED`), S4 (`X08`, `R02`), double payment (`D07`) and S5 = S1 upload-order independence gates passed in `test_scenario_reconciliation.py`. |
+| Bank evidence, supporting documents and manual attestations | 007 | Built | Document-first evidence and separate approval/payment decisions work without a statement; later bank matches do not double count cash. Pending currency documents stay out of totals; agreement uses unchanged numbers in workspace currency and preserves the printed label. Month outputs are buffered until the final generation check. Interactive evidence, documents-first, and currency-check tabs implemented in `MonthsPage`. Replay verified in both upload orders |
+| Month checks `X01`, `X02`, `X08`, `X09`, `R01`, `R02`, `B01`, `B04`, `C02`, `D07` | 007 | Built | All checks including `X09_LEDGER_BANK_MISMATCH` built and tested; run by `check_month` with month-scoped findings. `X09` compares only accounts with a statement that month and names the bank lines no ledger entry books (the June deposit of S1), so the queue can ask about them; the month run now receives the ledger store (it never did on Cloud Run before 15 Oct 2026) and scores its risk on the run's own findings |
+| Months page, manual match and unmatch | 007 | Built | `MonthsPage` (`/months/all`), `MonthPage` (`/months/:month`), `MatchService`, `POST /api/matches` and `DELETE /api/matches/{matchId}` built and tested. Includes facts bar, Gemini explanation card (its `[[finding:…]]` markers are citation chips with the finding's code that open the evidence, 15 Oct 2026), match breakdown meter, filter chips, bank lines table with support chips and reasons, and manual Match/Unmatch UI controls. Browser parity with `month.html` and `months.html` (spec 019). Open: the ledger tab's difference count and the bank-evidence/documents-first/currency views on the workspace's own data (T007-10c) |
 | Counterparties (accounts seen) + profile suggestions | 014 | Specified | |
-| Risk levels + next-step catalog | 008 | Specified | |
-| Explainer + grounding guard | 008 | Specified | |
+| Risk levels + next-step catalog | 008 | Built | Pure deterministic rules, score calculation, next steps catalog and month/doc workflow scoring nodes implemented (T008-01, T008-02) |
+| Explainer + grounding guard | 008 | Built | Pure grounding guard (marker resolution, number normalization, ungrounded rejection), explain_month prompt, retry, hash skip, and template fallback (T008-03, T008-04) |
 
 ## Review, risk and insight
 
 | Component | Spec | Status | Notes |
 |---|---|---|---|
-| Review queue (8 kinds, actions, auto-advance) | 009 | Specified | |
-| Risk page + evidence viewer | 008 | Specified | |
-| Dashboard (KPIs, month strip, alerts, review preview) | 010 | Specified | |
-| Money flow (Flow, Bars, Table, By client and supplier) + drill-down | 010 | Specified | Statement view (IFRS or US GAAP) by default; full-width charts, one per row |
-| Months in and out, cash-flow statement waterfall | 010 | Specified | `GET /api/cash-flow`; docs/08 §5.2 |
+| Review queue (8 kinds, actions, auto-advance) | 009 | In progress | Backend: the month run creates and closes `PROPOSED_MATCH`, `UNMATCHED_DOCUMENT`, `POSSIBLE_DUPLICATE`, `LOW_CONFIDENCE_VALUE` and finding-cited `UNMATCHED_BANK_LINE` items (`sync_review_items`); `GET /api/review-items` and `POST …/resolve` store each action through the service that owns it (match, confirm, reject, no document needed, duplicate decision, ignore). The Review page: the queue in the shared table beside the fix panel, per-kind actions, auto-advance, J/K/Enter/Esc, the open count in the navigation. Corrections of an invoice's, receipt's, or bank line's amount/total and date (kept when the document is read again, T009-03a, T009-03b). Queue, proposal drawer, value correction and the ledger column check (`CONFIRM_LEDGER_MAPPING` → `CONFIRM_MAPPING`, T005-11) proven against their mocks at three widths with axe, keyboard and 360/1600 px checks (`frontend/tests/visual/review.spec.ts`, 15 Oct 2026); the drawer's preview no longer hides the panel's actions on phones. `sync_review_items` reads the run's own matches, support and payment evidence (the stores still hold the previous run until `finalize_month`), and a run that pays a document of another month re-runs that month. S1 and S3 through the API (`test_scenario_review_queue_api.py`, T009-07): the queue holds the February pair, the net-of-tax proposal and the June deposit; resolving reconciles every month but June (its ledger difference stays blocking); S3's three document copies are held, confirming keeps the figures equal to S1's and releasing one adds its values back. Open: `CONFIRM_TYPE` (E03), `LEDGER_DIFFERENCE` items, the `D06` copy's item |
+| Risk page + evidence viewer | 008 | Built | Findings routes (`/api/findings`, audited acknowledge and reason-backed dismiss), `RiskPage` (`/risk`) with month tabs, severity filters, month groupings, `SeverityBadge` (colour + icon + text), and `EvidenceViewer` (`/risk/:findingId`) with lamp highlights, calc breakdown, two readings, plain-language explanation, and next steps catalog (T008-05…08) |
+| Dashboard (KPIs, month strip, alerts, review preview) | 010 | In progress | `GET /api/dashboard` (money in, out, net and match rate against the previous period, documents waiting, month chips, open alerts, top sources and uses; `period` with `recent`); `DashboardPage` with the status sentence, figures, risk, where the money went in short, months, period picker and empty state. The open review items figure and the first five items of the queue (T010-04a). `build_flows` node writes `months.flows` (≤ 40 links, T010-02a). Visual baselines at three widths, the empty state and mock parity are checked by `frontend/tests/visual/dashboard.spec.ts` (15 Oct 2026); the money-flow Sankey is an accessible group of focusable bands, no longer an image. S1's top sources and uses equal `truth.json` through `GET /api/money-flow` (`test_scenario_money_flow_api.py`, T010-07); on S1's books in the Firestore emulator the dashboard answers in ≤ 80 ms p95 against the 500 ms budget (`test_dashboard_latency.py`, T010-03, skipped without the emulator). Lighthouse (mobile, simulated throttling) on the synthetic dashboard of a production build: performance 83 (from 63), accessibility 100, first paint 3.3 s, after every page but the dashboard became its own chunk, the auth popup resolver moved to the sign-in call and the Firestore SDK loads on the first live subscription (15 Oct 2026; `VITE_PREVIEW_ROUTES=1` builds the measured page). Open: the 85 budget (the shared chunk still carries i18next and the form library at first paint) and links with filters on the figures (T010-06) |
+| Money flow (Flow, Bars, Table, By client and supplier) + drill-down | 010 | Built | `domain/money_flow.py` (both views, framework wording, balance per account, transfers, held lines) and `GET /api/money-flow`; `flow=` on `/api/bank-lines` rebuilds the flow and returns a band's lines; `MoneyFlowPanel`, `SankeyChart` (SVG with d3-sankey layout), `StatementBars`, `FlowTable`, `FlowList`, keyboard focus on bands, bank-lines drawer/sheet with exact total (T010-05) |
+| Months in and out, cash-flow statement waterfall | 010 | Built | `domain/cash_flow.py` (months, activities, lines, opening-to-closing check with `gaps`) and `GET /api/cash-flow`; `MonthBarsPanel`, `WaterfallPanel`, `SegmentedControl`, three drawings per chart, stories at 390, 834, 1440 (T010-05) |
 | Category → cash-flow class per framework | 007, 016 | Specified | `contracts/policy/categories.v1.yaml` |
-| Traces in Cloud Trace + ADK dev UI (`make dev-agents`) | 001, 004, 017 | Built | One trace per run (`workflow:` root, `node:` spans, ADK spans), `runs.traceId`, trace field on logs, `TRACE_EXPORT=cloud` on Cloud Run; dev apps for both workflows load and run in tests; guide in docs/23. Deploy to see traces in Cloud Trace |
+| Traces in Cloud Trace + local OTel + ADK dev UI | 001, 004, 017 | Built | One trace per run, `runs.traceId`, node spans and direct Gemini SDK attempts with model, prompt version, tokens and sanitized errors. Cloud Run uses `TRACE_EXPORT=cloud`; `make trace-up` / `make dev-traced` export locally to Jaeger at :16686. `make trace-smoke` verified ingestion; retries/content-exclusion tests and `make check` pass. `make dev-agents` has fixture apps for both workflows. Local Langfuse (ADR-026): `make langfuse-up`, `make dev-langfuse`, `make langfuse-smoke` verified; runs are traces named by workflow, sessions by document or month, users by workspace, Gemini calls generations with model and tokens; prompts only with synthetic capture. `make gemini-usage` reads calls and tokens per model from Cloud Monitoring. Production Langfuse proposed, not decided. Guide in docs/23 |
 
 ## P1
 
+Spec 018 adds company P&L independently of the cash-flow framework selector. CSV rows can now
+populate the ledger (005), but the mapping-confirmation workflow remains incomplete; no eligible
+posted and classified ledger data means the report is unavailable.
+
 | Component | Spec | Status | Notes |
 |---|---|---|---|
+| Company account/subledger classifications and P&L | 018 | Built | ADR-027; management accrual report from posted GL entries; dashboard and assistant share totals. T018-07 corrects flow/table drift, signed losses, separate other income/tax, cents and source subtotals. Shared synthetic mock/story fixture; 15 browser checks include mock/React content parity, three-width baselines, 360/1600 bounds, keyboard drawer and scoped axe. Full repository gates verified before commit. |
 | Model Armor screening + quarantine | 015 | Specified | Depends on spike S4 |
 | Run graph | 015 | Specified | ADK traces, docs/17 §5 |
-| Finance Assistant (tools, Firestore vector retrieval, Sessions, Memory Bank) | 011 | Specified | ADR-014; spike S5 |
+| Finance Assistant (tools, Firestore vector retrieval, Sessions, Memory Bank) | 011 | In progress | ADR-014; Assistant API (threads with cursor pagination, messages, memories list/purge, AI match suggestions) built; `AssistantPage` markup and kit CSS aligned with official mock; `AnswerParts` widget (citations, tables, interactive chart links & mini-bars, markdown app links) and "Ask about this" buttons on Dashboard/Month/Findings built and tested (T011-06, T011-07, AC-011-4, AC-011-10, AC-011-11, AC-011-12) |
+
 | DeepEval suite for the assistant | 011, 012 | Specified | Gemini judge on Agent Platform |
 | Month sign-off | 015 | Specified | |
 | Revision diff, `M05`, `A03`, `A05` | 015 | Specified | |
@@ -98,7 +108,7 @@ _Last updated: 12 Oct 2026 — Specs 001, 003, 004 and 013 (P0) built; spec 005 
 
 | Component | Spec | Status | Notes |
 |---|---|---|---|
-| Landing, Pricing, How it works, Security, FAQ, Contact, Privacy, Terms | 020 | In progress | Public React routes in the same SPA; dashboard moved from `/` to `/dashboard`; components, pages and tests built. **Revamped** (T020-18…29): 3D depth scenes on CSS transforms with `motion` hooks, the four-chapter reading room, every public page redesigned (docs/12 §12); the signed-in app is split out of the first load. The HTML landing mock predates the revamp. Visual baselines and the Storybook axe pass still to run (T020-30); first-load JS is 303 KB gzip, over the 250 KB budget (Firestore loads eagerly) |
+| Landing, Pricing, How it works, Security, FAQ, Contact, Privacy, Terms | 020 | In progress | Public React routes in the same SPA; dashboard moved from `/` to `/dashboard`; components, pages and tests built. **Revamped** (T020-18…29): 3D depth scenes on CSS transforms with `motion` hooks, the four-chapter reading room, every public page redesigned (docs/12 §12); the first load carries the shell, the dashboard, Auth and the public pages (AC-010-11), 232 KB gzip after merging main (budget 250 KB). The stale landing mock is retired (spec 019). Visual baselines and the Storybook axe pass still to run (T020-30) |
 
 ## Deviations from the docs
 
@@ -108,3 +118,57 @@ _Record every deliberate deviation here with the reason and the doc that was upd
 |---|---|---|---|
 | 11 Oct 2026 | Firebase Hosting serves the SPA and rewrites `/api/**` to `kredibel-web` (ADR-008 had Cloud Run only) | Stable demo URL and edge-served assets; same origin kept | [ADR-018](adr/ADR-018-firebase-hosting-in-front-of-cloud-run.md); `14` §8, `16` §5 and §8, `21`, `05` §3, ADR-008 status. **Open:** `diagrams/gcp-architecture.drawio.svg` still shows Cloud Run only; update it with the draw.io extension. |
 | 11 Oct 2026 | CI `frontend-check` runs ESLint, tsc, Vitest, `tokens-check` and `no_raw_styles`; the Playwright visual tests and Storybook axe checks of docs/16 §8 run locally only; `backend-check` skips the Firestore emulator tests | Visual baselines are recorded on macOS (`-darwin.png`), the Storybook test runner was never installed (T001-29), and the Cloud Build step has no emulator | **Open:** record `-linux.png` baselines in the Playwright Docker image, add the Storybook Vitest a11y runner, and run `backend-check` in the `google-cloud-cli:emulators` image; then enforce all three. Locally `make docker-up` + `make check` runs everything. |
+| 12 Oct 2026 | Spec 007 P0 distinguishes bank evidence from support and adds manual attestations and currency agreement (no FX); low auto-match rate alone no longer implies fraud risk | Product-owner clarification; statement-only rows are valid bank cash evidence | ADR-025, PRD, docs/06, 08, 09, 11, spec 007 and policies. Actual decision endpoints and risk/review integration are still open. |
+| 15 Oct 2026 | The ledger column mapping is proposed by code from header words (English, Indonesian) and value shapes first; the `MODEL_LITE` mapper of AC-005-11 runs only for headers the synonyms miss | The deterministic proposal covers the demo layouts without a model call, keeps numbers out of the model and is testable offline; a person confirms every new layout either way | docs/06 §6, docs/11 §6.5, docs/20. **Resolved the same day:** `map_ledger_columns.md` added as the fallback; its answers are merged by code. Its eval (E-MAP) stays with spec 012. |
+| 15 Oct 2026 | S1's payment net of 2% withholding tax (`st-03#22`) is a `PROPOSED_MATCH`; `truth.json` marks it automatic | `reconciliation.v1 netOfTaxAmountScore` makes a net-of-tax amount a proposal until a person confirms the adjustment (docs/08 §6.3); the policy wins over the generator's expectation | docs/20 (this row); the generator's `expect` for net-of-tax pairs is tracked under spec 018 |
+| 15 Oct 2026 | S1's June risk is `HIGH`, not the `MEDIUM` of `truth.json`/docs/18 | The 2.1M deposit missing from the ledger is 39% of June's net movement: `X09` month difference > 5% is `HIGH` (docs/08 §2.6) and `risk.v1` lifts the month to `HIGH`; June stays `NEEDS_REVIEW` after its items are resolved because the ledger difference is a blocking finding (spec 007) | docs/20 (this row); docs/18 §S1 wording is tracked under spec 018 |
+| 15 Oct 2026 | S3 shows three `POSSIBLE_DUPLICATE` items, not four | `D06` (ledger entry copies) is not built; the gate asserts the three document copies and the refused exact copy | docs/20 (this row) |
+
+### Spec 007 validation (12 Oct 2026)
+
+`make check`: 473 backend, 95 frontend and 213 synthetic tests pass, including emulator integration.
+The new ordinary-flow mock uses existing kit classes; no React screen is shipped by this task.
+Checked its three states at 360/390/834/1440/1600 px: no horizontal page overflow, action targets
+at least 44 px, correct fixed workspace currency in the shell. Added action-preview feedback and
+used the existing large-button variant after the first visual check found 40 px desktop actions.
+Screenshots are recorded at 390/834/1440. The Python screenshot runner expected an absent Chromium
+revision; the installed frontend Playwright browser captured the same mock locally instead.
+
+### Spec 019 validation (15 Oct 2026)
+
+Audit of the sessions that preceded this spec: the dashboard order, the assistant's history and
+composer, the P&L flow and the review corrections had been built without their mocks following, and
+the review and P&L phone baselines no longer matched the app (they failed identically against the
+previous commit). What was done, and what the checks found:
+
+1. **Inventory** (T019-01): every mock carries its route and status; clients, Labels and Runs stay
+   design-only; ledger column confirmation (T005-11) stays open.
+2. **Shared fixtures** (T019-02, T019-03): `contracts/design/fixtures/{dashboard,document,month,review}.json`
+   feed both the mock generator (with the app's locale words) and the Playwright specs, so a mock
+   cannot show numbers or words the app does not. New mocks: assistant welcome and history drawer,
+   ledger export document, all months, review proposal drawer, value correction.
+3. **Browser parity**: 78 checks across `dashboard`, `assistant`, `document`, `month`, `review`,
+   `profit-loss`, `shell-and-login` specs at 390/834/1440 px; baselines recorded on macOS
+   (`-darwin.png`); 360 and 1600 px bounds; axe serious/critical clean on every screen.
+4. **Bugs the checks found and fixed**: the money-flow Sankey was `role="img"` with focusable bands
+   (axe nested-interactive); the assistant scrolled under the top bar on first paint and hid its
+   history button between 768 and 900 px where the rail was hidden too; the page viewer's window
+   was scrollable without keyboard focus; on phones the review drawer's preview pushed the panel's
+   actions out of reach; native selects made the P&L phone baseline flaky (masked).
+5. **Polish**: assistant strings externalized and citation chips show the citation's label; the
+   month explanation's finding markers are chips with the finding's code; "1 statement" plural.
+6. **Re-recorded baselines**: review (queue, proposal) and P&L (phone), after confirming the drift
+   predated this spec.
+
+Not done here, by design: Lighthouse (T010-06), scenario tests (T006-09, T009-07, T010-07), ledger
+column confirmation UI (T005-11), the Cloud Run checks (T004-11, T013-18).
+
+### Spec 008 validation (12 Oct 2026)
+
+Spec 008 (Fraud Risk and Explanations) is fully implemented and verified across all 4 phases:
+1. **Deterministic risk engine**: `assess_document_risk`, `assess_month_risk`, `calculate_risk_score`, and `next_steps_for_findings` evaluate risk strictly by policy (`contracts/policy/risk.v1.yaml`). Tampered documents force months to `CRITICAL`; `X08` and `D07` elevate to `HIGH`. Models never compute risk levels, scores, or numbers.
+2. **Grounding guard and explainer node**: `check_grounding` resolves citation markers `[[doc:...]]`, `[[fact:...]]`, `[[finding:...]]`, `[[match:...]]`, normalizes numbers, rejects ambiguous multipliers, and enforces template fallback (`grounding: TEMPLATE`) on retry failures.
+3. **Findings API and Service**: `GET /api/findings` with filters (month, docId, severity, status, code) and `PATCH /api/findings/{id}` for audited acknowledgment and reason-backed dismissal (minimum 10 characters required for CRITICAL and HIGH).
+4. **Frontend Risk Page and Evidence Viewer**: `RiskPage` (`/risk`) renders month status tabs with risk badges, filter chips, and month-grouped findings. `SeverityBadge` displays colour + icon + text (AC-008-10, NFR-08). `EvidenceViewer` (`/risk/:findingId`) displays document page zoomed to the lamp-highlighted value, arithmetic calculation breakdown (`.calc`), two readings comparison (`.readings`), plain-language explanation, ordered next steps, and acknowledge/dismiss controls.
+5. **Scenario outcomes verified**: S1 is verified with all months `LOW`; S2 March is `CRITICAL` with internet banking statement re-download next steps; S4 May is `HIGH` with supplier phone confirmation next steps (AC-008-11).
+`make check`: 575 backend, 111 frontend, and 213 synthetic generator tests pass across all 8 quality gates.

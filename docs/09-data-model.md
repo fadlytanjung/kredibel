@@ -119,7 +119,7 @@ The salted hash of the full number lives in `orgPrivate/{orgId}/accountHashes/{a
 | `months` | string[] | Months the document's values fall in (statement period, invoice/receipt date, ledger dates) |
 | `pages` | array | `{pageNo, imagePath, thumbPath, sha256, textLayer, blank, witness, status, agreement?}` — **realtime** "page n of m" |
 | `reading` | map? | `method` (`AI_TEXT_LAYER`, `AI_OCR`, `AI_MIXED`, `LEDGER_PARSER`), `agreement`, `fieldsCompared`, `fieldsAgreed`, `model`, `promptVersion` |
-| `statementMeta` | map? | `bankName`, `accountHolder`, `accountMasked`, `accountId?`, `periodStart`, `periodEnd`, `openingMinor`, `closingMinor`, `provenance` |
+| `statementMeta` | map? | `bankName`, `accountHolder`, `accountMasked`, `accountId?`, `periodStart`, `periodEnd`, `openingMinor`, `closingMinor`, `provenance`. The statement's account is the first line of `bankName` with spaces collapsed plus `accountMasked` (`domain/accounts.statement_account`): a branch line read on some pages only ("…Bank\nBandung Dago Branch") does not make a second account |
 | `ledgerMeta` | map? | `layoutSignature`, `mappingStatus` (`PROPOSED`, `CONFIRMED`), `rows`, `rowsImported`, `rowErrors[]` {`row`, `reason`} (≤ 100), `dateRange` |
 | `pdf` | map? | `producer`, `creator`, `creationDate`, `modDate`, `revisions`, `hasTextLayer`, `fonts[]` |
 | `integrity` | map? | `verdict` (`CLEAN`, `SUSPICIOUS`, `TAMPERED`, `UNVERIFIABLE`), `findingIds[]` |
@@ -142,7 +142,7 @@ The salted hash of the full number lives in `orgPrivate/{orgId}/accountHashes/{a
 | `match` | map | `state` (`UNMATCHED`, `AUTO`, `MANUAL`, `PROPOSED`, `EXCLUDED`), `matchIds[]`, `matchedMinor` |
 | `heldAsDuplicate` | bool | From a held statement |
 | `source`, `chunkIds[]`, `notes[]` | | `AI` or `WITNESS` (a row only the page's words have); the layout chunks the row was read from ([ADR-023](adr/ADR-023-parse-extract-ground.md)); parse and grounding notes |
-| `correctedBy?`, `correctedAt?` | | Set when a user corrected a value (the original stays in `consensus.raw`) |
+| `correctedFields[]?`, `correctedBy?`, `correctedAt?` | | Set when a user corrected a value (`amount`, `date`; the original stays in `consensus.raw`) |
 
 ### 3.7 `orgs/{orgId}/invoices/{invoiceId}` and `receipts/{receiptId}`
 
@@ -159,12 +159,13 @@ The salted hash of the full number lives in `orgPrivate/{orgId}/accountHashes/{a
 | `currency`, `pages[]`, `notes[]` | Currency as printed (else the workspace's); the pages it was read from; parse notes |
 | `consensus`, `heldAsDuplicate`, `counterpartyId?` | Per field (`number`, `issuerName`, `total`, `lines.{i}.amount`, …): status, page, box, raw readings; `payTo` raw readings masked |
 | `dupKey`, `dupKeyAlt` | Content keys for `D03`/`D04` (issuer + number; issuer + date + total), single-field indexed |
+| `correctedFields[]`, `correctedBy?`, `correctedAt?` | Fields a person corrected through review (`total`, `issueDate`); the readings stay in `consensus.raw` and a re-run never undoes them |
 
 Receipts: `docId`, `merchantName`, `merchantTaxId?` (masked), `number?`, `date`, `time?`, `month`,
 `currency`, `totalMinor`, `taxMinor?`, `paymentMethod` (`CASH`, `CARD`, `TRANSFER`, `UNKNOWN`),
 `items[]?`, `pages[]`, `notes[]`, `payment` (as above), `consensus`,
 `heldAsDuplicate`, `dupKey` (merchant + date + total, for `D05`; the perceptual hash is on the
-document).
+document), `correctedFields[]` (`total`, `date`), `correctedBy?`, `correctedAt?` as for invoices.
 
 ### 3.8 `orgs/{orgId}/ledgerEntries/{entryId}`
 
@@ -180,6 +181,17 @@ document).
 | `heldAsDuplicate` | bool | `D06` |
 | `dupKey` | string | date + amount + account + reference, for `D06` |
 
+For spec 018 reporting, optional `postingStatus` defaults to `UNKNOWN` (`POSTED` is required to
+contribute), `currency` defaults to null (must equal the workspace currency), and `journalId`
+defaults to null. `entryKind` defaults to `ACTIVITY`; explicit `OPENING`/`CLOSING` rows are
+excluded from period performance. Rows missing posting/currency evidence are excluded explicitly. This is an
+additive v1 persistence model; no legacy row is assumed posted. Each row stores `orgId` and `entryId`.
+
+`orgs/{orgId}/accountClassifications/{sha256(accountCode)}` (v1): `orgId`, `accountCode`, `pnlLine`,
+`subledger`, `confirmedBy`, `confirmedAt`, `schemaVersion`. Mappings are confirmed only through the
+API by an owner/accountant; classification plus audit event is atomic. No backfill. Catalog in
+`contracts/policy/profit-loss.v1.yaml`; row-level source remains `docId` / `rowNumber`.
+
 **Ledger column mapping** (`orgs/{orgId}.ledgerMappings[layoutSignature]`): `{date, description,
 reference?, accountCode, accountName?, debit?, credit?, amount?, signConvention?, dateFormat,
 decimalSeparator, confirmedBy, confirmedAt}`. The layout signature is a hash of the normalized header
@@ -190,7 +202,7 @@ row. Gemini proposes; the user confirms once per layout.
 | Field | Type | Notes |
 |---|---|---|
 | `month` | string | |
-| `state` | `COLLECTING` \| `RECONCILING` \| `NEEDS_REVIEW` \| `RECONCILED` \| `SIGNED_OFF` (P1) | `COLLECTING` = no statement yet. **Realtime channel.** |
+| `state` | `COLLECTING` \| `RECONCILING` \| `NEEDS_REVIEW` \| `RECONCILED` \| `SIGNED_OFF` (P1) | `COLLECTING` = awaiting statement coverage or computation. While the workflow is a skeleton, `note` explains that reconciliation is unavailable (ADR-025). **Realtime channel.** |
 | `dirty` | bool | Set by any change to the month's data; cleared by the month run |
 | `generation` | int | Incremented with every change; only the month run started for the latest generation writes ([`06`](06-agent-design.md) §3) |
 | `signedOff?` | map | `by`, `at` (P1); reopening records `reopened {by, at, reason}` |
@@ -213,6 +225,14 @@ row. Gemini proposes; the user confirms once per layout.
 | `score`, `reasons[]` | | `AMOUNT_EXACT`, `NET_OF_TAX`, `PARTY_MATCH`, `REFERENCE_IN_TEXT`, `DATE_NEAR`, `SPLIT` |
 | `createdBy` (`system` or uid), `createdAt`, `runId` | | |
 
+### 3.10a Evidence and support fields (ADR-025)
+
+Invoices and receipts carry `evidence` {`payment` (`PaymentEvidence`), `covered`, `bankPaidMinor`,
+`confirmedPaidMinor`, `outstandingMinor`, `printedCurrency`, `approved`, `matchIds[]`}; bank lines
+carry `support` (`EXCLUDED`, `MATCHED`, `PROPOSED`, `NOT_REQUIRED`, `NO_SUPPORT`). Both are derived
+by the month run from matches, statement coverage and decisions ([`08`](08-risk-engine.md) §6) and
+are optional until it has run (no migration: new optional fields).
+
 ### 3.11 `orgs/{orgId}/reviewItems/{itemId}`
 
 | Field | Type | Notes |
@@ -223,7 +243,7 @@ row. Gemini proposes; the user confirms once per layout.
 | `status` | `OPEN` \| `RESOLVED` \| `DISMISSED` | |
 | `priority` | int | Sorting: duplicates and high-risk first |
 | `suggestion?` | map | Proposed fix (candidates for a match, the other reading for a value) |
-| `resolution?` | map | `action` (`MATCHED`, `CORRECTED`, `DUPLICATE_CONFIRMED`, `NOT_DUPLICATE`, `NO_DOCUMENT_NEEDED`, `IGNORED`, `TYPE_CONFIRMED`, `MAPPING_CONFIRMED`), `note?`, `resolvedBy`, `resolvedAt` |
+| `resolution?` | map | `action` (the person's action of [`10`](10-api-contract.md) §4; absent when the system closed the item because its cause is gone), `note?`, `resolvedBy` (a uid or `system`), `resolvedAt` |
 | `key` | string | Deterministic ID input, so a re-run never duplicates an item (§4) |
 
 ### 3.12 `orgs/{orgId}/findings/{findingId}`
@@ -231,6 +251,22 @@ row. Gemini proposes; the user confirms once per layout.
 As [`08`](08-risk-engine.md) §1 (`code`, `category`, `scope`, `docId?`, `month?`, `severity`,
 `title`, `facts`, `explanation`, `nextSteps[]`, `evidence[]`, `detectedBy`, `status`, `dismissal?`
 {`reason`, `by`, `at`}, `lastSeenRunId`).
+
+### 3.12a `orgs/{orgId}/decisions/{decisionId}` (ADR-025)
+
+A person's audited decisions; none creates bank cash or a match. Written with a `DECISION_RECORDED`
+or `DECISION_WITHDRAWN` event in the same batch; never deleted.
+
+| Field | Type | Notes |
+|---|---|---|
+| `kind` | `DOCUMENT_APPROVAL` \| `PAYMENT_CONFIRMATION` \| `CURRENCY_AGREEMENT` \| `SUPPORT_NOT_REQUIRED` | |
+| `docId?`, `invoiceId?`, `receiptId?`, `txId?`, `recordId?` | string | Subject; `recordId` is the invoice, receipt or bank line, for one-field queries |
+| `amountMinor?`, `currency?`, `paidOn?`, `method?` | | Payment confirmation, in the workspace currency (no conversion); several per document for partial payments |
+| `printedCurrency?` | string | Currency agreement: what the document prints, kept unchanged |
+| `reason?` | string | Required for payment confirmation and support not required |
+| `months[]` | string | Months that re-reconcile |
+| `status` | `ACTIVE` \| `WITHDRAWN` | Approval, agreement and not-required: one active per subject (deterministic ID) |
+| `decidedBy`, `decidedAt`, `withdrawnBy?`, `withdrawnAt?` | | |
 
 ### 3.13 `orgs/{orgId}/counterparties/{counterpartyId}`
 
@@ -262,7 +298,7 @@ As [`08`](08-risk-engine.md) §1 (`code`, `category`, `scope`, `docId?`, `month?
 ### 3.16 `orgs/{orgId}/events/{eventId}` (append-only audit)
 
 `type` (`WORKSPACE_CREATED`, `CURRENCY_CHANGED` (support only), `DOCUMENT_UPLOADED`, `DUPLICATE_RECORDED`, `DOCUMENT_REMOVED`, `DUPLICATE_CONFIRMED`,
-`DUPLICATE_REJECTED`, `VALUE_CORRECTED`, `CATEGORY_CHANGED`, `MATCH_CREATED`, `MATCH_REJECTED`,
+`DUPLICATE_REJECTED`, `VALUE_CORRECTED`, `CATEGORY_CHANGED`, `MATCH_CREATED`, `MATCH_CONFIRMED` (a person confirms a proposal), `MATCH_REJECTED`,
 `REVIEW_ITEM_RESOLVED`, `FINDING_ACKNOWLEDGED`,
 `FINDING_DISMISSED`, `SUGGESTION_ACCEPTED`, `SUGGESTION_REJECTED`, `LEDGER_MAPPING_CONFIRMED`,
 `BANK_ACCOUNT_ADDED`, `PROFILE_UPDATED`, `LABEL_CONFIRMED`, `LABEL_CORRECTED`, `WORKSPACE_RULE_CREATED`,
@@ -347,7 +383,8 @@ Re-runs upsert by these IDs, so retries and re-uploads never duplicate records (
 |---|---|---|
 | `documents` | `docType` ASC, `uploadedAt` DESC | Library filtered by type |
 | `documents` | `status` ASC, `uploadedAt` DESC | Library filtered by status |
-| `documents` | `months` CONTAINS, `docType` ASC | Documents of a month |
+| `documents` | `months` CONTAINS, `uploadedAt` DESC | Library filtered by month |
+| `documents` | `months` CONTAINS, `docType` ASC, `uploadedAt` DESC | Library filtered by month and type (the list always orders by `uploadedAt`) |
 | `bankLines` | `month` ASC, `date` ASC | Month view |
 | `bankLines` | `month` ASC, `match.state` ASC, `date` ASC | Unmatched lines of a month |
 | `bankLines` | `counterpartyId` ASC, `date` ASC | Lines of a counterparty (money-flow drill-down) |

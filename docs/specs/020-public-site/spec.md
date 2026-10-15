@@ -7,7 +7,7 @@
 | **Owner role** | C: Frontend (with D for routing/hosting) |
 | **Depends on** | 001 (shell, tokens, router), 013 (plans copy) |
 | **Requirements** | FR-020, NFR-13, NFR-14, NFR-15 |
-| **Design** | [`docs/12`](../../12-design-system.md) §1, §4, §6, §9, §12; the HTML mock `design/mocks/landing.html` predates the 2026-10 revamp |
+| **Design** | [`docs/12`](../../12-design-system.md) §1, §4, §6, §9, §12; no HTML mock: the first one was retired with the revamp under spec 019's parity rule, and the React pages are the reference |
 
 ## Summary
 

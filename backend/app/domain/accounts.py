@@ -37,3 +37,12 @@ def normalize_bank_name(name: str) -> str:
 def account_id_parts(org_id: str, bank_name: str, digits: str) -> tuple[str, str, str]:
     """Inputs of the deterministic bank account ID `acc_` + sha1(orgId|bank|digits) (docs/09 §4)."""
     return (org_id, normalize_bank_name(bank_name), digits)
+
+
+def statement_account(bank_name: str | None, account_masked: str | None) -> str:
+    """The account a statement belongs to (docs/09 §3.5): the bank's first line, spaces collapsed,
+    and the masked number. A branch line the reader caught on some statements only
+    ("…Bank\\nBandung Dago Branch") does not make a second account."""
+    lines = (bank_name or "").strip().splitlines()
+    bank = " ".join(lines[0].split()) if lines else ""
+    return " ".join(x for x in (bank, (account_masked or "").strip()) if x)

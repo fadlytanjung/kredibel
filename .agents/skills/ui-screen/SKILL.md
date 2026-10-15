@@ -38,9 +38,13 @@ that fixes the problem.
 5. **Build it.** Components in `frontend/src/shared/ui/` with `cva` variants and a story per state
    (default, loading, empty, error, each size class); widgets and pages compose them and set no
    colours, sizes or shadows. Strings in `locales/en/*.json`.
-6. **Prove it.** Vitest + Testing Library for behaviour, Storybook axe, Playwright visual baselines at
-   390/834/1440 (updated only in this reviewed change), `tools/checks/no_raw_styles.py`,
-   `make check`.
+6. **Prove it.** Vitest + Testing Library for behaviour, Storybook axe, and a Playwright spec in
+   `frontend/tests/visual/` that serves the screen's shared fixture (`contracts/design/fixtures/`)
+   to its dev preview route, compares the visible outline of mock and screen at 390/834/1440,
+   records the baselines (updated only in this reviewed change), checks the 360/1600 bounds and
+   runs axe (`.agents/rules/35-ui-sync.md`). Add the screen, state or drawer to
+   `tools/design/mocks/inventory.py`; mark what is not built as planned. Then
+   `tools/checks/no_raw_styles.py` and `make check`.
 7. **Keep the docs true.** Update `docs/11-frontend.md` (behaviour), `docs/12-design-system.md`
    (a new rule, token role or component), the screenshot links, and the flow diagrams in
    `docs/11-frontend.md` §4.3–§5.3 if navigation changed.

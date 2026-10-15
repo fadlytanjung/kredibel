@@ -22,6 +22,8 @@ class OrgDoc(FirestoreModel):
     default_language: str
     subscription: dict[str, Any]
     learning: dict[str, Any] = Field(default_factory=lambda: {"shareVerifiedLabels": False})
+    # docs/09 §3.1, §3.8: layout signature → the confirmed column mapping (spec 005, additive).
+    ledger_mappings: dict[str, Any] = Field(default_factory=dict)
     counts: dict[str, Any] = Field(default_factory=dict)
     created_by: str
     created_at: datetime

@@ -5,7 +5,9 @@ from app.core.settings import Settings
 
 def test_settings_read_the_file_env_file_names(tmp_path, monkeypatch):
     mounted = tmp_path / ".env"
-    mounted.write_text("FIRESTORE_DATABASE=kredibel\nDATA_CLASS=real\nMODEL_LITE=lite-from-secret\n")
+    mounted.write_text(
+        "FIRESTORE_DATABASE=kredibel\nDATA_CLASS=real\nMODEL_LITE=lite-from-secret\n"
+    )
     monkeypatch.setenv("ENV_FILE", str(mounted))
     for key in ("FIRESTORE_DATABASE", "DATA_CLASS", "MODEL_LITE"):
         monkeypatch.delenv(key, raising=False)
@@ -29,3 +31,15 @@ def test_a_service_env_var_wins_over_the_shared_file(tmp_path, monkeypatch):
     settings = Settings()
 
     assert (settings.app_role, settings.log_level) == ("worker", "DEBUG")
+
+
+def test_the_repository_env_is_found_from_any_working_directory(tmp_path, monkeypatch):
+    """`uvicorn` started in backend/ once missed the root .env and used the (default) database."""
+    from pathlib import Path
+
+    from app.core import settings as module
+
+    monkeypatch.chdir(tmp_path)
+    first = Settings.model_config["env_file"][0]  # type: ignore[index]
+    assert Path(first).is_absolute()
+    assert Path(first) == Path(module.__file__).resolve().parents[3] / ".env"

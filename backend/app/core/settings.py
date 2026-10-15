@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 from typing import Literal, Self
 
-from pydantic import model_validator
+from pydantic import SecretStr, field_validator, model_validator
 from pydantic_settings import (
     BaseSettings,
     DotEnvSettingsSource,
@@ -17,12 +17,17 @@ from pydantic_settings import (
 
 AppRole = Literal["web", "worker", "all", "migrate"]
 
+# The repository's own .env, wherever the process starts: `uvicorn` run from backend/ once missed it
+# and wrote to the (default) database instead of FIRESTORE_DATABASE=kredibel (ADR-021). A .env in
+# the working directory still wins; on Cloud Run ENV_FILE names the mounted secret (ADR-024).
+_REPO_ENV = Path(__file__).resolve().parents[3] / ".env"
+
 
 class Settings(BaseSettings):
     """Kredibel application settings validated from environment variables."""
 
     model_config = SettingsConfigDict(
-        env_file=".env",  # ENV_FILE overrides it: Cloud Run mounts kredibel-env there (ADR-024)
+        env_file=(_REPO_ENV, ".env"),
         env_file_encoding="utf-8",
         extra="ignore",
         case_sensitive=False,
@@ -118,8 +123,12 @@ class Settings(BaseSettings):
     learning_file: str = "contracts/policy/learning.v1.yaml"
 
     # Observability
-    # Where spans go: Cloud Trace on Cloud Run; nowhere in tests and local runs (docs/17 §2).
-    trace_export: Literal["none", "cloud"] = "none"
+    # Cloud Trace on Cloud Run; local Jaeger through OTLP/HTTP; Langfuse (ADR-026); opt-in.
+    trace_export: Literal["none", "cloud", "otlp", "langfuse"] = "none"
+    otel_exporter_otlp_traces_endpoint: str = "http://127.0.0.1:4318/v1/traces"
+    langfuse_host: str = "http://127.0.0.1:3000"
+    langfuse_public_key: str = ""
+    langfuse_secret_key: SecretStr = SecretStr("")
     ai_content_capture: Literal["off", "synthetic"] = "off"
     adk_capture_message_content_in_spans: bool = False
     analytics_dataset: str = "kredibel_agent_analytics"
@@ -141,11 +150,33 @@ class Settings(BaseSettings):
     feature_agent_analytics: bool = False
     feature_dataset_export: bool = False
 
+    @field_validator("ai_content_capture", mode="before")
+    @classmethod
+    def _coerce_content_capture(cls, v: object) -> str:
+        if isinstance(v, str):
+            val = v.strip().lower()
+            if val in ("on", "true", "1", "synthetic"):
+                return "synthetic"
+            if val in ("off", "false", "0"):
+                return "off"
+            return val
+        if isinstance(v, bool):
+            return "synthetic" if v else "off"
+        return "off"
+
     @model_validator(mode="after")
     def _content_capture_only_on_synthetic_data(self) -> Self:
         # Non-negotiable 17: prompts and responses are recorded only with synthetic data.
         if self.ai_content_capture == "synthetic" and self.data_class != "synthetic":
             raise ValueError("AI_CONTENT_CAPTURE=synthetic requires DATA_CLASS=synthetic")
+        return self
+
+    @model_validator(mode="after")
+    def _langfuse_needs_its_project_keys(self) -> Self:
+        if self.trace_export == "langfuse" and not (
+            self.langfuse_public_key and self.langfuse_secret_key.get_secret_value()
+        ):
+            raise ValueError("TRACE_EXPORT=langfuse requires LANGFUSE_PUBLIC_KEY and _SECRET_KEY")
         return self
 
     @property

@@ -103,7 +103,7 @@ def clients() -> str:
     content = f"""
 <div class="page">
   <div class="page-head">
-    <h1 class="type-title">Clients and suppliers</h1>
+    <div class="spread"><h1 class="type-title">Clients and suppliers</h1><span class="badge badge-outline">Design only (P1, spec 014 · Placeholder at /counterparties)</span></div>
     <p>Who your money comes from and goes to, built from the bank lines, invoices and receipts. A supplier paid to an account not seen before is flagged.</p>
   </div>
   <div class="stack gap-3">
@@ -229,7 +229,7 @@ Reading: AI_TEXT_LAYER, agreement 0.99
     content = f"""
 <div class="page">
   <div class="page-head">
-    <div class="spread"><h1 class="type-title">Labels</h1><span class="badge badge-outline">Preview</span></div>
+    <div class="spread"><h1 class="type-title">Labels</h1><span class="badge badge-outline">Design only (P1, spec 016 · Placeholder at /labels)</span></div>
     <p><strong>212 of 1,284 labels checked by people; the AI was right on 94.8% of them.</strong> 37 need a check. A label a person confirms or corrects is verified by a person and is never overwritten by a later run.</p>
   </div>
   <div class="stack gap-3">
@@ -374,7 +374,7 @@ context: account ••4821, period 01–31 Mar 2026</pre></details>
     content = f"""
 <div class="page">
   <div class="page-head">
-    <div class="spread"><h1 class="type-title">Runs</h1><span class="badge badge-outline">Owner only</span></div>
+    <div class="spread"><h1 class="type-title">Runs</h1><div class="row" style="gap:var(--k-space-2)"><span class="badge badge-outline">Design only (P1, spec 017 · Placeholder at /runs)</span><span class="badge badge-outline">Owner only</span></div></div>
     <p>Every document, month and assistant run, call by call: what ran, how long it took, what it cost, and what people corrected afterwards. Traces live in Cloud Trace; every call is a row in BigQuery.</p>
   </div>
   <div class="stack gap-5">
@@ -399,179 +399,15 @@ context: account ••4821, period 01–31 Mar 2026</pre></details>
     return shell("runs", topbar("Runs", ("Runs",)), content, fab=False)
 
 
-def landing() -> str:
-    """The public landing mock (spec 020): ink hero, the two readings, one live decision, the story."""
-    brand = "../brand"
-    shots = "../../docs/assets/mocks"
-    nav = "".join(
-        f'<a href="dashboard.html">{label}</a>'
-        for label in ("How it works", "Security", "Pricing", "FAQ", "Contact")
-    )
-    rows = "".join(
-        [
-            '<div class="statement-row"><span class="d">05 Mar</span>'
-            '<span class="desc">TRANSFER OUT GREEN VALLEY FARMS</span>'
-            '<span class="amt reading reading-agreed">32,100,000</span></div>',
-            '<div class="statement-row"><span class="d">11 Mar</span>'
-            '<span class="desc">TRANSFER IN DAYBREAK CAFE</span>'
-            '<span class="amt reading reading-agreed">6,420,000</span></div>',
-            '<div class="statement-row is-held"><span class="d">12 Mar</span>'
-            '<span class="desc">ACB_Feb_2026 (1).pdf</span><span class="amt">Held</span></div>',
-        ]
-    )
-    steps = "".join(
-        f'<div class="how-row"><div><h3>{title}</h3><p>{body}</p></div></div>'
-        for title, body in [
-            ("Duplicates first", "An exact copy is recorded and never read again; a re-exported statement is held until you decide."),
-            ("Read twice, pay once", "Gemini reads every page image; the text layer, or Document AI OCR for scans, is the witness."),
-            ("Ledger files by code", "The AI proposes the columns once; you confirm; code imports every row."),
-            ("Forensics", "Running balances, PDF revisions, odd fonts and statement continuity, on every document."),
-            ("Months that reconcile themselves", "Exact, split and net-of-tax matches with reasons, in any upload order."),
-            ("A short, honest review queue", "The ~15% AI could not match, with the evidence and the right fixes."),
-            ("Fraud risk you can explain", "A policy file sets the level; Gemini explains it and orders the next steps."),
-        ]
-    )
-    return f"""<div class="viewport"><div class="site">
-  <header class="site-header is-dark">
-    <a class="site-lockup" href="dashboard.html" aria-label="Kredibel home"><img src="{brand}/kredibel-logo-on-dark.svg" alt="Kredibel"/></a>
-    <nav class="site-nav" aria-label="Menu">{nav}</nav>
-    <div class="site-actions">
-      <a class="button button-inverse hide-compact" href="onboarding.html">Sign in</a>
-      <a class="button button-primary" href="onboarding.html">Start free trial</a>
-      <button type="button" class="icon-button site-menu-button" aria-label="Open menu">{icon("menu")}</button>
-    </div>
-  </header>
-  <main class="site-main">
-    <section class="hero">
-      <div class="hero-inner">
-        <div class="hero-copy">
-          <p class="hero-eyebrow">{icon("sparkles", "icon icon-sm")}AI finance workspace</p>
-          <h1 class="hero-title">Every number has a source.</h1>
-          <p class="hero-lead">Kredibel reads every page twice and checks your books — duplicates, edited documents and unmatched payments, caught before they count.</p>
-          <div class="hero-actions">
-            <a class="button button-primary button-lg" href="onboarding.html">Start free trial</a>
-            <a class="button button-inverse button-lg" href="dashboard.html">See how it works</a>
-          </div>
-          <p class="hero-trust">
-            <span>{icon("check", "icon icon-sm")}Built on Google Cloud</span>
-            <span>{icon("check", "icon icon-sm")}No card, no payment</span>
-            <span>{icon("check", "icon icon-sm")}Reads documents in any language</span>
-          </p>
-        </div>
-        <div class="hero-visual">
-        <div class="statement-sheet">
-          <div class="statement-head"><span class="bank"><i aria-hidden="true"></i>ACB ••4821</span><span class="meta">Statement,<br/>March 2026</span></div>
-          <div class="read-twice" data-state="settled">
-            <span class="rt-mark ai">{icon("ai-reader", "icon icon-sm")}AI reader</span>
-            <span class="rt-value reading reading-agreed">32,100,000</span>
-            <span class="rt-mark wit">{icon("text-layer", "icon icon-sm")}Witness</span>
-          </div>
-          <p class="read-twice-caption">read twice — the value is trusted only when both readings agree</p>
-          <div class="statement-rows">{rows}</div>
-          <div class="statement-foot"><span>Closing balance</span><span class="total">18,703,918</span></div>
-        </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="section">
-      <div class="section-inner">
-        <div class="section-head"><p class="eyebrow">Why Kredibel</p><h2>Books closed by hand, weeks after the fact.</h2>
-        <p>Three things go wrong before anyone notices — and by then they have already been counted.</p></div>
-        <div class="problem-grid">
-          <div class="problem-card"><h3>What goes wrong</h3><ul class="problem-list">
-            <li>{icon("circle-alert", "icon icon-sm icon-bad")}<span>The same statement is uploaded twice, or a supplier invoice is scanned again, and an expense is counted twice.</span></li>
-            <li>{icon("circle-alert", "icon icon-sm icon-bad")}<span>A PDF can be edited in minutes, and a supplier's account can be a fraudster's.</span></li>
-            <li>{icon("circle-alert", "icon icon-sm icon-bad")}<span>A payment to a new account sits in the books until someone spots it, if at all.</span></li>
-          </ul></div>
-          <div class="problem-card is-solution"><h3>What Kredibel does instead</h3><ul class="problem-list">
-            <li>{icon("check", "icon icon-sm icon-good")}<span>An exact copy is recorded and never read again; a possible copy is held until you decide.</span></li>
-            <li>{icon("check", "icon icon-sm icon-good")}<span>Every number is read twice and counted only when both readings agree.</span></li>
-            <li>{icon("check", "icon icon-sm icon-good")}<span>Each month reconciles itself, and the few things AI cannot settle wait in one short review queue.</span></li>
-          </ul></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="section">
-      <div class="section-inner">
-        <div class="split">
-          <div class="stack gap-6">
-            <div class="section-head"><p class="eyebrow">How it works</p><h2>Upload anything, in any order.</h2>
-            <p>The upload order never changes the result.</p></div>
-            <div class="how-list">{steps}</div>
-          </div>
-          <div class="split-visual">
-            <figure class="shot"><img src="{shots}/month-desktop.png" alt="" loading="lazy"/><figcaption>One month, reconciled.</figcaption></figure>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="section">
-      <div class="section-inner">
-        <div class="section-head"><p class="eyebrow">Fraud risk</p><h2>Fraud risk you can explain.</h2>
-        <p>Deterministic checks find the problem; Gemini explains it and orders what to do next.</p></div>
-        <div class="hero-inner">
-          <div class="explain">
-            <div class="explain-head">{icon("octagon-alert", "icon icon-sm")}Critical</div>
-            <div class="explain-body">
-              <h3 class="type-h1"><span class="code-tag">A01</span> Running balance does not add up on 14 Mar</h3>
-              <p class="lead">The statement shows <span class="lamp">86,420,000</span>, then 124,520,000 after an amount of 32,100,000 — the balance moves by 6,000,000 more than the amounts printed.</p>
-              <div class="calc"><table><tbody>
-                <tr><td class="op"></td><td>Balance before</td><td class="amt">86,420,000</td></tr>
-                <tr><td class="op">+</td><td>Amount on the page</td><td class="amt">32,100,000</td></tr>
-                <tr class="total"><td class="op"></td><td>Balance that should follow</td><td class="amt">118,520,000</td></tr>
-                <tr class="diff"><td class="op"></td><td>Balance printed</td><td class="amt">124,520,000</td></tr>
-              </tbody></table></div>
-            </div>
-          </div>
-          <figure class="shot"><img src="{shots}/evidence-viewer-desktop.png" alt="" loading="lazy"/><figcaption>See the evidence</figcaption></figure>
-        </div>
-      </div>
-    </section>
-
-    <section class="section is-ink">
-      <div class="section-inner">
-        <div class="section-head"><p class="eyebrow">Built to be trusted</p><h2>Your books stay yours.</h2>
-        <p>The rules that keep the product honest are in the product.</p></div>
-        <ul class="ticks">
-          <li>{icon("shield-check", "icon icon-sm")}<span>Documents are data, never instructions; quarantined files never reach a model</span></li>
-          <li>{icon("shield-check", "icon icon-sm")}<span>Two independent readings before any accusation; disagreement is uncertainty, not fraud</span></li>
-          <li>{icon("shield-check", "icon icon-sm")}<span>Every finding, match and figure carries its evidence and its reason</span></li>
-          <li>{icon("shield-check", "icon icon-sm")}<span>A person resolves the exceptions; nothing is confirmed or deleted silently</span></li>
-        </ul>
-        <div class="hero-actions">
-          <a class="button button-primary button-lg" href="onboarding.html">Start free trial</a>
-          <a class="button button-inverse button-lg" href="dashboard.html">How it works</a>
-        </div>
-      </div>
-    </section>
-  </main>
-  <footer class="site-footer">
-    <div class="site-footer-inner">
-      <div class="brand-blurb"><img src="{brand}/kredibel-logo-on-dark.svg" alt="Kredibel"/>
-      <p>Every number has a source. Kredibel is an AI finance workspace that checks a small business's own books.</p></div>
-      <div><h3>Product</h3><ul><li><a href="dashboard.html">How it works</a></li><li><a href="dashboard.html">Pricing</a></li><li><a href="dashboard.html">Security</a></li></ul></div>
-      <div><h3>Company</h3><ul><li><a href="onboarding.html">Sign in</a></li><li><a href="onboarding.html">Start free trial</a></li></ul></div>
-      <div><h3>Legal</h3><ul><li><a href="dashboard.html">Privacy Policy</a></li><li><a href="dashboard.html">Terms of Service</a></li></ul></div>
-    </div>
-    <div class="foot-bottom"><span>© 2026 Kredibel. It never moves money and never changes your accounting system.</span><span>Demo data is synthetic.</span></div>
-  </footer>
-</div></div>"""
-
-
 SCREENS_MORE = {
     "risk": ("Risk", risk),
     "clients": ("Clients and suppliers", clients),
     "labels": ("Labels", labels),
     "runs": ("Runs", runs),
-    "landing": ("Landing", landing),
 }
 NOTES_MORE = {
     "risk": "Findings grouped by month with their severity and status; each opens the evidence viewer.",
     "clients": "Clients and suppliers built from the books; a supplier paid to a new account is flagged.",
     "labels": "Every AI decision a person can check, lowest confidence first, with per-page types, extraction files, runs and dataset use.",
     "runs": "Run history like a tracing tool: runs, a span waterfall, and the selected model call with its request, response and label.",
-    "landing": "The public landing page: the two readings converge on one printed figure, then one live duplicate decision, then the story.",
 }

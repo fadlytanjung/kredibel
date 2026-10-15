@@ -27,7 +27,9 @@ not count until a person decides. Every finding has evidence; each document gets
   issuer, issue date and total; `D04` (HIGH, both kept) for the same issuer and number with a different
   total or date.
 - **AC-006-3** `D05` for the same merchant, date and total (± 1 unit), or a page-1 perceptual hash
-  within distance 8.
+  within distance 8 when the available merchant/date/total readings do not contradict each other.
+  A shared till-roll layout alone must not hold different receipts. Missing readings can still use
+  the image fallback; monetary and party tolerances come from policy.
 - **AC-006-4** `D06` for two ledger entries with the same date, amount, account and reference, within
   one file or across files.
 - **AC-006-5** The **newer** document (or entry) gets `duplicate {kind: CONTENT, code, ofDocId,

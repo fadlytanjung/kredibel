@@ -25,11 +25,14 @@ member (`owner`); P1 adds an accounting team with roles.
   `needsWorkspace: true`, the SPA routes to `/onboarding`, and every other `/api` route except
   `GET /api/plans`, `POST /api/workspaces` and `POST /api/invites/{id}/accept` returns
   `403 WORKSPACE_REQUIRED`.
-- **AC-013-2** Onboarding asks: **individual or company** (two large choices with a sentence each),
-  the name (legal name for a company, full name for a person, plus an optional trading name), industry,
-  time zone, the **currency** of the books (IDR, MYR, SGD, JPY or USD; suggested from the time zone,
-  [ADR-020](../../adr/ADR-020-workspace-currency-chosen-at-onboarding.md)), and optionally the main bank
-  account (bank, account number, holder). `POST
+- **AC-013-2** Kredibel is for businesses, so onboarding asks no "individual or company" question:
+  every workspace is a company. The form has three sections. **Your business:** legal name, trading
+  name (optional), legal form, industry, tax ID (optional, stored masked). **Your books:** the
+  **currency** (IDR, MYR, SGD, JPY or USD; suggested from the time zone,
+  [ADR-020](../../adr/ADR-020-workspace-currency-chosen-at-onboarding.md)), the accounting framework
+  (IFRS or US GAAP, a segmented choice) and the time zone. **Main bank account** (optional): bank,
+  account number, holder (the legal name unless changed). A request for an individual workspace is
+  refused with `422`. `POST
   /api/workspaces` returns `201`; in one transaction it creates `orgs/{orgId}` with `entityType`,
   `profile`, `subscription {planId: free_trial, status: TRIALING, trialEndsAt: now + 30 days}`,
   the chosen `currency`, `defaultLanguage: en`, the member doc with role `owner`, the bank account (mask +
@@ -68,18 +71,19 @@ member (`owner`); P1 adds an accounting team with roles.
   pages, AI spend, month runs today, seats), Starter, Professional and Enterprise with a **Coming soon**
   badge and disabled buttons, and the **Loan readiness report** and **Bank feeds** as coming-soon
   features. Nothing can start a purchase.
-- **AC-013-12** The trial status is always visible: from 1200 px as a row at the sidebar foot (days
-  left and pages read this month, opening Plan and usage), below that as a badge in the top bar; in
-  the last 7 days and after expiry a banner says what happens; after expiry Upload is disabled with
-  the reason.
+- **AC-013-12** The trial status is always visible: from 1200 px as a compact row at the sidebar foot (days
+  left and pages read this month with progress meter, fitting within 768 px viewport height without
+  scrolling, opening Plan and usage), below that as a badge in the top bar; in the last 7 days and after
+  expiry a banner says what happens; after expiry Upload is disabled with the reason.
 - **AC-013-13** A `403 PLAN_LIMIT_REACHED` opens a dialog naming the limit, the usage and the maximum;
   the upload sheet warns before ("4 of 400 pages left this month").
 
 ### US-013-4: Settings
 
 - **AC-013-14** **Profile**: names, trading name, legal form (company), industry, tax ID (stored
-  masked), address, aliases; the entity type is shown and fixed. **Bank accounts**: list (masked), add,
-  nickname, ledger account code, delete when no statement uses it.
+  masked), address, aliases; the entity type and reporting currency are shown and fixed (with "Coming soon"
+  for changing currency). **Bank accounts**: list (masked), add, nickname, ledger account code, delete when
+  no statement uses it.
 - **AC-013-15** **Language & formats**: English selected; other languages disabled with "Coming soon"
   (`422 LANGUAGE_NOT_AVAILABLE` on PATCH); the currency is shown read-only with "Coming soon" for
   changing it (it is not part of the PATCH body), and the date format is read-only.

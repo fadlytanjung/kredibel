@@ -39,9 +39,22 @@ SECURITY_HEADERS: dict[str, str] = {
     "Permissions-Policy": "camera=(self), microphone=(), geolocation=()",
 }
 
-# FastAPI's Swagger UI pulls its bundle from jsDelivr; only that page gets the wider policy.
-_API_DOCS_CSP = _csp("https://cdn.jsdelivr.net")
-_API_DOCS_PATHS = ("/docs", "/docs/oauth2-redirect")
+# FastAPI's Swagger UI and ReDoc pull bundles from jsDelivr and initialize via inline script;
+# only those pages get the wider policy.
+_API_DOCS_CSP = "; ".join(
+    [
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-inline' https://apis.google.com https://cdn.jsdelivr.net",
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+        "font-src 'self' https://cdn.jsdelivr.net",
+        "img-src 'self' data: blob: https://fastapi.tiangolo.com https://cdn.jsdelivr.net",
+        "worker-src 'self' blob:",
+        f"connect-src 'self' https://cdn.jsdelivr.net {_CONNECT_SRC.removeprefix('connect-src ')}",
+        "frame-src https://*.firebaseapp.com",
+        "frame-ancestors 'none'",
+    ]
+)
+_API_DOCS_PATHS = ("/docs", "/docs/oauth2-redirect", "/redoc")
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):

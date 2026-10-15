@@ -32,6 +32,23 @@ export function useReceipts(docId: string | undefined) {
   })
 }
 
+/** A month's invoices and receipts, with their payment evidence (docs/10 §2.4). */
+export function useMonthInvoices(month: string | undefined) {
+  return useQuery({
+    queryKey: ['invoices', { month }],
+    queryFn: () => apiClient<InvoicePage>(`/api/invoices?month=${encodeURIComponent(month ?? '')}`),
+    enabled: Boolean(month),
+  })
+}
+
+export function useMonthReceipts(month: string | undefined) {
+  return useQuery({
+    queryKey: ['receipts', { month }],
+    queryFn: () => apiClient<ReceiptPage>(`/api/receipts?month=${encodeURIComponent(month ?? '')}`),
+    enabled: Boolean(month),
+  })
+}
+
 /** The focus for one field of a record, when the reading has a box. */
 export function focusOf(
   recordId: string,

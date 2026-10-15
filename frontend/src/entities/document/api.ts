@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '../../shared/api/client'
-import type { DocType, Document, DocumentPage } from './types'
+import type { DocType, Document, DocumentPage, LedgerMappingView } from './types'
 
 export interface DocumentFilters {
   type?: DocType
@@ -29,13 +29,6 @@ export function useDocuments(filters?: DocumentFilters, enabled = true) {
     queryKey: ['documents', filters],
     queryFn: () => apiClient<DocumentPage>(path),
     enabled,
-    refetchInterval: (query) => {
-      // Auto-poll while any document is in progress (UPLOADED, SCREENING, READING, CHECKING)
-      const inProgress = query.state.data?.items.some((d) =>
-        ['UPLOADED', 'SCREENING', 'READING', 'CHECKING'].includes(d.status),
-      )
-      return inProgress ? 2000 : false
-    },
   })
 }
 
@@ -44,11 +37,15 @@ export function useDocument(docId: string | undefined, enabled = true) {
     queryKey: ['document', docId],
     queryFn: () => apiClient<Document>(`/api/documents/${docId}`),
     enabled: Boolean(docId && enabled),
-    refetchInterval: (query) => {
-      const status = query.state.data?.status
-      const inProgress = status && ['UPLOADED', 'SCREENING', 'READING', 'CHECKING'].includes(status)
-      return inProgress ? 1500 : false
-    },
+  })
+}
+
+/** The proposed or confirmed column mapping of a ledger export with sample rows (AC-005-11). */
+export function useLedgerMapping(docId: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: ['ledger-mapping', docId],
+    queryFn: () => apiClient<LedgerMappingView>(`/api/documents/${docId}/ledger-mapping`),
+    enabled: Boolean(docId && enabled),
   })
 }
 

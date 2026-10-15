@@ -427,7 +427,11 @@ paths:
         - { name: matchState, in: query, schema: { $ref: "#/components/schemas/MatchState" } }
         - { name: category, in: query, schema: { $ref: "#/components/schemas/Category" } }
         - { name: counterpartyId, in: query, schema: { type: string } }
-        - { name: flow, in: query, schema: { type: string }, description: "A money-flow link ID (Sankey drill-down)" }
+        - { name: flow, in: query, schema: { type: string }, description: "A money-flow link ID (Sankey drill-down); the flow is rebuilt with period, view, framework and showTransfers below, as the chart asked for it (docs/08 §5.1)" }
+        - $ref: "#/components/parameters/Period"
+        - { name: view, in: query, schema: { $ref: "#/components/schemas/MoneyFlowView" }, description: "With flow" }
+        - $ref: "#/components/parameters/Framework"
+        - { name: showTransfers, in: query, schema: { type: boolean, default: false }, description: "With flow" }
         - { name: q, in: query, schema: { type: string, maxLength: 100 }, description: "Text in the description" }
         - $ref: "#/components/parameters/Limit"
         - $ref: "#/components/parameters/Cursor"
@@ -540,6 +544,48 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/LedgerEntryPage" }
+
+  /api/profit-loss:
+    get:
+      tags: [insight]
+      operationId: getProfitLoss
+      description: Accrual management P&L over posted imported GL activity; not a statutory statement.
+      parameters:
+        - { name: period, in: query, schema: { type: string, default: recent } }
+      responses:
+        "200":
+          description: Report with source rows, coverage and exclusions
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProfitLoss" }
+        "422": { $ref: "#/components/responses/Problem" }
+  /api/profit-loss/accounts:
+    get:
+      tags: [insight]
+      operationId: getProfitLossAccounts
+      responses:
+        "200":
+          description: Imported accounts and the classification catalog
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProfitLossAccounts" }
+    put:
+      tags: [insight]
+      operationId: confirmAccountClassification
+      description: Owner/accountant confirmation with atomic audit event; scope from authentication.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AccountClassification" }
+      responses:
+        "200":
+          description: Confirmed classification
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AccountClassification" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
 
   # ------------------------------------------------------------------ months
   /api/months:
@@ -686,6 +732,57 @@ paths:
           content:
             text/csv:
               schema: { type: string }
+
+  # ------------------------------------------------------------------ decisions (ADR-025)
+  /api/decisions:
+    get:
+      tags: [months]
+      operationId: listDecisions
+      description: A person's audited decisions about documents and bank lines, newest first.
+      parameters:
+        - { name: kind, in: query, schema: { $ref: "#/components/schemas/DecisionKind" } }
+        - { name: docId, in: query, schema: { type: string } }
+        - { name: recordId, in: query, schema: { type: string }, description: "invoiceId, receiptId or txId" }
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Decisions
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DecisionPage" }
+    post:
+      tags: [months]
+      operationId: createDecision
+      description: >
+        Record a decision: approve a document, confirm a payment without bank evidence, agree to use
+        a document's amounts unchanged in the workspace currency, or mark a bank line's support as
+        not required. None of them creates bank cash or a match; the months concerned re-reconcile.
+        Approval, currency agreement and not-required are one per subject (posting again returns the
+        existing decision); payment confirmations can be several (partial payments).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DecisionCreate" }
+      responses:
+        "201":
+          description: Recorded
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Decision" }
+        "404": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/decisions/{decisionId}:
+    parameters:
+      - { name: decisionId, in: path, required: true, schema: { type: string, pattern: "^dec_[0-9A-Za-z]{16,26}$" } }
+    delete:
+      tags: [months]
+      operationId: withdrawDecision
+      description: The decision is withdrawn, not deleted; its history stays in the audit trail.
+      responses:
+        "204": { description: Withdrawn }
+        "404": { $ref: "#/components/responses/Problem" }
 
   # ------------------------------------------------------------------ review
   /api/review-items:
@@ -1114,6 +1211,9 @@ paths:
     get:
       tags: [assistant]
       operationId: listThreads
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Cursor"
       responses:
         "200":
           description: The caller's threads, newest first
@@ -1124,6 +1224,7 @@ paths:
                 required: [items]
                 properties:
                   items: { type: array, items: { $ref: "#/components/schemas/Thread" } }
+                  nextCursor: { type: [string, "null"] }
     post:
       tags: [assistant]
       operationId: createThread
@@ -1295,11 +1396,11 @@ components:
     Period:
       name: period
       in: query
-      description: "A month (2026-03), quarter (2026-Q1), year (2026), range (2026-01..2026-06) or all"
+      description: "A month (2026-03), quarter (2026-Q1), year (2026), range (2026-01..2026-06), recent (the last 3 months with data, the dashboard's default) or all"
       schema:
         type: string
         default: all
-        pattern: "^(all|\\d{4}|\\d{4}-Q[1-4]|\\d{4}-(0[1-9]|1[0-2])|\\d{4}-(0[1-9]|1[0-2])\\.\\.\\d{4}-(0[1-9]|1[0-2]))$"
+        pattern: "^(all|recent|\\d{4}|\\d{4}-Q[1-4]|\\d{4}-(0[1-9]|1[0-2])|\\d{4}-(0[1-9]|1[0-2])\\.\\.\\d{4}-(0[1-9]|1[0-2]))$"
     Limit:
       name: limit
       in: query
@@ -1470,7 +1571,68 @@ components:
       type: string
       enum: [BANK_SALES_INVOICE, BANK_PURCHASE_INVOICE, BANK_RECEIPT, BANK_LEDGER, DOCUMENT_LEDGER]
     MatchStatus: { type: string, enum: [CONFIRMED, PROPOSED, REJECTED] }
-    MatchReason: { type: string, enum: [AMOUNT_EXACT, NET_OF_TAX, PARTY_MATCH, REFERENCE_IN_TEXT, DATE_NEAR, SPLIT] }
+    MatchReason: { type: string, enum: [AMOUNT_EXACT, NET_OF_TAX, PARTY_MATCH, REFERENCE_IN_TEXT, DATE_NEAR, SPLIT, GROUPED] }
+    PaymentEvidence:
+      type: string
+      description: ADR-025; never the same thing as integrity or a person's approval.
+      enum: [CURRENCY_TO_CONFIRM, PAID_BANK, PARTIAL_BANK, PROPOSED, CONFIRMED_BY_YOU, PAID_CASH,
+             WAITING_FOR_STATEMENT, NO_BANK_MATCH, NOT_DUE, UNPAID]
+    BankSupport:
+      type: string
+      description: "ADR-025: NO_SUPPORT is informational (Bank recorded · No supporting document); the line is bank cash either way."
+      enum: [EXCLUDED, MATCHED, PROPOSED, NOT_REQUIRED, NO_SUPPORT]
+    DocumentEvidence:
+      type: object
+      required: [payment, covered, bankPaid, confirmedPaid, outstanding]
+      properties:
+        payment: { $ref: "#/components/schemas/PaymentEvidence" }
+        covered: { type: boolean, description: "Statements cover the payment window of every account" }
+        bankPaid: { $ref: "#/components/schemas/Money" }
+        confirmedPaid: { $ref: "#/components/schemas/Money", description: "Confirmed by a person, without bank evidence; never bank cash" }
+        outstanding: { $ref: "#/components/schemas/Money" }
+        printedCurrency: { type: [string, "null"], description: "As printed; kept after a currency agreement" }
+        approved: { type: boolean }
+        matchIds: { type: array, items: { type: string } }
+    DecisionKind: { type: string, enum: [DOCUMENT_APPROVAL, PAYMENT_CONFIRMATION, CURRENCY_AGREEMENT, SUPPORT_NOT_REQUIRED] }
+    DecisionCreate:
+      type: object
+      required: [kind]
+      properties:
+        kind: { $ref: "#/components/schemas/DecisionKind" }
+        docId: { type: string, description: "DOCUMENT_APPROVAL, CURRENCY_AGREEMENT" }
+        invoiceId: { type: string, description: "PAYMENT_CONFIRMATION of an invoice" }
+        receiptId: { type: string, description: "PAYMENT_CONFIRMATION of a receipt" }
+        txId: { type: string, description: "SUPPORT_NOT_REQUIRED" }
+        amount: { $ref: "#/components/schemas/Money", description: "PAYMENT_CONFIRMATION; in the workspace currency, no conversion" }
+        paidOn: { type: string, format: date, description: "PAYMENT_CONFIRMATION" }
+        method: { type: string, enum: [CASH, CARD, TRANSFER, CHEQUE, OTHER], description: "PAYMENT_CONFIRMATION" }
+        reason: { type: string, minLength: 3, maxLength: 500, description: "Required for PAYMENT_CONFIRMATION and SUPPORT_NOT_REQUIRED" }
+    Decision:
+      type: object
+      required: [decisionId, kind, status, decidedBy, decidedAt]
+      properties:
+        decisionId: { type: string }
+        kind: { $ref: "#/components/schemas/DecisionKind" }
+        status: { type: string, enum: [ACTIVE, WITHDRAWN] }
+        docId: { type: [string, "null"] }
+        invoiceId: { type: [string, "null"] }
+        receiptId: { type: [string, "null"] }
+        txId: { type: [string, "null"] }
+        amount: { oneOf: [{ $ref: "#/components/schemas/Money" }, { type: "null" }] }
+        paidOn: { type: [string, "null"], format: date }
+        method: { type: [string, "null"] }
+        reason: { type: [string, "null"] }
+        printedCurrency: { type: [string, "null"], description: "CURRENCY_AGREEMENT: the currency the document prints" }
+        months: { type: array, items: { $ref: "#/components/schemas/YearMonth" }, description: "Months that re-reconcile" }
+        decidedBy: { type: string }
+        decidedAt: { type: string, format: date-time }
+        withdrawnBy: { type: [string, "null"] }
+        withdrawnAt: { type: [string, "null"], format: date-time }
+    DecisionPage:
+      type: object
+      required: [items]
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/Decision" } }
     PaymentState: { type: string, enum: [UNPAID, PAID, PARTIAL, NOT_DUE, WAITING_FOR_STATEMENT] }
     MonthState: { type: string, enum: [COLLECTING, RECONCILING, NEEDS_REVIEW, RECONCILED, SIGNED_OFF] }
     ReviewItemKind:
@@ -1609,10 +1771,10 @@ components:
           description: Consent to use this workspace's verified labels, masked, in Kredibel's tuning datasets (P2). Off by default.
     WorkspaceCreate:
       type: object
-      required: [name, entityType, timezone]
+      required: [name, timezone]
       properties:
-        name: { type: string, minLength: 2, maxLength: 100 }
-        entityType: { $ref: "#/components/schemas/EntityType" }
+        name: { type: string, minLength: 2, maxLength: 100, description: "The business's legal name" }
+        entityType: { type: string, enum: [COMPANY], default: COMPANY, description: "Kredibel is for businesses: a workspace is always a company (spec 013, AC-013-2)" }
         profile: { $ref: "#/components/schemas/WorkspaceProfile" }
         taxId: { type: string, maxLength: 30, writeOnly: true, description: "Stored masked" }
         country: { type: string, enum: [ID], default: ID }
@@ -1902,6 +2064,7 @@ components:
           description: Per field (date, description, amount, balance)
           additionalProperties: { $ref: "#/components/schemas/ValueReading" }
         match: { $ref: "#/components/schemas/MatchRef" }
+        support: { $ref: "#/components/schemas/BankSupport" }
         heldAsDuplicate: { type: boolean }
         corrected: { type: boolean }
         source: { type: string, enum: [AI, WITNESS], description: "WITNESS: a row only the page's words have (ADR-023)" }
@@ -1959,7 +2122,9 @@ components:
         lines: { type: array, items: { $ref: "#/components/schemas/InvoiceLine" } }
         counterpartyId: { type: [string, "null"] }
         payment: { $ref: "#/components/schemas/PaymentRef" }
+        evidence: { oneOf: [{ $ref: "#/components/schemas/DocumentEvidence" }, { type: "null" }], description: "Null until a month run derived it (ADR-025)" }
         readings: { type: object, additionalProperties: { $ref: "#/components/schemas/ValueReading" } }
+        correctedFields: { type: array, items: { type: string }, description: "Fields a person corrected through review; readings keeps what was read" }
         heldAsDuplicate: { type: boolean }
     InvoicePage:
       type: object
@@ -1993,7 +2158,9 @@ components:
         notes: { type: array, items: { type: string } }
         paymentMethod: { type: string, enum: [CASH, CARD, TRANSFER, UNKNOWN] }
         payment: { $ref: "#/components/schemas/PaymentRef" }
+        evidence: { oneOf: [{ $ref: "#/components/schemas/DocumentEvidence" }, { type: "null" }], description: "Null until a month run derived it (ADR-025)" }
         readings: { type: object, additionalProperties: { $ref: "#/components/schemas/ValueReading" } }
+        correctedFields: { type: array, items: { type: string }, description: "Fields a person corrected through review; readings keeps what was read" }
         heldAsDuplicate: { type: boolean }
     ReceiptPage:
       type: object
@@ -2095,9 +2262,12 @@ components:
         receiptIds: { type: array, items: { type: string } }
         ledgerEntryIds: { type: array, items: { type: string } }
         amount: { $ref: "#/components/schemas/Money" }
-        method: { type: string, enum: [AUTO, MANUAL] }
+        method: { type: [string, "null"], enum: [AUTO, MANUAL, null], description: "Null while a match is proposed" }
         status: { $ref: "#/components/schemas/MatchStatus" }
         score: { $ref: "#/components/schemas/Decimal" }
+        amountDifference: { $ref: "#/components/schemas/Money" }
+        requiresReview: { type: boolean }
+        alternatives: { type: array, items: { type: string } }
         reasons: { type: array, items: { $ref: "#/components/schemas/MatchReason" } }
         reasonText: { type: string, examples: ["Same amount, same client, invoice number in the transfer description"] }
         createdBy: { type: string }
@@ -2286,6 +2456,7 @@ components:
       required: [period, kpis, months]
       properties:
         period: { type: string }
+        periodMonths: { type: array, items: { $ref: "#/components/schemas/YearMonth" }, description: "The months the period covers, oldest first" }
         kpis: { type: array, items: { $ref: "#/components/schemas/Kpi" } }
         months: { type: array, items: { $ref: "#/components/schemas/MonthSummary" } }
         alerts: { type: array, maxItems: 5, items: { $ref: "#/components/schemas/Alert" } }
@@ -2342,8 +2513,19 @@ components:
         framework: { $ref: "#/components/schemas/AccountingFramework" }
         opening: { $ref: "#/components/schemas/Money" }
         closing: { $ref: "#/components/schemas/Money" }
-        balanced: { type: boolean, description: "opening + Σ byActivity = closing; false means a statement or month is missing" }
-        gapReason: { type: [string, "null"] }
+        balanced: { type: boolean, description: "opening + Σ byActivity = closing for every account; false means a statement or month is missing (see gaps)" }
+        gapReason: { type: [string, "null"], deprecated: true, description: "Superseded by gaps; always null" }
+        gaps:
+          type: array
+          description: Why the balances do not add up, one entry per account and cause (docs/08 §5.2); the UI words them
+          items:
+            type: object
+            required: [kind]
+            properties:
+              kind: { type: string, enum: [MISSING_MONTH, NO_BALANCES, TRANSFERS_ELSEWHERE, BALANCE_BREAK] }
+              month: { type: string, pattern: "^\\d{4}-\\d{2}$" }
+              account: { type: string, description: "Bank and masked number" }
+              amount: { $ref: "#/components/schemas/Money" }
         months:
           type: array
           items:
@@ -2363,6 +2545,7 @@ components:
             OPERATING: { $ref: "#/components/schemas/Money" }
             INVESTING: { $ref: "#/components/schemas/Money" }
             FINANCING: { $ref: "#/components/schemas/Money" }
+            UNCLASSIFIED: { $ref: "#/components/schemas/Money", description: "Lines not categorized yet; part of the opening-to-closing check" }
         byLine:
           type: array
           items:
@@ -2615,6 +2798,72 @@ components:
         items: { type: array, items: { $ref: "#/components/schemas/AgentEvent" } }
         contentCaptured: { type: boolean }
 
+    AccountClassification:
+      type: object
+      additionalProperties: false
+      required: [accountCode, pnlLine, subledger]
+      properties:
+        accountCode: { type: string, minLength: 1, maxLength: 100 }
+        pnlLine: { type: string, description: Key from the policy catalog }
+        subledger: { type: string, description: Key from the policy catalog }
+    ProfitLossAccounts:
+      type: object
+      required: [accounts, pnlLines, subledgers]
+      properties:
+        accounts:
+          type: array
+          items:
+            type: object
+            required: [accountCode, accountName, classification]
+            properties:
+              accountCode: { type: string }
+              accountName: { type: string }
+              classification:
+                anyOf:
+                  - { $ref: "#/components/schemas/AccountClassification" }
+                  - { type: "null" }
+        pnlLines: { type: object, additionalProperties: { type: string } }
+        subledgers: { type: object, additionalProperties: { type: string } }
+    ProfitLoss:
+      type: object
+      required: [period, months, currency, basis, coverage, status, lines, entries, exclusions, gaps, classifiedCount, inputCount]
+      properties:
+        period: { type: string }
+        months: { type: array, items: { type: string } }
+        currency: { type: string }
+        basis: { type: string, enum: [ACCRUAL] }
+        coverage: { type: string, enum: [IMPORTED_ENTRIES_ONLY] }
+        status: { type: string, enum: [UNAVAILABLE, PARTIAL, IMPORTED] }
+        classifiedCount: { type: integer }
+        inputCount: { type: integer }
+        exclusions: { type: object, additionalProperties: { type: integer } }
+        gaps: { type: array, items: { type: string } }
+        lines:
+          type: array
+          items:
+            type: object
+            required: [id, amount, factId, entryIds]
+            properties:
+              id: { type: string }
+              amount: { type: [string, "null"], description: Decimal string in report currency; null when unavailable }
+              factId: { type: string }
+              entryIds: { type: array, items: { type: string } }
+        entries:
+          type: array
+          items:
+            type: object
+            required: [entryId, docId, rowNumber, date, accountCode, accountName, pnlLine, subledger, amount]
+            properties:
+              entryId: { type: string }
+              docId: { type: string }
+              rowNumber: { type: integer }
+              date: { type: string, format: date }
+              accountCode: { type: string }
+              accountName: { type: string }
+              pnlLine: { type: string }
+              subledger: { type: string }
+              amount: { type: string }
+
     # ---------- assistant (P1) ----------
     Thread:
       type: object
@@ -2643,7 +2892,7 @@ components:
         text: { type: string, description: "With [[…]] citation markers" }
         columns: { type: array, items: { type: string } }
         rows: { type: array, items: { type: array, items: { type: string } } }
-        chart: { type: string, enum: [MONEY_FLOW, MONTHLY_IN_OUT, CATEGORY_BREAKDOWN] }
+        chart: { type: string, enum: [MONEY_FLOW, MONTHLY_IN_OUT, CATEGORY_BREAKDOWN, INVOICE_BREAKDOWN, PROFIT_LOSS] }
         query: { type: object, additionalProperties: true, description: "Parameters the UI uses to fetch the chart data" }
     Citation:
       type: object

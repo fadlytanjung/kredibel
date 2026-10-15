@@ -35,7 +35,7 @@ def _item(key, ic, label, short, href, count, active):
             f'<span class="nav-label-short hide-large">{short}</span>{cnt}</a>')
 
 
-def side(active: str) -> str:
+def side(active: str, currency: str = "IDR") -> str:
     main = "".join(_item(*n, active) for n in NAV_MAIN)
     books = "".join(_item(*n, active) for n in NAV_BOOKS)
     insight = "".join(_item(*n, active) for n in NAV_INSIGHT)
@@ -43,14 +43,14 @@ def side(active: str) -> str:
     profile_current = ' aria-current="page"' if active == "settings" else ""
     return f"""<aside class="side">
   <a href="dashboard.html" aria-label="Kredibel home"><img class="lockup" src="{BRAND}/kredibel-logo.svg" alt="Kredibel"/><img class="side-mark" src="{BRAND}/kredibel-mark.svg" alt="Kredibel"/></a>
-  <a class="workspace" href="plan-usage.html"><span class="ws-icon">{icon("building")}</span><span><strong>Sunrise Coffee Roasters</strong><span class="sub">Company, IDR, IFRS</span></span>{icon("chevron-down", "icon icon-sm")}</a>
+  <a class="workspace" href="plan-usage.html"><span class="ws-icon">{icon("building")}</span><span><strong>Sunrise Coffee Roasters</strong><span class="sub">Company, {currency}, IFRS</span></span>{icon("chevron-down", "icon icon-sm")}</a>
   <nav class="nav" aria-label="Main">{main}
     <span class="nav-group-label">Books</span>{books}
     <span class="nav-group-label">Insight</span><span class="nav-sep" aria-hidden="true"></span>{insight}
     <span class="nav-group-label">AI quality</span><span class="nav-sep" aria-hidden="true"></span>{ai}
   </nav>
   <div class="side-foot">
-    <a class="trial-status" href="plan-usage.html" title="Plan and usage"><strong>Free trial: 23 days left</strong><span class="bar" aria-hidden="true"><i style="width:72%"></i></span><span class="pages">286 of 400 pages</span></a>
+    <a class="trial-status" href="plan-usage.html" title="Plan and usage"><div class="trial-head"><strong>Free trial: 23 days left</strong><span class="pages">286 of 400 pages</span></div><span class="bar" aria-hidden="true"><i style="width:72%"></i></span></a>
     <a class="user" href="plan-usage.html"{profile_current} title="Settings" aria-label="Settings, signed in as Maya Sari (Owner)"><span class="avatar" aria-hidden="true">MS</span><span><strong>Maya Sari</strong>Owner</span>{icon("sliders", "icon user-action")}</a>
   </div>
 </aside>"""
@@ -118,11 +118,11 @@ def topbar(title: str, crumb_parts: tuple, back: tuple[str, str] | None = None, 
 </header>"""
 
 
-def shell(active: str, top: str, content: str, fab: bool = True, nav: bool = True) -> str:
+def shell(active: str, top: str, content: str, fab: bool = True, nav: bool = True, currency: str = "IDR") -> str:
     fab_html = f'<a class="fab" href="documents.html">{icon("upload")}Upload</a>' if fab else ""
     return (
         '<div class="viewport"><div class="app">'
-        f'{side(active)}'
+        f'{side(active, currency)}'
         '<div class="main">'
         f'{top}'
         f'<main id="content">{content}</main>'

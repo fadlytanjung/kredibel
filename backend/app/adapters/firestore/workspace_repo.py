@@ -3,6 +3,8 @@
 Normative references: docs/09 §3.1–§3.4, §3.16, §3.18; docs/13 §2.2 (atomic audit).
 """
 
+from typing import Any
+
 from google.cloud.firestore import AsyncClient, AsyncTransaction, async_transactional
 
 from app.adapters.firestore.models.workspace import (
@@ -159,9 +161,22 @@ class FirestoreWorkspaceRepository(WorkspaceRepository):
             default_language=doc.default_language,
             subscription=Subscription.model_validate(doc.subscription),
             share_verified_labels=bool(doc.learning.get("shareVerifiedLabels", False)),
+            ledger_mappings=dict(doc.ledger_mappings or {}),
             created_by=doc.created_by,
             created_at=doc.created_at,
         )
+
+    async def save_ledger_mapping(
+        self, org_id: str, layout_signature: str, mapping: dict[str, Any], event: AuditEvent
+    ) -> None:
+        org_ref = self._db.collection("orgs").document(org_id)
+        batch = self._db.batch()
+        batch.update(org_ref, {f"ledgerMappings.{layout_signature}": mapping})
+        batch.set(
+            org_ref.collection("events").document(event.event_id),
+            dump(EventDoc(org_id=org_id, **event.model_dump())),
+        )
+        await batch.commit()
 
     async def save_workspace(self, workspace: Workspace, event: AuditEvent) -> None:
         org_ref = self._db.collection("orgs").document(workspace.org_id)

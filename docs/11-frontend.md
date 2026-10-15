@@ -49,7 +49,10 @@ addon) · Playwright (smoke E2E and visual regression at 390/834/1440) · `@axe-
 Lighthouse CI.
 
 The production build is copied into the backend image and served by `kredibel-web` at `/` (same
-origin as `/api`, so no CORS).
+origin as `/api`, so no CORS). Every page but the dashboard is its own chunk (`React.lazy` in
+`app/router.tsx`), Firebase Auth starts without the popup/redirect resolver (the sign-in iframe
+loads when someone signs in) and the Firestore SDK loads on the first live subscription
+(`shared/firebase/live.ts`), so the first paint ships the shell, the dashboard and Auth only.
 
 ---
 
@@ -95,7 +98,8 @@ they never set colours, font sizes or shadows ([`12`](12-design-system.md) §0).
 
 | Group | Item (short label in the rail) | Route | Count badge |
 |---|---|---|---|
-| — | Dashboard | `/dashboard` | — |
+| — | Dashboard | `/dashboard` (`/` is the public landing, spec 020) | — |
+| — | Company profit and loss (opened from the dashboard's P&L panel; the Dashboard item stays current) | `/profit-loss` | — |
 | Books | Documents | `/documents` | total, neutral (sidebar only) |
 | Books | Reconciliation (Reconcile) | `/months` | — |
 | Books | Review | `/review` | open items, alert colour |
@@ -116,8 +120,7 @@ The sidebar foot has two rows and nothing else, so the labelled sidebar shows ev
 scrolling in a window 768 px tall (below that only the navigation scrolls; the logo and the foot stay
 put):
 
-- **Trial status**: "Free trial: 23 days left", then a thin meter with "286 of 400 pages" read this
-  month; the row opens Plan and usage. After expiry it reads "Your free trial has ended". From 600 to
+- **Trial status**: compact row with "Free trial: 23 days left" alongside "286 of 400 pages", and a 3px progress bar; the row opens Plan and usage. After expiry it reads "Your free trial has ended". From 600 to
   1199 px the rail hides it and the top bar's trial badge carries it (AC-013-12).
 - **Profile**: the avatar, name and role, with a settings icon; it opens Settings (the profile section
   first) and is marked current on every Settings page. In the rail it is the avatar alone.
@@ -138,8 +141,9 @@ put):
 | `/dashboard` | Dashboard | Period picker in the top bar (default: the months with data) |
 | `/documents` | Documents | Filters by type and state; `?upload=1` opens the upload tray focused |
 | `/documents/:docId` | Document | Page viewer, read values, its findings, matches and events |
-| `/months` | Months | One row per month with state, matched share and risk level |
-| `/months/:month` | Month | `yyyy-mm`. Tabs: `lines` (default), `documents`, `ledger`, `findings` |
+| `/months` | — | Opens the current calendar month (`/months/<this month>`): reconciliation is monthly |
+| `/months/all` | Months | One row per month with state, matched share and risk level |
+| `/months/:month` | Month | `yyyy-mm`. Tabs (`?tab=`): `lines` (default), `documents`, `ledger`, `findings` |
 | `/review` | Review | Queue; filters by kind and month |
 | `/review/:itemId` | Review | Same page with the item open (split view from 980 px of container, full page below) |
 | `/risk` | Risk | Findings grouped by month and severity |
@@ -177,6 +181,9 @@ flowchart LR
     review -.->|"See on the page"| ev
     risk -.-> ev
     doc -.-> ev
+    dash --> pnl["Company P&L<br/>account classifications and source rows"]
+    asst --> pnl
+    pnl --> doc
     dash --> cp["Clients and suppliers<br/>new account flagged"]
     cp -->|"flagged supplier"| risk
     dash --> asst["Assistant (P1)"]
@@ -342,10 +349,12 @@ wins; on looks, the mock and [`12`](12-design-system.md) win.
 
 <p><img src="assets/mocks/onboarding-desktop.png" alt="Onboarding at 1440 px: dark ledger-paper brand panel with the logo, tagline and three ledger lines; the form asks whose books these are" width="66%"> <img src="assets/mocks/onboarding-mobile.png" alt="Onboarding on a phone: brand band with the tagline above the form" width="26%"></p>
 
-- One question first: **Whose books are these?** *Myself* (freelancer or sole trader) or *A
-  company*. The choice switches the fields: legal or full name, trading name (optional), industry,
-  time zone (months are counted in it), the currency of the books (IDR, MYR, SGD, JPY or USD,
-  suggested from the time zone; fixed afterwards), and an optional main bank account.
+- For a business only (no "myself or a company" question), in three sections:
+  **Your business** (legal name, trading name optional, legal form, industry, tax ID optional),
+  **Your books** (the currency of the books: IDR, MYR, SGD, JPY or USD, suggested from the time zone
+  and fixed afterwards; the accounting framework, IFRS or US GAAP, as a segmented choice; the time
+  zone, in which months are counted), and an optional **Main bank account** whose holder starts as
+  the legal name.
 - The trial terms are stated before the button: "30-day free trial. 150 documents and 400 pages a
   month. No card, no payment. Paid plans are coming soon." (numbers from `GET /api/plans`)
   **Start the free trial** → `POST /api/workspaces` → refresh the ID token → the dashboard's empty
@@ -356,19 +365,22 @@ wins; on looks, the mock and [`12`](12-design-system.md) win.
 
 ### 6.2 Dashboard
 
-<p><img src="assets/mocks/dashboard-desktop.png" alt="Dashboard at 1440 px: status sentence, six figures, Needs you beside Risk, then three full-width chart panels one under the other: the money flow by statement line, money in and out by month, and the cash-flow statement" width="66%"> <img src="assets/mocks/dashboard-mobile.png" alt="Dashboard on a phone: status sentence, figures in two columns, bottom navigation and Upload button" width="26%"></p>
+<p><img src="assets/mocks/dashboard-desktop.png" alt="Dashboard at 1440 px: the period switch, the workspace name and period, six figures, the profit and loss panel, three full-width chart panels one under the other (the money flow by statement line, money in and out by month, the cash-flow statement), the reconciliation sentence with its findings, then Risk, To review and Where the money went side by side, and the months as binder tabs" width="66%"> <img src="assets/mocks/dashboard-mobile.png" alt="Dashboard on a phone: period switch, figures in two columns, bottom navigation and Upload button" width="26%"></p>
 
-<p><img src="assets/mocks/dashboard-tablet.png" alt="Dashboard at 834 px: rail, figures, Needs you and Risk stacked before the charts" width="45%"></p>
+<p><img src="assets/mocks/dashboard-tablet.png" alt="Dashboard at 834 px: rail, figures and the charts before the reconciliation sentence" width="45%"></p>
 
-Top to bottom:
+The mock and the page draw the same synthetic payload (`contracts/design/fixtures/dashboard.json`,
+spec 019 AC-019-2) and the page's own words (`dashboard.json`); a browser check compares their
+visible headings, segmented controls and panel links at 390, 834 and 1440 px. Top to bottom:
 
-- **Status hero:** one sentence ("2 of 6 months are reconciled. 9 things need you."), up to two
-  reasons with severity icons, **Open review (9)** and a link to the worst month.
-- **Figures:** money in, money out, net, matched by Kredibel (share and count of bank lines), needs
-  you, documents. Money figures carry their reading mark.
-- **Needs you** and **Risk:** the top review items (highest risk first, each opening the fix panel)
-  and the open findings (severity badge, title, one line of evidence, opening the evidence viewer).
-  Side by side from 980 px of content, stacked below.
+- **Period:** a segmented control (**Last 3 months**, the current year, **All months**) that drives
+  every figure and chart on the page.
+- **Header:** the workspace name, then "Sunrise Coffee Roasters, January to June 2026".
+- **Figures:** money in and money out against the previous period of equal length, net (kept in or
+  taken from the accounts), matched by Kredibel (share, with the previous period and a small meter),
+  waiting for you (documents to decide on) and to review (open items), the last two in the alert
+  colour when above zero and linking to the documents and the queue.
+- **Profit and loss:** the company P&L panel of spec 018 (§6.2a) with **Accounts and sources**.
 - **Where the money went:** a section with a **Framework** switch (IFRS or US GAAP, default the
   workspace's `profile.accountingFramework`; switching it here does not change the setting) and three
   chart panels. **Charts never share a row:** each panel takes the full content width beside the
@@ -376,17 +388,55 @@ Top to bottom:
   1. **Money flow** with four views: **Flow** (Sankey: revenue by client → bank account → activity →
      statement line, in the framework's wording, such as Cost of sales or Cost of goods sold),
      **Bars** (statement lines grouped by activity), **Table**, and **By client and supplier** (the
-     counterparties view, [`08`](08-risk-engine.md) §5.1). A callout written from facts ("Cost of sales
-     took 41.6% of revenue") and a note on what the framework changes ("IFRS: interest paid is a
-     financing cash flow…"). Clicking a band opens the **flow lines drawer** with its bank lines.
-     Possible copies are left out until decided. On phones the flow becomes ranked bars.
+     counterparties view, [`08`](08-risk-engine.md) §5.1). The foot prints the unit ("Amounts in
+     millions.") and the note the API writes about what the framework changes ("IFRS: interest paid
+     is a financing cash flow…"). Clicking a band, bar or row opens the **flow lines drawer** with its
+     bank lines. Possible copies are left out until decided. On phones the flow becomes two ranked
+     lists, **Where it came from** and **Where it went**. The Sankey is an accessible group of
+     focusable bands and nodes, never an image.
   2. **Money in and out by month:** grouped bars with the net above each pair, the month with a
-     Critical or High risk outlined; second view **Net and balance**.
+     Critical or High risk outlined and named in the subtitle; second view **Net and balance**.
   3. **Cash-flow statement:** opening balance → operating → investing → financing → closing balance
      as a waterfall, with **By month** to the month table.
-- **Months:** one binder tab per month with state, matched share, risk level and its reason; a
-  critical month is tinted. Clicking opens the month.
-- **Profile suggestions:** one card when details were found in documents ([spec 014](specs/014-profile-and-counterparties/spec.md)).
+- **Reconciliation & Findings:** the status sentence ("2 of 6 months are reconciled. 3 findings are
+  open."), up to two Critical or High reasons with severity icons, **See March** (the worst month) and
+  **Ask about this**, which opens the assistant with the question filled in.
+- **Risk**, **To review** and **Where the money went** in short: the open findings (severity badge,
+  title, month, opening the evidence viewer), the first five review items in the queue's order (kind
+  tile, title, kind and month, opening the fix panel) and the three largest sources and uses as ranked
+  bars. Two columns from 980 px of content, three from 1100 px, stacked below.
+- **Months:** one binder tab per month with state, matched share, statements present of expected and
+  the risk level; a critical month is tinted. Clicking opens the month.
+- **Profile suggestions** (planned, [spec 014](specs/014-profile-and-counterparties/spec.md)): the
+  mock keeps the card at the end, labelled as planned; the page does not draw it yet.
+
+### 6.2a Company profit and loss (spec 018)
+
+The dashboard adds a full-width **Profit and loss** panel before the cash-flow framework section.
+The IFRS/US GAAP toggle applies only to cash flow. **Accounts and sources** opens `/profit-loss`
+with the same period. The report page offers Flow/Bars/Table, a month picker and period input, coverage, exclusions and journal gaps,
+account P&L/subledger selectors with **Confirm classification**, and source document/row links.
+Owners/accountants can confirm; other roles read. Empty means usable classified ledger entries are
+not available, not zero profit. A failed request has **Try again**. All words use `profitLoss.json`.
+
+The Flow joins revenue accounts and separate other income at total income, then shows cost of sales,
+operating subledgers, finance costs, tax and net profit. It uses the report totals and exact decimal
+aggregation, never clamps losses or reversals. Negative groups/losses use signed clickable rows.
+At narrow panel widths the same source-linked rows replace the diagram. A selected node, band or
+row opens the source-entry drawer with the selected reported total; mixed income and expense
+source rows are never naively added into a second, conflicting subtotal.
+
+Bars use HTML at their actual font size rather than scaling SVG text. At compact widths each bar
+sits below its label and signed amount; controls wrap, source links wrap, tables scroll within their
+panel. Medium/large layouts retain the same full-width stack. No primary action is fixed over content.
+The assistant's deterministic P&L answer includes the same period and **Open profit and loss**.
+
+![P&L mobile](assets/mocks/profit-loss-mobile.png)
+![P&L tablet](assets/mocks/profit-loss-tablet.png)
+![P&L desktop](assets/mocks/profit-loss-desktop.png)
+
+The editable draw.io screen map predates this addition; the Mermaid map above is current. Update
+the draw.io source using its extension when that editor is available (never hand-edit the SVG).
 
 ### 6.3 Documents
 
@@ -422,43 +472,132 @@ stateDiagram-v2
 | NeedsColumns | "New column layout. Check the columns once and every row is imported." | **Check columns** |
 | CouldNotRead | "Could not read this file." | **Try again** |
 
-- **Library:** chips by type with counts (Statements, Sales invoices, Purchase invoices, Receipts,
-  Ledger, Possible copies); table of document (type icon, name, what it is), status, check (Clean,
+- **Library:** one table of the workspace's documents (`DataTable`: 10 a page, search by name, type,
+  status or month, sortable columns), chips by type with counts (Statements, Sales invoices, Purchase
+  invoices, Receipts, Ledger, Possible copies); table of document (type icon, name, what it is), status, check (Clean,
   Edited, Not checked), risk level, months, uploaded. A row with a critical finding is tinted. On
   compact each row is a card with risk and status.
-- **Document page** (`/documents/:docId`): the pages with read values lit, the two readings, its
-  findings, the matches it takes part in, its events, and P1 "How this was processed" (run graph,
-  [`17`](17-observability.md) §5).
+- **Document page** (`/documents/:docId`, mock `document.html`):
+
+  <p><img src="assets/mocks/document-desktop.png" alt="Document page at 1440 px: the statement page with the selected credit lit, beside the figures and the transactions list" width="66%"> <img src="assets/mocks/document-mobile.png" alt="Document page on a phone: the page zoomed to the selected value above the figures" width="26%"></p>
+
+  - **Header:** file name; what it is (type, bank and account, period) and when it was uploaded;
+    the type badge, how it was read ("Read: 180 of 180 values found on the page") and its check;
+    **Original file**, **Remove document** (which asks once, in a banner).
+  - **Page viewer** (left, sticky from 980 px): the file, whether the page is digital or scanned,
+    one page at a time with previous and next, zoom in steps from 50 to 200 %, and the lamp on the
+    value being looked at. A phone opens at 200 % centred on the lamp. The page image scrolls
+    inside its window, which keyboard users can focus.
+  - **What was read** (right): for a statement, the opening and closing balances as printed and
+    the money in and out of its lines, added exactly as decimals; then tabs. **Transactions** (or
+    **Invoices**, **Receipts**): the shared table with chips All, Money in, Money out, To check (a
+    value only one source read, or readings that differ) and search; 10 a page; each amount with
+    its reading mark and the legend. **Findings**: the document's open findings with facts, next
+    step and **Show on page**. **Details**: type, bank, account, period, currency, pages (digital or
+    scanned), values found, upload date.
+  - Choosing a transaction, an invoice value or a finding's evidence moves the viewer to its page
+    and lights it.
+  - **Ledger export** (`document-ledger.html`): no page viewer; the figures are the rows imported,
+    the period and the type (spreadsheet); the **Ledger entries** tab says how many rows were
+    imported, links **View in Profit and loss** and names the months. A file with a new layout
+    (`document-ledger-columns.html`) has imported nothing yet: a banner says "New column layout.
+    Check which column is which, once, and every row is imported." and **Check columns** opens its
+    review item (§6.5, spec 005 AC-005-11). Standard English layouts are confirmed by code.
+  - The mock and the page draw the same synthetic document (`contracts/design/fixtures/document.json`);
+    the browser check serves the mock's synthetic page as the page image and compares header,
+    figures, tabs, filters and columns.
+  - Later: the matches it takes part in (spec 007), its events, and P1 "How this was processed"
+    (run graph, [`17`](17-observability.md) §5).
 - **Page images and the original file** are API routes that need the ID token, which an `<img src>`
   or a plain link cannot send: the SPA fetches them through the API client and shows them from object
   URLs (`PageImage`, `downloadOriginal` in `entities/document`).
 
 ### 6.4 Month
 
-<p><img src="assets/mocks/month-desktop.png" alt="March 2026 at 1440 px: six figures with reading marks, the critical explanation with citations and next steps, match meter, bank lines with match chips and reasons" width="66%"> <img src="assets/mocks/month-mobile.png" alt="March 2026 on a phone: figures in two columns and the explanation" width="26%"></p>
+<p><img src="assets/mocks/month-desktop.png" alt="March 2026 at 1440 px: six figures, the critical explanation with citation chips and next steps, the match meter, and the bank lines with their category, support chip, reason and action" width="66%"> <img src="assets/mocks/month-mobile.png" alt="March 2026 on a phone: figures in two columns and the explanation" width="26%"></p>
 
-- **Header:** month name with previous and next, state, risk badge; what the month holds ("ACB ••4821.
-  Statement, 9 invoices, 4 receipts and 52 ledger entries").
-- **Figures:** opening balance, money in, money out, closing balance, matched by Kredibel, ledger
-  difference. Each figure carries its reading mark.
-- **Explanation** (when the level is MEDIUM or higher): the risk level as a heading, the Gemini
-  summary with citation chips (`[[fact:…]]`, `[[finding:…]]` → evidence), **What to do next** as a
-  numbered list, and the by-line "Written by Gemini. Every figure checked by Kredibel." If the
-  grounding guard failed, the template text is shown and the by-line says "Written from a template".
+The mock and the page draw the same synthetic month (`contracts/design/fixtures/month.json`,
+spec 019 AC-019-3); the browser check compares header, figures, citations, tabs, filters,
+columns, support chips and actions at three widths.
+
+- **Header:** month name with previous and next, **All months**, the state badge, the Critical
+  badge when the level is critical, and **Ask about this month** (the assistant with the question
+  filled in); below it, the month's note ("ACB ••4821. Statement, 3 invoices, 1 receipt and 52
+  ledger entries for this month.") or the standing subtitle.
+- **Figures:** opening balance (before the month's first line), money in and money out with their
+  counts, closing balance (after the month's last line), matched by Kredibel (share, "38 of 44
+  lines matched automatically", a small meter) and the ledger difference ("Bank against the
+  ledger", or "No ledger imported yet"). A missing fact shows a dash, never a number.
+- **Explanation** (when the level is MEDIUM or higher): "Critical risk this month" as a heading,
+  the Gemini summary with its `[[finding:…]]` markers as citation chips that carry the finding's
+  code (A01) and open its evidence (other markers are dropped), **What to do next** as a numbered
+  list, and the by-line "Written by Gemini. Every figure checked by Kredibel." If the grounding
+  guard failed, the template text is shown and the by-line says "Written from a template".
 - **Match meter:** matched by Kredibel, matched by you, open.
-- **Tabs:** Bank lines (default), Documents, Ledger (with the difference count), Findings.
-- **Bank lines:** date and description, amount (signed, reading mark), **Matched with** as a chip
-  (auto, manual, proposed, no match) and the reason in plain words ("Paid 2% below the total:
-  withholding tax"). A line tied to a finding is tinted and shows **Evidence**.
-- P1: **Sign off** when the month is reconciled; **Reopen** with a reason.
+- **Opens on the current month** from the navigation; previous and next move a month; **All months**
+  (`/months/all`, `months.html`) lists every month in the shared table, newest first, with its
+  state, risk and statements, chips All, Needs review, Collecting, Reconciled and search; a row
+  opens its month. A month with no statement, document or figure says so ("Nothing for October
+  2026 yet") and offers its latest month with data and the upload, instead of a page of dashes.
+- **Tabs:** Bank lines (default), Documents, Ledger, Findings, with their counts. Documents: the
+  month's invoices and receipts with their payment evidence, each opening its document. Ledger:
+  until a ledger is imported it says none is and offers the upload; the difference count on the
+  tab is planned with the ledger views (T007-10c). Findings: the month's open findings, each
+  opening its evidence.
+- **Bank lines:** the shared table with chips All, Open, Money in, Money out, search and
+  **Re-reconcile**; columns Bank line (counterparty or description, date, the category badge in
+  its cash-flow colour, "IFRS: Operating", and "Set by you" for a person's category), Amount
+  (signed, reading mark), **Matched with** as a support chip (matched by Kredibel, matched by you,
+  proposed match, no document needed, not counted, no document yet) with the match reasons or the
+  support's plain-words reason, and **Actions** (**Match** opens the match sheet; **Unmatch** on a
+  matched line). The reading legend closes the table.
+- P1: **Sign off** when the month is reconciled; **Reopen** with a reason. Tinting a line tied to
+  a finding and an **Evidence** link on it are planned with spec 015.
+
+#### Bank evidence and document support (ADR-025, spec 007)
+
+Ordinary-flow prototype: [Reconciliation](../design/mocks/reconciliation.html). The March mock above
+remains the integrity investigation example. Processing **Done** means extraction finished, never
+that payment is verified. Show independent labels for bank evidence, document support and integrity.
+
+| Evidence | Label and action |
+|---|---|
+| Bank row, no invoice/receipt | **Bank recorded** and **No supporting document**; attach documents or record why none is required; neutral, not a fraud alert |
+| One row pays several invoices | **Matched to 2 documents**; expand each allocation, bank amount, difference, party/reference/date reasons |
+| Several transfers pay one invoice | **Paid in 2 transfers**; show both bank dates/amounts and remaining invoice balance |
+| Document before covering statements | **Waiting for statement**; upload statement or confirm payment manually; never accuse it of being unpaid yet |
+| User approves document | **Document approved**; payment state is unchanged |
+| User confirms payment without bank match | **Payment confirmed by you** with **No bank evidence**; actor/date/reason, payment date/method/amount, partial balance; excluded from bank cash totals |
+
+**Approve document** and **Confirm payment manually** are distinct actions, available from document
+detail even without a review item. The latter asks for payment date, method, amount/currency and a
+reason. The confirmation explains that it does not create bank evidence. Later matches preserve the
+audit record. Details/allocations stack on phones, with ordinary 44 px action buttons. Every panel
+needs loading, empty, error and populated states when implemented in T007-10; the static mock is
+design work, not a claim these actions already exist in the application.
+
+The workspace currency is fixed at onboarding. A document that prints no currency is read in the
+workspace currency and its row says **No currency printed: read as IDR**. A different printed currency opens
+**Confirm document currency**: “This document says IDR. Use its amounts as MYR without conversion?”
+Actions: **Use amounts as MYR** or **Replace document**. Until agreed, show **Currency needs
+confirmation** and exclude the document from totals/matching. Keep its printed currency visible
+after acceptance; the confirmation is audited. No exchange-rate fields, conversions or FX totals.
+
+<p><img src="assets/mocks/reconciliation-desktop.png" alt="Bank evidence, support, grouped payments and documents awaiting statements" width="66%"> <img src="assets/mocks/reconciliation-mobile.png" alt="Reconciliation evidence on a phone" width="26%"></p>
 
 ### 6.5 Review
 
-<p><img src="assets/mocks/review-desktop.png" alt="Review at 1440 px: queue grouped by month beside the fix panel for a bank line that fits two invoices" width="66%"> <img src="assets/mocks/review-mobile.png" alt="Review on a phone: the item as a full page with candidates and a sticky Match button" width="26%"></p>
+<p><img src="assets/mocks/review-desktop.png" alt="Review at 1440 px: the queue in the shared table with chips by kind" width="40%"> <img src="assets/mocks/review-match-desktop.png" alt="Review at 1440 px: the fix drawer for a proposed match beside the queue" width="40%"> <img src="assets/mocks/review-match-mobile.png" alt="Review on a phone: the drawer as a bottom sheet with a sticky Confirm the match button" width="16%"></p>
 
-- **Queue:** filter chips by kind and month; items grouped by month, each with a kind tile, a title
-  that names the money, and one line of context. The eight kinds of [`08`](08-risk-engine.md) §7
-  have these names on screen:
+<p><img src="assets/mocks/review-correction-desktop.png" alt="Review at 1440 px: a value to check, the receipt's page beside the panel and the correction form open" width="66%"></p>
+
+Three mocks share the queue (`review.html`, `review-match.html`, `review-correction.html`), drawn
+from the same synthetic items as the browser check (`contracts/design/fixtures/review.json`).
+
+- **Queue:** the shared `DataTable` ([`12`](12-design-system.md) §7): chips by kind with counts,
+  search, 10 items a page, a month column; each item with a kind tile, a title that names the money,
+  and its kind. An item opens the **fix drawer** over the queue (a side drawer from 760 px, a
+  bottom sheet below). The eight kinds of [`08`](08-risk-engine.md) §7 have these names on screen:
 
 | Kind | Chip | Kind | Chip |
 |---|---|---|---|
@@ -467,15 +606,41 @@ stateDiagram-v2
 | `UNMATCHED_DOCUMENT` | Not paid | `CONFIRM_TYPE` | Confirm type |
 | `UNMATCHED_BANK_LINE` | Not in the ledger | `CONFIRM_LEDGER_MAPPING` | Check columns |
 
-- **Fix panel:** the kind and month; a title ("IDR 18,700,000 on 9 Feb fits two invoices"); why it
-  is here ("Kredibel only matches on its own when one answer is clearly better"); the **subject**
-  (the bank line, file or value) with **See on the page**; the **candidates** as radio cards with
-  reason tags (✓ same amount, ✓ same client, ✗ no invoice number) and the fit score; a hint written
-  from facts; the other allowed actions as quiet buttons; the primary action named after the choice
-  (**Match with invoice 0003**) and **Skip**.
+- **Fix drawer:** the kind and month, the position ("2 of 9") and **Close**; a title ("Confirm the
+  payment of IDR 18,700,000 on 9 Feb 2026"); why it is here ("Kredibel only matches on its own when
+  one answer is clearly better, so this one is yours."); the **subjects** (the bank line with its
+  category, the invoice or receipt with its kind, or the two files of a possible copy), each with
+  **See on the page** (the page opens in a preview beside the panel, which widens the drawer) and a
+  link to the document; for a proposed match **the proposed match** as a radio card with its reason
+  tags (✓ Same amount, ✓ Same party, ✓ Close date) and the fit score; for an unpaid document the
+  bank lines that could be its payment; the other allowed actions as quiet buttons (**Not this
+  match**, **Correct it**, **Leave it, with a reason**); the primary action named after the choice
+  (**Confirm the match**, **The value is right**) and **Skip**.
+- **Checking columns** (`review-mapping.html`, spec 005 T005-11): a ledger export with a new
+  layout asks once which column of the file holds each field. The drawer shows the file, the
+  **MappingEditor** (Date, Description, Account code, Account name, Reference and the amount columns,
+  each a select over the file's header with **Not in the file**; the amounts' layout, debit and
+  credit columns or one signed amount with **Positive amounts are** debits or credits; the date
+  format; the decimal separator) and **The first rows, as this mapping reads them** (the file's
+  values, mapped columns tinted, and "1 Apr 2026 · 4000 · Credit 24,480,000" or why a row could not
+  be read). Code proposes the mapping from the header words and the value shapes; **Confirm
+  columns** is enabled only when the required fields and one amount layout are chosen (the API
+  applies the same rule, 422 otherwise). The confirmed mapping is kept for the layout, so the next
+  file with it is read at once; more than 2% rows that cannot be read reopen the item with their
+  count (AC-005-12).
+- **Correcting a value** (`review-correction.html`, T009-03a): a value only one source read opens
+  with its receipt or invoice page in the preview; **Correct it** shows "The total as printed" with
+  the hint "Amounts as digits (476976.00), dates as YYYY-MM-DD. What was read is kept beside it."
+  and **Save the correction** (enabled once there is text). The correction survives re-reading.
 - Only actions allowed for the kind are shown ([`10`](10-api-contract.md) §4). After a fix the next
-  item opens and the month shows "Reconciling" until the month run finishes (§5.3).
-- Keyboard on wide screens: `j`/`k` next and previous, `Enter` the primary action, `Esc` close.
+  item opens with "Saved. March is being reconciled again. Next: 5 left", and the month shows
+  "Reconciling" until the month run finishes (§5.3). An unpaid document lists up to three unmatched
+  bank lines of its direction within 10% of its total; leaving an item needs a reason.
+- On phones the drawer is a bottom sheet with the primary action pinned; the navigation badge shows
+  the open count.
+- Keyboard: `j`/`k` next and previous, `Enter` the primary action, `Esc` close; keys are the queue's
+  only while nobody is typing in a field. The hint written from facts ("Invoice 0003 was due first")
+  is planned (spec 015).
 
 ### 6.6 Evidence viewer
 
@@ -515,17 +680,36 @@ citation chip).
 
 ### 6.8 Finance Assistant (P1)
 
-<p><img src="assets/mocks/assistant-desktop.png" alt="Assistant at 1440 px: an answer with a citation chip and a small chart, a second answer with next actions, and the remembered panel" width="66%"> <img src="assets/mocks/assistant-mobile.png" alt="Assistant on a phone" width="26%"></p>
+<p><img src="assets/mocks/assistant-desktop.png" alt="Assistant at 1440 px: the history rail with New chat, earlier questions and the remembered preferences beside a conversation of three grounded answers and a fourth being written, the suggested questions and the composer" width="66%"> <img src="assets/mocks/assistant-mobile.png" alt="Assistant on a phone: the Chat history button beside the title, the conversation and the composer" width="26%"></p>
 
-- Questions about the workspace's books, answered from read-only tools with citation chips and,
-  when useful, a small bar chart drawn from tool output ([ADR-014](adr/ADR-014-finance-assistant-tools-rag-memory.md)).
-  "Every number checked against your books" appears when the grounding guard passed.
-- Answers can end in actions that are links (**Open the evidence**, **Go to March**); the assistant
-  never changes data.
+<p><img src="assets/mocks/assistant-welcome-desktop.png" alt="Assistant welcome state at 1440 px: four prompt cards under 'How can I help with your books today?'" width="45%"> <img src="assets/mocks/assistant-history-mobile.png" alt="The history drawer on a phone: New chat, earlier questions and the remembered preferences" width="26%"></p>
+
+Three states share the layout (`assistant.html`, `assistant-welcome.html`, `assistant-history.html`),
+with the page's words from `assistant.json`; a browser check compares the headings, prompt cards,
+suggested questions and composer of the welcome state with its mock at three widths (spec 019).
+
+- **Header:** the title with a **Preview** badge, the one-line promise, and on narrow screens the
+  **Chat history** button.
+- **History:** a rail on the left from 900 px of app width (**New chat**, **Earlier questions** with
+  their count and dates, and **Remembered for you**); below that width the same content opens in a
+  drawer from **Chat history** (a dialog that **Close history**, the scrim or `Esc` closes). The rail
+  and the drawer never show together.
+- **Welcome:** an empty thread shows "How can I help with your books today?" and four prompt cards
+  (money flow and cash flow, outstanding invoices, forensic risk score, profit and loss breakdown);
+  each sends its question. The page never scrolls on first paint; it follows the conversation only
+  when a message arrives or an answer is being written.
+- **Conversation:** questions about the workspace's books, answered from read-only tools with
+  citation chips (the citation's label, such as "3 bank lines", never a bare ID) and, when useful, a
+  small bar chart or an interactive diagram link ([ADR-014](adr/ADR-014-finance-assistant-tools-rag-memory.md)).
+  "Every number checked against your books" appears when the grounding guard passed; a template
+  answer says so instead. Answers can end in actions that are links (**Open the evidence**, **Go to
+  month**); the assistant never changes data.
+- **Activity:** while an answer streams, the bubble shows the activity trail (the steps and tool
+  lookups, expanded while running, collapsible after) and the typing dots, then the text with a caret.
 - **Remembered for you:** the preferences in Memory Bank with **Forget** and **Forget all**; "Only
   preferences are remembered. Figures are always read fresh from your books."
-- Suggested questions on an empty thread ("Why is March critical?", "Which invoices were never
-  paid?", "Who are my biggest suppliers?").
+- **Composer:** three suggested questions above a labelled text field and **Send** (disabled until
+  there is text, and while an answer streams). It works from the keyboard at 360 and 1600 px.
 
 ### 6.9 Settings: profile, bank accounts, plan and usage
 
@@ -638,7 +822,7 @@ are keyboard operable; dialogs and drawers trap and restore focus; targets ≥ 4
 | Stories | Storybook 9 + test runner | every `shared/ui` component in each state; interaction tests; axe on every story |
 | Visual regression | Playwright `toHaveScreenshot` | the 8 screens of §6 at 390, 834 and 1440 px with fixed data and fonts; baselines change only in a reviewed PR |
 | Accessibility E2E | `@axe-core/playwright` | each screen at each width: no serious or critical violations |
-| Performance | Lighthouse CI (mobile profile) | `/` and `/months/:month`: performance ≥ 85, accessibility ≥ 95, best practices ≥ 95; JS ≤ 250 KB gzip on first load. The public pages load eagerly; the signed-in app, Login and Onboarding are `React.lazy` chunks behind `Suspense` (spec 020, T020-19) |
+| Performance | Lighthouse CI (mobile profile) | `/` and `/months/:month`: performance ≥ 85, accessibility ≥ 95, best practices ≥ 95; JS ≤ 250 KB gzip on first load. Locally: `VITE_PREVIEW_ROUTES=1 npx vite build`, `vite preview`, then Lighthouse on `/preview/shell` (the synthetic dashboard); 15 Oct 2026: performance 83, accessibility 100, 373 KB transferred. The first load carries the shell, the dashboard, Auth and the public pages (the landing is the first paint at `/`, spec 020); every other app page is a `React.lazy` chunk |
 | Contract | `tsc` against generated `schema.d.ts` | API drift breaks the build |
 | Smoke E2E | Playwright | new user → company workspace → upload S1 in a shuffled order → exact copy recognised → confirm ledger columns → resolve the 18.7 M match → March shows its critical explanation → open A01 evidence; once at 1440 px and once at 390 px |
 | i18n | Vitest + ESLint | `i18next/no-literal-string` in `src/`; every key in `locales/en` is used; missing keys fail the build |

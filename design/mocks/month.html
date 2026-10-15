@@ -20,14 +20,14 @@
     <span class="nav-group-label">AI quality</span><span class="nav-sep" aria-hidden="true"></span><a class="nav-item" href="labels.html" title="Labels"><span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7a1 1 0 0 1 .7.3l7.8 7.8a1 1 0 0 1 0 1.4l-7.7 7.7a1 1 0 0 1-1.4 0l-7.8-7.8a1 1 0 0 1-.3-.7z"/><circle cx="8" cy="8" r="1.5"/></svg></span><span class="nav-label-long hide-below-large">Labels</span><span class="nav-label-short hide-large">Labels</span><span class="nav-count is-neutral" aria-label="37 items">37</span></a><a class="nav-item" href="runs.html" title="Runs"><span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h4c4 0 6 12 10 12h4"/><path d="M3 18h4c4 0 6-12 10-12h4"/></svg></span><span class="nav-label-long hide-below-large">Runs</span><span class="nav-label-short hide-large">Runs</span></a>
   </nav>
   <div class="side-foot">
-    <a class="trial-status" href="plan-usage.html" title="Plan and usage"><strong>Free trial: 23 days left</strong><span class="bar" aria-hidden="true"><i style="width:72%"></i></span><span class="pages">286 of 400 pages</span></a>
+    <a class="trial-status" href="plan-usage.html" title="Plan and usage"><div class="trial-head"><strong>Free trial: 23 days left</strong><span class="pages">286 of 400 pages</span></div><span class="bar" aria-hidden="true"><i style="width:72%"></i></span></a>
     <a class="user" href="plan-usage.html" title="Settings" aria-label="Settings, signed in as Maya Sari (Owner)"><span class="avatar" aria-hidden="true">MS</span><span><strong>Maya Sari</strong>Owner</span><svg class="icon user-action" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></a>
   </div>
 </aside><div class="main"><header class="topbar">
   <a class="icon-button only-compact" href="dashboard.html" aria-label="Back to Dashboard"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m14.5 6-6 6 6 6"/></svg></a>
   <p class="topbar-title only-compact">March 2026</p>
-  <nav class="crumbs" aria-label="Breadcrumb"><a href="month.html">Reconciliation</a><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg><span aria-current="page">March 2026</span></nav>
-  <div class="topbar-actions">
+  <nav class="crumbs" aria-label="Breadcrumb"><a href="months.html">Reconciliation</a><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg><span aria-current="page">March 2026</span></nav>
+  <div class="topbar-status hide-compact"><span class="badge badge-clean" title="Route: /months/:month">Implemented · <code>/months/:month</code></span></div><div class="topbar-actions">
     
     <a class="search-field" href="#"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>Search books<span class="kbd">/</span></a>
     <a class="icon-button" href="risk.html" aria-label="Notifications, 2 new"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z"/><path d="M10 20.5h4"/></svg><span class="dot"></span></a>
@@ -37,87 +37,97 @@
 <div class="page">
   <div class="month-head">
     <div class="row">
-      <span class="month-switch"><a href="month.html" aria-label="February"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m14.5 6-6 6 6 6"/></svg></a><a href="month.html" aria-label="April"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg></a></span>
+      <span class="month-switch"><a href="month.html" aria-label="Previous month"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m14.5 6-6 6 6 6"/></svg></a><a href="month.html" aria-label="Next month"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg></a></span>
       <h1 class="type-title">March 2026</h1>
-      <span class="badge badge-status badge-medium">2 need you</span><span class="badge badge-critical"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.3 3h7.4L21 8.3v7.4L15.7 21H8.3L3 15.7V8.3z"/><path d="M12 7.5V13M12 16.5h.01"/></svg>Critical</span>
+      <a class="link small" href="months.html">All months</a>
+      <span class="badge badge-medium">Needs review</span>
+      <span class="badge badge-critical"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4.5 6v5.5c0 4.6 3.1 8 7.5 9.5 4.4-1.5 7.5-4.9 7.5-9.5V6z"/><path d="M12 8.5v4M12 15.5h.01"/></svg>Critical</span>
+      <a class="button button-quiet button-sm ml-auto" href="assistant.html"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 13.7 8.3 18.5 10l-4.8 1.7L12 16.5l-1.7-4.8L5.5 10l4.8-1.7z"/><path d="M18.5 15.5 19.3 17.7 21.5 18.5l-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></svg>Ask about this month</a>
     </div>
-    <p class="muted">ACB ••4821. Statement, 9 invoices, 4 receipts and 52 ledger entries for this month.</p>
+    <p class="muted">ACB ••4821. Statement, 3 invoices, 1 receipt and 52 ledger entries for this month.</p>
   </div>
-  <div class="stack gap-6" style="margin-top:24px">
-    <section class="ledger" aria-label="March figures">
-      <dl class="ledger-figures">
-        <div><dt>Opening balance</dt><dd class="v"><small>IDR</small><span class="reading reading-agreed">47.9 M</span></dd><dd class="n">Same as February's closing</dd></div>
-        <div><dt>Money in</dt><dd class="v"><small>IDR</small><span class="reading reading-agreed">231.4 M</span></dd><dd class="n">21 credits</dd></div>
-        <div><dt>Money out</dt><dd class="v"><small>IDR</small><span class="reading reading-agreed">218.9 M</span></dd><dd class="n">24 debits</dd></div>
-        <div><dt>Closing balance</dt><dd class="v"><small>IDR</small><span class="reading reading-agreed">60.4 M</span></dd><dd class="n">As printed</dd></div>
-        <div><dt>Matched by Kredibel</dt><dd class="v">86%</dd><dd class="n">39 of 45 bank lines</dd><dd class="mini"><i style="width:86%"></i></dd></div>
-        <div class="is-attn"><dt>Ledger difference</dt><dd class="v"><small>IDR</small>6.0 M</dd><dd class="n">Bank shows more than the ledger</dd></div>
-      </dl>
-    </section>
+  <div class="stack gap-6 mt-6">
+    
+<section class="ledger" aria-label="March 2026 figures">
+  <dl class="ledger-figures">
+    <div><dt>Opening balance</dt><dd class="v"><small>IDR</small>47,900,000</dd><dd class="n">Before the month&#x27;s first line</dd></div>
+    <div><dt>Money in</dt><dd class="v"><small>IDR</small>231,400,000</dd><dd class="n">2 credits</dd></div>
+    <div><dt>Money out</dt><dd class="v"><small>IDR</small>218,900,000</dd><dd class="n">7 debits</dd></div>
+    <div><dt>Closing balance</dt><dd class="v"><small>IDR</small>60,400,000</dd><dd class="n">After the month&#x27;s last line</dd></div>
+    <div><dt>Matched by Kredibel</dt><dd class="v">86%</dd><dd class="n">38 of 44 lines matched automatically</dd><dd class="mini"><i style="width:86%"></i></dd></div>
+    <div><dt>Ledger difference</dt><dd class="v"><small>IDR</small>6,000,000</dd><dd class="n">Bank against the ledger</dd></div>
+  </dl>
+</section>
     
 <section class="explain" aria-labelledby="ex-h">
-  <h2 class="explain-head" id="ex-h"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.3 3h7.4L21 8.3v7.4L15.7 21H8.3L3 15.7V8.3z"/><path d="M12 7.5V13M12 16.5h.01"/></svg>Critical: the March statement was edited after the bank issued it</h2>
+  <h2 class="explain-head" id="ex-h"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4.5 6v5.5c0 4.6 3.1 8 7.5 9.5 4.4-1.5 7.5-4.9 7.5-9.5V6z"/><path d="M12 8.5v4M12 15.5h.01"/></svg>Critical risk this month</h2>
   <div class="explain-body">
-    <p class="lead">On 14 March the statement shows a credit of IDR 7,250,000 from Harborview Hotel Group <a class="citation" href="evidence-viewer.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></svg>A01</a>, but the printed balance rises by only IDR 1,250,000. The file was saved again in a PDF editor three days after the bank created it <a class="citation" href="evidence-viewer.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></svg>M03</a>, and that one amount is set in a different font <a class="citation" href="evidence-viewer.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></svg>M04</a>. Your ledger records IDR 1,250,000 for the same payment <a class="citation" href="evidence-viewer.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"/><path d="M3.5 9.5h17M3.5 14.5h17M9.5 9.5v10"/></svg>Ledger, 14 Mar</a>.</p>
-    <div class="stack gap-2">
-      <h3 class="type-h3">What to do next</h3>
-      <ol class="steps">
-        <li>Download the March statement again from internet banking and upload it.</li>
-        <li>If the bank's copy shows IDR 1,250,000, ask who sent you this file before you close March.</li>
-        <li>Keep March open until then; Kredibel will compare the two statements for you.</li>
-      </ol>
-    </div>
-    <span class="by-line"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 13.7 8.3 18.5 10l-4.8 1.7L12 16.5l-1.7-4.8L5.5 10l4.8-1.7z"/><path d="M18.5 15.5 19.3 17.7 21.5 18.5l-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></svg>Written by Gemini. Every figure checked by Kredibel.</span>
+    <p class="lead">On 14 March the statement shows a credit of IDR 7,250,000 from Harborview Hotel Group <a class="citation" href="evidence-viewer.html"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></svg>A01</a>, but the printed balance rises by only IDR 1,250,000. The file was saved again in a PDF editor three days after the bank created it <a class="citation" href="evidence-viewer.html"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></svg>M03</a>, and that one amount is set in a different font <a class="citation" href="evidence-viewer.html"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></svg>M04</a>. Your ledger records IDR 1,250,000 for the same payment.</p>
+    <div class="stack gap-2"><h3 class="type-h3">What to do next</h3><ol class="steps"><li>Download the March statement again from internet banking and upload it.</li><li>If the bank&#x27;s copy shows IDR 1,250,000, ask who sent you this file before you close March.</li><li>Keep March open until then; Kredibel will compare the two statements for you.</li></ol></div>
+    <span class="by-line"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 13.7 8.3 18.5 10l-4.8 1.7L12 16.5l-1.7-4.8L5.5 10l4.8-1.7z"/><path d="M18.5 15.5 19.3 17.7 21.5 18.5l-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></svg>Written by Gemini. Every figure checked by Kredibel.</span>
   </div>
 </section>
-    <section class="recon-meter" aria-label="Bank lines by match state">
-      <div class="bar"><i class="auto" style="width:86.7%"></i><i class="manual" style="width:11.1%"></i><i class="open" style="width:2.2%"></i></div>
-      <p class="key"><span><i class="auto"></i>Matched by Kredibel <b>39</b></span><span><i class="manual"></i>Matched by you <b>5</b></span><span><i class="open"></i>Open <b>1</b></span></p>
-    </section>
-    <div class="stack gap-3">
-      <nav class="tabs" role="tablist" aria-label="March sections"><a class="tab" role="tab" aria-selected="true" href="month.html">Bank lines <span class="count">45</span></a><a class="tab" role="tab" aria-selected="false" href="month.html">Documents <span class="count">14</span></a><a class="tab" role="tab" aria-selected="false" href="month.html">Ledger <span class="count is-attn">1 difference</span></a><a class="tab" role="tab" aria-selected="false" href="month.html">Findings <span class="count">6</span></a></nav>
-      <div class="chips" role="group" aria-label="Filter bank lines"><a class="chip" aria-pressed="true" href="month.html">All <span class="n">45</span></a><a class="chip" href="month.html">Open <span class="n">1</span></a><a class="chip" href="month.html">Money in <span class="n">21</span></a><a class="chip" href="month.html">Money out <span class="n">24</span></a></div>
-      
-<div class="table-panel rt-wrap">
-  <table class="data-table rt">
-    <thead><tr><th>Bank line</th><th class="r">Amount, IDR</th><th>Matched with</th></tr></thead>
-    <tbody><tr>
-  <td data-cell="wide"><strong>VAT PAYMENT FEB</strong><div class="reason">10 Mar, Tax</div></td>
-  <td class="r"><span class="amt-out"><span class="reading reading-agreed">−4,860,000</span></span></td>
-  <td data-cell="wide"><span class="match-chip auto"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg><span>Ledger entry, 10 Mar</span></span><div class="reason">Same amount and date in the ledger</div></td>
+    
+<section class="recon-meter" aria-label="Bank lines by match state">
+  <div class="bar"><i class="auto" style="width:86.4%"></i><i class="manual" style="width:11.4%"></i><i class="open" style="width:2.3%"></i></div>
+  <p class="key"><span><i class="auto"></i>Matched by Kredibel <b>38</b></span><span><i class="manual"></i>Matched by you <b>5</b></span><span><i class="open"></i>Open <b>1</b></span></p>
+</section>
+    <nav class="tabs" role="tablist" aria-label="March 2026 sections"><a class="tab" role="tab" aria-selected="true" href="month.html">Bank lines <span class="count">9</span></a><a class="tab" role="tab" aria-selected="false" href="month.html">Documents <span class="count">4</span></a><a class="tab" role="tab" aria-selected="false" href="month.html">Ledger</a><a class="tab" role="tab" aria-selected="false" href="month.html">Findings <span class="count is-attn">3</span></a></nav>
+    <div role="tabpanel">
+<div class="stack gap-3">
+  <div class="table-toolbar">
+    <div class="chips" role="group" aria-label="Filter bank lines"><a class="chip" aria-pressed="true" href="month.html">All <span class="n">9</span></a><a class="chip" aria-pressed="false" href="month.html">Open <span class="n">3</span></a><a class="chip" aria-pressed="false" href="month.html">Money in <span class="n">2</span></a><a class="chip" aria-pressed="false" href="month.html">Money out <span class="n">7</span></a></div>
+    <div class="row ml-auto"><div class="table-search"><svg class="icon icon-sm table-search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg><input type="text" class="input input-sm table-search-input" placeholder="Search bank lines" aria-label="Search bank lines"/></div><div class="table-actions"><button class="button button-secondary button-sm" type="button">Re-reconcile</button></div></div>
+  </div>
+  <div class="table-panel rt-wrap"><table class="data-table rt"><thead><tr><th data-cell="wide">Bank line</th><th class="r">Amount, IDR</th><th data-cell="wide">Matched with</th><th class="r">Actions</th></tr></thead><tbody><tr>
+  <td data-cell="wide"><div class="stack gap-1"><strong>VAT PAYMENT FEB</strong><div class="reason">10 Mar 2026</div><div class="row"><span class="badge badge-brand">Tax</span><span class="badge badge-outline">IFRS: Operating</span></div></div></td>
+  <td class="r"><span class="amt-out"><span class="reading reading-agreed">-4,860,000</span></span></td>
+  <td data-cell="wide"><div><span class="match-chip auto"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg><span>Matched by Kredibel</span></span><div class="reason">Same amount, Close date</div></div></td>
+  <td class="r"><button class="button button-secondary button-sm" type="button">Unmatch</button></td>
 </tr><tr>
-  <td data-cell="wide"><strong>TRANSFER IN DAYBREAK CAFE</strong><div class="reason">11 Mar, Sales</div></td>
+  <td data-cell="wide"><div class="stack gap-1"><strong>Daybreak Café</strong><div class="reason">11 Mar 2026</div><div class="row"><span class="badge badge-brand">Sales receipts</span><span class="badge badge-outline">IFRS: Operating</span></div></div></td>
   <td class="r"><span class="amt-in"><span class="reading reading-agreed">+6,420,000</span></span></td>
-  <td data-cell="wide"><span class="match-chip auto"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg><span>Invoice 0007</span></span><div class="reason">Same amount, same client, paid 5 days after issue</div></td>
+  <td data-cell="wide"><div><span class="match-chip auto"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg><span>Matched by Kredibel</span></span><div class="reason">Same amount, Same party, Close date</div></div></td>
+  <td class="r"><button class="button button-secondary button-sm" type="button">Unmatch</button></td>
 </tr><tr>
-  <td data-cell="wide"><strong>TRANSFER OUT GREEN VALLEY FARMS 0912</strong><div class="reason">12 Mar, Supplier</div></td>
-  <td class="r"><span class="amt-out"><span class="reading reading-agreed">−9,850,000</span></span></td>
-  <td data-cell="wide"><span class="match-chip auto"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg><span>Invoice GVF-2026-0311</span></span><div class="reason">Same amount, same supplier, same account as before</div></td>
+  <td data-cell="wide"><div class="stack gap-1"><strong>Green Valley Farms</strong><div class="reason">12 Mar 2026</div><div class="row"><span class="badge badge-brand">Purchases for sale or production</span><span class="badge badge-outline">IFRS: Operating</span></div></div></td>
+  <td class="r"><span class="amt-out"><span class="reading reading-agreed">-9,850,000</span></span></td>
+  <td data-cell="wide"><div><span class="match-chip proposed"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></svg><span>Proposed match</span></span><div class="reason">Check the proposed document before it counts.</div></div></td>
+  <td class="r"><button class="button button-secondary button-sm" type="button">Match</button></td>
 </tr><tr>
-  <td data-cell="wide"><strong>CASH DEPOSIT</strong><div class="reason">12 Mar, Cash deposit</div></td>
-  <td class="r"><span class="amt-in"><span class="reading reading-agreed">+2,240,000</span></span></td>
-  <td data-cell="wide"><span class="match-chip auto"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg><span>Ledger entry, 12 Mar</span></span><div class="reason">Same amount and date in the ledger</div></td>
-</tr><tr class="is-flagged">
-  <td data-cell="wide"><strong>TRANSFER IN HARBORVIEW HOTEL GROUP</strong><div class="reason">14 Mar, Sales</div></td>
+  <td data-cell="wide"><div class="stack gap-1"><strong>TRANSFER TO OWN SAVINGS ••7710</strong><div class="reason">12 Mar 2026</div><div class="row"><span class="badge badge-outline">Between own accounts</span><span class="badge badge-outline">IFRS: Not cash</span></div></div></td>
+  <td class="r"><span class="amt-out"><span class="reading reading-agreed">-2,000,000</span></span></td>
+  <td data-cell="wide"><div><span class="match-chip excluded"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.3-4.3L4 9"/><path d="M4 4v5h5M4 13a8 8 0 0 0 14.3 4.3L20 15"/><path d="M20 20v-5h-5"/></svg><span>Not counted</span></span><div class="reason">Between your own accounts or a reversal, so not money in or out.</div></div></td>
+  <td class="r"></td>
+</tr><tr>
+  <td data-cell="wide"><div class="stack gap-1"><strong>Harborview Hotel Group</strong><div class="reason">14 Mar 2026</div><div class="row"><span class="badge badge-brand">Sales receipts</span><span class="badge badge-outline">IFRS: Operating</span></div></div></td>
   <td class="r"><span class="amt-in"><span class="reading reading-agreed">+7,250,000</span></span></td>
-  <td data-cell="wide"><span class="match-chip none"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15.7 14 18.7 11a4 4 0 0 0-5.7-5.7l-1 1M8.3 10 5.3 13a4 4 0 0 0 5.7 5.7l1-1M4 4l16 16"/></svg><span>No match</span></span><div class="reason">Your ledger and invoice 0009 say IDR 1,250,000 <a class="citation" href="evidence-viewer.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></svg>Evidence</a></div></td>
+  <td data-cell="wide"><div><span class="match-chip none"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6.5A1.5 1.5 0 0 0 5 4.5v15A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V8z"/><path d="M14 3v5h5M8.5 13h7M8.5 16.5h7"/></svg><span>No document yet</span></span><div class="reason">Bank cash is recorded. Upload its invoice or receipt, or say it needs none.</div></div></td>
+  <td class="r"><button class="button button-secondary button-sm" type="button">Match</button></td>
 </tr><tr>
-  <td data-cell="wide"><strong>TRANSFER OUT PRIMEPACK PACKAGING</strong><div class="reason">15 Mar, Supplier</div></td>
-  <td class="r"><span class="amt-out"><span class="reading reading-agreed">−3,180,000</span></span></td>
-  <td data-cell="wide"><span class="match-chip manual"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 13V6.5a1.5 1.5 0 0 1 3 0V12M11 11V5a1.5 1.5 0 0 1 3 0v6M14 11V6.5a1.5 1.5 0 0 1 3 0V14a7 7 0 0 1-7 7h-.5A6 6 0 0 1 5 18l-1.7-3.4a1.5 1.5 0 0 1 2.6-1.5L8 15"/></svg><span>Invoice PP/26/0312</span></span><div class="reason">Matched by Maya on 12 Jul</div></td>
+  <td data-cell="wide"><div class="stack gap-1"><strong>Primepack Packaging</strong><div class="reason">15 Mar 2026</div><div class="row"><span class="badge badge-brand">Other suppliers and services</span><span class="badge badge-outline">IFRS: Operating</span></div></div></td>
+  <td class="r"><span class="amt-out"><span class="reading reading-agreed">-3,180,000</span></span></td>
+  <td data-cell="wide"><div><span class="match-chip manual"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 13V6.5a1.5 1.5 0 0 1 3 0V12M11 11V5a1.5 1.5 0 0 1 3 0v6M14 11V6.5a1.5 1.5 0 0 1 3 0V14a7 7 0 0 1-7 7h-.5A6 6 0 0 1 5 18l-1.7-3.4a1.5 1.5 0 0 1 2.6-1.5L8 15"/></svg><span>Matched by you</span></span></div></td>
+  <td class="r"><button class="button button-secondary button-sm" type="button">Unmatch</button></td>
 </tr><tr>
-  <td data-cell="wide"><strong>INSTANT TRANSFER IN HIGHLAND RESORT &amp; SPA</strong><div class="reason">17 Mar, Sales</div></td>
-  <td class="r"><span class="amt-in"><span class="reading reading-agreed">+8,900,000</span></span></td>
-  <td data-cell="wide"><span class="match-chip auto"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg><span>Invoice 0010, net of tax</span></span><div class="reason">Paid 2% below the total: withholding tax</div></td>
+  <td data-cell="wide"><div class="stack gap-1"><strong>MONTHLY ACCOUNT FEE</strong><div class="reason">16 Mar 2026</div><div class="row"><span class="badge badge-brand">Bank fees</span><span class="badge badge-outline">IFRS: Operating</span></div></div></td>
+  <td class="r"><span class="amt-out"><span class="reading reading-agreed">-35,000</span></span></td>
+  <td data-cell="wide"><div><span class="match-chip cleared"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg><span>No document needed</span></span><div class="reason">You said this line needs no document.</div></div></td>
+  <td class="r"><button class="button button-secondary button-sm" type="button">Match</button></td>
 </tr><tr>
-  <td data-cell="wide"><strong>DEBIT CARD CENDANA FUEL STATION</strong><div class="reason">18 Mar, Operating cost</div></td>
-  <td class="r"><span class="amt-out"><span class="reading reading-agreed">−650,000</span></span></td>
-  <td data-cell="wide"><span class="match-chip auto"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg><span>Receipt, 18 Mar</span></span><div class="reason">Same amount, merchant and date</div></td>
-</tr></tbody>
-  </table>
-</div>
-      <p class="reading-legend"><span><span class="reading reading-agreed">7,250,000</span> both readings agree</span><span><span class="reading reading-single">7,250,000</span> one reading only</span><span><span class="reading reading-conflict">7,250,000</span> readings disagree</span></p>
-    </div>
+  <td data-cell="wide"><div class="stack gap-1"><strong>PURCHASE ESPRESSO MACHINE</strong><div class="reason">17 Mar 2026</div><div class="row"><span class="badge badge-low">Equipment bought</span><span class="badge badge-outline">IFRS: Investing</span><span class="reason">Set by you</span></div></div></td>
+  <td class="r"><span class="amt-out"><span class="reading reading-agreed">-18,400,000</span></span></td>
+  <td data-cell="wide"><div><span class="match-chip none"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6.5A1.5 1.5 0 0 0 5 4.5v15A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V8z"/><path d="M14 3v5h5M8.5 13h7M8.5 16.5h7"/></svg><span>No document yet</span></span><div class="reason">Bank cash is recorded. Upload its invoice or receipt, or say it needs none.</div></div></td>
+  <td class="r"><button class="button button-secondary button-sm" type="button">Match</button></td>
+</tr><tr>
+  <td data-cell="wide"><div class="stack gap-1"><strong>Cendana Fuel Station</strong><div class="reason">18 Mar 2026</div><div class="row"><span class="badge badge-medium">Not categorized yet</span></div></div></td>
+  <td class="r"><span class="amt-out"><span class="reading reading-single">-650,000</span></span></td>
+  <td data-cell="wide"><div><span class="match-chip auto"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg><span>Matched by Kredibel</span></span><div class="reason">Same amount, Same party, Close date</div></div></td>
+  <td class="r"><button class="button button-secondary button-sm" type="button">Unmatch</button></td>
+</tr></tbody></table></div>
+  <div class="pager-line"><span>1 to 9 of 9</span></div>
+  <p class="reading-legend"><span><span class="reading reading-agreed">1,250.00</span> both readings agree</span><span><span class="reading reading-single">1,250.00</span> one reading only</span><span><span class="reading reading-conflict">1,250.00</span> readings disagree</span></p>
+</div></div>
   </div>
 </div></main><div class="dock"><a class="fab" href="documents.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5"/><path d="M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15"/></svg>Upload</a><nav class="bottom-nav" aria-label="Main"><a class="nav-item" href="dashboard.html"><span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="8" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="5" rx="1.5"/><rect x="13.5" y="11.5" width="7" height="9" rx="1.5"/><rect x="3.5" y="14.5" width="7" height="6" rx="1.5"/></svg></span>Dashboard</a><a class="nav-item" href="documents.html"><span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 3H8.5A1.5 1.5 0 0 0 7 4.5v12A1.5 1.5 0 0 0 8.5 18h9a1.5 1.5 0 0 0 1.5-1.5V7z"/><path d="M15 3v4h4"/><path d="M4 7.5v12A1.5 1.5 0 0 0 5.5 21H14"/></svg></span>Documents</a><a class="nav-item" href="review.html"><span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 13.5 6 5.5A1.5 1.5 0 0 1 7.4 4.5h9.2A1.5 1.5 0 0 1 18 5.5l2.5 8"/><path d="M3.5 13.5V18A1.5 1.5 0 0 0 5 19.5h14a1.5 1.5 0 0 0 1.5-1.5v-4.5h-5a3.5 3.5 0 0 1-7 0z"/></svg><span class="nav-count" aria-label="9 open">9</span></span>Review</a><a class="nav-item" href="risk.html"><span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4.5 6v5.5c0 4.6 3.1 8 7.5 9.5 4.4-1.5 7.5-4.9 7.5-9.5V6z"/><path d="M12 8.5v4M12 15.5h.01"/></svg><span class="nav-count" aria-label="2 open">2</span></span>Risk</a><a class="nav-item" href="#more" aria-current="page"><span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></span>More</a></nav></div></div></div><div class="more-sheet" id="more" role="dialog" aria-label="More"><a class="scrim" href="#" aria-label="Close"></a><div class="sheet"><span class="handle" aria-hidden="true"></span><p class="sheet-title">More</p><nav class="sheet-links"><a href="month.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h11.5M12 3.5 15.5 7 12 10.5"/><path d="M20 17H8.5M12 13.5 8.5 17l3.5 3.5"/></svg><span>Reconciliation</span><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg></a><a href="clients.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 19.5c.8-3.2 3.4-5 6.5-5s5.7 1.8 6.5 5"/><path d="M15.5 4.8a3.5 3.5 0 0 1 0 6.4"/><path d="M18 14.8c1.8.7 3.1 2.3 3.5 4.7"/></svg><span>Clients and suppliers</span><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg></a><a href="assistant.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 13.7 8.3 18.5 10l-4.8 1.7L12 16.5l-1.7-4.8L5.5 10l4.8-1.7z"/><path d="M18.5 15.5 19.3 17.7 21.5 18.5l-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></svg><span>Assistant</span><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg></a><a href="labels.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7a1 1 0 0 1 .7.3l7.8 7.8a1 1 0 0 1 0 1.4l-7.7 7.7a1 1 0 0 1-1.4 0l-7.8-7.8a1 1 0 0 1-.3-.7z"/><circle cx="8" cy="8" r="1.5"/></svg><span>Labels</span><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg></a><a href="runs.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h4c4 0 6 12 10 12h4"/><path d="M3 18h4c4 0 6-12 10-12h4"/></svg><span>Runs</span><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg></a><a href="plan-usage.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg><span>Settings</span><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg></a><a href="brand.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5z"/><path d="M13 4h5.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H13z"/></svg><span>Logo and brand</span><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg></a><a href="index.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="8" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="5" rx="1.5"/><rect x="13.5" y="11.5" width="7" height="9" rx="1.5"/><rect x="3.5" y="14.5" width="7" height="6" rx="1.5"/></svg><span>All screens</span><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg></a></nav></div></div></div>
 </body>

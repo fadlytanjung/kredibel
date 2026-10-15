@@ -14,8 +14,16 @@ from pydantic import BaseModel
 
 from app.agents.deps import PipelineDeps
 from app.agents.stages import stage
-from app.domain.categorize import Categorized, CategoryPolicy, Framework, by_rules, from_model
+from app.domain.categorize import (
+    Categorized,
+    CategoryPolicy,
+    Framework,
+    by_rules,
+    from_model,
+    keep_person_categories,
+)
 from app.domain.checks.base import CheckContext, DeclaredAccount, PdfInfo, run_document_checks
+from app.domain.corrections import keep_corrections
 from app.domain.duplicates import (
     InvoiceKey,
     Match,
@@ -26,8 +34,18 @@ from app.domain.duplicates import (
     statement_duplicate,
 )
 from app.domain.findings import Evidence, Finding, finding_id
-from app.domain.invoice_records import build_invoices, build_receipts
+from app.domain.invoice_records import build_invoices, build_receipts, document_type_of
 from app.domain.layout import Chunk, chunk_page, chunks_from_json, chunks_to_json, render_chunks
+from app.domain.ledger_parse import (
+    LedgerMapping,
+    compute_layout_signature,
+    is_auto_confirmable,
+    mask_value_shapes,
+    merge_model_proposal,
+    parse_ledger_content,
+    propose_mapping,
+    read_table,
+)
 from app.domain.models.bank_line import BankLine
 from app.domain.models.document import (
     DocStatus,
@@ -46,6 +64,8 @@ from app.domain.reading import (
     TransactionItem,
     build_statement,
 )
+from app.domain.review_items import confirm_mapping_item
+from app.domain.risk import assess_document_risk
 from app.domain.verdict import integrity_verdict
 
 
@@ -180,24 +200,216 @@ async def _classify_without_reader(
 
 
 def propose_ledger_mapping(deps: PipelineDeps):
+    """AC-005-11: reuse a confirmed mapping, confirm a standard layout by code, or propose and
+    wait for a person (NEEDS_INPUT with a CONFIRM_LEDGER_MAPPING item)."""
+
     @stage(deps, "propose_ledger_mapping")
     async def _node(ctx: Context, node_input: dict[str, Any]) -> dict[str, Any]:
-        if not node_input.get("mappingConfirmed"):
-            org_id = node_input.get("orgId") or node_input.get("org_id") or ""
-            doc_id = node_input.get("docId") or node_input.get("doc_id") or ""
-            doc = await deps.doc_repo.get_document(org_id, doc_id)
-            if doc is not None:
-                updated = replace(doc, status=DocStatus.NEEDS_INPUT)
-                await deps.doc_repo.save_document(org_id, updated)
-            return {**node_input, "status": "NEEDS_INPUT", "summary": "Mapping confirmation needed"}
-        return {**node_input, "summary": "Ledger mapping proposed"}
+        if node_input.get("mappingConfirmed") and node_input.get("mapping"):
+            return {**node_input, "summary": "Ledger mapping confirmed"}
+
+        org_id, doc_id = _ids(node_input)
+        doc = await deps.doc_repo.get_document(org_id, doc_id)
+        if doc is None or deps.storage is None:
+            return {**node_input, "summary": "Ledger mapping skipped"}
+
+        ext = PurePosixPath(doc.gcs_path).suffix if doc.gcs_path else ".csv"
+        content_bytes = await deps.storage.get_original(org_id, doc_id, ext)
+        if not content_bytes:
+            return {**node_input, "summary": "Empty ledger content"}
+        headers, rows = read_table(content_bytes.decode("utf-8", errors="replace"))
+        if not headers or not rows:
+            return {**node_input, "summary": "Empty ledger rows"}
+        signature = compute_layout_signature(headers)
+        meta = dict(doc.ledger_meta or {})
+
+        # 1. A mapping a person confirmed for this layout, on the workspace or on this document.
+        confirmed: dict[str, Any] | None = None
+        if deps.workspaces is not None:
+            workspace = await deps.workspaces.get_workspace(org_id)
+            confirmed = (workspace.ledger_mappings if workspace else {}).get(signature)
+        if (
+            confirmed is None
+            and meta.get("mappingStatus") == "CONFIRMED"
+            and meta.get("layoutSignature") == signature
+        ):
+            confirmed = meta.get("mapping")
+        if confirmed:
+            mapping = LedgerMapping.from_dict(confirmed)
+            if mapping.complete:
+                meta.update(
+                    {
+                        "layoutSignature": signature,
+                        "mappingStatus": "CONFIRMED",
+                        "mapping": mapping.to_dict(),
+                    }
+                )
+                await deps.doc_repo.save_document(org_id, replace(doc, ledger_meta=meta))
+                return {
+                    **node_input,
+                    "mappingConfirmed": True,
+                    "mapping": mapping.to_dict(),
+                    "summary": "Confirmed ledger mapping reused",
+                }
+
+        # 2. Code proposes from the header words and the value shapes, never from the values.
+        proposal = propose_mapping(headers, rows)
+        model_call: dict[str, Any] = {}
+        if not proposal.complete and deps.reader is not None:
+            # The model fills the columns code's synonyms missed, from the header and the value
+            # shapes only; code checks every answer against the header (AC-005-11).
+            try:
+                call = await deps.reader.map_ledger_columns(
+                    headers, [mask_value_shapes(r) for r in rows[:5]]
+                )
+                proposal = merge_model_proposal(proposal, call.value, headers)
+                model_call = {
+                    "model": call.model,
+                    "tokens_in": call.tokens_in,
+                    "tokens_out": call.tokens_out,
+                }
+            except Exception as exc:  # a person maps the columns either way
+                model_call = {"mapperError": str(exc)[:200]}
+        if is_auto_confirmable(proposal, headers):
+            meta.update(
+                {
+                    "layoutSignature": signature,
+                    "mappingStatus": "CONFIRMED",
+                    "mapping": proposal.to_dict(),
+                }
+            )
+            await deps.doc_repo.save_document(org_id, replace(doc, ledger_meta=meta))
+            return {
+                **node_input,
+                "mappingConfirmed": True,
+                "mapping": proposal.to_dict(),
+                "summary": "Standard ledger layout auto-confirmed",
+            }
+
+        # 3. A new layout: a person checks which column is which, once.
+        meta.update(
+            {
+                "layoutSignature": signature,
+                "mappingStatus": "PROPOSED",
+                "mapping": proposal.to_dict(),
+                "header": headers,
+                "sampleRows": rows[:5],
+            }
+        )
+        updated = replace(
+            doc,
+            status=DocStatus.NEEDS_INPUT,
+            status_detail="Ledger mapping confirmation needed",
+            ledger_meta=meta,
+        )
+        await deps.doc_repo.save_document(org_id, updated)
+        if deps.review_items is not None:
+            item = confirm_mapping_item(
+                doc_id,
+                doc.file_name,
+                mapping=proposal.to_dict(),
+                header=headers,
+                sample_rows=rows[:5],
+                layout_signature=signature,
+            )
+            await deps.review_items.upsert_review_item(org_id, item)
+        return {
+            **node_input,
+            **model_call,
+            "status": "NEEDS_INPUT",
+            "summary": "Mapping confirmation needed",
+        }
 
     return _node
 
 
 def parse_ledger(deps: PipelineDeps):
+    """AC-005-12: every row becomes a ledger entry through the mapping; more than 2% bad rows
+    reopen the mapping item."""
+
     @stage(deps, "parse_ledger")
     async def _node(ctx: Context, node_input: dict[str, Any]) -> dict[str, Any]:
+        org_id, doc_id = _ids(node_input)
+        if deps.storage is not None and deps.ledger is not None:
+            doc = await deps.doc_repo.get_document(org_id, doc_id)
+            if doc is not None and doc.gcs_path:
+                ext = PurePosixPath(doc.gcs_path).suffix
+                content_bytes = await deps.storage.get_original(org_id, doc_id, ext)
+                if content_bytes:
+                    text = content_bytes.decode("utf-8", errors="replace")
+
+                    currency = "IDR"
+                    if deps.workspaces is not None:
+                        ws = await deps.workspaces.get_workspace(org_id)
+                        if ws and ws.currency:
+                            currency = ws.currency
+
+                    mapping = (
+                        LedgerMapping.from_dict(node_input["mapping"])
+                        if node_input.get("mapping")
+                        else None
+                    )
+                    res = parse_ledger_content(
+                        text, doc_id=doc_id, currency=currency, mapping=mapping
+                    )
+                    meta = dict(doc.ledger_meta or {})
+                    if res.too_many_bad_rows:
+                        msg = f"Over 2% invalid rows ({len(res.bad_rows)} bad rows)"
+                        meta.update(
+                            {
+                                "mappingStatus": "PROPOSED",
+                                "rowErrors": [
+                                    {"row": r, "reason": "could not be read"}
+                                    for r in res.bad_rows[:100]
+                                ],
+                            }
+                        )
+                        updated = replace(
+                            doc, status=DocStatus.NEEDS_INPUT, status_detail=msg, ledger_meta=meta
+                        )
+                        await deps.doc_repo.save_document(org_id, updated)
+                        if deps.review_items is not None and mapping is not None:
+                            headers, rows = read_table(text)
+                            item = confirm_mapping_item(
+                                doc_id,
+                                doc.file_name,
+                                mapping=mapping.to_dict(),
+                                header=headers,
+                                sample_rows=rows[:5],
+                                bad_rows=res.bad_rows,
+                                layout_signature=res.layout_signature,
+                            )
+                            await deps.review_items.upsert_review_item(org_id, item)
+                        return {
+                            **node_input,
+                            "status": "NEEDS_INPUT",
+                            "summary": "Excessive bad rows in ledger",
+                        }
+
+                    if res.rows:
+                        await deps.ledger.save_rows(org_id, res.rows)
+                        months = sorted({r.date.strftime("%Y-%m") for r in res.rows})
+                        meta.update(
+                            {
+                                "rowsImported": len(res.rows),
+                                "rows": len(res.rows),
+                                "dateFrom": min(r.date for r in res.rows).isoformat(),
+                                "dateTo": max(r.date for r in res.rows).isoformat(),
+                                "badRowsCount": len(res.bad_rows),
+                                "layoutSignature": res.layout_signature,
+                                "mappingStatus": "CONFIRMED",
+                            }
+                        )
+                        if mapping is not None:
+                            meta["mapping"] = mapping.to_dict()
+                        updated = replace(doc, months=months, ledger_meta=meta)
+                        await deps.doc_repo.save_document(org_id, updated)
+                        return {
+                            **node_input,
+                            "months": months,
+                            "ledgerMeta": meta,
+                            "summary": f"Ledger parsed: {len(res.rows)} entries",
+                        }
         return {**node_input, "summary": "Ledger parsed"}
 
     return _node
@@ -357,6 +569,7 @@ def verify_pages(deps: PipelineDeps):
         ]
         updated = replace(
             doc,
+            doc_type=DocType(outcome.doc_type) if outcome.doc_type else doc.doc_type,
             status=DocStatus.CHECKING,
             months=outcome.months,
             pages=pages,
@@ -393,6 +606,7 @@ class _Verified:
     months: list[str]
     notes: list[str]
     statement_meta: dict[str, Any] | None = None
+    doc_type: str | None = None  # an invoice document's type, decided in code (AC-005-1)
 
     @property
     def agreement(self) -> float:
@@ -409,10 +623,13 @@ async def _statement(
     if deps.bank_lines is None:
         return None
     result = build_statement(doc_id, readings, chunks)
-    await deps.bank_lines.replace_document_lines(org_id, doc_id, result.lines)
+    stored = await deps.bank_lines.list_lines(org_id, doc_id=doc_id, limit=5000)
+    lines = keep_corrections(result.lines, stored)
+    keep_person_categories(lines, stored)  # a re-read never undoes a person's category
+    await deps.bank_lines.replace_document_lines(org_id, doc_id, lines)
     meta = result.meta
     return _Verified(
-        records=len(result.lines),
+        records=len(lines),
         noun="lines",
         agreed=result.fields_agreed,
         compared=result.fields_compared,
@@ -456,14 +673,20 @@ async def _records(
         result: Any = build_invoices(
             doc.doc_id, readings, words, classified=doc.doc_type.value, own_names=names
         )
-        await deps.invoices.replace_for_document(org_id, doc.doc_id, result.records)
+        stored = await deps.invoices.list_records(org_id, doc_id=doc.doc_id)
+        records = keep_corrections(result.records, stored)
+        await deps.invoices.replace_for_document(org_id, doc.doc_id, records)
         noun = "invoices"
+        doc_type = document_type_of([r.kind for r in result.records], doc.doc_type.value)
     else:
         if deps.receipts is None:
             return None
         result = build_receipts(doc.doc_id, readings, words)
-        await deps.receipts.replace_for_document(org_id, doc.doc_id, result.records)
+        stored = await deps.receipts.list_records(org_id, doc_id=doc.doc_id)
+        records = keep_corrections(result.records, stored)
+        await deps.receipts.replace_for_document(org_id, doc.doc_id, records)
         noun = "receipts"
+        doc_type = None
     return _Verified(
         records=len(result.records),
         noun=noun,
@@ -472,6 +695,7 @@ async def _records(
         page_agreement=result.page_agreement,
         months=result.months,
         notes=result.notes,
+        doc_type=doc_type,
     )
 
 
@@ -543,10 +767,26 @@ def check_document(deps: PipelineDeps):
         )
         live = [f for f in stored if f.status in ("OPEN", "ACKNOWLEDGED")]
         verdict = integrity_verdict(live, deps.forensics)
+        doc_risk = (
+            assess_document_risk(verdict, stored, deps.risk_policy)
+            if deps.risk_policy is not None
+            else None
+        )
+        risk_dict = (
+            {
+                "level": doc_risk.level,
+                "score": doc_risk.score,
+                "reasons": list(doc_risk.reasons),
+            }
+            if doc_risk is not None
+            else None
+        )
         await deps.doc_repo.save_document(
             org_id,
             replace(
-                doc, integrity={"verdict": verdict, "findingIds": [f.finding_id for f in live]}
+                doc,
+                integrity={"verdict": verdict, "findingIds": [f.finding_id for f in live]},
+                risk=risk_dict,
             ),
         )
         codes = sorted({f.code for f in fresh})
@@ -656,7 +896,15 @@ async def _find_duplicate(
     if doc.doc_type in (DocType.SALES_INVOICE, DocType.PURCHASE_INVOICE) and deps.invoices:
         everything = await deps.invoices.list_records(org_id, limit=1000)
         keys = [
-            InvoiceKey(i.doc_id, uploaded[i.doc_id], i.issuer_name, i.number, i.issue_date, i.total)
+            InvoiceKey(
+                i.doc_id,
+                uploaded[i.doc_id],
+                i.issuer_name,
+                i.number,
+                i.issue_date,
+                i.total,
+                i.pay_to_masked,
+            )
             for i in everything
             if i.doc_id in uploaded
         ]
@@ -704,13 +952,17 @@ _DUPLICATE_TITLES = {
 }
 
 
+_PAID_ELSEWHERE = "This invoice was already uploaded, with another account to pay into"
+
+
 def _duplicate_finding(doc: Any, match: Match) -> Finding:
+    elsewhere = match.code == "D03_INVOICE_DUPLICATE" and "payTo" in match.facts
     return Finding(
         finding_id=finding_id(match.code, f"{doc.doc_id}|{match.of_doc_id}"),
         code=match.code,
         category="DUPLICATE",
         severity=match.severity,
-        title=_DUPLICATE_TITLES[match.code],
+        title=_PAID_ELSEWHERE if elsewhere else _DUPLICATE_TITLES[match.code],
         facts={
             **match.facts,
             "otherDocument": match.of_doc_id,
@@ -777,8 +1029,10 @@ def categorize_bank_lines(deps: PipelineDeps):
             line.cashflow_class = policy.categories[c.category].cashflow_class(framework)
         await deps.bank_lines.replace_document_lines(org_id, doc_id, lines)
         by = Counter(line.categorized_by for line in lines)
+        asked = deps.reader is not None and tokens[0] > 0  # cache hits call no model
         return {
             **node_input,
+            **({"model": deps.reader.version("categorize")[0]} if asked and deps.reader else {}),
             "tokens_in": tokens[0],
             "tokens_out": tokens[1],
             "summary": ", ".join(f"{n} by {k.lower()}" for k, n in sorted(by.items())),

@@ -123,6 +123,12 @@ def build_month_workflow(deps: PipelineDeps) -> Workflow:
 otherwise the run is `SUPERSEDED` and the newer run wins. A burst of uploads therefore produces at most
 one useful run per month (a 20-second debounce on enqueue merges them).
 
+**Interim implementation (T007-00a):** while reconciliation/check/review nodes are skeletons,
+`finalize_month` keeps the state `COLLECTING`, with `note` saying reconciliation is not available
+yet when a statement exists. A workflow run may finish without producing matches; statement
+presence must never be reported as `RECONCILED`. T007-08 replaces this guard with computed results,
+account/date coverage and blocker checks (ADR-025).
+
 ---
 
 ## 4. Node catalog
@@ -146,15 +152,15 @@ Legend: **F** function node (deterministic), **L** LLM call.
 | `categorize_bank_lines` | F + L (`MODEL_LITE`) | category, tags, counterparty name; `CATEGORY` label per line (P1) | skip rows with `categorizedBy` set; never changes a person's label | P0 |
 | `finalize_document` | F | `status = DONE`, document `risk`, months `dirty`, month tasks | — | P0 |
 | `load_month` | F | — | — | P0 |
-| `reconcile` | F | `matches/*`, `match` on lines and entries, `payment` on documents | deterministic match IDs | P0 |
-| `check_month` | F | findings `X0x`, `R0x`, `B0x`, `C02`, `D07` | deterministic IDs | P0 |
+| `reconcile` | F | the run's `AUTO`/`PROPOSED` `matches/*` (a person's `MANUAL`/`REJECTED` stay), `match` and `support` on lines, `evidence` on invoices and receipts, month figures (ADR-025) | deterministic match IDs | P0 |
+| `check_month` | F | findings `X0x`, `R0x`, `B0x`, `C02`, `D07` (month scope); counts blocking findings incl. the month's statements' own HIGH/CRITICAL | deterministic IDs | P0 |
 | `build_counterparties` | F | `counterparties/*` | deterministic IDs | P0 |
 | `suggest_profile` | F | `suggestions/*` | decided suggestions never reopened | P0 |
 | `score_risk` | F | `months.risk.level/score/reasons`, documents' `risk` | overwrite | P0 |
 | `explain_month` | L (`MODEL_FAST`) | `months.risk.summary`, `nextSteps`, finding `explanation` | skip if facts unchanged (hash) | P0 (template fallback) |
 | `build_flows` | F | `months.flows` | overwrite | P0 |
 | `sync_review_items` | F | `reviewItems/*` (create, close as resolved by data) | deterministic IDs | P0 |
-| `finalize_month` | F | `months.state`, `figures`, `dirty = false`, run status | generation check | P0 |
+| `finalize_month` | F | `months.state` (`RECONCILED` only when computed, every account's statements cover the whole month and nothing blocks; `NEEDS_REVIEW` with proposals or blockers; else `COLLECTING` with a note), `figures`, `statements`, `dirty = false`, run status | generation check | P0 |
 
 Retries: Gemini and Document AI calls retry 3× on `429`, `500`, `503`, `DEADLINE_EXCEEDED` with
 exponential backoff and jitter; schema failures retry once with the validation error appended.
@@ -169,7 +175,7 @@ exponential backoff and jitter; schema failures retry once with the validation e
 | `statement_page_reader` | `MODEL_FAST` | 0 | one page image + page-1 header context | `StatementPage` | `read_statement_page.md` |
 | `invoice_page_reader` | `MODEL_FAST` | 0 | one page image + page-1 context | `InvoicePage` | `read_invoice_page.md` |
 | `receipt_reader` | `MODEL_FAST` | 0 | one image | `ReceiptPage` | `read_receipt.md` |
-| `ledger_mapper` | `MODEL_LITE` | 0 | header row + 20 sample rows (values masked to their shape) | `LedgerMapping` | `map_ledger_columns.md` |
+| `ledger_mapper` | `MODEL_LITE` | 0 | header row + the first 5 rows' values masked to their shape; called only when code's header synonyms leave a required column unmapped, and code keeps every answer that names a real column | `LedgerMappingProposal` | `map_ledger_columns.md` |
 | `txn_categorizer` | `MODEL_LITE` | 0 | ≤ 100 bank lines (ref, date, description, signed amount) + taxonomy | `CategorizationBatch` | `categorize_transactions.md` |
 | `visual_examiner` (P1) | `MODEL_FAST` | 0 | one page image + key value regions | `VisualExamination` | `examine_page.md` |
 | `month_explainer` | `MODEL_FAST` | 0.2 | the month's risk level, findings as facts, figures, next-step catalog entries | `MonthExplanation` (summary, ordered next steps, per-finding explanations, citation markers) | `explain_month.md` |

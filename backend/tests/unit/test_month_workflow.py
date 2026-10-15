@@ -1,6 +1,7 @@
 """Unit tests for month_workflow orchestrator (T004-07, AC-004-5, AC-004-7)."""
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
+from decimal import Decimal
 from pathlib import Path
 from typing import Any, cast
 
@@ -10,22 +11,32 @@ from google.adk.sessions import InMemorySessionService
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
 
-from app.adapters.policy_files import load_risk_policy
+from app.adapters.policy_files import (
+    load_category_policy,
+    load_reconciliation_policy,
+    load_risk_policy,
+)
 from app.agents.deps import PipelineDeps
 from app.agents.workflows.month_workflow import build_month_workflow
 from app.core.settings import Settings
 from app.domain.findings import Finding
+from app.domain.models.bank_line import BankLine
 from app.domain.models.document import DocStatus, DocType, Document
 from app.domain.models.month import Month, MonthState
 from app.domain.models.run import Run, RunKind, RunStatus
 from app.domain.risk import FindingExplanation, MonthExplanation
+from tests.fakes.bank_line_repository import FakeBankLineRepository
 from tests.fakes.clock import FixedClock
+from tests.fakes.decision_repository import FakeDecisionRepository
 from tests.fakes.document_reader import FakeDocumentReader
 from tests.fakes.document_repository import FakeDocumentRepository
 from tests.fakes.finding_repository import FakeFindingRepository
+from tests.fakes.match_repository import FakeMatchRepository
 from tests.fakes.month_repository import FakeMonthRepository
+from tests.fakes.record_repository import fake_invoices, fake_receipts
 from tests.fakes.run_repository import FakeRunRepository
 from tests.fakes.task_queue import FakeTaskQueue
+from tests.fakes.workspace_repository import FakeWorkspaceRepository, demo_workspace
 
 NOW = datetime(2026, 3, 15, 10, 0, tzinfo=UTC)
 POLICY_DIR = Path(__file__).resolve().parents[3] / "contracts" / "policy"
@@ -647,3 +658,116 @@ async def test_ac008_6_a_template_is_tried_again_on_the_next_run(workflow_deps):
     second = await month_repo.get(org_id, month_str)
     assert [c[0] for c in reader.calls].count("explain_month") == 1
     assert second is not None and second.risk["grounding"] == "VERIFIED"
+
+
+@pytest.mark.asyncio
+async def test_t010_02a_build_flows_writes_month_flows(workflow_deps):
+    """build_flows node writes the month's own flow to months.flows (<= 40 links)
+    (T010-02a, AC-010-10).
+    """
+    deps, run_repo, month_repo, doc_repo = workflow_deps
+    org_id = "org_demo"
+    month_str = "2026-03"
+    gen = 1
+    run_id = f"month-{org_id}-{month_str}-{gen}"
+
+    bank_lines_repo = FakeBankLineRepository()
+    workspaces_repo = FakeWorkspaceRepository()
+    workspaces_repo.workspaces[org_id] = demo_workspace(org_id)
+    deps.workspaces = workspaces_repo
+    deps.bank_lines = bank_lines_repo
+    deps.invoices = fake_invoices()
+    deps.receipts = fake_receipts()
+    deps.matches = FakeMatchRepository()
+    deps.decisions = FakeDecisionRepository()
+    deps.reconciliation = load_reconciliation_policy(POLICY_DIR)
+    deps.categories = load_category_policy(POLICY_DIR / "categories.v1.yaml", POLICY_DIR)
+
+    stmt = Document(
+        doc_id="stmt_1",
+        file_name="statement.pdf",
+        content_type="application/pdf",
+        size_bytes=1000,
+        page_count=1,
+        sha256="s" * 64,
+        gcs_path=f"docs/{org_id}/stmt_1.pdf",
+        uploaded_by="user_1",
+        uploaded_at=NOW,
+        doc_type=DocType.BANK_STATEMENT,
+        status=DocStatus.DONE,
+        months=[month_str],
+        statement_meta={
+            "bankName": "ACB",
+            "accountMasked": "••••1234",
+            "currency": "IDR",
+            "periodStart": "2026-03-01",
+            "periodEnd": "2026-03-31",
+            "openingMinor": 1000000000,
+            "closingMinor": 1350000000,
+        },
+    )
+    await doc_repo.save_document(org_id, stmt)
+
+    lines = [
+        BankLine(
+            tx_id="tx_1",
+            doc_id="stmt_1",
+            page=1,
+            row_index=1,
+            date=date(2026, 3, 5),
+            month=month_str,
+            description="PAYMENT FROM CLIENT A",
+            amount=Decimal("5000000.00"),
+            balance=Decimal("15000000.00"),
+            counterparty_name="CLIENT A",
+            category="SALES_RECEIPT",
+            cashflow_class="OPERATING",
+        ),
+        BankLine(
+            tx_id="tx_2",
+            doc_id="stmt_1",
+            page=1,
+            row_index=2,
+            date=date(2026, 3, 10),
+            month=month_str,
+            description="TRANSFER TO SUPPLIER B",
+            amount=Decimal("-1500000.00"),
+            balance=Decimal("13500000.00"),
+            counterparty_name="SUPPLIER B",
+            category="SUPPLIER_PAYMENT",
+            cashflow_class="OPERATING",
+        ),
+    ]
+    await bank_lines_repo.replace_document_lines(org_id, "stmt_1", lines)
+
+    month = Month(month=month_str, state=MonthState.COLLECTING, dirty=True, generation=gen)
+    await month_repo.save(org_id, month)
+
+    wf = build_month_workflow(deps)
+    sessions = InMemorySessionService()
+    runner = Runner(agent=cast(Any, wf), app_name="kredibel", session_service=sessions)
+    node_input = {
+        "orgId": org_id,
+        "month": month_str,
+        "generation": gen,
+        "runId": run_id,
+    }
+    await sessions.create_session(
+        app_name="kredibel",
+        user_id="user_1",
+        session_id=run_id,
+        state={"node_input": node_input},
+    )
+    async for _ in runner.run_async(user_id="user_1", session_id=run_id):
+        pass
+
+    saved = await month_repo.get(org_id, month_str)
+    assert saved is not None
+    assert isinstance(saved.flows, dict)
+    assert "links" in saved.flows
+    assert "nodes" in saved.flows
+    assert len(saved.flows["links"]) <= 40
+    assert len(saved.flows["links"]) > 0
+    assert saved.flows["framework"] == "IFRS"
+    assert saved.flows["totalMinor"] == 500000000
+

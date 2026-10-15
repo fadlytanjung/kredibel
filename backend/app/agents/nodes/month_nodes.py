@@ -23,6 +23,7 @@ from app.agents.month_data import (
 )
 from app.agents.month_result import MonthResult, PendingMonths, run_key
 from app.agents.stages import stage
+from app.domain.categorize import Framework
 from app.domain.checks.month import MonthContext, run_month_checks
 from app.domain.evidence import document_evidence, line_support
 from app.domain.figures import month_figures
@@ -32,6 +33,7 @@ from app.domain.models.document import DocStatus, DocType, DuplicateDecision, Du
 from app.domain.models.match import StoredMatch
 from app.domain.models.month import Month, MonthState
 from app.domain.models.run import RunStatus
+from app.domain.money_flow import build_money_flow
 from app.domain.next_steps import next_steps_for_findings
 from app.domain.reconcile import assign_matches
 from app.domain.review_items import (
@@ -538,10 +540,58 @@ def explain_month(deps: PipelineDeps):
     return _node
 
 
-def build_flows(deps: PipelineDeps):
+def build_flows(deps: PipelineDeps, pending: PendingMonths | None = None):
     @stage(deps, "build_flows")
     async def _node(ctx: Context, node_input: dict[str, Any]) -> dict[str, Any]:
-        return {**node_input, "summary": "Skipped: money flows are not implemented"}
+        org_id = str(node_input.get("orgId") or node_input.get("org_id") or "")
+        result = pending.get(run_key(node_input)) if pending is not None else None
+        if result is None or not node_input.get("computed") or deps.categories is None:
+            return {**node_input, "summary": "Skipped: no lines to build flow"}
+
+        workspace = await deps.workspaces.get_workspace(org_id) if deps.workspaces else None
+        framework: Framework = (
+            workspace.profile.accounting_framework
+            if workspace
+            and workspace.profile
+            and workspace.profile.accounting_framework in ("IFRS", "US_GAAP")
+            else "IFRS"
+        )
+        flow = build_money_flow(
+            result.data.lines,
+            account_of=result.data.account_of,
+            policy=deps.categories,
+            framework=framework,
+        )
+        flows_dict = {
+            "links": [
+                {
+                    "id": link.id,
+                    "source": link.source,
+                    "target": link.target,
+                    "amountMinor": int(link.value * 100),
+                    "lineCount": link.line_count,
+                }
+                for link in flow.links
+            ],
+            "nodes": [
+                {
+                    "id": n.id,
+                    "column": n.column,
+                    "label": n.label,
+                    "amountMinor": int(n.value * 100),
+                    **({"cashflowClass": n.cashflow_class} if n.cashflow_class else {}),
+                    **({"statementLine": n.statement_line} if n.statement_line else {}),
+                }
+                for n in flow.nodes
+            ],
+            "framework": framework,
+            "totalMinor": int(flow.total * 100),
+        }
+        return {
+            **node_input,
+            "flows": flows_dict,
+            "summary": f"{len(flow.nodes)} nodes, {len(flow.links)} links",
+        }
 
     return _node
 
@@ -724,6 +774,9 @@ def finalize_month(deps: PipelineDeps, pending: PendingMonths):
         risk_val = node_input.get("risk")
         if isinstance(risk_val, dict):
             current_month.risk = risk_val
+        flows_val = node_input.get("flows")
+        if isinstance(flows_val, dict):
+            current_month.flows = flows_val
         current_month.dirty = False
         current_month.last_run_id = run_id
         await deps.month_repo.save(org_id, current_month)

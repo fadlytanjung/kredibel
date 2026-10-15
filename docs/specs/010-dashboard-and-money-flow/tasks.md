@@ -7,7 +7,7 @@
 - [x] **T010-02** Period aggregation; `InsightService`; routes; `flow=` filter. (AC-010-1, AC-010-5, AC-010-6)
   A period's flow is rebuilt from its lines (its five largest clients are not the sum of each
   month's). Open review items and the review preview wait for the review queue (spec 009).
-- [ ] **T010-02a** `build_flows` node writes the month's own flow to `months.flows` (≤ 40 links), after
+- [x] **T010-02a** `build_flows` node writes the month's own flow to `months.flows` (≤ 40 links), after
   the spec 009 changes to `month_nodes.py` land. (AC-010-10)
 - [ ] **T010-03** Latency test on S1 data in the emulator. (AC-010-10)
 

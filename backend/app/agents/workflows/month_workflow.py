@@ -17,7 +17,7 @@ def build_month_workflow(deps: PipelineDeps) -> Workflow:
     suggest_profile = m.suggest_profile(deps)
     score_risk = m.score_risk(deps)
     explain_month = m.explain_month(deps)
-    build_flows = m.build_flows(deps)
+    build_flows = m.build_flows(deps, pending)
     sync_review_items = m.sync_review_items(deps)
     finalize_month = m.finalize_month(deps, pending)
 

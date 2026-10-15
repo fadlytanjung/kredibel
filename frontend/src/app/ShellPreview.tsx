@@ -13,6 +13,7 @@ import { DocumentPage } from '../pages/DocumentPage'
 import { MonthPage } from '../pages/MonthPage'
 import { MonthsPage } from '../pages/MonthsPage'
 import { ReviewPage } from '../pages/ReviewPage'
+import { RiskPage } from '../pages/RiskPage'
 import { SettingsPage } from '../pages/SettingsPage'
 import { AppShell } from '../shared/ui'
 
@@ -74,6 +75,15 @@ export function ReviewPreview() {
   return (
     <AppShell {...PREVIEW_PROPS} activePath="/review" onUpload={() => undefined}>
       <ReviewPage />
+    </AppShell>
+  )
+}
+
+/** The risk page inside the shell; Playwright serves the fixture's findings and documents. */
+export function RiskPreview() {
+  return (
+    <AppShell {...PREVIEW_PROPS} activePath="/risk" onUpload={() => undefined}>
+      <RiskPage />
     </AppShell>
   )
 }

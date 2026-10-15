@@ -8,64 +8,100 @@ from decimal import Decimal
 from html import escape
 
 from icons import icon
-from screens import LOCALES, ROOT, fmt_date, money_code, month_name, month_tabs, seg, sev_badge, words
+from screens import DASH, LOCALES, RISK_WORDS, ROOT, fmt_date, money_code, month_name, month_tabs, seg, sev_badge, words
 from shell import shell, topbar
 
 # ------------------------------------------------------------------------------------------------
 # Risk
 # ------------------------------------------------------------------------------------------------
 
-FINDINGS = [
-    ("March", "critical", [
-        ("critical", "A01", "Running balance does not add up on 14 Mar", "ACB_Mar_2026.pdf, page 2", "Open"),
-        ("high", "M04", "One amount is drawn in a different font from its column", "ACB_Mar_2026.pdf, page 2", "Open"),
-        ("high", "M03", "Saved again in a PDF editor three days after the bank created it", "ACB_Mar_2026.pdf", "Open"),
-        ("high", "X09", "Bank shows IDR 6,000,000 more than the ledger", "March, ledger-2026-H1.csv", "Open"),
-        ("medium", "D03", "Invoice GVF-2026-0311 scanned again", "GVF-2026-0311 (scan).pdf", "Held"),
-        ("low", "E05", "Buyer name on one receipt is unclear", "Receipt 0318.jpg", "Open"),
-    ]),
-    ("May", "high", [
-        ("high", "X08", "Roastline Equipment Service paid to a new account", "6 May, IDR 24,500,000 to Meridian Savings ••7720", "Open"),
-        ("medium", "R02", "Invoice BLU-2026-118 from a supplier never seen in the bank", "BLU-2026-118.pdf", "Open"),
-        ("medium", "R02", "Invoice BLU-2026-121 from a supplier never seen in the bank", "BLU-2026-121.pdf", "Open"),
-        ("medium", "D06", "Ledger line entered twice", "12 May, IDR 4,350,000", "Held"),
-    ]),
-    ("February", "medium", [
-        ("medium", "D02", "Statement period overlaps an earlier upload", "ACB_Feb_2026 (re-download).pdf", "Held"),
-    ]),
-    ("June", "medium", [
-        ("medium", "D05", "Receipt photographed twice", "Receipt 0617 (2).jpg", "Held"),
-    ]),
-]
+RISK = json.loads((ROOT / "contracts/design/fixtures/risk.json").read_text(encoding="utf-8"))
+SEV_RANK = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3, "INFO": 4}
+
+
+def and_list(items: list[str]) -> str:
+    """'A', 'A and B', 'A, B and C': the page's own join (English UI)."""
+    return items[0] if len(items) == 1 else ", ".join(items[:-1]) + " and " + items[-1]
+
+
+def finding_where(f: dict, files: dict[str, str]) -> str:
+    """The page's rule: the document (and page) the finding points at, or the month's ledger."""
+    doc_id = f.get("docId") or next((e["docId"] for e in f.get("evidence", []) if e.get("docId")), None)
+    if not doc_id:
+        return words(RISK_WORDS, "table.wholeMonth")
+    file = files.get(doc_id, doc_id)
+    if f["scope"] == "MONTH":
+        return words(RISK_WORDS, "table.monthDocument", month=month_name(f["month"], "long"), file=file)
+    page = next((e["page"] for e in f.get("evidence", []) if e.get("docId") == doc_id and e.get("page")), None)
+    return words(RISK_WORDS, "table.documentPage", file=file, page=page) if page else words(RISK_WORDS, "table.document", file=file)
+
+
+def finding_status(f: dict) -> tuple[str, str]:
+    """(label, tone): a held copy waits; an open critical or high finding is bad; open medium waits."""
+    if f["category"] == "DUPLICATE" and f["status"] == "OPEN":
+        return words(RISK_WORDS, "status.held"), "wait"
+    label = words(RISK_WORDS, f"status.{f['status'].lower()}")
+    if f["status"] != "OPEN":
+        return label, ""
+    return label, "bad" if f["severity"] in ("CRITICAL", "HIGH") else "wait" if f["severity"] == "MEDIUM" else ""
 
 
 def risk() -> str:
+    files = {d["docId"]: d["fileName"] for d in RISK["documents"]}
+    shown = [f for f in RISK["findings"] if f["status"] in ("OPEN", "ACKNOWLEDGED")]
+    levels = {m["month"]: m.get("riskLevel") for m in DASH["months"]}
+    by_month: dict[str, list[dict]] = {}
+    for f in shown:
+        by_month.setdefault(f["month"], []).append(f)
+    group_level = {m: levels.get(m) or min(fs, key=lambda f: SEV_RANK[f["severity"]])["severity"] for m, fs in by_month.items()}
+    ordered_months = sorted(by_month, key=lambda m: (SEV_RANK[group_level[m]], m))
     groups = []
-    for month, level, rows in FINDINGS:
-        trs = "".join(
-            f'<tr{" class=\"is-flagged\"" if sev == "critical" else ""}><td><a class="find-link" href="evidence-viewer.html">{sev_badge(sev)}<span class="code-tag">{code}</span><span class="find-t">{title}</span></a><span class="sub">{where}</span></td>'
-            f'<td class="hide-rt">{where}</td><td class="r"><span class="status-line {"wait" if st == "Held" or sev == "medium" else "bad" if sev in ("critical", "high") else ""}">{st}</span></td></tr>'
-            for sev, code, title, where, st in rows)
+    for month in ordered_months:
+        rows = sorted(by_month[month], key=lambda f: (SEV_RANK[f["severity"]], f["code"], f["findingId"]))
+        trs = []
+        for f in rows:
+            where = finding_where(f, files)
+            label, tone = finding_status(f)
+            trs.append(
+                f'<tr{" class=\"is-flagged\"" if f["severity"] == "CRITICAL" else ""}><td><a class="find-link" href="evidence-viewer.html">{sev_badge(f["severity"])}'
+                f'<span class="code-tag">{escape(f["code"].split("_")[0])}</span><span class="find-t">{escape(f["title"])}</span></a><span class="sub">{where}</span></td>'
+                f'<td class="hide-rt">{where}</td><td class="r"><span class="status-line {tone}">{label}</span></td></tr>'
+            )
+        heading = month_name(month)
         groups.append(f"""
-<section class="find-group" aria-label="{month}">
-  <div class="find-head"><h2 class="type-h3">{month} 2026</h2>{sev_badge(level)}<a class="link" href="month.html">Open {month}</a></div>
+<section class="find-group" aria-label="{heading}">
+  <div class="find-head"><h2 class="type-h3">{heading}</h2>{sev_badge(group_level[month])}<a class="link" href="month.html">{words(RISK_WORDS, "openMonth", month=month_name(month, "long"))}</a></div>
   <div class="table-panel rt-wrap"><table class="data-table rt find-table">
-    <thead><tr><th>Finding</th><th class="hide-rt">Where</th><th class="r">Status</th></tr></thead>
-    <tbody>{trs}</tbody></table></div>
+    <thead><tr><th>{words(RISK_WORDS, "table.finding")}</th><th class="hide-rt">{words(RISK_WORDS, "table.where")}</th><th class="r">{words(RISK_WORDS, "table.status")}</th></tr></thead>
+    <tbody>{"".join(trs)}</tbody></table></div>
 </section>""")
-    chips = "".join(f'<a class="chip" href="risk.html"{" aria-pressed=\"true\"" if i == 0 else ""}>{t} <span class="n">{n}</span></a>'
-                    for i, (t, n) in enumerate([("All", 12), ("Critical", 1), ("High", 4), ("Medium", 6), ("Low", 1), ("Held copies", 4)]))
+    counts = [
+        ("all", len(shown)),
+        *((lvl.lower(), sum(1 for f in shown if f["severity"] == lvl)) for lvl in ("CRITICAL", "HIGH", "MEDIUM", "LOW")),
+        ("held", sum(1 for f in shown if f["category"] == "DUPLICATE")),
+    ]
+    chips = "".join(f'<a class="chip" href="risk.html"{" aria-pressed=\"true\"" if i == 0 else ""}>{words(RISK_WORDS, f"filters.{key}")} <span class="n">{n}</span></a>'
+                    for i, (key, n) in enumerate(counts))
+    attention = [m for m in DASH["months"] if m.get("riskLevel") in ("CRITICAL", "HIGH")]
+    if attention:
+        lead = words(RISK_WORDS, "attention", count=len(attention), list=and_list([
+            words(RISK_WORDS, "monthIs", month=month_name(m["month"], "long"), level=RISK_WORDS["severity"][m["riskLevel"]].lower())
+            for m in attention]))
+    else:
+        lead = words(RISK_WORDS, "attentionNone")
+    clean = [month_name(m["month"], "long") for m in DASH["months"] if m["month"] not in by_month]
+    foot = f'<p class="muted small">{words(RISK_WORDS, "cleanMonths", count=len(clean), months=and_list(clean))}</p>' if clean else ""
     content = f"""
 <div class="page">
   <div class="page-head">
-    <h1 class="type-title">Risk</h1>
-    <p><strong>2 months need attention.</strong> March is critical because its statement was edited; May is high because a supplier was paid to a new account. Every finding opens on the page it came from.</p>
+    <h1 class="type-title">{words(RISK_WORDS, "title")}</h1>
+    <p><strong>{lead}</strong> {words(RISK_WORDS, "subtitle")}</p>
   </div>
   <div class="stack gap-6">
-    <section aria-label="Risk by month">{month_tabs()}</section>
-    <div class="chips" role="group" aria-label="Filter by severity">{chips}</div>
+    <section aria-label="{words(RISK_WORDS, "riskByMonth")}">{month_tabs()}</section>
+    <div class="chips" role="group" aria-label="{words(RISK_WORDS, "filterBySeverity")}">{chips}</div>
     {''.join(groups)}
-    <p class="muted small">January and April have no open findings. Dismissed findings stay in the audit trail.</p>
+    {foot}
   </div>
 </div>"""
     return shell("risk", topbar("Risk", ("Risk",)), content)

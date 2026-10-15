@@ -1,11 +1,10 @@
 {
   "title": "Risk",
-  "attention_one": "{{count}} month needs attention.",
-  "attention_other": "{{count}} months need attention.",
+  "attention_one": "{{count}} month needs attention: {{list}}.",
+  "attention_other": "{{count}} months need attention: {{list}}.",
   "subtitle": "Every finding opens on the page it came from.",
   "riskByMonth": "Risk by month",
   "filterBySeverity": "Filter by severity",
-  "cleanMonths": "All other months have no open findings. Dismissed findings stay in the audit trail.",
   "noFindings": "No findings match the selected filters.",
   "openMonth": "Open {{month}}",
   "reconciled": "Reconciled",
@@ -24,9 +23,10 @@
     "where": "Where",
     "status": "Status",
     "month": "Month",
-    "document": "In a document",
-    "documentPage": "In a document, page {{page}}",
-    "wholeMonth": "Across the month"
+    "document": "{{file}}",
+    "documentPage": "{{file}}, page {{page}}",
+    "wholeMonth": "Across the month",
+    "monthDocument": "{{month}}, {{file}}"
   },
   "status": {
     "open": "Open",
@@ -95,5 +95,10 @@
       "close": "close"
     }
   },
-  "search": "Search findings"
+  "search": "Search findings",
+  "attentionNone": "No month needs attention.",
+  "monthIs": "{{month}} is {{level}}",
+  "cleanMonths_one": "{{months}} has no open findings. Dismissed findings stay in the audit trail.",
+  "cleanMonths_other": "{{months}} have no open findings. Dismissed findings stay in the audit trail.",
+  "noOpenFindings": "No open findings. Dismissed findings stay in the audit trail."
 }

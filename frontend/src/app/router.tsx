@@ -49,6 +49,7 @@ const MonthsPreview = lazy(() => import('./ShellPreview').then((m) => ({ default
 const ProfitLossPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.ProfitLossPreview })))
 const CounterpartiesPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.CounterpartiesPreview })))
 const CounterpartyPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.CounterpartyPreview })))
+const RiskPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.RiskPreview })))
 const ReviewPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.ReviewPreview })))
 const SettingsPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.SettingsPreview })))
 const ShellPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.ShellPreview })))
@@ -208,6 +209,8 @@ export function AppRouter() {
         {PREVIEW_ROUTES && <Route path="/preview/months/:month" element={<MonthPreview />} />}
         {PREVIEW_ROUTES && <Route path="/preview/review" element={<ReviewPreview />} />}
         {PREVIEW_ROUTES && <Route path="/preview/review/:itemId" element={<ReviewPreview />} />}
+        {PREVIEW_ROUTES && <Route path="/preview/risk" element={<RiskPreview />} />}
+        {PREVIEW_ROUTES && <Route path="/preview/risk/:findingId" element={<RiskPreview />} />}
         {PREVIEW_ROUTES && <Route path="/preview/profit-loss" element={<ProfitLossPreview />} />}
         {PREVIEW_ROUTES && <Route path="/preview/counterparties" element={<CounterpartiesPreview />} />}
         {PREVIEW_ROUTES && (

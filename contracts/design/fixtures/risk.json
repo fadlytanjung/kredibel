@@ -1,0 +1,323 @@
+{
+  "_comment": "Synthetic findings for the risk mock and the Risk page parity check (spec 019). The month strip comes from dashboard.json. Never real documents.",
+  "documents": [
+    {
+      "docId": "doc_stmt_feb_re",
+      "fileName": "ACB_Feb_2026 (re-download).pdf",
+      "docType": "BANK_STATEMENT",
+      "contentType": "application/pdf",
+      "status": "DONE",
+      "uploadedAt": "2026-07-01T09:00:00Z"
+    },
+    {
+      "docId": "doc_stmt_mar",
+      "fileName": "ACB_Mar_2026.pdf",
+      "docType": "BANK_STATEMENT",
+      "contentType": "application/pdf",
+      "status": "DONE",
+      "uploadedAt": "2026-07-01T09:00:00Z"
+    },
+    {
+      "docId": "doc_stmt_may",
+      "fileName": "ACB_May_2026.pdf",
+      "docType": "BANK_STATEMENT",
+      "contentType": "application/pdf",
+      "status": "DONE",
+      "uploadedAt": "2026-07-01T09:00:00Z"
+    },
+    {
+      "docId": "doc_ledger_h1",
+      "fileName": "ledger-2026-H1.csv",
+      "docType": "LEDGER_EXPORT",
+      "contentType": "text/csv",
+      "status": "DONE",
+      "uploadedAt": "2026-07-01T09:00:00Z"
+    },
+    {
+      "docId": "doc_inv_gvf_0311_scan",
+      "fileName": "GVF-2026-0311 (scan).pdf",
+      "docType": "PURCHASE_INVOICE",
+      "contentType": "application/pdf",
+      "status": "DONE",
+      "uploadedAt": "2026-07-01T09:00:00Z"
+    },
+    {
+      "docId": "doc_inv_blu_118",
+      "fileName": "BLU-2026-118.pdf",
+      "docType": "PURCHASE_INVOICE",
+      "contentType": "application/pdf",
+      "status": "DONE",
+      "uploadedAt": "2026-07-01T09:00:00Z"
+    },
+    {
+      "docId": "doc_inv_blu_121",
+      "fileName": "BLU-2026-121.pdf",
+      "docType": "PURCHASE_INVOICE",
+      "contentType": "application/pdf",
+      "status": "DONE",
+      "uploadedAt": "2026-07-01T09:00:00Z"
+    },
+    {
+      "docId": "doc_rc_0318",
+      "fileName": "Receipt 0318.jpg",
+      "docType": "RECEIPT",
+      "contentType": "image/jpeg",
+      "status": "DONE",
+      "uploadedAt": "2026-07-01T09:00:00Z"
+    },
+    {
+      "docId": "doc_rc_0617_2",
+      "fileName": "Receipt 0617 (2).jpg",
+      "docType": "RECEIPT",
+      "contentType": "image/jpeg",
+      "status": "DONE",
+      "uploadedAt": "2026-07-01T09:00:00Z"
+    }
+  ],
+  "findings": [
+    {
+      "findingId": "fnd_mar_a01",
+      "code": "A01_RUNNING_BALANCE_BREAK",
+      "category": "ARITHMETIC",
+      "scope": "DOCUMENT",
+      "docId": "doc_stmt_mar",
+      "month": "2026-03",
+      "severity": "CRITICAL",
+      "title": "Running balance does not add up on 14 Mar",
+      "facts": {
+        "previousBalance": "41,250,000.00",
+        "credit": "7,250,000.00",
+        "expectedBalance": "48,500,000.00",
+        "printedBalance": "42,500,000.00",
+        "difference": "6,000,000.00"
+      },
+      "evidence": [
+        {
+          "docId": "doc_stmt_mar",
+          "page": 2
+        }
+      ],
+      "detectedBy": "RULE",
+      "status": "OPEN"
+    },
+    {
+      "findingId": "fnd_mar_m04",
+      "code": "M04_FONT_ANOMALY_IN_VALUES",
+      "category": "VISUAL",
+      "scope": "DOCUMENT",
+      "docId": "doc_stmt_mar",
+      "month": "2026-03",
+      "severity": "HIGH",
+      "title": "One amount is drawn in a different font from its column",
+      "facts": {},
+      "evidence": [
+        {
+          "docId": "doc_stmt_mar",
+          "page": 2
+        }
+      ],
+      "detectedBy": "RULE",
+      "status": "OPEN"
+    },
+    {
+      "findingId": "fnd_mar_m03",
+      "code": "M03_MULTIPLE_REVISIONS",
+      "category": "STRUCTURE",
+      "scope": "DOCUMENT",
+      "docId": "doc_stmt_mar",
+      "month": "2026-03",
+      "severity": "HIGH",
+      "title": "Saved again in a PDF editor three days after the bank created it",
+      "facts": {},
+      "evidence": [
+        {
+          "docId": "doc_stmt_mar"
+        }
+      ],
+      "detectedBy": "RULE",
+      "status": "OPEN"
+    },
+    {
+      "findingId": "fnd_mar_x09",
+      "code": "X09_LEDGER_BANK_MISMATCH",
+      "category": "RECONCILIATION",
+      "scope": "MONTH",
+      "docId": null,
+      "month": "2026-03",
+      "severity": "HIGH",
+      "title": "Bank shows IDR 6,000,000 more than the ledger",
+      "facts": {
+        "difference": "6,000,000.00"
+      },
+      "evidence": [
+        {
+          "docId": "doc_ledger_h1"
+        }
+      ],
+      "detectedBy": "RULE",
+      "status": "OPEN"
+    },
+    {
+      "findingId": "fnd_mar_d03",
+      "code": "D03_INVOICE_DUPLICATE",
+      "category": "DUPLICATE",
+      "scope": "DOCUMENT",
+      "docId": "doc_inv_gvf_0311_scan",
+      "month": "2026-03",
+      "severity": "MEDIUM",
+      "title": "Invoice GVF-2026-0311 scanned again",
+      "facts": {},
+      "evidence": [
+        {
+          "docId": "doc_inv_gvf_0311_scan",
+          "page": 1
+        }
+      ],
+      "detectedBy": "RULE",
+      "status": "OPEN"
+    },
+    {
+      "findingId": "fnd_mar_e05",
+      "code": "E05_UNCLEAR_BUYER",
+      "category": "EXTRACTION",
+      "scope": "DOCUMENT",
+      "docId": "doc_rc_0318",
+      "month": "2026-03",
+      "severity": "LOW",
+      "title": "Buyer name on one receipt is unclear",
+      "facts": {},
+      "evidence": [
+        {
+          "docId": "doc_rc_0318",
+          "page": 1
+        }
+      ],
+      "detectedBy": "RULE",
+      "status": "OPEN"
+    },
+    {
+      "findingId": "fnd_may_x08",
+      "code": "X08_SUPPLIER_ACCOUNT_CHANGED",
+      "category": "CROSS_DOCUMENT",
+      "scope": "MONTH",
+      "docId": null,
+      "month": "2026-05",
+      "severity": "HIGH",
+      "title": "Roastline Equipment Service paid to a new account",
+      "facts": {
+        "amount": "24,500,000.00",
+        "newAccount": "Meridian Savings ••7720"
+      },
+      "evidence": [
+        {
+          "docId": "doc_stmt_may",
+          "page": 1
+        }
+      ],
+      "detectedBy": "RULE",
+      "status": "OPEN"
+    },
+    {
+      "findingId": "fnd_may_r02_118",
+      "code": "R02_SUPPLIER_INVOICE_UNKNOWN_PARTY",
+      "category": "CROSS_DOCUMENT",
+      "scope": "DOCUMENT",
+      "docId": "doc_inv_blu_118",
+      "month": "2026-05",
+      "severity": "MEDIUM",
+      "title": "Invoice BLU-2026-118 from a supplier never seen in the bank",
+      "facts": {},
+      "evidence": [
+        {
+          "docId": "doc_inv_blu_118",
+          "page": 1
+        }
+      ],
+      "detectedBy": "RULE",
+      "status": "OPEN"
+    },
+    {
+      "findingId": "fnd_may_r02_121",
+      "code": "R02_SUPPLIER_INVOICE_UNKNOWN_PARTY",
+      "category": "CROSS_DOCUMENT",
+      "scope": "DOCUMENT",
+      "docId": "doc_inv_blu_121",
+      "month": "2026-05",
+      "severity": "MEDIUM",
+      "title": "Invoice BLU-2026-121 from a supplier never seen in the bank",
+      "facts": {},
+      "evidence": [
+        {
+          "docId": "doc_inv_blu_121",
+          "page": 1
+        }
+      ],
+      "detectedBy": "RULE",
+      "status": "OPEN"
+    },
+    {
+      "findingId": "fnd_may_d06",
+      "code": "D06_LEDGER_ENTRY_DUPLICATE",
+      "category": "DUPLICATE",
+      "scope": "DOCUMENT",
+      "docId": "doc_ledger_h1",
+      "month": "2026-05",
+      "severity": "MEDIUM",
+      "title": "Ledger entry JV-0512 of 12 May appears twice",
+      "facts": {
+        "amount": "4,350,000.00",
+        "reference": "JV-0512"
+      },
+      "evidence": [
+        {
+          "docId": "doc_ledger_h1"
+        },
+        {
+          "docId": "doc_ledger_h1",
+          "ledgerEntryId": "le_0512_b",
+          "label": "This entry"
+        }
+      ],
+      "detectedBy": "RULE",
+      "status": "OPEN"
+    },
+    {
+      "findingId": "fnd_feb_d02",
+      "code": "D02_STATEMENT_PERIOD_DUPLICATE",
+      "category": "DUPLICATE",
+      "scope": "DOCUMENT",
+      "docId": "doc_stmt_feb_re",
+      "month": "2026-02",
+      "severity": "MEDIUM",
+      "title": "Statement period overlaps an earlier upload",
+      "facts": {},
+      "evidence": [
+        {
+          "docId": "doc_stmt_feb_re",
+          "page": 1
+        }
+      ],
+      "detectedBy": "RULE",
+      "status": "OPEN"
+    },
+    {
+      "findingId": "fnd_jun_d05",
+      "code": "D05_RECEIPT_DUPLICATE",
+      "category": "DUPLICATE",
+      "scope": "DOCUMENT",
+      "docId": "doc_rc_0617_2",
+      "month": "2026-06",
+      "severity": "MEDIUM",
+      "title": "Receipt photographed twice",
+      "facts": {},
+      "evidence": [
+        {
+          "docId": "doc_rc_0617_2",
+          "page": 1
+        }
+      ],
+      "detectedBy": "RULE",
+      "status": "OPEN"
+    }
+  ]
+}

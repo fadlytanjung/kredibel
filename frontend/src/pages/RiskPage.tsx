@@ -1,12 +1,15 @@
 /**
- * RiskPage (spec 008, AC-008-7, AC-008-8, AC-008-10).
+ * RiskPage (spec 008, AC-008-7, AC-008-8, AC-008-10; parity with design/mocks/risk.html, spec 019).
  *
- * Lists open findings grouped by month, most severe first, with severity filters,
- * month risk levels at the top, and EvidenceViewer dialog/drawer.
+ * The dashboard's month strip, severity chips, then one group per month (the worst month first)
+ * listing its findings: badge, code, title, where it was found and its status. A held copy reads
+ * "Held". Every finding opens the evidence viewer; months without findings are named at the foot.
  */
 
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useDocuments } from '../entities/document'
 import {
   EvidenceViewer,
   SeverityBadge,
@@ -14,209 +17,199 @@ import {
   type Finding,
   type SeverityLevel,
 } from '../entities/finding'
-import { useMonths } from '../entities/month'
+import { useDashboard } from '../entities/insight'
 import { formatMonth } from '../shared/lib/formatDate'
-import { DataTable, type DataTableColumn, type DataTableFilter } from '../shared/ui'
-import { Icon } from '../shared/ui/Icon'
+import { MonthStrip } from '../widgets/dashboard'
 
-const SEVERITY_ORDER: SeverityLevel[] = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO']
+const RANK: Record<string, number> = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3, INFO: 4 }
+const SHOWN = new Set(['OPEN', 'ACKNOWLEDGED']) // dismissed and resolved stay in the audit trail
+const CHIPS = ['ALL', 'CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'HELD'] as const
+type Chip = (typeof CHIPS)[number]
 
-function parseMonthParts(monthStr: string) {
-  const [year, mNum] = monthStr.split('-')
-  const d = new Date(Date.UTC(Number(year), Number(mNum) - 1, 1))
-  const shortName = d.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' })
-  return { year, shortName }
-}
+const matches = (f: Finding, chip: Chip) =>
+  chip === 'ALL' ? true : chip === 'HELD' ? f.category === 'DUPLICATE' : f.severity === chip
 
-const MTAB_CLASSES: Record<SeverityLevel, string> = {
-  CRITICAL: 'mtab is-critical',
-  HIGH: 'mtab is-high',
-  MEDIUM: 'mtab is-open',
-  LOW: 'mtab',
-  INFO: 'mtab',
-}
-
-function getMtabClass(level: SeverityLevel): string {
-  return MTAB_CLASSES[level] || 'mtab'
-}
+/** 'A', 'A and B', 'A, B and C' (English UI). */
+const andList = (items: string[]) =>
+  items.length <= 1 ? (items[0] ?? '') : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`
 
 export function RiskPage() {
   const { t } = useTranslation(['risk', 'common'])
   const navigate = useNavigate()
   const { findingId } = useParams<{ findingId?: string }>()
+  const [chip, setChip] = useState<Chip>('ALL')
 
-  const { data: monthsData } = useMonths()
+  const { data: dashboard } = useDashboard('all')
   const { data: findingsData, isLoading } = useFindings()
+  const { data: documents } = useDocuments({ limit: 200 })
 
-  const months = monthsData?.items ?? []
-  const allFindings = [...(findingsData?.items ?? [])].sort(
-    (x, y) =>
-      SEVERITY_ORDER.indexOf(x.severity) - SEVERITY_ORDER.indexOf(y.severity) ||
-      (y.month ?? '').localeCompare(x.month ?? ''),
-  )
-  const attentionCount = months.filter(
-    (m) => m.risk?.level === 'CRITICAL' || m.risk?.level === 'HIGH',
-  ).length
-  // Previous and next in the evidence viewer follow the list's order.
-  const currentIdx = allFindings.findIndex((f) => f.findingId === findingId)
+  const months = dashboard?.months ?? []
+  const files = new Map((documents?.items ?? []).map((d) => [d.docId, d.fileName]))
+  const shown = (findingsData?.items ?? []).filter((f) => SHOWN.has(f.status))
+  const levels = new Map(months.map((m) => [m.month, m.riskLevel]))
 
-  const filterDefs: { key: string; label: string; predicate: (f: Finding) => boolean }[] = [
-    { key: 'ALL', label: t('risk:filters.all'), predicate: () => true },
-    { key: 'CRITICAL', label: t('risk:filters.critical'), predicate: (f) => f.severity === 'CRITICAL' },
-    { key: 'HIGH', label: t('risk:filters.high'), predicate: (f) => f.severity === 'HIGH' },
-    { key: 'MEDIUM', label: t('risk:filters.medium'), predicate: (f) => f.severity === 'MEDIUM' },
-    { key: 'LOW', label: t('risk:filters.low'), predicate: (f) => f.severity === 'LOW' },
-    { key: 'HELD', label: t('risk:filters.held'), predicate: (f) => f.category === 'DUPLICATE' },
-  ]
-  const filters: DataTableFilter<Finding>[] = filterDefs.map((f) => ({
-    ...f,
-    count: allFindings.filter(f.predicate).length,
-  }))
-  const where = (f: Finding) =>
-    f.docId
-      ? f.evidence?.[0]?.page
-        ? t('risk:table.documentPage', { page: f.evidence[0].page })
-        : t('risk:table.document')
-      : t('risk:table.wholeMonth')
-  const columns: DataTableColumn<Finding>[] = [
-    {
-      key: 'finding',
-      header: t('risk:table.finding'),
-      wideOnMobile: true,
-      sortable: true,
-      sortValue: (f) => SEVERITY_ORDER.indexOf(f.severity),
-      render: (f) => (
-        <div className="stack gap-1">
-          <span className="row gap-2 items-center flex-wrap">
-            <SeverityBadge severity={f.severity} />
-            <span className="code-tag">{f.code.split('_')[0]}</span>
-          </span>
-          <strong>{f.title}</strong>
-          <span className="reason">{where(f)}</span>
-        </div>
-      ),
-    },
-    {
-      key: 'month',
-      header: t('risk:table.month'),
-      sortable: true,
-      sortValue: (f) => f.month ?? '',
-      render: (f) => (f.month ? formatMonth(f.month) : '\u2014'),
-    },
-    {
-      key: 'status',
-      header: t('risk:table.status'),
-      align: 'right',
-      sortable: true,
-      sortValue: (f) => f.status,
-      render: (f) => (
-        <span
-          className={`status-line ${
-            f.status === 'OPEN'
-              ? f.severity === 'CRITICAL' || f.severity === 'HIGH'
-                ? 'bad'
-                : ''
-              : f.status === 'DISMISSED'
-                ? 'good'
-                : 'wait'
-          }`}
-        >
-          {t(`risk:status.${f.status.toLowerCase()}`, { defaultValue: f.status })}
-        </span>
-      ),
-    },
-  ]
+  const byMonth = new Map<string, Finding[]>()
+  for (const f of shown) {
+    const month = f.month ?? ''
+    byMonth.set(month, [...(byMonth.get(month) ?? []), f])
+  }
+  const groupLevel = (month: string): SeverityLevel =>
+    (levels.get(month) as SeverityLevel | undefined) ??
+    [...(byMonth.get(month) ?? [])].sort((a, b) => RANK[a.severity] - RANK[b.severity])[0].severity
+  const groups = [...byMonth.keys()]
+    .sort((a, b) => RANK[groupLevel(a)] - RANK[groupLevel(b)] || a.localeCompare(b))
+    .map((month) => ({
+      month,
+      level: groupLevel(month),
+      rows: (byMonth.get(month) ?? [])
+        .filter((f) => matches(f, chip))
+        .sort(
+          (a, b) =>
+            RANK[a.severity] - RANK[b.severity] ||
+            a.code.localeCompare(b.code) ||
+            a.findingId.localeCompare(b.findingId),
+        ),
+    }))
+    .filter((g) => g.rows.length > 0)
+  const ordered = groups.flatMap((g) => g.rows)
+  const currentIdx = ordered.findIndex((f) => f.findingId === findingId)
+
+  const attention = months.filter((m) => m.riskLevel === 'CRITICAL' || m.riskLevel === 'HIGH')
+  const lead =
+    attention.length === 0
+      ? t('risk:attentionNone')
+      : t('risk:attention', {
+          count: attention.length,
+          list: andList(
+            attention.map((m) =>
+              t('risk:monthIs', {
+                month: formatMonth(m.month, 'long'),
+                level: t(`risk:severity.${m.riskLevel}`).toLowerCase(),
+              }),
+            ),
+          ),
+        })
+  const clean = months.filter((m) => !byMonth.has(m.month)).map((m) => formatMonth(m.month, 'long'))
+
+  const where = (f: Finding) => {
+    const docId = f.docId ?? f.evidence.find((e) => e.docId)?.docId
+    if (!docId) return t('risk:table.wholeMonth')
+    const file = files.get(docId) ?? docId
+    if (f.scope === 'MONTH') return t('risk:table.monthDocument', { month: formatMonth(f.month ?? '', 'long'), file })
+    const page = f.evidence.find((e) => e.docId === docId && e.page)?.page
+    return page ? t('risk:table.documentPage', { file, page }) : t('risk:table.document', { file })
+  }
+  const status = (f: Finding): { label: string; tone: string } => {
+    if (f.category === 'DUPLICATE' && f.status === 'OPEN') return { label: t('risk:status.held'), tone: 'wait' }
+    const label = t(`risk:status.${f.status.toLowerCase()}`, { defaultValue: f.status })
+    if (f.status !== 'OPEN') return { label, tone: '' }
+    const tone = f.severity === 'CRITICAL' || f.severity === 'HIGH' ? 'bad' : f.severity === 'MEDIUM' ? 'wait' : ''
+    return { label, tone }
+  }
 
   return (
     <div className="page stack gap-6">
-      {/* Page Header */}
       <div className="page-head">
         <h1 className="type-title">{t('risk:title')}</h1>
         <p>
-          <strong>
-            {t(
-              attentionCount === 1 ? 'risk:attention_one' : 'risk:attention_other',
-              { count: attentionCount },
-            )}
-          </strong>{' '}
-          {t('risk:subtitle')}
+          <strong>{lead}</strong> {t('risk:subtitle')}
         </p>
       </div>
 
       <div className="stack gap-6">
-        {/* Risk by month top horizontal tabs */}
         {months.length > 0 && (
           <section aria-label={t('risk:riskByMonth')}>
-            <div className="months-wrap">
-              <ol className="months">
-                {months.map((m) => {
-                  const { year, shortName } = parseMonthParts(m.month)
-                  const level = (m.risk?.level ?? 'LOW') as SeverityLevel
-                  const mtabClass = getMtabClass(level)
-                  return (
-                    <li key={m.month}>
-                      <Link className={mtabClass} to={`/months/${m.month}`}>
-                        <span className="m-name">
-                          <strong>{shortName}</strong>
-                          <span>{year}</span>
-                        </span>
-                        <span className="m-state wait">
-                          <Icon name="inbox" size="sm" />
-                          {m.risk?.reasons?.[0] ?? m.state}
-                        </span>
-                        <span className="m-foot">
-                          <SeverityBadge severity={level} />
-                        </span>
-                      </Link>
-                    </li>
-                  )
-                })}
-              </ol>
-            </div>
+            <MonthStrip months={months} />
           </section>
         )}
 
-        <DataTable
-          data={allFindings}
-          columns={columns}
-          getRowKey={(f) => f.findingId}
-          filters={filters}
-          filterGroupAriaLabel={t('risk:filterBySeverity')}
-          searchable
-          searchPlaceholder={t('risk:search')}
-          searchPredicate={(f, q) =>
-            [f.title, f.code, f.month ?? '', f.month ? formatMonth(f.month) : '', ...(f.nextSteps ?? [])].some((text) =>
-              text.toLowerCase().includes(q),
-            )
-          }
-          isLoading={isLoading}
-          loadingMessage={<p className="muted small">{t('common:loading')}</p>}
-          emptyMessage={<p className="muted small">{t('risk:noFindings')}</p>}
-          rowClassName={(f) => (f.severity === 'CRITICAL' || f.severity === 'HIGH' ? 'is-flagged' : '')}
-          onRowClick={(f) => navigate(`/risk/${f.findingId}`)}
-        />
+        <div className="chips" role="group" aria-label={t('risk:filterBySeverity')}>
+          {CHIPS.map((key) => (
+            <button
+              key={key}
+              type="button"
+              className="chip"
+              aria-pressed={chip === key}
+              onClick={() => setChip(key)}
+            >
+              {t(`risk:filters.${key.toLowerCase()}`)} <span className="n">{shown.filter((f) => matches(f, key)).length}</span>
+            </button>
+          ))}
+        </div>
 
-        {/* Clean months footer note */}
-        <p className="muted small">{t('risk:cleanMonths')}</p>
+        {isLoading ? (
+          <p className="muted small">{t('common:loading')}</p>
+        ) : shown.length === 0 ? (
+          <p className="muted small">{t('risk:noOpenFindings')}</p>
+        ) : groups.length === 0 ? (
+          <p className="muted small">{t('risk:noFindings')}</p>
+        ) : (
+          groups.map((g) => {
+            const heading = formatMonth(g.month)
+            return (
+              <section key={g.month} className="find-group" aria-label={heading}>
+                <div className="find-head">
+                  <h2 className="type-h3">{heading}</h2>
+                  <SeverityBadge severity={g.level} />
+                  <Link className="link" to={`/months/${g.month}`}>
+                    {t('risk:openMonth', { month: formatMonth(g.month, 'long') })}
+                  </Link>
+                </div>
+                <div className="table-panel rt-wrap">
+                  <table className="data-table rt find-table">
+                    <thead>
+                      <tr>
+                        <th>{t('risk:table.finding')}</th>
+                        <th className="hide-rt">{t('risk:table.where')}</th>
+                        <th className="r">{t('risk:table.status')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {g.rows.map((f) => {
+                        const place = where(f)
+                        const st = status(f)
+                        return (
+                          <tr key={f.findingId} className={f.severity === 'CRITICAL' ? 'is-flagged' : undefined}>
+                            <td>
+                              <Link className="find-link" to={`/risk/${f.findingId}`}>
+                                <SeverityBadge severity={f.severity} />
+                                <span className="code-tag">{f.code.split('_')[0]}</span>
+                                <span className="find-t">{f.title}</span>
+                              </Link>
+                              <span className="sub">{place}</span>
+                            </td>
+                            <td className="hide-rt">{place}</td>
+                            <td className="r">
+                              <span className={`status-line ${st.tone}`.trim()}>{st.label}</span>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            )
+          })
+        )}
+
+        {clean.length > 0 && shown.length > 0 && (
+          <p className="muted small">{t('risk:cleanMonths', { count: clean.length, months: andList(clean) })}</p>
+        )}
       </div>
 
-      {/* Evidence Viewer Drawer/Dialog */}
       {findingId && (
         <EvidenceViewer
           findingId={findingId}
           onClose={() => navigate('/risk')}
           onNext={
-            currentIdx >= 0 && currentIdx < allFindings.length - 1
-              ? () => navigate(`/risk/${allFindings[currentIdx + 1].findingId}`)
+            currentIdx >= 0 && currentIdx < ordered.length - 1
+              ? () => navigate(`/risk/${ordered[currentIdx + 1].findingId}`)
               : undefined
           }
-          onPrev={
-            currentIdx > 0
-              ? () => navigate(`/risk/${allFindings[currentIdx - 1].findingId}`)
-              : undefined
-          }
+          onPrev={currentIdx > 0 ? () => navigate(`/risk/${ordered[currentIdx - 1].findingId}`) : undefined}
           index={currentIdx >= 0 ? currentIdx : undefined}
-          total={allFindings.length}
+          total={ordered.length}
         />
       )}
     </div>

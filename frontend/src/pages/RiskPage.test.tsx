@@ -14,35 +14,13 @@ vi.mock('../shared/api/client', () => ({
   ProblemError: class ProblemError extends Error {},
 }))
 
-const MOCK_MONTHS = {
-  items: [
-    {
-      month: '2026-03',
-      state: 'OPEN',
-      risk: {
-        level: 'CRITICAL',
-        score: 95,
-        reasons: ['Statement edited'],
-      },
-    },
-    {
-      month: '2026-05',
-      state: 'OPEN',
-      risk: {
-        level: 'HIGH',
-        score: 75,
-        reasons: ['Supplier account changed'],
-      },
-    },
-    {
-      month: '2026-01',
-      state: 'RECONCILED',
-      risk: {
-        level: 'LOW',
-        score: 5,
-        reasons: [],
-      },
-    },
+const MOCK_DASHBOARD = {
+  period: 'all',
+  kpis: [],
+  months: [
+    { month: '2026-01', state: 'RECONCILED', riskLevel: 'LOW', autoMatchRate: '0.9400', statementsPresent: 1, statementsExpected: 1 },
+    { month: '2026-03', state: 'NEEDS_REVIEW', riskLevel: 'CRITICAL', autoMatchRate: '0.8600', statementsPresent: 1, statementsExpected: 1 },
+    { month: '2026-05', state: 'NEEDS_REVIEW', riskLevel: 'HIGH', autoMatchRate: '0.8800', statementsPresent: 1, statementsExpected: 1 },
   ],
 }
 
@@ -132,7 +110,8 @@ describe('RiskPage (AC-008-7, AC-008-8, AC-008-9, AC-008-10)', () => {
 
   it('renders month risk levels and groups findings by month (AC-008-7, AC-008-10)', async () => {
     vi.mocked(apiClient).mockImplementation((path: string) => {
-      if (path === '/api/months') return Promise.resolve(MOCK_MONTHS)
+      if (path === '/api/dashboard?period=all') return Promise.resolve(MOCK_DASHBOARD)
+      if (path === '/api/documents?limit=200') return Promise.resolve({ items: [] })
       if (path === '/api/findings') {
         return Promise.resolve({
           items: [MOCK_FINDING_A01, MOCK_FINDING_X08],
@@ -147,14 +126,14 @@ describe('RiskPage (AC-008-7, AC-008-8, AC-008-9, AC-008-10)', () => {
     // 1. Header attention count
     await waitFor(() => {
       expect(screen.getByText('Risk')).toBeInTheDocument()
-      expect(screen.getByText(/2 months need attention/)).toBeInTheDocument()
+      expect(screen.getByText(/2 months need attention: March is critical and May is high/)).toBeInTheDocument()
     })
 
     // 2. Month tabs at the top have risk badges
     expect(screen.getByText('Mar')).toBeInTheDocument()
     expect(screen.getByText('May')).toBeInTheDocument()
 
-    // 3. Groups findings by month with month headers
+    // 3. Groups findings by month with month headers, the worst month first
     expect(screen.getByText('March 2026')).toBeInTheDocument()
     expect(screen.getByText('May 2026')).toBeInTheDocument()
 
@@ -169,7 +148,8 @@ describe('RiskPage (AC-008-7, AC-008-8, AC-008-9, AC-008-10)', () => {
 
   it('filters findings by severity chips (AC-008-7)', async () => {
     vi.mocked(apiClient).mockImplementation((path: string) => {
-      if (path === '/api/months') return Promise.resolve(MOCK_MONTHS)
+      if (path === '/api/dashboard?period=all') return Promise.resolve(MOCK_DASHBOARD)
+      if (path === '/api/documents?limit=200') return Promise.resolve({ items: [] })
       if (path === '/api/findings') {
         return Promise.resolve({
           items: [MOCK_FINDING_A01, MOCK_FINDING_X08],
@@ -203,7 +183,8 @@ describe('RiskPage (AC-008-7, AC-008-8, AC-008-9, AC-008-10)', () => {
 
   it('opens evidence viewer on findingId route with calc, readings and next steps (AC-008-8)', async () => {
     vi.mocked(apiClient).mockImplementation((path: string) => {
-      if (path === '/api/months') return Promise.resolve(MOCK_MONTHS)
+      if (path === '/api/dashboard?period=all') return Promise.resolve(MOCK_DASHBOARD)
+      if (path === '/api/documents?limit=200') return Promise.resolve({ items: [] })
       if (path === '/api/findings') {
         return Promise.resolve({
           items: [MOCK_FINDING_A01, MOCK_FINDING_X08],
@@ -245,7 +226,8 @@ describe('RiskPage (AC-008-7, AC-008-8, AC-008-9, AC-008-10)', () => {
     let dismissedReason: string | undefined
 
     vi.mocked(apiClient).mockImplementation((path: string, options?: RequestInit) => {
-      if (path === '/api/months') return Promise.resolve(MOCK_MONTHS)
+      if (path === '/api/dashboard?period=all') return Promise.resolve(MOCK_DASHBOARD)
+      if (path === '/api/documents?limit=200') return Promise.resolve({ items: [] })
       if (path === '/api/findings') {
         return Promise.resolve({
           items: [{ ...MOCK_FINDING_A01, status: currentStatus, dismissal: dismissedReason ? { reason: dismissedReason } : undefined }],

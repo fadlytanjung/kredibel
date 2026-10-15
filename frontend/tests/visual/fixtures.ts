@@ -10,11 +10,13 @@ import counterparties from '../../../contracts/design/fixtures/counterparties.js
 import document from '../../../contracts/design/fixtures/document.json' with { type: 'json' }
 import month from '../../../contracts/design/fixtures/month.json' with { type: 'json' }
 import review from '../../../contracts/design/fixtures/review.json' with { type: 'json' }
+import risk from '../../../contracts/design/fixtures/risk.json' with { type: 'json' }
 
 export const COUNTERPARTIES = counterparties
 export const DOCUMENT = document
 export const MONTH = month
 export const REVIEW = review
+export const RISK = risk
 
 /** The workspace the mocks' shell shows (tools/design/mocks/shell.py). */
 export const WORKSPACE = {

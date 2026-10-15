@@ -15,7 +15,7 @@ export function ProfitLossSources({ period }: { period: string }) {
     {groups.map((group) => <div key={group}>
       <h3 className="type-h3">{t(`subledgers.${group}`)}</h3>
       {report.entries.filter((entry) => entry.subledger === group).map((entry) => <Link className="pnl-source link" to={`/documents/${encodeURIComponent(entry.docId)}`} key={entry.entryId}>
-        {t('source', { account: `${entry.accountCode} ${entry.accountName}`, date: formatDate(entry.date), row: entry.rowNumber, amount: formatMoney(entry.amount, { currency: report.currency, code: true }) })}
+        {t('source', { account: report.basis === 'CASH' ? entry.accountName : `${entry.accountCode} ${entry.accountName}`, date: formatDate(entry.date), row: entry.rowNumber, amount: formatMoney(entry.amount, { currency: report.currency, code: true }) })}
       </Link>)}
     </div>)}
   </section>

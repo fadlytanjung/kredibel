@@ -1,0 +1,168 @@
+{
+  "period": "2026-03",
+  "months": [
+    "2026-03"
+  ],
+  "currency": "IDR",
+  "basis": "CASH",
+  "coverage": "BANK_LINES_ONLY",
+  "status": "PARTIAL",
+  "inputCount": 7,
+  "classifiedCount": 6,
+  "lines": [
+    {
+      "id": "REVENUE",
+      "amount": "120000000.00",
+      "factId": "fact:pnl_cashbasis0001:revenue",
+      "entryIds": [
+        "tx_sales_1"
+      ]
+    },
+    {
+      "id": "COST_OF_SALES",
+      "amount": "72000000.00",
+      "factId": "fact:pnl_cashbasis0001:cost_of_sales",
+      "entryIds": [
+        "tx_cogs_1"
+      ]
+    },
+    {
+      "id": "GROSS_PROFIT",
+      "amount": "48000000.00",
+      "factId": "fact:pnl_cashbasis0001:gross_profit",
+      "entryIds": [
+        "tx_sales_1",
+        "tx_cogs_1"
+      ]
+    },
+    {
+      "id": "OPERATING_EXPENSES",
+      "amount": "18000000.00",
+      "factId": "fact:pnl_cashbasis0001:operating_expenses",
+      "entryIds": [
+        "tx_payroll_1"
+      ]
+    },
+    {
+      "id": "OPERATING_PROFIT",
+      "amount": "30000000.00",
+      "factId": "fact:pnl_cashbasis0001:operating_profit",
+      "entryIds": [
+        "tx_sales_1",
+        "tx_cogs_1",
+        "tx_payroll_1"
+      ]
+    },
+    {
+      "id": "OTHER_INCOME",
+      "amount": "1000000.00",
+      "factId": "fact:pnl_cashbasis0001:other_income",
+      "entryIds": [
+        "tx_interest_in"
+      ]
+    },
+    {
+      "id": "FINANCE_COSTS",
+      "amount": "2000000.00",
+      "factId": "fact:pnl_cashbasis0001:finance_costs",
+      "entryIds": [
+        "tx_interest_out"
+      ]
+    },
+    {
+      "id": "INCOME_TAX",
+      "amount": "3000000.00",
+      "factId": "fact:pnl_cashbasis0001:income_tax",
+      "entryIds": [
+        "tx_tax_1"
+      ]
+    },
+    {
+      "id": "NET_PROFIT",
+      "amount": "26000000.00",
+      "factId": "fact:pnl_cashbasis0001:net_profit",
+      "entryIds": [
+        "tx_sales_1",
+        "tx_cogs_1",
+        "tx_payroll_1",
+        "tx_interest_in",
+        "tx_interest_out",
+        "tx_tax_1"
+      ]
+    }
+  ],
+  "exclusions": {
+    "NOT_CASH_FLOW": 1
+  },
+  "gaps": [
+    "NO_LEDGER_EXPORT"
+  ],
+  "entries": [
+    {
+      "entryId": "tx_sales_1",
+      "docId": "doc_stmt_mar",
+      "rowNumber": 1,
+      "date": "2026-03-02",
+      "accountCode": "SALES_RECEIPT",
+      "accountName": "Sales receipts",
+      "pnlLine": "REVENUE",
+      "subledger": "SALES",
+      "amount": "120000000.00"
+    },
+    {
+      "entryId": "tx_cogs_1",
+      "docId": "doc_stmt_mar",
+      "rowNumber": 2,
+      "date": "2026-03-03",
+      "accountCode": "INVENTORY_PURCHASE",
+      "accountName": "Purchases for sale or production",
+      "pnlLine": "COST_OF_SALES",
+      "subledger": "PURCHASES",
+      "amount": "72000000.00"
+    },
+    {
+      "entryId": "tx_payroll_1",
+      "docId": "doc_stmt_mar",
+      "rowNumber": 3,
+      "date": "2026-03-05",
+      "accountCode": "PAYROLL",
+      "accountName": "Payroll",
+      "pnlLine": "OPERATING_EXPENSES",
+      "subledger": "PAYROLL",
+      "amount": "18000000.00"
+    },
+    {
+      "entryId": "tx_interest_in",
+      "docId": "doc_stmt_mar",
+      "rowNumber": 4,
+      "date": "2026-03-09",
+      "accountCode": "INTEREST_RECEIVED",
+      "accountName": "Interest received",
+      "pnlLine": "OTHER_INCOME",
+      "subledger": "FINANCE",
+      "amount": "1000000.00"
+    },
+    {
+      "entryId": "tx_interest_out",
+      "docId": "doc_stmt_mar",
+      "rowNumber": 5,
+      "date": "2026-03-12",
+      "accountCode": "INTEREST_PAID",
+      "accountName": "Interest paid",
+      "pnlLine": "FINANCE_COSTS",
+      "subledger": "FINANCE",
+      "amount": "2000000.00"
+    },
+    {
+      "entryId": "tx_tax_1",
+      "docId": "doc_stmt_mar",
+      "rowNumber": 6,
+      "date": "2026-03-15",
+      "accountCode": "TAX_PAYMENT",
+      "accountName": "Tax",
+      "pnlLine": "INCOME_TAX",
+      "subledger": "TAX",
+      "amount": "3000000.00"
+    }
+  ]
+}

@@ -33,7 +33,7 @@
   "compactAmounts": "Amounts formatted compactly; click any node or band for itemized rows.",
   "entriesSheet": {
     "close": "Close entries",
-    "total": "{{count}} entries \u00b7 Total {{total}}",
+    "total": "{{count}} entries · Total {{total}}",
     "noEntries": "No entries found for this selection.",
     "row": "Row {{row}}",
     "count_one": "{{count}} contributing entry",
@@ -42,7 +42,7 @@
   "line": "P&L line",
   "amount": "Amount",
   "unavailableAmount": "Unavailable",
-  "loading": "Loading profit and loss\u2026",
+  "loading": "Loading profit and loss…",
   "error": "Profit and loss could not be loaded. Check the period and try again.",
   "retry": "Try again",
   "accounts": "Account classifications",
@@ -50,7 +50,7 @@
   "subledger": "Subledger",
   "choose": "Choose a classification",
   "confirm": "Confirm classification",
-  "saving": "Saving\u2026",
+  "saving": "Saving…",
   "saved": "Classification confirmed.",
   "saveError": "The classification was not saved. Try again.",
   "readOnly": "An owner or accountant can confirm these classifications.",
@@ -63,7 +63,7 @@
   "period": "Period",
   "apply": "Apply period",
   "selectMonth": "Filter month",
-  "chooseMonth": "Select a month\u2026",
+  "chooseMonth": "Select a month…",
   "subledgersView": "Subledgers",
   "periodHelp": "Use recent, all, a year (2026), quarter (2026-Q1), month (2026-03), or range (2026-01..2026-03).",
   "open": "Open profit and loss",
@@ -85,7 +85,16 @@
     "FIXED_ASSETS": "Fixed assets",
     "PAYROLL": "Payroll",
     "CASH": "Cash and bank",
-    "GENERAL": "General journals"
+    "GENERAL": "General journals",
+    "SALES": "Sales",
+    "PURCHASES": "Purchases and cost of goods",
+    "SERVICES": "Suppliers and services",
+    "OCCUPANCY": "Rent and utilities",
+    "FINANCE": "Bank and finance",
+    "TAX": "Tax",
+    "EQUIPMENT": "Equipment and investments",
+    "OWNER_AND_LOANS": "Owner and loans",
+    "OTHER": "Other"
   },
   "exclusions": {
     "UNCLASSIFIED": "Unclassified entries: {{count}}",
@@ -94,13 +103,23 @@
     "CURRENCY": "Entries with missing or different currency: {{count}}",
     "NON_ACTIVITY": "Opening or closing entries: {{count}}",
     "SOURCE_UNAVAILABLE": "Entries without an eligible source document: {{count}}",
-    "DUPLICATE_ENTRY_ID": "Conflicting entry IDs: {{count}}"
+    "DUPLICATE_ENTRY_ID": "Conflicting entry IDs: {{count}}",
+    "NOT_CASH_FLOW": "Not a cash flow of the business (between own accounts or reversals): {{count}}",
+    "UNCATEGORIZED": "Bank lines not categorized yet: {{count}}"
   },
   "gaps": {
     "MISSING_JOURNAL_ID": "Some entries have no journal ID.",
-    "UNBALANCED_JOURNAL": "Some imported journals do not balance."
+    "UNBALANCED_JOURNAL": "Some imported journals do not balance.",
+    "NO_LEDGER_EXPORT": "No ledger export has been imported: this is a cash-basis report from bank lines, not an accrual income statement."
   },
   "totalIncome": "Total income",
   "bandLabel": "Inspect {{label}}: {{amount}}",
-  "signedFlow": "Signed report rows preserve losses and reversals. Select a row to inspect its sources."
+  "signedFlow": "Signed report rows preserve losses and reversals. Select a row to inspect its sources.",
+  "basisCash": "Cash-basis report for {{period}}, from your bank lines",
+  "coverageCash": "Categorized bank lines only, grouped by their subledger label. No ledger export has been imported, so this is not an accrual report.",
+  "emptyCash": "Profit and loss needs categorized bank lines for this period, or a posted general ledger with confirmed account classifications.",
+  "accountsCash": "Category labels",
+  "accountHelpCash": "Each bank-line category stands for one P&L line and one subledger in the cash-basis report. Import a ledger export to classify your own accounts.",
+  "fromPolicy": "From the category policy",
+  "pageHelpCash": "Your bank lines by subledger label, with the lines behind every total."
 }

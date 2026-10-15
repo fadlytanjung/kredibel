@@ -222,7 +222,10 @@ several entities · real customer data (P8).
 - **FR-054** A company management P&L uses posted GL income/expense entries with confirmed account
   and subledger classifications, signed Decimal totals, source drill-down and explicit coverage.
 - **FR-055** Owners/accountants confirm workspace account mappings with an audit event; models never
-  change them. Missing ledger data is unavailable, never inferred from bank cash.
+  change them. Missing ledger data is unavailable, never presented as accrual profit.
+- **FR-056** While a workspace has no ledger export, the profit and loss is a cash-basis report built
+  by code from its categorized bank lines, each category carrying a P&L line and a subledger label in
+  policy; it is labelled as such everywhere, and a ledger export takes over as soon as it has rows.
 
 ### 7.7 Profile and counterparties
 

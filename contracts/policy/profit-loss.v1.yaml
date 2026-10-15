@@ -16,3 +16,13 @@ subledgers:
   PAYROLL: Payroll
   CASH: Cash and bank
   GENERAL: General journals
+  # management groups, also the subledger labels of bank-line categories (cash basis)
+  SALES: Sales
+  PURCHASES: Purchases and cost of goods
+  SERVICES: Suppliers and services
+  OCCUPANCY: Rent and utilities
+  FINANCE: Bank and finance
+  TAX: Tax
+  EQUIPMENT: Equipment and investments
+  OWNER_AND_LOANS: Owner and loans
+  OTHER: Other

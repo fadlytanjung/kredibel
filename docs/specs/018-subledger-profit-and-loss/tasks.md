@@ -14,3 +14,12 @@
   revenue from other income, show losses/reversals with a signed alternative, and make flow nodes
   open their exact contributing entries. Refresh populated/empty/partial mocks, shared synthetic
   fixture, source drawer and responsive visual baselines. (AC-018-3…7)
+- [x] **T018-08** **TDD** Cash basis from categorized bank lines while no ledger export exists:
+  category P&L line and subledger labels in `categories.v1.yaml`, `build_cash_profit_loss`, the
+  service's fallback and precedence, the accounts catalog read-only, the assistant's wording.
+  (AC-018-8, AC-018-9) Built 16 Oct 2026.
+- [x] **T018-09** Cash-basis wording on the dashboard panel, the page and the category table; the
+  `profit-loss-cash.html` mock from `contracts/design/fixtures/profit-loss-cash.json`, story and
+  browser parity check. (AC-018-8, AC-018-5) Built 16 Oct 2026.
+- [x] **T018-10** ADR-027 amendment, PRD (FR-056), traceability, `docs/08` §4.1, `docs/10`, `docs/11`
+  and the status. Built 16 Oct 2026.

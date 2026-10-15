@@ -6,7 +6,7 @@
 | **Priority** | P1, requested continuation on 14 October 2026 |
 | **Owner role** | B + C + A |
 | **Depends on** | 010 dashboard, 011 assistant UI; ledger population follows 005 |
-| **Requirements** | FR-054, FR-055, FR-070, NFR-08 |
+| **Requirements** | FR-054, FR-055, FR-056, FR-070, NFR-08 |
 | **Design** | [ADR-027](../../adr/ADR-027-subledgers-and-company-profit-loss.md) |
 
 ## Summary
@@ -47,6 +47,19 @@ compliance. It reports only imported posted entries, never bank cash or invoice 
   assistant answers, then it uses the same read-only report and decimal strings, with fact IDs,
   coverage and a report link. Unavailable data produces no invented profit. P&L requests do not
   invoke the model to calculate or summarize ungrounded amounts.
+
+### US-018-5: See a profit and loss before a ledger export exists
+
+- **AC-018-8** Given a workspace with categorized bank lines and no ledger export, when a period is
+  selected, then code builds a cash-basis report from the lines by each category's P&L line and
+  subledger label (`categories.v1.yaml`): money in on a credit line is revenue, money out on a debit
+  line an expense, a refund reverses its own line; transfers and reversals are not cash flows;
+  uncategorized lines make it partial; balance-sheet categories never become profit or expense.
+  The report says `basis: CASH`, `coverage: BANK_LINES_ONLY` and the gap `NO_LEDGER_EXPORT`; the
+  dashboard, the page and the assistant say so in words. Input order is irrelevant.
+- **AC-018-9** Given a ledger export with rows, when the report is built, then the accrual report
+  of AC-018-3 is returned and the cash basis is not used. The classification table shows the
+  category labels read-only while there is no ledger; a category is never an imported account.
 
 ### US-018-4: Keep design and code together
 

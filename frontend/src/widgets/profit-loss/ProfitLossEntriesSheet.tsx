@@ -19,6 +19,7 @@ export interface ProfitLossEntriesSheetProps {
   currency: string
   entries: ProfitEntryItem[]
   onClose: () => void
+  basis?: 'ACCRUAL' | 'CASH'
 }
 
 export function ProfitLossEntriesSheet({
@@ -27,6 +28,7 @@ export function ProfitLossEntriesSheet({
   currency,
   entries,
   onClose,
+  basis = 'ACCRUAL',
 }: ProfitLossEntriesSheetProps) {
   const { t } = useTranslation('profitLoss')
   const dialog = useRef<HTMLElement>(null)
@@ -94,7 +96,7 @@ export function ProfitLossEntriesSheet({
               >
                 <div>
                   <div className="font-semibold text-ink">
-                    <span className="font-mono text-xs opacity-75 mr-1.5">{entry.accountCode}</span>
+                    {basis !== 'CASH' && <span className="font-mono text-xs opacity-75 mr-1.5">{entry.accountCode}</span>}
                     <span>{entry.accountName}</span>
                   </div>
                   <div className="text-xs text-muted mt-0.5 flex items-center gap-2">

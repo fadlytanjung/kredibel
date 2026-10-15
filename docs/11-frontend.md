@@ -418,6 +418,10 @@ with the same period. The report page offers Flow/Bars/Table, a month picker and
 account P&L/subledger selectors with **Confirm classification**, and source document/row links.
 Owners/accountants can confirm; other roles read. Empty means usable classified ledger entries are
 not available, not zero profit. A failed request has **Try again**. All words use `profitLoss.json`.
+While the workspace has no ledger export (`basis: CASH`), the panel and the page say **Cash-basis
+report … from your bank lines**, the flow names categories by their labels (Sales receipts, Purchases
+for sale or production, Payroll), and the classification table becomes **Category labels**, read-only,
+badged "From the category policy" (`profit-loss-cash.html`).
 
 The Flow joins revenue accounts and separate other income at total income, then shows cost of sales,
 operating subledgers, finance costs, tax and net profit. It uses the report totals and exact decimal

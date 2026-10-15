@@ -1,5 +1,7 @@
 """AC-018-1/2/4: server-scoped reporting and audited account decisions."""
 
+from decimal import Decimal
+
 from app.domain.profit_loss import Classification
 from tests.fakes.ledger_repository import FakeLedgerRepository
 from tests.integration.test_invoice_workflow import AUTH, _client, _deps
@@ -96,7 +98,10 @@ async def test_ac018_2_roles_and_6_assistant_use_the_same_report():
         accounts = await client.get(
             "/api/profit-loss/accounts", headers={"Authorization": "Bearer foreign"}
         )
-        assert accounts.json()["accounts"] == []
+        # Another workspace sees none of org_1's accounts: without a ledger of its own it gets the
+        # policy's category labels (cash basis), which hold no workspace data.
+        assert accounts.json()["basis"] == "CASH"
+        assert {"sales", "bank"}.isdisjoint({a["accountCode"] for a in accounts.json()["accounts"]})
         thread = (
             await client.post("/api/assistant/threads", headers=AUTH, json={"scope": "2026-03"})
         ).json()["threadId"]
@@ -111,3 +116,90 @@ async def test_ac018_2_roles_and_6_assistant_use_the_same_report():
         )
         assert "PROFIT_LOSS" in streamed.text and "event: message" in streamed.text
         assert "event: token" not in streamed.text
+
+
+async def test_ac018_8_without_a_ledger_export_the_report_is_cash_basis_from_bank_lines():
+    from datetime import UTC, date, datetime
+
+    from app.domain.models.bank_line import BankLine
+    from app.domain.models.document import DocStatus, DocType, Document
+
+    deps, _ = _deps()
+    repo = FakeLedgerRepository()
+    deps._ledger = repo
+    now = datetime(2026, 4, 2, tzinfo=UTC)
+    await deps.doc_repo.save_document(
+        "org_1",
+        Document(
+            doc_id="doc_stmt",
+            file_name="ACB_Mar_2026.pdf",
+            content_type="application/pdf",
+            size_bytes=1000,
+            page_count=2,
+            sha256="a" * 64,
+            gcs_path="gs://synthetic/doc_stmt.pdf",
+            uploaded_by="u-1",
+            uploaded_at=now,
+            doc_type=DocType.BANK_STATEMENT,
+            status=DocStatus.DONE,
+            months=["2026-03"],
+        ),
+    )
+
+    def bank_line(tx: str, amount: str, category: str, row: int) -> BankLine:
+        return BankLine(
+            tx_id=tx,
+            doc_id="doc_stmt",
+            page=1,
+            row_index=row,
+            date=date(2026, 3, 2 + row),
+            month="2026-03",
+            description=tx.upper(),
+            amount=Decimal(amount),
+            balance=None,
+            category=category,
+        )
+
+    await deps.bank_lines.replace_document_lines(
+        "org_1",
+        "doc_stmt",
+        [
+            bank_line("tx1", "120000000.00", "SALES_RECEIPT", 0),
+            bank_line("tx2", "-72000000.00", "INVENTORY_PURCHASE", 1),
+            bank_line("tx3", "-18000000.00", "PAYROLL", 2),
+            bank_line("tx4", "-2000000.00", "INTERNAL_TRANSFER", 3),
+        ],
+    )
+    async with _client(deps) as client:
+        report = (await client.get("/api/profit-loss?period=2026-03", headers=AUTH)).json()
+        assert report["basis"] == "CASH" and report["coverage"] == "BANK_LINES_ONLY"
+        assert report["status"] == "PARTIAL" and report["gaps"] == ["NO_LEDGER_EXPORT"]
+        amounts = {line["id"]: line["amount"] for line in report["lines"]}
+        assert amounts["REVENUE"] == "120000000.00" and amounts["NET_PROFIT"] == "30000000.00"
+        assert report["exclusions"] == {"NOT_CASH_FLOW": 1}
+        assert {e["subledger"] for e in report["entries"]} == {"SALES", "PURCHASES", "PAYROLL"}
+
+        accounts = (await client.get("/api/profit-loss/accounts", headers=AUTH)).json()
+        assert accounts["basis"] == "CASH"
+        sales = next(a for a in accounts["accounts"] if a["accountCode"] == "SALES_RECEIPT")
+        assert sales["classification"] == {
+            "accountCode": "SALES_RECEIPT",
+            "pnlLine": "REVENUE",
+            "subledger": "SALES",
+        }
+        assert accounts["subledgers"]["PURCHASES"] == "Purchases and cost of goods"
+        # The category labels come from the policy: a category is not an imported account.
+        refused = await client.put(
+            "/api/profit-loss/accounts",
+            headers=AUTH,
+            json={"accountCode": "SALES_RECEIPT", "pnlLine": "REVENUE", "subledger": "SALES"},
+        )
+        assert refused.status_code == 422
+
+        # A ledger export takes over as soon as it has rows.
+        repo.rows["org_1"] = [row("sales", credit="100")]
+        report = (await client.get("/api/profit-loss?period=2026-03", headers=AUTH)).json()
+        assert report["basis"] == "ACCRUAL"
+        assert (await client.get("/api/profit-loss/accounts", headers=AUTH)).json()[
+            "basis"
+        ] == "ACCRUAL"

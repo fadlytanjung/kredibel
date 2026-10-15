@@ -696,6 +696,8 @@ class AppDeps:
                 policy=load_profit_loss_policy(
                     self.settings.contract_path(self.settings.policy_dir)
                 ),
+                bank_lines=self.bank_lines,
+                categories=self.categories,
             ),
         )
 

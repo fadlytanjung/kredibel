@@ -19,7 +19,8 @@ export function profitFlow(report: ProfitLoss, label: (key: string) => string) {
   const revenue = report.entries.filter((entry) => entry.pnlLine === 'REVENUE')
   for (const account of [...new Set(revenue.map((entry) => entry.accountCode))].sort()) {
     const entries = revenue.filter((entry) => entry.accountCode === account)
-    sources.push({ id: `account:${account}`, label: `${account} ${entries[0].accountName}`, amount: sumAmounts(entries.map((entry) => entry.amount)), role: 'src', entries })
+    const name = report.basis === 'CASH' ? entries[0].accountName : `${account} ${entries[0].accountName}`
+    sources.push({ id: `account:${account}`, label: name, amount: sumAmounts(entries.map((entry) => entry.amount)), role: 'src', entries })
   }
   sources.push({ id: 'OTHER_INCOME', label: label('lines.OTHER_INCOME'), amount: value('OTHER_INCOME'), role: 'src', entries: entriesFor('OTHER_INCOME') })
   const add = (id: string, role: ProfitNode['role']) => uses.push({ id, label: label(`lines.${id}`), amount: value(id), role, entries: entriesFor(id) })

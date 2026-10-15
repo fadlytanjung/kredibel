@@ -64,6 +64,16 @@ SCREEN_INVENTORY: dict[str, ScreenInfo] = {
         spec="018",
         notes="Accrual management P&L empty state when no transactions or ledger entries are posted.",
     ),
+    "profit-loss-cash": ScreenInfo(
+        slug="profit-loss-cash",
+        title="Profit and loss: cash basis",
+        route="/profit-loss",
+        status="IMPLEMENTED_STATE",
+        badge_label="Implemented state",
+        badge_class="badge-low",
+        spec="018",
+        notes="While the workspace has no ledger export: a cash-basis report from its categorized bank lines by subledger label, the category labels read-only (ADR-027 amendment).",
+    ),
     "profit-loss-partial": ScreenInfo(
         slug="profit-loss-partial",
         title="Profit and loss: partial",

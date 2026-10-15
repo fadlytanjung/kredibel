@@ -1,0 +1,195 @@
+{
+  "_comment": "Synthetic: the category labels the Sunrise Coffee Roasters demo workspace (IDR) sees while it has no ledger export, from contracts/policy.",
+  "basis": "CASH",
+  "accounts": [
+    {
+      "accountCode": "SALES_RECEIPT",
+      "accountName": "Sales receipts",
+      "classification": {
+        "accountCode": "SALES_RECEIPT",
+        "pnlLine": "REVENUE",
+        "subledger": "SALES"
+      }
+    },
+    {
+      "accountCode": "OTHER_OPERATING_INCOME",
+      "accountName": "Other operating income",
+      "classification": {
+        "accountCode": "OTHER_OPERATING_INCOME",
+        "pnlLine": "OTHER_INCOME",
+        "subledger": "OTHER"
+      }
+    },
+    {
+      "accountCode": "INTEREST_RECEIVED",
+      "accountName": "Interest received",
+      "classification": {
+        "accountCode": "INTEREST_RECEIVED",
+        "pnlLine": "OTHER_INCOME",
+        "subledger": "FINANCE"
+      }
+    },
+    {
+      "accountCode": "ASSET_SALE",
+      "accountName": "Sale of equipment",
+      "classification": {
+        "accountCode": "ASSET_SALE",
+        "pnlLine": "BALANCE_SHEET",
+        "subledger": "EQUIPMENT"
+      }
+    },
+    {
+      "accountCode": "LOAN_DISBURSEMENT",
+      "accountName": "Loan received",
+      "classification": {
+        "accountCode": "LOAN_DISBURSEMENT",
+        "pnlLine": "BALANCE_SHEET",
+        "subledger": "OWNER_AND_LOANS"
+      }
+    },
+    {
+      "accountCode": "OWNER_CAPITAL",
+      "accountName": "Owner's capital",
+      "classification": {
+        "accountCode": "OWNER_CAPITAL",
+        "pnlLine": "BALANCE_SHEET",
+        "subledger": "OWNER_AND_LOANS"
+      }
+    },
+    {
+      "accountCode": "INVENTORY_PURCHASE",
+      "accountName": "Purchases for sale or production",
+      "classification": {
+        "accountCode": "INVENTORY_PURCHASE",
+        "pnlLine": "COST_OF_SALES",
+        "subledger": "PURCHASES"
+      }
+    },
+    {
+      "accountCode": "SUPPLIER_PAYMENT",
+      "accountName": "Other suppliers and services",
+      "classification": {
+        "accountCode": "SUPPLIER_PAYMENT",
+        "pnlLine": "OPERATING_EXPENSES",
+        "subledger": "SERVICES"
+      }
+    },
+    {
+      "accountCode": "PAYROLL",
+      "accountName": "Payroll",
+      "classification": {
+        "accountCode": "PAYROLL",
+        "pnlLine": "OPERATING_EXPENSES",
+        "subledger": "PAYROLL"
+      }
+    },
+    {
+      "accountCode": "RENT",
+      "accountName": "Rent",
+      "classification": {
+        "accountCode": "RENT",
+        "pnlLine": "OPERATING_EXPENSES",
+        "subledger": "OCCUPANCY"
+      }
+    },
+    {
+      "accountCode": "UTILITIES",
+      "accountName": "Utilities",
+      "classification": {
+        "accountCode": "UTILITIES",
+        "pnlLine": "OPERATING_EXPENSES",
+        "subledger": "OCCUPANCY"
+      }
+    },
+    {
+      "accountCode": "BANK_FEES",
+      "accountName": "Bank fees",
+      "classification": {
+        "accountCode": "BANK_FEES",
+        "pnlLine": "OPERATING_EXPENSES",
+        "subledger": "FINANCE"
+      }
+    },
+    {
+      "accountCode": "OTHER_OPERATING_EXPENSE",
+      "accountName": "Other spending",
+      "classification": {
+        "accountCode": "OTHER_OPERATING_EXPENSE",
+        "pnlLine": "OPERATING_EXPENSES",
+        "subledger": "OTHER"
+      }
+    },
+    {
+      "accountCode": "TAX_PAYMENT",
+      "accountName": "Tax",
+      "classification": {
+        "accountCode": "TAX_PAYMENT",
+        "pnlLine": "INCOME_TAX",
+        "subledger": "TAX"
+      }
+    },
+    {
+      "accountCode": "INTEREST_PAID",
+      "accountName": "Interest paid",
+      "classification": {
+        "accountCode": "INTEREST_PAID",
+        "pnlLine": "FINANCE_COSTS",
+        "subledger": "FINANCE"
+      }
+    },
+    {
+      "accountCode": "ASSET_PURCHASE",
+      "accountName": "Equipment bought",
+      "classification": {
+        "accountCode": "ASSET_PURCHASE",
+        "pnlLine": "BALANCE_SHEET",
+        "subledger": "EQUIPMENT"
+      }
+    },
+    {
+      "accountCode": "LOAN_REPAYMENT",
+      "accountName": "Loan principal repaid",
+      "classification": {
+        "accountCode": "LOAN_REPAYMENT",
+        "pnlLine": "BALANCE_SHEET",
+        "subledger": "OWNER_AND_LOANS"
+      }
+    },
+    {
+      "accountCode": "OWNER_DRAWING",
+      "accountName": "Owner drawings",
+      "classification": {
+        "accountCode": "OWNER_DRAWING",
+        "pnlLine": "BALANCE_SHEET",
+        "subledger": "OWNER_AND_LOANS"
+      }
+    }
+  ],
+  "pnlLines": {
+    "REVENUE": "Revenue",
+    "COST_OF_SALES": "Cost of sales",
+    "OPERATING_EXPENSES": "Operating expenses",
+    "OTHER_INCOME": "Other income",
+    "FINANCE_COSTS": "Finance costs",
+    "INCOME_TAX": "Income tax",
+    "BALANCE_SHEET": "Balance sheet (excluded from profit)"
+  },
+  "subledgers": {
+    "RECEIVABLES": "Receivables",
+    "PAYABLES": "Payables",
+    "INVENTORY": "Inventory",
+    "FIXED_ASSETS": "Fixed assets",
+    "PAYROLL": "Payroll",
+    "CASH": "Cash and bank",
+    "GENERAL": "General journals",
+    "SALES": "Sales",
+    "PURCHASES": "Purchases and cost of goods",
+    "SERVICES": "Suppliers and services",
+    "OCCUPANCY": "Rent and utilities",
+    "FINANCE": "Bank and finance",
+    "TAX": "Tax",
+    "EQUIPMENT": "Equipment and investments",
+    "OWNER_AND_LOANS": "Owner and loans",
+    "OTHER": "Other"
+  }
+}

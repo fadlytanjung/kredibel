@@ -76,15 +76,18 @@ function AccountRow({ account, catalog, canEdit }: { account: Account; catalog: 
 export function AccountClassifications({ canEdit }: { canEdit: boolean }) {
   const { t } = useTranslation('profitLoss')
   const query = useProfitLossAccounts()
+  // No ledger export yet: the rows are the bank-line categories with the policy's labels (cash basis).
+  const cash = query.data?.basis === 'CASH'
+  const editable = canEdit && !cash
 
   return (
     <section className="panel panel-pad stack gap-4">
       <div className="spread items-center">
         <div>
-          <h2 className="type-h2">{t('accounts')}</h2>
-          <p className="muted small mt-1">{t('accountHelp')}</p>
+          <h2 className="type-h2">{t(cash ? 'accountsCash' : 'accounts')}</h2>
+          <p className="muted small mt-1">{t(cash ? 'accountHelpCash' : 'accountHelp')}</p>
         </div>
-        {!canEdit && <span className="badge badge-quiet">{t('readOnly')}</span>}
+        {cash ? <span className="badge badge-quiet">{t('fromPolicy')}</span> : !canEdit && <span className="badge badge-quiet">{t('readOnly')}</span>}
       </div>
 
       {query.isPending && <p role="status">{t('loading')}</p>}
@@ -106,7 +109,7 @@ export function AccountClassifications({ canEdit }: { canEdit: boolean }) {
                   <th>{t('colAccount', { defaultValue: 'Account' })}</th>
                   <th>{t('line')}</th>
                   <th>{t('subledger')}</th>
-                  {canEdit && (
+                  {editable && (
                     <th className="r">
                       {t('action', { defaultValue: 'Action' })}
                     </th>
@@ -114,14 +117,29 @@ export function AccountClassifications({ canEdit }: { canEdit: boolean }) {
                 </tr>
               </thead>
               <tbody>
-                {query.data.accounts.map((account) => (
-                  <AccountRow
-                    key={account.accountCode}
-                    account={account}
-                    catalog={query.data!}
-                    canEdit={canEdit}
-                  />
-                ))}
+                {query.data.accounts.map((account) =>
+                  cash ? (
+                    <tr key={account.accountCode}>
+                      <td>
+                        <div className="doc-cell">
+                          <div>
+                            <strong>{account.accountName}</strong>
+                            <span className="sub">{account.accountCode}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td>{account.classification ? query.data!.pnlLines[account.classification.pnlLine] : t('choose')}</td>
+                      <td>{account.classification ? query.data!.subledgers[account.classification.subledger] : t('choose')}</td>
+                    </tr>
+                  ) : (
+                    <AccountRow
+                      key={account.accountCode}
+                      account={account}
+                      catalog={query.data!}
+                      canEdit={canEdit}
+                    />
+                  ),
+                )}
               </tbody>
             </table>
           </div>

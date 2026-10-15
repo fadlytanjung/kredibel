@@ -69,6 +69,6 @@ export function ProfitLossFlow({ report }: { report: ProfitLoss }) {
     <div className="chart-head"><p className="muted small">{t('flowSubtitle')}</p>{graph && <SegmentedControl ariaLabel={t('unitLabel')} value={exact ? 'exact' : 'compact'} onChange={(value) => setExact(value === 'exact')} options={[{ key: 'compact', label: t('unitCompact') }, { key: 'exact', label: t('unitExact') }]} />}</div>
     {graph ? <><div className="pnl-flow-wide">{draw()}</div><div className="pnl-flow-compact">{signedRows}</div></> : <><p className="muted small">{t('signedFlow')}</p>{signedRows}</>}
     {graph && <p className="chart-note">{t(exact ? 'exactAmounts' : 'compactAmounts')}</p>}
-    {selected && <ProfitLossEntriesSheet title={selected.label} subtitle={money(selected.amount)} currency={report.currency} entries={selected.entries} onClose={() => setSelected(null)} />}
+    {selected && <ProfitLossEntriesSheet title={selected.label} subtitle={money(selected.amount)} currency={report.currency} basis={report.basis} entries={selected.entries} onClose={() => setSelected(null)} />}
   </div>
 }

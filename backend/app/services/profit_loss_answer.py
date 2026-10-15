@@ -25,10 +25,19 @@ def report_period(question: str, scope: str) -> str:
 
 
 def profit_loss_answer(report: ProfitLoss) -> MessageAnswer:
-    coverage = "Accrual management P&L from imported posted ledger entries only."
+    cash = report.basis == "CASH"
+    coverage = (
+        "Cash-basis P&L from your categorized bank lines, by subledger label; no ledger export "
+        "has been imported, so this is not an accrual report."
+        if cash
+        else "Accrual management P&L from imported posted ledger entries only."
+    )
     if report.status == "UNAVAILABLE":
         text = (
-            "Profit and loss is unavailable for this period. Add a posted general ledger with "
+            "Profit and loss is unavailable for this period. Upload bank statements for it, or "
+            "a posted general ledger with account classifications."
+            if cash
+            else "Profit and loss is unavailable for this period. Add a posted general ledger with "
             "currency and account classifications. Bank cash movements cannot establish profit."
         )
     elif report.status == "PARTIAL":

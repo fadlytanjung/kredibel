@@ -193,6 +193,14 @@ The dashboard splits `OPERATING_EXPENSES` further by category (payroll, rent and
 services, other), so the money flow shows the same rows a person expects in a statement. Statement
 lines are cash-basis groupings of bank lines, not an accrual income statement; the UI says so.
 
+Each money-in or money-out category also carries a **P&L line** and a **subledger** label
+(`pnlLine`, `subledger` in the same file): while a workspace has no ledger export, the profit and loss
+is a cash-basis report built from its bank lines by these labels (sales receipts → `REVENUE` /
+`SALES`, purchases for sale → `COST_OF_SALES` / `PURCHASES`, payroll → `OPERATING_EXPENSES` /
+`PAYROLL`, interest paid → `FINANCE_COSTS` / `FINANCE`, tax → `INCOME_TAX` / `TAX`); equipment, loans
+and the owner's money are `BALANCE_SHEET` and never profit or expense; transfers, reversals and
+`UNKNOWN` carry no labels (ADR-027 amendment).
+
 Goods or services: a debit matched to a purchase invoice is `INVENTORY_PURCHASE` when the invoice
 reader marks it `supplyKind = GOODS` (beans, packaging, stock) and `SUPPLIER_PAYMENT` when
 `SERVICES` (maintenance, delivery, consulting); `MIXED` follows the larger share. Either way it is a

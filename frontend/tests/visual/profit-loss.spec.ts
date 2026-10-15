@@ -2,7 +2,7 @@ import { expect, type Page, test } from '@playwright/test'
 import { createRequire } from 'node:module'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { EMPTY_PNL, PNL, PNL_ACCOUNTS } from '../../src/widgets/profit-loss/fixture'
+import { EMPTY_PNL, PNL, PNL_ACCOUNTS, PNL_CASH, PNL_CASH_ACCOUNTS } from '../../src/widgets/profit-loss/fixture'
 
 const require = createRequire(import.meta.url)
 async function serve(page: Page, empty = false) {
@@ -10,6 +10,17 @@ async function serve(page: Page, empty = false) {
     const path = new URL(route.request().url()).pathname
     if (path === '/api/profit-loss/accounts') return route.fulfill({ json: empty ? { ...PNL_ACCOUNTS, accounts: [] } : PNL_ACCOUNTS })
     if (path === '/api/profit-loss') return route.fulfill({ json: empty ? EMPTY_PNL : PNL })
+    if (path === '/api/months') return route.fulfill({ json: { items: [{ month: '2026-03' }] } })
+    return route.fulfill({ json: { items: [] } })
+  })
+}
+
+/** The same workspace before any ledger export: the report is cash basis from its bank lines. */
+async function serveCash(page: Page) {
+  await page.route((url) => url.pathname.startsWith('/api/'), (route) => {
+    const path = new URL(route.request().url()).pathname
+    if (path === '/api/profit-loss/accounts') return route.fulfill({ json: PNL_CASH_ACCOUNTS })
+    if (path === '/api/profit-loss') return route.fulfill({ json: PNL_CASH })
     if (path === '/api/months') return route.fulfill({ json: { items: [{ month: '2026-03' }] } })
     return route.fulfill({ json: { items: [] } })
   })
@@ -81,4 +92,27 @@ test('AC-018-5: source drawer supports keyboard inspection and closes to the sel
   await page.keyboard.press('Escape')
   await expect(dialog).toHaveCount(0)
   await expect(entry).toBeFocused()
+})
+
+test('AC-018-8: without a ledger export the page reports a cash basis from bank lines like the mock', async ({ page }) => {
+  await serveCash(page)
+  const read = async () => ({
+    headings: await page.locator('#content h1, #content h2, #content h3').allTextContents(),
+    basis: await page.locator('#content .chart-head p').allTextContents(),
+    coverage: await page.locator('#content .chart-panel > p.muted').allTextContents(),
+    notes: await page.locator('#content .chart-panel li').allTextContents(),
+    views: await page.getByRole('group', { name: 'Profit and loss view', exact: true }).innerText(),
+    categories: await page.locator('#content .pnl-accounts tbody strong').allTextContents(),
+    labels: await page.locator('#content .pnl-accounts tbody td:nth-child(3)').allTextContents(),
+    sources: await page.locator('.pnl-source').allTextContents(),
+  })
+  await page.goto('/preview/profit-loss?period=2026-03')
+  await expect(page.getByText('Cash-basis report for 2026-03, from your bank lines')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Category labels' })).toBeVisible()
+  await expect(page.getByText('From the category policy')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Confirm classification' })).toHaveCount(0)
+  await expect(page).toHaveScreenshot('profit-loss-cash.png', { fullPage: true, mask: [page.locator('select')] })
+  const implementation = await read()
+  await page.goto(pathToFileURL(resolve('../design/mocks/profit-loss-cash.html')).href)
+  expect(await read()).toEqual(implementation)
 })

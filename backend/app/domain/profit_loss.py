@@ -1,4 +1,6 @@
-"""Company management P&L from posted GL activity (spec 018, ADR-027). Pure."""
+"""Company management P&L from posted GL activity (spec 018, ADR-027), or, while a workspace has
+no ledger export, a cash-basis report from its categorized bank lines by subledger label (ADR-027
+amendment of 16 Oct 2026). Pure."""
 
 from collections import Counter, defaultdict
 from datetime import date
@@ -9,6 +11,8 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic.alias_generators import to_camel
 
+from app.domain.categorize import CategoryPolicy
+from app.domain.models.bank_line import BankLine
 from app.domain.period import resolve_period
 
 ZERO = Decimal("0")
@@ -107,8 +111,8 @@ class ProfitLoss(ReportModel):
     period: str
     months: list[str]
     currency: str
-    basis: Literal["ACCRUAL"] = "ACCRUAL"
-    coverage: Literal["IMPORTED_ENTRIES_ONLY"] = "IMPORTED_ENTRIES_ONLY"
+    basis: Literal["ACCRUAL", "CASH"] = "ACCRUAL"
+    coverage: Literal["IMPORTED_ENTRIES_ONLY", "BANK_LINES_ONLY"] = "IMPORTED_ENTRIES_ONLY"
     status: Literal["UNAVAILABLE", "PARTIAL", "IMPORTED"]
     lines: list[ProfitLine]
     entries: list[ProfitEntry]
@@ -193,6 +197,81 @@ def build_profit_loss(
         entries=entries,
         exclusions=dict(sorted(excluded.items())),
         gaps=sorted(gaps),
+        classified_count=classified,
+        input_count=len(scoped),
+    )
+
+
+def build_cash_profit_loss(
+    lines: list[BankLine],
+    categories: CategoryPolicy,
+    policy: ProfitLossPolicy,
+    *,
+    currency: str,
+    period: str,
+    excluded_docs: dict[str, str] | None = None,
+) -> ProfitLoss:
+    """A cash-basis profit and loss from categorized bank lines, for a workspace without a ledger
+    export: each category's policy gives the P&L line and the subledger label; money in on a credit
+    line is revenue, money out on a debit line is an expense, a refund reverses its own line.
+    Transfers and reversals are not cash flows of the business; uncategorized lines make the report
+    partial; balance-sheet categories (equipment, loans, owner) never become profit or expense."""
+    resolved = resolve_period(period, [line.month for line in lines])
+    scoped = sorted(
+        [line for line in lines if line.month in resolved.months],
+        key=lambda line: (line.date, line.doc_id, line.row_index, line.tx_id),
+    )
+    excluded: Counter[str] = Counter()
+    entries: list[ProfitEntry] = []
+    eligible = classified = 0
+    for line in scoped:
+        reason = (excluded_docs or {}).get(line.doc_id)
+        if reason:
+            excluded[reason] += 1
+            continue
+        category = categories.categories.get(line.category)
+        if category is None or line.category == "UNKNOWN":
+            eligible += 1
+            excluded["UNCATEGORIZED"] += 1
+            continue
+        if category.pnl_line is None or category.subledger is None:
+            excluded["NOT_CASH_FLOW"] += 1
+            continue
+        eligible += 1
+        pnl_line = policy.lines.get(category.pnl_line)
+        if pnl_line is None or category.subledger not in policy.subledgers:
+            excluded["UNCLASSIFIED"] += 1
+            continue
+        classified += 1
+        if pnl_line.normal_balance == "NONE":
+            continue
+        amount = line.amount if pnl_line.normal_balance == "CREDIT" else -line.amount
+        entries.append(
+            ProfitEntry(
+                entry_id=line.tx_id,
+                doc_id=line.doc_id,
+                row_number=line.row_index + 1,
+                date=line.date,
+                account_code=category.id,
+                account_name=category.label,
+                pnl_line=category.pnl_line,
+                subledger=category.subledger,
+                amount=amount,
+            )
+        )
+    status = "UNAVAILABLE" if not eligible else ("PARTIAL" if excluded else "IMPORTED")
+    available = classified > 0 and (bool(entries) or classified == eligible)
+    return ProfitLoss(
+        period=resolved.key,
+        months=list(resolved.months),
+        currency=currency,
+        basis="CASH",
+        coverage="BANK_LINES_ONLY",
+        status=status,
+        lines=_lines(entries, resolved.key, available),
+        entries=entries,
+        exclusions=dict(sorted(excluded.items())),
+        gaps=["NO_LEDGER_EXPORT"],
         classified_count=classified,
         input_count=len(scoped),
     )

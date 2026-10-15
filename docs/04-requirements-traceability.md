@@ -43,7 +43,7 @@
 | FR-060 | Profile and bank accounts (masked) | 013 | AC-013-2, AC-013-14 | `test_workspace_service.py`, `tests/unit/test_accounts.py` |
 | FR-061 | Profile suggestions with evidence; user decides | 014 | AC-014-4…7 | `tests/unit/test_profile_suggestions.py`, `tests/scenarios/test_profile.py` |
 | FR-062 | Clients and suppliers with accounts seen | 014 | AC-014-1…3 | `tests/unit/test_counterparties.py` |
-| FR-054, FR-055 | Company account/subledger classifications and P&L | 018 | AC-018-1…7 | `test_profit_loss.py`, `test_profit_loss_api.py`, P&L UI tests |
+| FR-054, FR-055, FR-056 | Company account/subledger classifications and P&L; cash basis from bank lines while no ledger export exists | 018 | AC-018-1…9 | `test_profit_loss.py`, `test_profit_loss_api.py`, P&L UI tests, `profit-loss.spec.ts` |
 | FR-070 | Finance Assistant: tools, retrieval, memory (P1) | 011 | AC-011-1…13 | `tests/unit/test_finance_tools.py`, `backend/evals/assistant/` |
 | FR-071 | Roles restrict actions (P1) | 013 | AC-013-17…19 | `tests/unit/test_access.py` (table-driven) |
 | FR-072 | Model Armor screening and quarantine (P1) | 015 | AC-015-1 | `tests/scenarios/test_s6_injection.py` |

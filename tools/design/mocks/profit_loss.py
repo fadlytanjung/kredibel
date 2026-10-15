@@ -10,6 +10,9 @@ from sankey import band
 
 ROOT = Path(__file__).resolve().parents[3]
 REPORT = json.loads((ROOT / 'contracts/design/fixtures/profit-loss.json').read_text())
+REPORT_CASH = json.loads((ROOT / 'contracts/design/fixtures/profit-loss-cash.json').read_text())
+ACCOUNTS_CASH = json.loads((ROOT / 'contracts/design/fixtures/profit-loss-cash-accounts.json').read_text())
+MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 WORDS = json.loads((ROOT / 'frontend/src/shared/i18n/locales/en/profitLoss.json').read_text())
 
 
@@ -17,18 +20,34 @@ def amount(value):
     return f'IDR\u00a0{Decimal(value):,.0f}'
 
 
+def fmt_date(iso):
+    y, m, d = iso.split('-')
+    return f'{int(d)} {MONTHS[int(m) - 1]} {y}'
+
+
+def words(key, **params):
+    node = WORDS
+    for part in key.split('.'):
+        node = node[part]
+    text = node
+    for name, value in params.items():
+        text = text.replace('{{' + name + '}}', str(value))
+    return escape(text)
+
+
 def toggle(group, options, active, label):
     buttons = ''.join(f'<button type="button" data-group="{group}" data-value="{key}" aria-pressed="{str(key == active).lower()}">{word}</button>' for key, word in options)
     return f'<div class="seg" role="group" aria-label="{label}">{buttons}</div>'
 
 
-def rows():
-    maximum = max(abs(Decimal(line['amount'])) for line in REPORT['lines'])
-    return ''.join(f'<a class="pnl-row pnl-source-button" href="profit-loss-entries.html"><span>{WORDS["lines"][line["id"]]}</span><strong class="num">{amount(line["amount"])}</strong><span class="pnl-track" aria-hidden="true"><span class="pnl-bar" style="width:{abs(Decimal(line["amount"])) / maximum * 100:.2f}%"></span></span></a>' for line in REPORT['lines'])
+def rows(report=None):
+    report = report or REPORT
+    maximum = max(abs(Decimal(line['amount'])) for line in report['lines'])
+    return ''.join(f'<a class="pnl-row pnl-source-button" href="profit-loss-entries.html"><span>{WORDS["lines"][line["id"]]}</span><strong class="num">{amount(line["amount"])}</strong><span class="pnl-track" aria-hidden="true"><span class="pnl-bar" style="width:{abs(Decimal(line["amount"])) / maximum * 100:.2f}%"></span></span></a>' for line in report['lines'])
 
 
-def flow():
-    sources = [('4000 Sales', 120, 'src'), ('Other income', 1, 'src')]
+def flow(sources=None):
+    sources = sources or [('4000 Sales', 120, 'src'), ('Other income', 1, 'src')]
     uses = [('Cost of sales', 72, 'use'), ('Payroll', 18, 'operating'), ('Finance costs', 2, 'operating'), ('Income tax', 3, 'operating'), ('Net profit', 26, 'kept')]
     total, k, gap, top = 121, 194 / 121, 40, 80
     height = total * k + (len(uses) - 1) * gap
@@ -60,28 +79,44 @@ def panel(detail=False, state='populated'):
         return '<section class="panel panel-pad" role="status">Loading profit and loss…</section>'
     if state == 'error':
         return '<section class="panel panel-pad stack gap-3" role="alert"><p>Profit and loss could not be loaded. Check the period and try again.</p><a class="button button-secondary" href="profit-loss.html">Try again</a></section>'
+    cash = state == 'cash'
+    report = REPORT_CASH if cash else REPORT
     body = '<p role="status">Profit and loss needs posted general-ledger entries and confirmed account classifications. Bank cash movements cannot establish profit.</p>'
     if state != 'empty':
-        table = '<table class="table"><thead><tr><th scope="col">P&amp;L line</th><th scope="col" class="num">Amount</th></tr></thead><tbody>' + ''.join(f'<tr><th scope="row">{WORDS["lines"][line["id"]]}</th><td class="num">{amount(line["amount"])}</td></tr>' for line in REPORT['lines']) + '</tbody></table>'
-        body = (('<p role="status">This is a partial report. Review excluded entries and ledger gaps before using its totals.</p>' if state == 'partial' else '') + toggle('pnlview', [('flow', 'Flow'), ('chart', 'Bars'), ('table', 'Table')], 'flow', 'Profit and loss view') + f'<div data-show-group="pnlview" data-show-value="flow">{flow()}</div><div class="pnl-bars" data-show-group="pnlview" data-show-value="chart" hidden>{rows()}</div><div class="table-wrap" data-show-group="pnlview" data-show-value="table" hidden>{table}</div>')
+        table = '<table class="table"><thead><tr><th scope="col">P&amp;L line</th><th scope="col" class="num">Amount</th></tr></thead><tbody>' + ''.join(f'<tr><th scope="row">{WORDS["lines"][line["id"]]}</th><td class="num">{amount(line["amount"])}</td></tr>' for line in report['lines']) + '</tbody></table>'
+        sources = [('Sales receipts', 120, 'src'), ('Other income', 1, 'src')] if cash else None
+        body = (('<p role="status">This is a partial report. Review excluded entries and ledger gaps before using its totals.</p>' if state in ('partial', 'cash') else '') + toggle('pnlview', [('flow', 'Flow'), ('chart', 'Bars'), ('table', 'Table')], 'flow', 'Profit and loss view') + f'<div data-show-group="pnlview" data-show-value="flow">{flow(sources)}</div><div class="pnl-bars" data-show-group="pnlview" data-show-value="chart" hidden>{rows(report)}</div><div class="table-wrap" data-show-group="pnlview" data-show-value="table" hidden>{table}</div>')
         if state == 'partial':
             body += '<ul><li>Unclassified entries: 2</li><li>Some imported journals do not balance.</li></ul>'
-    return f'<section class="chart-panel panel-pad stack gap-4" aria-label="Profit and loss"><div class="chart-head"><div><h2 class="type-h2">Profit and loss</h2><p>Accrual management report for 2026-03</p></div>{link}</div><p class="muted">{WORDS["coverage"]}</p>{body}</section>'
+        if cash:
+            body += '<ul>' + ''.join(f'<li>{words("exclusions." + reason, count=n)}</li>' for reason, n in report['exclusions'].items()) + ''.join(f'<li>{words("gaps." + gap)}</li>' for gap in report['gaps']) + '</ul>'
+    basis = words('basisCash', period=report['period']) if cash else 'Accrual management report for 2026-03'
+    coverage = WORDS['coverageCash'] if cash else WORDS['coverage']
+    return f'<section class="chart-panel panel-pad stack gap-4" aria-label="Profit and loss"><div class="chart-head"><div><h2 class="type-h2">Profit and loss</h2><p>{basis}</p></div>{link}</div><p class="muted">{escape(coverage)}</p>{body}</section>'
 
 
 def page(state='populated'):
-    classification = '<section class="panel panel-pad stack gap-4"><div><h2 class="type-h2">Account classifications</h2><p class="muted small">Confirm how each company account appears in profit and loss. Subledgers group the supporting detail.</p></div>'
-    if state == 'empty':
+    cash = state == 'cash'
+    report = REPORT_CASH if cash else REPORT
+    if cash:
+        classification = f'<section class="panel panel-pad stack gap-4"><div class="spread items-center"><div><h2 class="type-h2">{WORDS["accountsCash"]}</h2><p class="muted small mt-1">{escape(WORDS["accountHelpCash"])}</p></div><span class="badge badge-quiet">{WORDS["fromPolicy"]}</span></div>'
+        classification += '<div class="table-panel"><table class="data-table pnl-accounts"><thead><tr><th>Account</th><th>P&amp;L line</th><th>Subledger</th></tr></thead><tbody>' + ''.join(f'<tr><td><div class="doc-cell"><div><strong>{escape(a["accountName"])}</strong><span class="sub">{a["accountCode"]}</span></div></div></td><td>{escape(ACCOUNTS_CASH["pnlLines"][a["classification"]["pnlLine"]])}</td><td>{escape(ACCOUNTS_CASH["subledgers"][a["classification"]["subledger"]])}</td></tr>' for a in ACCOUNTS_CASH['accounts']) + '</tbody></table></div>'
+    else:
+        classification = '<section class="panel panel-pad stack gap-4"><div><h2 class="type-h2">Account classifications</h2><p class="muted small">Confirm how each company account appears in profit and loss. Subledgers group the supporting detail.</p></div>'
+    if cash:
+        pass
+    elif state == 'empty':
         classification += '<p class="muted">No general-ledger accounts have been imported.</p>'
     else:
         classification += '<div class="table-panel"><table class="data-table pnl-accounts"><thead><tr><th>Account</th><th>P&amp;L line</th><th>Subledger</th><th class="r">Action</th></tr></thead><tbody><tr><td><div class="doc-cell"><div><strong>4000</strong><span class="sub">Sales</span></div></div></td><td><label class="field m-0"><span class="sr-only">P&amp;L line</span><select class="input" aria-label="P&amp;L line"><option>Revenue</option><option>Balance sheet (excluded from profit)</option></select></label></td><td><label class="field m-0"><span class="sr-only">Subledger</span><select class="input" aria-label="Subledger"><option>Receivables</option><option>General journals</option></select></label></td><td class="r"><button class="button button-primary">Confirm classification</button></td></tr></tbody></table></div>'
     classification += '</section>'
     sources = '<section class="panel panel-pad stack gap-4"><h2 class="type-h2">Source entries</h2><p>Subledger families group accounts; they do not certify a control-account reconciliation.</p>'
-    for sub in sorted({e['subledger'] for e in REPORT['entries']}):
+    for sub in sorted({e['subledger'] for e in report['entries']}):
         sources += f'<div><h3 class="type-h3">{WORDS["subledgers"][sub]}</h3>'
-        for e in REPORT['entries']:
+        for e in report['entries']:
             if e['subledger'] == sub:
-                sources += f'<a class="pnl-source link" href="document.html">{e["accountCode"]} {e["accountName"]}, 2 Mar 2026, row {e["rowNumber"]}: {amount(e["amount"])}</a>'
+                name = e['accountName'] if cash else f'{e["accountCode"]} {e["accountName"]}'
+                sources += f'<a class="pnl-source link" href="document.html">{escape(name)}, {fmt_date(e["date"])}, row {e["rowNumber"]}: {amount(e["amount"])}</a>'
         sources += '</div>'
     sources += '</section>'
     content = '<div class="page stack gap-5"><div class="page-head"><h1 class="type-title">Company profit and loss</h1><p>Company account classifications, with the ledger rows behind every total.</p></div><form class="row items-end"><label class="field">Filter month<select class="input"><option>Select a month…</option><option selected>2026-03</option></select></label><label class="field">Period<input class="input" value="2026-03"/></label><button class="button button-secondary" type="button">Apply period</button></form><p class="muted">Use recent, all, a year (2026), quarter (2026-Q1), month (2026-03), or range (2026-01..2026-03).</p>' + panel(True, state) + classification + (sources if state not in ('empty','loading','error') else '') + '</div>'

@@ -8,6 +8,7 @@ import { ProfitLossFlow } from './ProfitLossFlow'
 
 export function ProfitLossView({ report, detail = false }: { report: ProfitLoss; detail?: boolean }) {
   const { t } = useTranslation('profitLoss')
+  const cash = report.basis === 'CASH'
   const hasEntries = (report.entries?.length ?? 0) > 0
   const [view, setView] = useState(hasEntries ? 'flow' : 'chart')
   const titleId = useId()
@@ -29,7 +30,7 @@ export function ProfitLossView({ report, detail = false }: { report: ProfitLoss;
           <h2 className="type-h2" id={titleId}>
             {t('title')}
           </h2>
-          <p>{t('basis', { period: report.period })}</p>
+          <p>{t(cash ? 'basisCash' : 'basis', { period: report.period })}</p>
         </div>
         {!detail && (
           <Link
@@ -40,9 +41,9 @@ export function ProfitLossView({ report, detail = false }: { report: ProfitLoss;
           </Link>
         )}
       </div>
-      <p className="muted">{t('coverage')}</p>
+      <p className="muted">{t(cash ? 'coverageCash' : 'coverage')}</p>
       {report.status === 'UNAVAILABLE' ? (
-        <p role="status">{t('empty')}</p>
+        <p role="status">{t(cash ? 'emptyCash' : 'empty')}</p>
       ) : (
         <>
           {report.status === 'PARTIAL' && <p role="status">{t('partial')}</p>}

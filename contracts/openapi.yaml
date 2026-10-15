@@ -2812,6 +2812,7 @@ components:
       type: object
       required: [accounts, pnlLines, subledgers]
       properties:
+        basis: { type: string, enum: [ACCRUAL, CASH], description: "CASH: the rows are the bank-line categories with their policy labels, read-only" }
         accounts:
           type: array
           items:
@@ -2833,8 +2834,8 @@ components:
         period: { type: string }
         months: { type: array, items: { type: string } }
         currency: { type: string }
-        basis: { type: string, enum: [ACCRUAL] }
-        coverage: { type: string, enum: [IMPORTED_ENTRIES_ONLY] }
+        basis: { type: string, enum: [ACCRUAL, CASH], description: "ACCRUAL from a ledger export; CASH from categorized bank lines while the workspace has none (ADR-027 amendment)" }
+        coverage: { type: string, enum: [IMPORTED_ENTRIES_ONLY, BANK_LINES_ONLY] }
         status: { type: string, enum: [UNAVAILABLE, PARTIAL, IMPORTED] }
         classifiedCount: { type: integer }
         inputCount: { type: integer }

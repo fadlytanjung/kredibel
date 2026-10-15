@@ -5,7 +5,7 @@ import { afterEach, expect, it, vi } from 'vitest'
 import { apiClient } from '../../shared/api/client'
 import '../../shared/i18n/setup'
 import { AccountClassifications } from './AccountClassifications'
-import { EMPTY_PNL, PNL, PNL_ACCOUNTS } from './fixture'
+import { EMPTY_PNL, PNL, PNL_ACCOUNTS, PNL_CASH, PNL_CASH_ACCOUNTS } from './fixture'
 import { ProfitLossPanel, ProfitLossView } from './ProfitLossPanel'
 import { AnswerParts } from '../assistant/AnswerParts'
 
@@ -96,3 +96,20 @@ it('AC-018-5: Exact labels retain cents and large integer precision', () => {
   expect(screen.getByRole('button', { name: /Net profit USD.*9,007,199,254,740,993.25/ })).toBeInTheDocument()
 })
 
+it('AC-018-8: without a ledger export the report says it is cash basis from bank lines', () => {
+  setup(<ProfitLossView report={PNL_CASH} />)
+  expect(screen.getByText('Cash-basis report for 2026-03, from your bank lines')).toBeInTheDocument()
+  expect(screen.getByText(/Categorized bank lines only/)).toBeInTheDocument()
+  expect(screen.getByText(/No ledger export has been imported: this is a cash-basis report/)).toBeInTheDocument()
+  expect(screen.getAllByText(/IDR.*26,000,000/)[0]).toBeInTheDocument()
+})
+
+it('AC-018-9: the category labels are read-only while there is no ledger export', async () => {
+  vi.mocked(apiClient).mockResolvedValue(PNL_CASH_ACCOUNTS)
+  setup(<AccountClassifications canEdit />)
+  await waitFor(() => expect(screen.getByRole('heading', { name: 'Category labels' })).toBeInTheDocument())
+  expect(screen.getByText('From the category policy')).toBeInTheDocument()
+  expect(screen.getByText('Sales receipts')).toBeInTheDocument()
+  expect(screen.getAllByText('Purchases and cost of goods').length).toBeGreaterThan(0)
+  expect(screen.queryByRole('button', { name: 'Confirm classification' })).not.toBeInTheDocument()
+})

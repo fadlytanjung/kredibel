@@ -83,3 +83,8 @@
   Tests extended and the spec updated; the stale landing mock is retired (spec 019, AC-019-1: an
   implemented screen never keeps a deprecated mock); the baselines are still to record on the CI image
   (`make test-visual`), and the axe pass in Storybook is still to run (`make storybook-build`).
+- [x] **T020-31** After merging main (specs 005, 010, 011, 018, 019): the product screenshots come
+  from the app's synthetic preview routes (`npm run marketing:shots`, `tests/marketing/`, the parity
+  fixtures of spec 019) instead of copies of the mock shots; copy follows the shipped product (ledger
+  columns proposed by code with the model as fallback, the dashboard's profit and loss flow, the
+  assistant's cited answers); the unused `landing.how` copy is removed. (AC-020-4, 6)

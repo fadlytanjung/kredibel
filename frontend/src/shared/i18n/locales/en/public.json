@@ -103,26 +103,7 @@
     },
     "howVisual": {
       "title": "One month, reconciled",
-      "caption": "Figures with their provenance, the plain-words explanation, and every bank line with its match and reason."
-    },
-    "how": {
-      "eyebrow": "How it works",
-      "title": "Upload anything, in any order.",
-      "lead": "Statements, sales and purchase invoices, receipts and your general-ledger export. The upload order never changes the result.",
-      "step1Title": "Duplicates first",
-      "step1Body": "An exact copy is recorded and never read again. A re-exported statement or a re-photographed receipt is held until you decide.",
-      "step2Title": "Read twice, pay once",
-      "step2Body": "Gemini reads every page image; the PDF's own text layer, or Document AI OCR for scans and photos, is an independent witness. About USD 0.45 for a half-year of books.",
-      "step3Title": "Ledger files by code",
-      "step3Body": "Gemini proposes which column is which from the header alone; you confirm once; code imports every row.",
-      "step4Title": "Forensics",
-      "step4Body": "Running balances, opening and closing totals, PDF revision history, odd fonts in amount columns, statement continuity, and a supplier paid to a bank account never seen before.",
-      "step5Title": "Months that reconcile themselves",
-      "step5Body": "Exact, split, net-of-tax and ledger matches with reasons. Only unique, high-scoring matches are automatic; the result is the same whatever order you upload.",
-      "step6Title": "A short, honest review queue",
-      "step6Body": "Proposed matches, missing documents, possible duplicates and uncertain values, each with the evidence and only the fixes that make sense.",
-      "step7Title": "Fraud risk you can explain",
-      "step7Body": "A policy file sets the level; Gemini explains it and orders the next steps; a grounding guard checks every number it writes."
+      "caption": "One month: the figures, the critical risk explained in plain words with its evidence, and what to do next."
     },
     "risk": {
       "eyebrow": "Fraud risk",
@@ -143,13 +124,13 @@
       "eyebrow": "Review",
       "title": "A short, honest review queue.",
       "lead": "About 15% of what Kredibel reads goes to one queue, with the evidence and only the fixes that make sense for each item.",
-      "shotCaption": "The review queue: the item, the candidates and the reason each is proposed."
+      "shotCaption": "The review queue: each item says what to decide, grouped by kind and month."
     },
     "flow": {
       "eyebrow": "Dashboard",
       "title": "See where the money went.",
-      "lead": "Money in and out, the matched share and the open risks in one sentence first, then the money-flow picture by client, account, activity and statement line.",
-      "shotCaption": "The dashboard: the status sentence, the figures and the money flow."
+      "lead": "Money in and out and the matched share first, then the profit and loss flow from your posted ledger, from income sources to expenses and net profit, and the money flow by client, account, activity and statement line.",
+      "shotCaption": "The dashboard: the profit and loss flow, from income sources to expenses and net profit, built from posted ledger entries."
     },
     "cloud": {
       "eyebrow": "Built on Google Cloud",
@@ -266,21 +247,21 @@
     "step3Title": "Every page is read twice",
     "step3Body": "Gemini reads the page image; the text layer, or Document AI OCR for scans and photos, is the witness. Values two readings agree on are trusted; disagreement is uncertainty.",
     "step4Title": "The ledger is imported by code",
-    "step4Body": "The AI proposes the column mapping once; you confirm it; code imports every row. Nothing is written without a person's decision.",
+    "step4Body": "Code proposes the column mapping from the header words and the shape of the values; the model is asked only about headers code cannot place. A standard layout needs no confirmation, a new one is confirmed once, and code imports every row. Nothing is written without a person's decision.",
     "step5Title": "Forensics run on every document",
     "step5Body": "Running balances, opening and closing totals, PDF revision history, odd fonts in amount columns and statement continuity produce findings with the exact page and box.",
     "step6Title": "The month reconciles itself",
     "step6Body": "Bank lines are matched to invoices, receipts and ledger entries with reasons. Only unique, high-scoring matches are automatic. Each fix re-reconciles the month.",
     "step7Title": "You read one explanation",
-    "step7Body": "A month gets a fraud risk level, an explanation with citations, and an ordered list of next steps. A grounding guard checks every number it writes.",
+    "step7Body": "A month gets a fraud risk level, an explanation with citations, and an ordered list of next steps. A grounding guard checks every number it writes. From the dashboard or a month you can ask the Finance Assistant about it; its answers cite the figures they use.",
     "costTitle": "What reading costs",
     "costBody": "Adaptive reading costs about USD 0.45 for a half-year of books for one small business. Cache hits, exact duplicates and re-uploads are free.",
     "cta": "Start free trial",
     "shotUpload": "Upload anything, in any order. The tray shows what is read, what is held and what is an exact copy.",
-    "shotReview": "The review queue: the item, the candidates and the reason each is proposed.",
-    "shotMonth": "One month: the figures with their provenance, the explanation, and every bank line with its match and reason.",
-    "shotEvidence": "The evidence viewer: the lamp on the printed value, the calculation and both readings.",
-    "shotDashboard": "The dashboard: one sentence, the figures, and the money flow by client, account, activity and statement line."
+    "shotReview": "The review queue: each item says what to decide, grouped by kind and month.",
+    "shotMonth": "One month: the figures, the critical risk explained in plain words with its evidence, and what to do next.",
+    "shotEvidence": "A read statement: the lamp on the printed value, beside the balances and every transaction read from the page.",
+    "shotDashboard": "The dashboard: the figures, the profit and loss flow and the money flow by client, account, activity and statement line."
   },
   "security": {
     "eyebrow": "Security and trust",

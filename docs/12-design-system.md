@@ -88,6 +88,10 @@ Playwright visual regression at 390, 834 and 1440 px, Lighthouse CI budgets.
 - Colour as the only signal; red for anything that is not a problem; mint for anything that is not
   checked.
 
+The **public site** (spec 018) is the one exception to the gradient and decoration rules: its `pub-*`
+surfaces may use glows, gradients and decorative shapes in depth (§12). The rest of this list still
+applies there, and the app itself is unchanged.
+
 ---
 
 ## 2. Colour
@@ -213,7 +217,9 @@ characters; inputs are 16 px on compact screens (no zoom on focus in mobile brow
   for drawers, easing `standard` `cubic-bezier(0.2, 0, 0, 1)`. **One orchestrated moment:** when the
   evidence viewer opens, the lamp sweeps once across the box (`sweep` 720 ms, 400 ms delay). Upload
   rows and month tabs tick as they finish. Nothing animates on its own after that. Everything respects
-  `prefers-reduced-motion` (the sweep is removed, sheets cross-fade).
+  `prefers-reduced-motion` (the sweep is removed, sheets cross-fade). The **public site** (spec 018) has
+  its own motion language, described in §12: depth, scroll-linked scenes and pointer tilt, with
+  ambient loops slow (≥ 1.6 s) and decorative; all of it is removed under `prefers-reduced-motion`.
 
 ---
 
@@ -443,6 +449,22 @@ component has a Storybook story per state and size class. The mock class names i
 | `PlanCard` | `plan`, `current?` | Current: 2 px brand border and "Your plan"; coming soon: dashed, muted, disabled action, no price |
 | `MaskedText` | `value` | Never a full account or ID number (`ACB ••4821`); copy disabled |
 
+**Public site** ([spec 018](specs/018-public-site/spec.md))
+
+| Component | Variants / props | Rules |
+|---|---|---|
+| `PublicShell` / `PublicHeader` / `PublicFooter` | `tone` (`light`, `dark`) | Logo, marketing links and sign-in/trial actions; footer columns; `tone="dark"` for the ink hero (on-dark logo, inverse action) |
+| `PageMeta` | `title`, `description`, `ogImage` | React 19 hoists `<title>`/`<meta>`; one per public page |
+| `ReadTwiceScene` | `figure`, `aiLabel`, `witnessLabel`, `caption`, `resultLabel`, `state` | §6.1: the two reading marks converge and the double rule settles; already settled under `prefers-reduced-motion`; the result is in text, never motion alone |
+| `StatementSheet` | `bank`, `meta`, `rows`, `balanceLabel`, `balance`, `heldLabel` | The printed statement surface; values keep their reading mark |
+| `ReadingsPair` | `headers`, `rows` | The AI reader and the witness side by side with the result; a CRITICAL finding needs values both readings agree on |
+| `DuplicateDecision` | `title`, `body`, the two actions and their results, the totals | The one live interaction on the landing: `Same document` keeps the total, `Different` moves it; announced in a live region |
+| `FindingMoment` | `severityLabel`, `code`, `title`, `consequence`, `calc`, `nextLabel`, `nextStep` | §6.7: the consequence first, how the balance should add up, and what to do next |
+
+Public-only scene widgets live in `frontend/src/widgets/public/` (§12), not in `shared/ui`:
+`DepthStage`, `PaperArtefact`, `ScrollStory`, `FlowRibbon`, `Lamp`, `Reveal`. The scene hooks
+(`useInViewAttr`, `useScrollProgress`, `usePointerTilt`) live in `frontend/src/shared/lib/`.
+
 ---
 
 ## 8. Content style
@@ -493,7 +515,9 @@ component has a Storybook story per state and size class. The mock class names i
 - **Tagline:** *Every number has a source.*
 - **Onboarding brand panel:** ink surface with a ledger-paper texture (5% rules every 40 px), the
   tagline, three promises, and three ledger lines showing *read twice*, *matched* and *copy, not
-  read*. This is the only decorative texture in the product.
+  read*. The **public site** (spec 018) builds its deep ink scenes on the same ink and ledger
+  paper, so the marketing pages and the app read as one product; its extra depth, glows and gradients
+  are described in §12 and stay on the public surfaces.
 - No stock imagery; the product's own evidence viewer and money flow are the heroes in the README and
   the deck.
 
@@ -539,6 +563,7 @@ make mock-shots    tools/design/shoot_mocks.py at 390, 834, 1440 px → docs/ass
 | Mock | Shows | Spec |
 |---|---|---|
 | `onboarding.html` | Myself or a company, the trial terms, the brand panel | 013 |
+| `landing.html` | The first public landing (before the 2026-10 revamp, §12); its classes left `kit.css` with the revamp, so it no longer renders as designed. The React page is the reference | 018 |
 | `dashboard.html` | Status sentence, figures, Needs you, Risk, then full-width charts with the IFRS / US GAAP switch: money flow (Flow, Bars, Table, By client and supplier), money in and out by month, cash-flow statement; months as binder tabs | 010 |
 | `documents.html` | Upload tray with an exact copy, a held copy, a page being read and a new ledger layout; the library | 003, 006 |
 | `month.html` | March 2026: figures, the critical explanation with citations and next steps, bank lines with matches | 007, 008 |
@@ -552,3 +577,33 @@ make mock-shots    tools/design/shoot_mocks.py at 390, 834, 1440 px → docs/ass
 | `runs.html` | Runs, a span waterfall and the inspector for one model call (P1, owner only) | 017 |
 | `samples/*.md` | Page extraction Markdown the Labels page links to | 016 |
 | `brand.html` | The logo idea, construction, versions, colours, misuse, uses | — |
+
+---
+
+## 12. Public site: the ledger in depth (spec 018)
+
+The public pages are a separate surface with more freedom than the app: they must make a visitor
+understand *read twice* in seconds and feel the product. The concept is a dark, deep **reading
+room**: the product's own paper artefacts (statement, invoice, receipt, ledger export) float in 3D
+and the visitor scrolls *through* them while Kredibel reads them twice, holds a copy, catches a forged
+balance and reconciles the month. Light pages (pricing, FAQ, legal) keep the depth on paper.
+
+**Rules**
+
+- **Every animation performs a product act**: the scan beam, the two reading marks converging, the
+  double rule drawing, the violet evidence lamp, ledger lines drawing into a money flow. No motion for
+  its own sake.
+- **Depth is CSS 3D**: clip wrapper (`overflow: clip`) → perspective stage → `preserve-3d` group →
+  leaves; opacity and blur only on leaves. No WebGL.
+- **Engine, not components**: `motion` hooks write CSS custom properties (`--p` scroll progress,
+  `--rx`/`--ry` tilt, `--lx`/`--ly` lamp); every visual value lives in `kit.css` under `pub-*` and is
+  built from tokens (`color-mix()` for glows). No inline styles.
+- **No hijack**: native scroll always; one pinned story per page at most, only on wide and tall
+  screens (`@container app (width >= 1024px)` and `min-height: 640px`). Elsewhere it is a stacked
+  sequence.
+- **Decor is silent**: decorative layers are `aria-hidden` and carry no text; the meaning is in real
+  headings and copy in DOM order. Interactive controls never sit inside a pinned stage.
+- **Pointer effects** (tilt, lamp) only on `(pointer: fine)`; nothing is hover-only.
+- **Reduced motion** settles every scene: nothing pins, tilts, loops or reveals; everything is shown.
+- Ambient loops are slow (≥ 1.6 s), low-contrast and decorative. The Archivo width axis animates once
+  on load, never on scroll.

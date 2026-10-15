@@ -3,6 +3,7 @@
 .idea/
 .vscode/
 *.swp
+.kilo/
 
 # Environment & secrets (never commit)
 .env

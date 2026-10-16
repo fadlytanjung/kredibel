@@ -2,6 +2,7 @@
 
 from typing import Protocol
 
+from app.domain.examples import Example
 from app.domain.labels import Label, WorkspaceRule
 from app.domain.models.events import AuditEvent
 
@@ -32,6 +33,20 @@ class LabelRepository(Protocol):
 
     async def decide(self, org_id: str, label: Label, event: AuditEvent) -> None:
         """A person's decision with its audit event, atomically."""
+        ...
+
+    async def save_example(
+        self, org_id: str, label_id: str, task: str, vector: list[float]
+    ) -> None:
+        """A decided label's embedding, so it can serve as an example for its task (AC-016-9)."""
+        ...
+
+    async def has_examples(self, org_id: str, task: str) -> bool: ...
+
+    async def nearest_examples(
+        self, org_id: str, task: str, vector: list[float], limit: int
+    ) -> list[Example]:
+        """The decided labels of this workspace and task nearest to the vector, best first."""
         ...
 
     async def save_rule(self, org_id: str, rule: WorkspaceRule) -> None: ...

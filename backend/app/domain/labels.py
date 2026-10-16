@@ -30,6 +30,7 @@ class LearningPolicy:
     eval_share: Decimal = Decimal("0.20")
     examples_per_call: int = 5
     min_similarity: Decimal = Decimal("0.80")
+    examples_enabled: bool = True
     remembered_corrections: bool = True
 
 
@@ -78,6 +79,8 @@ class Label:
     dataset_reason: str | None = NOT_CHECKED
     extraction_url: str | None = None
     page_image_url: str | None = None
+    # What the decision was about, masked: a line's description or page 1's words (AC-016-9).
+    example_text: str | None = None
 
 
 @dataclass(frozen=True)
@@ -141,6 +144,7 @@ def propose(
     cashflow_class: str | None = None,
     page_image_url: str | None = None,
     extraction_url: str | None = None,
+    example_text: str | None = None,
 ) -> Label:
     """A fresh automatic decision as a label, before any merge with what is stored."""
     return Label(
@@ -157,6 +161,7 @@ def propose(
         cashflow_class=cashflow_class,
         page_image_url=page_image_url,
         extraction_url=extraction_url,
+        example_text=example_text,
     )
 
 
@@ -173,6 +178,7 @@ def merge(existing: Label | None, fresh: Label) -> Label:
         cashflow_class=fresh.cashflow_class or existing.cashflow_class,
         page_image_url=fresh.page_image_url or existing.page_image_url,
         extraction_url=fresh.extraction_url or existing.extraction_url,
+        example_text=existing.example_text or fresh.example_text,
         ai_disagrees_with_person=fresh.ai.value != existing.final_value,
         needs_check=False,
     )

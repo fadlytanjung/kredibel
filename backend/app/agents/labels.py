@@ -5,10 +5,16 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
+import structlog
 from opentelemetry import trace
 
 from app.agents.deps import PipelineDeps
+from app.domain.examples import Example, as_prompt_rows, choose_examples
 from app.domain.labels import AiDecision, Label, Source
+
+log = structlog.get_logger()
+# Nearest-neighbour lookups per call: the first lines of a batch stand for it (cost bound).
+MAX_EXAMPLE_QUERIES = 25
 
 
 def trace_ids() -> tuple[str | None, str | None]:
@@ -59,3 +65,38 @@ def page_image(doc_id: str, page_no: int | None) -> str:
 def extraction_path(doc_id: str, page_no: int | None) -> str:
     """The API path of a page's extraction Markdown (AC-016-4)."""
     return f"/api/documents/{doc_id}/pages/{page_no or 1}/extraction.md"
+
+
+async def verified_examples(
+    deps: PipelineDeps, org_id: str, task: str, texts: list[str]
+) -> list[dict[str, str]]:
+    # AC-016-9: the policy's number of decided labels of this task nearest to the texts, from this
+    # workspace only; others are dropped and counted. Best effort: no embedder, no examples yet or
+    # a failed lookup means a call without examples.
+    learning = deps.learning
+    if deps.embedder is None or deps.labels is None or learning is None:
+        return []
+    if not learning.examples_enabled or not texts:
+        return []
+    try:
+        if not await deps.labels.has_examples(org_id, task):
+            return []
+        queries = list(dict.fromkeys(t for t in texts if t.strip()))[:MAX_EXAMPLE_QUERIES]
+        vectors = await deps.embedder.embed(queries)
+        candidates: list[Example] = []
+        for vector in vectors:
+            candidates += await deps.labels.nearest_examples(
+                org_id, task, vector, learning.examples_per_call
+            )
+        chosen, rejected = choose_examples(
+            org_id,
+            candidates,
+            limit=learning.examples_per_call,
+            min_similarity=float(learning.min_similarity),
+        )
+        if rejected:
+            log.warning("examples.rejected_other_workspace", task=task, count=rejected)
+        return as_prompt_rows(task, chosen)
+    except Exception:  # noqa: BLE001 - the call goes on without examples
+        log.warning("examples.lookup_failed", task=task)
+        return []

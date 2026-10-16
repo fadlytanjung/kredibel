@@ -392,6 +392,23 @@
           "order": "DESCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "labels",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "exampleOf",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "embedding_v1",
+          "vectorConfig": {
+            "dimension": 768,
+            "flat": {}
+          }
+        }
+      ]
     }
   ],
   "fieldOverrides": []

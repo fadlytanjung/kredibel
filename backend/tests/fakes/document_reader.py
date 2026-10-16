@@ -37,6 +37,7 @@ class FakeDocumentReader(DocumentReader):
         self.categories = categories or (lambda item: ("UNKNOWN", 0.0))
         self.month_explanation = month_explanation
         self.calls: list[tuple[str, int]] = []
+        self.examples: list[tuple[str, list[dict[str, str]]]] = []
 
     def version(self, task: str) -> tuple[str, str]:
         return "fake-model", f"{task}@test"
@@ -48,8 +49,12 @@ class FakeDocumentReader(DocumentReader):
         value = self.mapping(header) if callable(self.mapping) else self.mapping
         return ReaderCall(value, "fake-model", "map_ledger_columns@test", 80, 30)
 
-    async def classify(self, image_png: bytes, text: str) -> ReaderCall[DocClassification]:
+    async def classify(
+        self, image_png: bytes, text: str, examples: list[dict[str, str]] | None = None
+    ) -> ReaderCall[DocClassification]:
         self.calls.append(("classify", 1))
+        if examples:
+            self.examples.append(("classify", list(examples)))
         value = self.classification(text) if callable(self.classification) else self.classification
         return ReaderCall(value, "fake-model", "classify@test", 100, 20)
 
@@ -72,9 +77,14 @@ class FakeDocumentReader(DocumentReader):
         return ReaderCall(self.receipt_pages(page), "fake-model", "receipt_page@test", 600, 150)
 
     async def categorize(
-        self, items: list[TransactionItem], vocabulary: str
+        self,
+        items: list[TransactionItem],
+        vocabulary: str,
+        examples: list[dict[str, str]] | None = None,
     ) -> ReaderCall[CategorizeResult]:
         self.calls.append(("categorize", len(items)))
+        if examples:
+            self.examples.append(("categorize", list(examples)))
         choices = [
             CategoryChoice(id=item.id, category=cat, confidence=conf)
             for item in items

@@ -1,5 +1,6 @@
 """In-memory labels and workspace rules for tests."""
 
+from app.domain.examples import Example, cosine
 from app.domain.labels import Label, WorkspaceRule, merge
 from app.domain.models.events import AuditEvent
 from app.ports.label_repository import LabelRepository
@@ -14,6 +15,7 @@ class FakeLabelRepository(LabelRepository):
         self.labels: dict[tuple[str, str], Label] = {}
         self.rules: dict[tuple[str, str], WorkspaceRule] = {}
         self.events: list[AuditEvent] = []
+        self.vectors: dict[tuple[str, str], tuple[str, list[float]]] = {}
 
     async def upsert(self, org_id: str, labels: list[Label]) -> list[Label]:
         out = []
@@ -62,6 +64,30 @@ class FakeLabelRepository(LabelRepository):
     async def decide(self, org_id: str, label: Label, event: AuditEvent) -> None:
         self.labels[(org_id, label.label_id)] = label
         self.events.append(event)
+
+    async def save_example(
+        self, org_id: str, label_id: str, task: str, vector: list[float]
+    ) -> None:
+        self.vectors[(org_id, label_id)] = (task, list(vector))
+
+    async def has_examples(self, org_id: str, task: str) -> bool:
+        return any(o == org_id and t == task for (o, _), (t, _) in self.vectors.items())
+
+    async def nearest_examples(
+        self, org_id: str, task: str, vector: list[float], limit: int
+    ) -> list[Example]:
+        found = []
+        for (o, label_id), (t, v) in self.vectors.items():
+            label = self.labels.get((o, label_id))
+            if o != org_id or t != task or label is None:
+                continue
+            found.append(
+                Example(
+                    o, label_id, t, label.example_text or "", label.final_value, cosine(vector, v)
+                )
+            )
+        found.sort(key=lambda e: (-e.similarity, e.label_id))
+        return found[:limit]
 
     async def save_rule(self, org_id: str, rule: WorkspaceRule) -> None:
         self.rules[(org_id, rule.rule_id)] = rule

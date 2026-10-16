@@ -16,6 +16,7 @@ from app.ports.decision_repository import DecisionRepository
 from app.ports.document_reader import DocumentReader
 from app.ports.document_repository import DocumentRepository
 from app.ports.document_storage import DocumentStorage
+from app.ports.embedder import Embedder
 from app.ports.file_inspector import FileInspector
 from app.ports.finding_repository import FindingRepository
 from app.ports.label_repository import LabelRepository
@@ -71,3 +72,4 @@ class PipelineDeps:
     # Labels and learning (spec 016): where every automatic decision goes, and the thresholds.
     labels: LabelRepository | None = None
     learning: LearningPolicy | None = None
+    embedder: Embedder | None = None  # verified examples in prompts (AC-016-9)

@@ -279,6 +279,7 @@
       "dataset": "dict[str, Any]",
       "decided_at": "datetime | None",
       "decided_by": "str | None",
+      "example_text": "str | None",
       "extraction_url": "str | None",
       "final": "dict[str, Any]",
       "framework": "str | None",

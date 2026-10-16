@@ -13,7 +13,13 @@ from google.adk import Context
 from pydantic import BaseModel
 
 from app.agents.deps import PipelineDeps
-from app.agents.labels import decision, extraction_path, page_image, write_labels
+from app.agents.labels import (
+    decision,
+    extraction_path,
+    page_image,
+    verified_examples,
+    write_labels,
+)
 from app.agents.stages import stage
 from app.domain.accounts import account_hash, mask_numbers_in_text
 from app.domain.categorize import (
@@ -175,7 +181,9 @@ def classify_document(deps: PipelineDeps):
         if image is None:
             return await _classify_without_reader(deps, node_input)
         chunks = await _load_chunks(deps, org_id, doc.sha256, 1)
-        call = await deps.reader.classify(image, render_chunks(chunks))
+        page_text = mask_numbers_in_text(" ".join(c.text for c in chunks))[:1000]
+        examples = await verified_examples(deps, org_id, "DOC_TYPE", [page_text])
+        call = await deps.reader.classify(image, render_chunks(chunks), examples or None)
         result = call.value
         confident = result.confidence >= _MIN_TYPE_CONFIDENCE
         updated = replace(
@@ -208,6 +216,7 @@ def classify_document(deps: PipelineDeps):
                         ),
                         policy=deps.learning,
                         page_image_url=page_image(doc_id, 1),
+                        example_text=page_text or None,
                     )
                 ],
             )
@@ -1481,6 +1490,7 @@ def categorize_bank_lines(deps: PipelineDeps):
                         cashflow_class=line.cashflow_class,
                         page_image_url=page_image(doc_id, line.page),
                         extraction_url=extraction_path(doc_id, line.page),
+                        example_text=mask_numbers_in_text(_first_line(line.description)) or None,
                     )
                 )
             await write_labels(deps, org_id, labels)
@@ -1527,13 +1537,16 @@ async def _model_categories(
         for i, (line, _) in enumerate(batch)
     ]
     model, prompt_version = deps.reader.version("categorize")
-    payload = json.dumps([item.model_dump() for item in items], sort_keys=True)
+    texts = [mask_numbers_in_text(item.description) for item in items]
+    examples = await verified_examples(deps, org_id, "CATEGORY", texts)
+    # The examples shape the answer, so they are part of the cache key.
+    payload = json.dumps([[item.model_dump() for item in items], examples], sort_keys=True)
     key = f"categories/{hashlib.sha256(payload.encode()).hexdigest()}/{model}-{prompt_version}.json"
     cached = await deps.storage.get_cached(org_id, key)
     if cached is not None:
         result = CategorizeResult.model_validate_json(cached)
     else:
-        call = await deps.reader.categorize(items, _vocabulary(policy))
+        call = await deps.reader.categorize(items, _vocabulary(policy), examples or None)
         result = call.value
         tokens[0] += call.tokens_in
         tokens[1] += call.tokens_out

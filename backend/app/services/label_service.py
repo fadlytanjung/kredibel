@@ -5,6 +5,8 @@ from dataclasses import replace
 from decimal import Decimal
 from typing import Any, Literal
 
+import structlog
+
 from app.core.auth import Principal
 from app.core.clock import Clock
 from app.core.ids import new_id
@@ -21,12 +23,15 @@ from app.domain.models.document import DocStatus, DocType
 from app.domain.models.events import AuditEvent
 from app.ports.bank_line_repository import BankLineRepository
 from app.ports.document_repository import DocumentRepository
+from app.ports.embedder import Embedder
 from app.ports.label_repository import LabelRepository
 from app.ports.task_queue import TaskQueue
 from app.services.bank_line_service import BankLineService
 from app.services.month_service import MonthService
 
 Action = Literal["CONFIRM", "CORRECT"]
+EXAMPLE_TASKS = ("CATEGORY", "DOC_TYPE")
+log = structlog.get_logger()
 _CAN_DECIDE = ("owner", "accountant", "reviewer")
 BULK_LIMIT = 200
 
@@ -50,6 +55,7 @@ class LabelService:
         documents: DocumentRepository | None = None,
         months: MonthService | None = None,
         task_queue: TaskQueue | None = None,
+        embedder: Embedder | None = None,
     ) -> None:
         self._labels = labels
         self._policy = policy
@@ -60,6 +66,7 @@ class LabelService:
         self._documents = documents
         self._months = months
         self._task_queue = task_queue
+        self._embedder = embedder
 
     async def list_labels(self, org_id: str, **filters: Any) -> tuple[list[Label], dict[str, Any]]:
         """The filtered page and the summary over every label of the workspace (AC-016-5)."""
@@ -129,7 +136,24 @@ class LabelService:
         )
         await self._labels.decide(org_id, decided, event)
         await self._apply(principal, decided, apply_to_similar=apply_to_similar)
+        await self._remember_example(org_id, decided)
         return decided
+
+    async def _remember_example(self, org_id: str, label: Label) -> None:
+        """AC-016-9: a decided CATEGORY or DOC_TYPE label becomes an example for later calls in this
+        workspace. Best effort: a failed embedding never undoes the person's decision."""
+        if (
+            self._embedder is None
+            or not self._policy.examples_enabled
+            or label.task not in EXAMPLE_TASKS
+            or not label.example_text
+        ):
+            return
+        try:
+            [vector] = await self._embedder.embed([label.example_text])
+            await self._labels.save_example(org_id, label.label_id, label.task, vector)
+        except Exception:  # noqa: BLE001 - the decision stands without its example
+            log.warning("labels.example_not_saved", label_id=label.label_id, task=label.task)
 
     async def bulk_confirm(self, principal: Principal, label_ids: list[str]) -> int:
         """Confirm up to 200 labels as the AI proposed them; decided ones are left as they are."""

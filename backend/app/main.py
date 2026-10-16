@@ -28,6 +28,7 @@ from app.adapters.firestore.suggestion_repo import FirestoreSuggestionRepository
 from app.adapters.firestore.usage_repo import FirestoreUsageRepository
 from app.adapters.firestore.workspace_repo import FirestoreWorkspaceRepository
 from app.adapters.gcs_storage import GcsDocumentStorage
+from app.adapters.gemini_embedder import GeminiEmbedder
 from app.adapters.gemini_reader import GeminiDocumentReader
 from app.adapters.page_renderer import DefaultPageRenderer
 from app.adapters.pdf_inspector import PdfInspector
@@ -98,6 +99,7 @@ from app.ports.decision_repository import DecisionRepository
 from app.ports.document_reader import DocumentReader
 from app.ports.document_repository import DocumentRepository
 from app.ports.document_storage import DocumentStorage
+from app.ports.embedder import Embedder
 from app.ports.file_inspector import FileInspector
 from app.ports.finding_repository import FindingRepository
 from app.ports.identity_admin import IdentityAdmin
@@ -174,6 +176,7 @@ class AppDeps:
         counterparties: CounterpartyRepository | None = None,
         suggestions: SuggestionRepository | None = None,
         labels: LabelRepository | None = None,
+        embedder: Embedder | None = None,
     ) -> None:
         self.settings = settings
         self._plans = plans
@@ -205,6 +208,7 @@ class AppDeps:
         self._counterparties = counterparties
         self._suggestions = suggestions
         self._labels = labels
+        self._embedder = embedder
         self._built: dict[str, Any] = {}
 
     def _once(self, name: str, build: Callable[[], T]) -> T:
@@ -583,6 +587,10 @@ class AppDeps:
         )
 
     @property
+    def embedder(self) -> Embedder:
+        return self._once("embedder", lambda: self._embedder or GeminiEmbedder(self.settings))
+
+    @property
     def learning(self) -> LearningPolicy:
         return self._once(
             "learning",
@@ -603,6 +611,7 @@ class AppDeps:
                 documents=self.doc_repo,
                 months=self.month_service,
                 task_queue=self.task_queue,
+                embedder=self.embedder,
             ),
         )
 
@@ -645,6 +654,7 @@ class AppDeps:
                 suggestions=self.suggestion_repo,
                 labels=self.label_repo,
                 learning=self.learning,
+                embedder=self.embedder,
             )
             await run_workflow(
                 build_document_workflow(pipeline_deps),
@@ -686,6 +696,7 @@ class AppDeps:
                 suggestions=self.suggestion_repo,
                 labels=self.label_repo,
                 learning=self.learning,
+                embedder=self.embedder,
                 reader=self.reader,  # explain_month words the month's risk (spec 008)
             )
             return await run_workflow(

@@ -5,10 +5,13 @@ from decimal import Decimal
 from typing import Any, cast
 
 from google.cloud.firestore import AsyncClient, FieldFilter
+from google.cloud.firestore_v1.base_vector_query import DistanceMeasure
+from google.cloud.firestore_v1.vector import Vector
 
 from app.adapters.firestore.models.label import LabelDoc, WorkspaceRuleDoc
 from app.adapters.firestore.models.workspace import EventDoc
 from app.adapters.firestore.txn import dump
+from app.domain.examples import Example
 from app.domain.labels import AiDecision, Label, LabelSubject, WorkspaceRule, merge
 from app.domain.models.events import AuditEvent
 from app.ports.label_repository import LabelRepository
@@ -53,6 +56,7 @@ def _to_doc(lb: Label) -> LabelDoc:
         dataset={"use": lb.dataset_use, "reason": lb.dataset_reason},
         extraction_url=lb.extraction_url,
         page_image_url=lb.page_image_url,
+        example_text=lb.example_text,
     )
 
 
@@ -98,7 +102,11 @@ def _to_domain(d: LabelDoc) -> Label:
         dataset_reason=d.dataset.get("reason"),
         extraction_url=d.extraction_url,
         page_image_url=d.page_image_url,
+        example_text=d.example_text,
     )
+
+
+_EXAMPLE_FIELDS = ("embedding_v1", "exampleOf")
 
 
 def _confidence(label: Label) -> float:
@@ -122,7 +130,11 @@ class FirestoreLabelRepository(LabelRepository):
             snap = await self._col(org_id).document(fresh.label_id).get()
             existing = _to_domain(LabelDoc.model_validate(snap.to_dict())) if snap.exists else None
             stored = merge(existing, fresh)
-            batch.set(self._col(org_id).document(stored.label_id), dump(_to_doc(stored)))
+            # A re-run must not drop the embedding of a label a person decided (AC-016-9).
+            kept = {k: v for k, v in (snap.to_dict() or {}).items() if k in _EXAMPLE_FIELDS}
+            batch.set(
+                self._col(org_id).document(stored.label_id), {**dump(_to_doc(stored)), **kept}
+            )
             out.append(stored)
         if labels:
             await batch.commit()
@@ -179,6 +191,44 @@ class FirestoreLabelRepository(LabelRepository):
             dump(EventDoc(org_id=org_id, **event.model_dump())),
         )
         await batch.commit()
+
+    async def save_example(
+        self, org_id: str, label_id: str, task: str, vector: list[float]
+    ) -> None:
+        await (
+            self._col(org_id)
+            .document(label_id)
+            .update({"embedding_v1": Vector(vector), "exampleOf": task})
+        )
+
+    async def has_examples(self, org_id: str, task: str) -> bool:
+        query = self._col(org_id).where(filter=FieldFilter("exampleOf", "==", task)).limit(1)
+        return any([True async for _ in query.stream()])
+
+    async def nearest_examples(
+        self, org_id: str, task: str, vector: list[float], limit: int
+    ) -> list[Example]:
+        query = (
+            self._col(org_id)
+            .where(filter=FieldFilter("exampleOf", "==", task))
+            .find_nearest(
+                vector_field="embedding_v1",
+                query_vector=Vector(vector),
+                distance_measure=DistanceMeasure.COSINE,
+                limit=limit,
+                distance_result_field="vectorDistance",
+            )
+        )
+        out: list[Example] = []
+        async for snap in query.stream():
+            data = snap.to_dict() or {}
+            label = _to_domain(LabelDoc.model_validate(data))
+            distance = float(data.get("vectorDistance") or 0.0)
+            text = label.example_text or ""
+            out.append(
+                Example(org_id, label.label_id, task, text, label.final_value, 1.0 - distance)
+            )
+        return out
 
     async def save_rule(self, org_id: str, rule: WorkspaceRule) -> None:
         await (

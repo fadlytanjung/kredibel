@@ -347,7 +347,8 @@ One per AI decision a person can check.
 | `framework?`, `cashflowClass?` | string | `CATEGORY` only; class derived from `categories.v1.yaml` |
 | `decidedBy?`, `decidedAt?`, `note?` | | |
 | `dataset` | map | `use` (`TRAIN`, `EVAL`, `EXCLUDED`), `reason?`; split fixed by hash of `labelId` (20% eval) |
-| `embedding_v1?` | vector | `CATEGORY` and `DOC_TYPE` labels a person decided: embedding of the description or first-page text, for verified examples (768 dimensions) |
+| `exampleText?` | string | The masked text the decision was about: a line's description or page 1's words (first 1,000 characters) |
+| `exampleOf?`, `embedding_v1?` | string, vector | Set once a person decided a `CATEGORY` or `DOC_TYPE` label: the task it serves as an example for, and the embedding of `exampleText` (768 dimensions, vector index on `exampleOf` + `embedding_v1`); kept across re-runs |
 | `schemaVersion` | int | |
 
 ### 3.20 `orgs/{orgId}/workspaceRules/{ruleId}` (P1)

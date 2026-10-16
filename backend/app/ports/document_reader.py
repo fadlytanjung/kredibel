@@ -30,8 +30,11 @@ class DocumentReader(Protocol):
         """(model, prompt version) a task runs with; part of the extraction cache key."""
         ...
 
-    async def classify(self, image_png: bytes, text: str) -> ReaderCall[DocClassification]:
-        """The document type from page 1's image and up to 2,000 characters of its text."""
+    async def classify(
+        self, image_png: bytes, text: str, examples: list[dict[str, str]] | None = None
+    ) -> ReaderCall[DocClassification]:
+        """The document type from page 1's image and up to 2,000 characters of its text; examples
+        are this workspace's documents a person typed (AC-016-9)."""
         ...
 
     async def read_statement_page(
@@ -53,9 +56,13 @@ class DocumentReader(Protocol):
         ...
 
     async def categorize(
-        self, items: list[TransactionItem], vocabulary: str
+        self,
+        items: list[TransactionItem],
+        vocabulary: str,
+        examples: list[dict[str, str]] | None = None,
     ) -> ReaderCall[CategorizeResult]:
-        """Categories for up to 100 bank lines the keyword rules left (docs/08 §4.1)."""
+        """Categories for up to 100 bank lines the keyword rules left (docs/08 §4.1); examples are
+        this workspace's lines a person categorized (AC-016-9)."""
         ...
 
     async def map_ledger_columns(

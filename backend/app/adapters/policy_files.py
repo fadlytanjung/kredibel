@@ -72,4 +72,5 @@ def load_learning_policy(policy_dir: Path) -> LearningPolicy:
         examples_per_call=int(examples.get("perCall", 5)),
         min_similarity=Decimal(str(examples.get("minSimilarity", "0.80"))),
         remembered_corrections=bool((raw.get("rememberedCorrections") or {}).get("enabled", True)),
+        examples_enabled=bool(examples.get("enabled", True)),
     )

@@ -24,6 +24,7 @@ def _never_a_real_model_or_store(monkeypatch: pytest.MonkeyPatch) -> None:
     from tests.fakes.counterparty_repository import FakeCounterpartyRepository
     from tests.fakes.decision_repository import FakeDecisionRepository
     from tests.fakes.document_reader import FakeDocumentReader
+    from tests.fakes.embedder import FakeEmbedder
     from tests.fakes.finding_repository import FakeFindingRepository
     from tests.fakes.label_repository import FakeLabelRepository
     from tests.fakes.ledger_repository import FakeLedgerRepository
@@ -44,6 +45,7 @@ def _never_a_real_model_or_store(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         "app.main.FirestoreCounterpartyRepository", lambda db: FakeCounterpartyRepository()
     )
+    monkeypatch.setattr("app.main.GeminiEmbedder", lambda settings: FakeEmbedder())
     monkeypatch.setattr("app.main.FirestoreLabelRepository", lambda db: FakeLabelRepository())
     monkeypatch.setattr(
         "app.main.FirestoreSuggestionRepository", lambda db: FakeSuggestionRepository()

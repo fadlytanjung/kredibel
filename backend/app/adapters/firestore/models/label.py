@@ -27,6 +27,7 @@ class LabelDoc(FirestoreModel):
     dataset: dict[str, Any] = Field(default_factory=dict)
     extraction_url: str | None = None
     page_image_url: str | None = None
+    example_text: str | None = None
 
 
 class WorkspaceRuleDoc(FirestoreModel):

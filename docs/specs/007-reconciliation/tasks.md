@@ -78,6 +78,9 @@
   note ("No currency printed: read as IDR"); only a different printed currency waits for agreement.
   Decided 13 Oct 2026 after the synthetic run, where every receipt ("TOTAL 467,976.00") was blocked
   from matching. ADR-025 amended. (AC-007-19)
+- [x] **T007-13** Money in and Money out count only the lines in their figure; transfers between own
+  accounts (`NON_CASH`) are named beside them as not counted, in the app and the month mock (16 Oct
+  2026: a month showed money out of zero beside "1 debit").
 
 ## Phase 4 — Close
 

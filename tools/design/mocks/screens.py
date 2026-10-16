@@ -843,6 +843,14 @@ def month() -> str:
     currency = "IDR"
     label = month_name(data["month"])
     credits = sum(1 for l in lines if not l["amount"]["amount"].startswith("-"))
+    # Money in and out leave out transfers between own accounts (NON_CASH), as the app does.
+    counted = [l for l in lines if l.get("cashflowClass") != "NON_CASH"]
+    counted_credits = sum(1 for l in counted if not l["amount"]["amount"].startswith("-"))
+    own_in = credits - counted_credits
+    own_out = len(lines) - len(counted) - own_in
+
+    def own(n: int) -> str:
+        return f' · {mw("monthDetail.ownAccountsNotCounted", count=n)}' if n else ""
     in_scope = int(figures["bankLines"]) - int(figures["excluded"])
     auto, manual, open_ = int(figures["autoMatched"]), int(figures["manuallyMatched"]), int(figures["proposed"]) + int(figures["unmatched"])
     total = auto + manual + open_
@@ -855,8 +863,8 @@ def month() -> str:
 <section class="ledger" aria-label="{mw("monthDetail.figuresAria", month=label)}">
   <dl class="ledger-figures">
     <div><dt>{mw("monthDetail.openingBalance")}</dt><dd class="v"><small>{currency}</small>{amount(figures["opening"])}</dd><dd class="n">{mw("monthDetail.fromPreviousClosing")}</dd></div>
-    <div><dt>{mw("monthDetail.moneyIn")}</dt><dd class="v"><small>{currency}</small>{amount(figures["moneyIn"])}</dd><dd class="n">{mw("monthDetail.creditsRecorded", count=credits)}</dd></div>
-    <div><dt>{mw("monthDetail.moneyOut")}</dt><dd class="v"><small>{currency}</small>{amount(figures["moneyOut"].lstrip("-"))}</dd><dd class="n">{mw("monthDetail.debitsRecorded", count=len(lines) - credits)}</dd></div>
+    <div><dt>{mw("monthDetail.moneyIn")}</dt><dd class="v"><small>{currency}</small>{amount(figures["moneyIn"])}</dd><dd class="n">{mw("monthDetail.creditsRecorded", count=counted_credits)}{own(own_in)}</dd></div>
+    <div><dt>{mw("monthDetail.moneyOut")}</dt><dd class="v"><small>{currency}</small>{amount(figures["moneyOut"].lstrip("-"))}</dd><dd class="n">{mw("monthDetail.debitsRecorded", count=len(counted) - counted_credits)}{own(own_out)}</dd></div>
     <div><dt>{mw("monthDetail.closingBalance")}</dt><dd class="v"><small>{currency}</small>{amount(figures["closing"])}</dd><dd class="n">{mw("monthDetail.asPrintedOnStatement")}</dd></div>
     <div><dt>{mw("monthDetail.matchedByKredibel")}</dt><dd class="v">{rate}%</dd><dd class="n">{mw("monthDetail.allocatedToDocs", matched=auto, total=in_scope)}</dd><dd class="mini"><i style="width:{rate}%"></i></dd></div>
     <div><dt>{mw("monthDetail.ledgerDifference")}</dt><dd class="v"><small>{currency}</small>{amount(figures["ledgerDifference"])}</dd><dd class="n">{mw("monthDetail.differenceWithLedger")}</dd></div>

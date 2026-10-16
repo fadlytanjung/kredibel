@@ -175,6 +175,12 @@ export function MonthPage() {
   const meterTotal = meter.auto + meter.manual + meter.open
   const share = (n: number) => `${((n / meterTotal) * 100).toFixed(1)}%`
   const credits = lines.filter(isIncoming).length
+  // Money in and out leave out transfers between own accounts (NON_CASH), so their sublines count
+  // only the lines in the figure and name the ones left out.
+  const counted = lines.filter((line) => line.cashflowClass !== 'NON_CASH')
+  const countedCredits = counted.filter(isIncoming).length
+  const ownIn = credits - countedCredits
+  const ownOut = lines.length - counted.length - ownIn
 
 
   const handleUnmatch = async (matchId: string) => {
@@ -398,12 +404,18 @@ export function MonthPage() {
               <div>
                 <dt>{t('months:monthDetail.moneyIn')}</dt>
                 <dd className="v">{figure(moneyIn)}</dd>
-                <dd className="n">{t('months:monthDetail.creditsRecorded', { count: credits })}</dd>
+                <dd className="n">
+                  {t('months:monthDetail.creditsRecorded', { count: countedCredits })}
+                  {ownIn > 0 && ` · ${t('months:monthDetail.ownAccountsNotCounted', { count: ownIn })}`}
+                </dd>
               </div>
               <div>
                 <dt>{t('months:monthDetail.moneyOut')}</dt>
                 <dd className="v">{figure(moneyOut)}</dd>
-                <dd className="n">{t('months:monthDetail.debitsRecorded', { count: lines.length - credits })}</dd>
+                <dd className="n">
+                  {t('months:monthDetail.debitsRecorded', { count: counted.length - countedCredits })}
+                  {ownOut > 0 && ` · ${t('months:monthDetail.ownAccountsNotCounted', { count: ownOut })}`}
+                </dd>
               </div>
               <div>
                 <dt>{t('months:monthDetail.closingBalance')}</dt>

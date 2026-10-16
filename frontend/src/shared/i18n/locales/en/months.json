@@ -121,6 +121,8 @@
     "creditsRecorded_other": "{{count}} credits",
     "debitsRecorded_one": "{{count}} debit",
     "debitsRecorded_other": "{{count}} debits",
+    "ownAccountsNotCounted_one": "{{count}} between own accounts, not counted",
+    "ownAccountsNotCounted_other": "{{count}} between own accounts, not counted",
     "noLedger": "No ledger imported yet",
     "noBalances": "No printed balances this month",
     "noValue": "—",

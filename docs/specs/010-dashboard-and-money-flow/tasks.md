@@ -16,7 +16,9 @@
 - [x] **T010-04** `KpiCard`, `MonthStrip`, `AlertList` with stories, and `FlowSummary` (the top sources and
   uses until the charts). (AC-010-1, AC-010-9)
 - [x] **T010-04a** `ReviewPreview` and the open review items figure, once the review queue (spec 009) runs.
-  (AC-010-1)
+  (AC-010-1) 17 Oct 2026: the figure counts the whole queue, as the sidebar and the Review page do
+  (it counted the period's items only), the preview is the queue's first five, and Waiting for you
+  opens the Documents page on its possible copies (`?filter=duplicates`).
 - [x] **T010-05** `ChartPanel`, `SegmentedControl`, `SankeyChart`, `StatementBars`, `FlowTable`, `FlowList`, `MonthBars`, `CashFlowWaterfall`; keyboard focus on bands; three drawings per chart; stories at 390, 834 and 1440. (AC-010-6, AC-010-7, AC-010-12…14)
 - [ ] **T010-06** `DashboardPage` at three widths; empty states; links with filters; visual tests and Lighthouse. (AC-010-2…4, AC-010-11)
   Done: status sentence, figures, risk, where the money went in short, months, period picker

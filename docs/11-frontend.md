@@ -402,7 +402,9 @@ visible headings, segmented controls and panel links at 390, 834 and 1440 px. To
 - **Figures:** money in and money out against the previous period of equal length, net (kept in or
   taken from the accounts), matched by Kredibel (share, with the previous period and a small meter),
   waiting for you (documents to decide on) and to review (open items), the last two in the alert
-  colour when above zero and linking to the documents and the queue.
+  colour when above zero and linking to the documents' possible copies (`/documents?filter=duplicates`)
+  and the queue. Both are to-dos, not figures of the period: they count everything open, as the
+  sidebar and the queue do (17 Oct 2026), and the review panel previews the queue's first five.
 - **Profit and loss:** the company P&L panel of spec 018 (§6.2a) with **Accounts and sources**. Its
   **Flow** draws income meeting in the middle and splitting into expenses and the profit kept; a
   period with a net loss draws the loss as a source that funds the expenses, the middle being the

@@ -7,7 +7,7 @@
  * - tools/design/mocks/screens.py documents()
  */
 
-import { useContext } from 'react'
+import { useContext, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { DOC_TYPE_BADGE, useDocuments, useDocumentsLive, type DocType, type Document } from '../entities/document'
@@ -62,6 +62,11 @@ export function DocumentsPage() {
     { key: 'DUPLICATES', label: t('documents:filters.duplicates'), predicate: (doc) => Boolean(doc.heldAsDuplicate) },
   ]
   const filters: DataTableFilter<Document>[] = filterDefs.map((f) => ({ ...f, count: documents.filter(f.predicate).length }))
+  // ?filter=duplicates (the dashboard's Waiting for you) opens on that chip.
+  const [filter, setFilter] = useState(() => {
+    const asked = (searchParams.get('filter') ?? '').toUpperCase()
+    return filterDefs.some((f) => f.key === asked) ? asked : 'ALL'
+  })
 
   const statusOf = (doc: Document) => {
     if (doc.heldAsDuplicate) return t('documents:status.possibleCopy')
@@ -199,6 +204,8 @@ export function DocumentsPage() {
           columns={columns}
           getRowKey={(doc) => doc.docId}
           filters={filters}
+          activeFilter={filter}
+          onFilterChange={setFilter}
           filterGroupAriaLabel={t('documents:filters.label')}
           searchable
           searchPlaceholder={t('documents:table.search')}

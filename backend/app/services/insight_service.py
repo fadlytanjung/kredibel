@@ -283,15 +283,15 @@ class InsightService:
                     "AUTO_MATCH_RATE", "rate", rate, self._auto_match_rate(books, resolved.previous)
                 )
             )
-        # The period's open review items, in the queue's order (AC-010-1, spec 009).
+        # Every open review item, as the sidebar and the queue count them (docs/11 §6.2): a to-do is
+        # not a figure of the period; the preview is the queue's first five (AC-010-1, spec 009).
         preview: list[ReviewItem] = []
         if self._review_items is not None:
             queue, _, _ = await self._review_items.list_review_items(
                 org_id, status="OPEN", limit=500
             )
-            mine = [i for i in queue if i.month is None or i.month in resolved.months]
-            kpis.append(Kpi("OPEN_REVIEW_ITEMS", "count", len(mine)))
-            preview = mine[:5]
+            kpis.append(Kpi("OPEN_REVIEW_ITEMS", "count", len(queue)))
+            preview = queue[:5]
         docs, _ = await self._docs.list_documents(org_id, limit=500)
         waiting = sum(1 for d in docs if d.held_as_duplicate or d.status == DocStatus.NEEDS_INPUT)
         kpis.append(Kpi("DOCUMENTS_WAITING", "count", waiting))

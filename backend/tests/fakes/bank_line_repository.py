@@ -62,6 +62,13 @@ class FakeBankLineRepository(BankLineRepository):
             if line is not None:
                 line.match_state, line.match_ids, line.support = state, match_ids, support
 
+    async def set_match_categories(self, org_id: str, updates: dict[str, tuple[str, str]]) -> None:
+        for tx_id, (category, cashflow_class) in updates.items():
+            line = self.lines.get((org_id, tx_id))
+            if line is not None:
+                line.category, line.cashflow_class = category, cashflow_class
+                line.categorized_by, line.category_confidence = "MATCH", None
+
     async def set_category(self, org_id: str, line: BankLine, event: AuditEvent) -> None:
         stored = self.lines[(org_id, line.tx_id)]
         stored.category, stored.categorized_by = line.category, line.categorized_by

@@ -56,6 +56,14 @@ class LedgerRow(ReportModel):
         return self
 
 
+def journal_key(row: LedgerRow) -> tuple[str, ...]:
+    """The rows of one journal entry: its journal ID or, when the export has none for the row, the
+    rows of the same file, date and description (a journal's lines share them)."""
+    if row.journal_id:
+        return (row.doc_id, "J", row.journal_id)
+    return (row.doc_id, "D", row.date.isoformat(), " ".join(row.description.split()).upper())
+
+
 class Classification(ReportModel):
     account_code: str = Field(min_length=1, max_length=100)
     pnl_line: str

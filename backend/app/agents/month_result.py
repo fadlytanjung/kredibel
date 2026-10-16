@@ -15,6 +15,8 @@ class MonthResult:
     allocations: list[Allocation]
     matches: list[StoredMatch]
     support: dict[str, tuple[str, list[str], str]] = field(default_factory=dict)
+    # Spec 023: (category, cash-flow class) a line's match named, by transaction ID.
+    categories: dict[str, tuple[str, str]] = field(default_factory=dict)
     invoice_evidence: dict[str, dict[str, Any]] = field(default_factory=dict)
     receipt_evidence: dict[str, dict[str, Any]] = field(default_factory=dict)
     findings: list[Finding] | None = None

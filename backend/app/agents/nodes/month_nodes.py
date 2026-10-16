@@ -36,6 +36,7 @@ from app.domain.figures import month_figures
 from app.domain.findings import Finding, merge_findings
 from app.domain.grounding import GroundingContext, check_grounding
 from app.domain.ledger_cash import match_ledger_cash
+from app.domain.match_categories import categories_from_matches
 from app.domain.models.document import DocStatus, DocType, DuplicateDecision, DuplicateKind
 from app.domain.models.match import StoredMatch
 from app.domain.models.month import Month, MonthState
@@ -131,6 +132,21 @@ def reconcile(deps: PipelineDeps, pending: PendingMonths):
             rejected=decisions.rejected,
         )
         kinds = {r.record_id: r.kind for r in (*right, *bookings)}
+        # A line nothing categorized takes the category its match names (spec 023, AC-023-12),
+        # before the figures count it.
+        named = categories_from_matches(
+            data.lines, allocations, kinds, data.ledger_rows, data.classifications, deps.categories
+        )
+        for line in data.lines:
+            if category := named.get(line.tx_id):
+                line.category, line.categorized_by, line.category_confidence = (
+                    category,
+                    "MATCH",
+                    None,
+                )
+                line.cashflow_class = deps.categories.categories[category].cashflow_class(
+                    data.framework
+                )
         amounts = {ln.tx_id: ln.amount for ln in data.all_lines}
         run_id = str(node_input.get("runId") or "")
         now = deps.clock.now()
@@ -158,6 +174,11 @@ def reconcile(deps: PipelineDeps, pending: PendingMonths):
             if a.method != "MANUAL"
         ]
         result = MonthResult(data=data, allocations=allocations, matches=stored)
+        result.categories = {
+            line.tx_id: (line.category, line.cashflow_class)
+            for line in data.lines
+            if line.tx_id in named
+        }
         pending[run_key(node_input)] = result
 
         # Bank support of the month's lines: separate from cash (ADR-025).
@@ -1124,6 +1145,7 @@ def finalize_month(deps: PipelineDeps, pending: PendingMonths):
             paid_elsewhere = _months_paid_elsewhere(result, month_str)  # before the stores change
             await deps.matches.replace_month_matches(org_id, month_str, result.matches)
             await deps.bank_lines.set_support(org_id, result.support)
+            await deps.bank_lines.set_match_categories(org_id, result.categories)
             await deps.invoices.set_evidence(org_id, result.invoice_evidence)
             await deps.receipts.set_evidence(org_id, result.receipt_evidence)
             if result.findings is not None and deps.findings is not None:

@@ -25,4 +25,8 @@
 - [x] **T023-12** **TDD** Bank lines matched to their bookings on the mapped ledger account
   (`match_ledger_cash`, `ledgerCash` policy, ledger rows keep description and reference). (AC-023-11)
   Built 17 Oct 2026: S1 84 of 87 lines no document explains, none wrong; 92–100% per month.
+- [x] **T023-13** **TDD** A line nothing categorized takes the category its match names
+  (`match_categories.py`, written by the month run with `set_match_categories`; a journal is its ID
+  or, without one, its file, date and description). (AC-023-12) Built 17 Oct 2026: the demo's cash
+  deposits booked to Retail sales are sales receipts, from their match.
 - [ ] **T023-08** Update `docs/07`, `docs/08`, `docs/20`.

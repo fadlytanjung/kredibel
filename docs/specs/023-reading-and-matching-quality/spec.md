@@ -106,6 +106,11 @@ as on GitHub and Azure DevOps.
   description, counter-account or reference names the line (`LEDGER_BOOKED`); otherwise it stays
   for a person. On S1 every such match is one the truth lists and each month is at least 85%
   matched; the risk checks still see document matches only.
+- **AC-023-12** A line the rules and the model left `UNKNOWN` (a "CASH DEPOSIT" that names nobody)
+  takes the category its confirmed match names: a sales invoice gives `SALES_RECEIPT`; a ledger
+  booking gives the one category its journal's other account is classified as, for the line's
+  direction. It is marked `categorizedBy MATCH`; a person's, a rule's or the model's category is
+  never replaced, and an ambiguous booking leaves the line as it is.
 
 ## Out of scope
 

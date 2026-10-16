@@ -9,7 +9,7 @@ import calendar
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from decimal import Decimal
-from typing import Any
+from typing import Any, Literal
 
 from app.agents.deps import PipelineDeps
 from app.domain.accounts import statement_account
@@ -23,7 +23,7 @@ from app.domain.models.document import DocStatus, DocType, Document, DuplicateKi
 from app.domain.models.invoice import Invoice, Receipt
 from app.domain.models.match import StoredMatch
 from app.domain.normalize import detect_amount_style, parse_amount
-from app.domain.profit_loss import LedgerRow
+from app.domain.profit_loss import Classification, LedgerRow, journal_key
 from app.domain.reconcile import Allocation, Decisions, ManualMatch
 from app.domain.reconcile_scoring import MatchRecord, in_workspace_currency
 
@@ -56,6 +56,9 @@ class MonthData:
     not_required: set[str] = field(default_factory=set)
     ledger_rows: list[LedgerRow] = field(default_factory=list)
     bank_account_mappings: dict[str, str] = field(default_factory=dict)
+    # Spec 023: what each ledger account is (the person confirmed it), and the workspace framework.
+    classifications: dict[str, Classification] = field(default_factory=dict)
+    framework: Literal["IFRS", "US_GAAP"] = "IFRS"
     # counterpartyId → the names it is known by (spec 014), for the party score (AC-023-5)
     spellings: dict[str, tuple[str, ...]] = field(default_factory=dict)
 
@@ -151,8 +154,10 @@ async def read_month(deps: PipelineDeps, org_id: str, month: str) -> MonthData |
             bank_account_mappings[key] = acc.ledger_account_code
 
     ledger_rows: list[LedgerRow] = []
+    classifications: dict[str, Classification] = {}
     if deps.ledger is not None:
         ledger_rows = await deps.ledger.list_rows(org_id)
+        classifications = await deps.ledger.classifications(org_id)
     spellings: dict[str, tuple[str, ...]] = {}
     if deps.counterparties is not None:
         cursor: str | None = None
@@ -181,6 +186,8 @@ async def read_month(deps: PipelineDeps, org_id: str, month: str) -> MonthData |
         ledger_rows=ledger_rows,
         bank_account_mappings=bank_account_mappings,
         spellings=spellings,
+        classifications=classifications,
+        framework="US_GAAP" if workspace.profile.accounting_framework == "US_GAAP" else "IFRS",
     )
 
 
@@ -295,10 +302,9 @@ def ledger_cash_records(data: MonthData, rival_days: int) -> list[MatchRecord]:
         if m.status == "CONFIRMED" and m.month != data.month
         for e in m.ledger_entry_ids
     }
-    journals: dict[tuple[str, str], list[LedgerRow]] = {}
+    journals: dict[tuple[str, ...], list[LedgerRow]] = {}
     for row in data.ledger_rows:
-        if row.journal_id:
-            journals.setdefault((row.doc_id, row.journal_id), []).append(row)
+        journals.setdefault(journal_key(row), []).append(row)
     out: list[MatchRecord] = []
     for row in data.ledger_rows:
         account = account_of_code.get(row.account_code)
@@ -306,7 +312,7 @@ def ledger_cash_records(data: MonthData, rival_days: int) -> list[MatchRecord]:
             continue
         if not lo <= row.date <= hi or row.entry_id in taken:
             continue
-        others = journals.get((row.doc_id, row.journal_id), []) if row.journal_id else []
+        others = journals.get(journal_key(row), [])
         out.append(
             MatchRecord(
                 record_id=row.entry_id,

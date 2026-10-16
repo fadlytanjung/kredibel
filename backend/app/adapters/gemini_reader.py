@@ -278,6 +278,12 @@ class GeminiDocumentReader(DocumentReader):
             )
         return await self._call(load_prompt("explain_month"), parts, MonthExplanation)
 
+    async def rank_candidates(self, payment: str, candidates: str) -> ReaderCall[Any]:
+        from app.domain.candidate_ranking import CandidateRanking
+
+        parts: list[Any] = [f"PAYMENT:\n{payment}", f"CANDIDATES:\n{candidates}"]
+        return await self._call(load_prompt("rank_candidates"), parts, CandidateRanking)
+
     async def suggest_match(
         self,
         bank_line_info: str,

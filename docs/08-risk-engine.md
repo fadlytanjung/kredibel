@@ -433,7 +433,10 @@ adjustment counts as fully covered).
 proposal a person confirms, never automatic. When the two readings disagree on an amount and no
 person settled it, matching also tries the other reading; a match only that reading explains is a
 proposal (`OTHER_READING`) that tells the reviewer which value to correct. A cash withdrawal is
-`CASH_WITHDRAWAL`, money out, never a transfer between own accounts. A group of several documents for one bank line is found
+`CASH_WITHDRAWAL`, money out, never a transfer between own accounts. For a proposal with rivals the
+month run asks the model to order the candidates code found and say why in one sentence
+(`rank_candidates`, at most 8 proposals a run, kept while the candidates stay the same); the review
+panel shows it as the AI's view. It never changes a score, a match or what is automatic. A group of several documents for one bank line is found
 by a subset sum over the line's party in its date window (at most `maxGroupParts`, the 24 nearest
 candidates); a group of more than `maxAutoGroupParts` is never automatic. The party score is the
 best of the line's cleaned counterparty name, its printed description and the spellings its

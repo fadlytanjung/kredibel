@@ -42,6 +42,8 @@ def _to_doc(item: ReviewItem) -> ReviewItemDoc:
             receipt_ids=c.receipt_ids,
             score=str(c.score),
             reasons=c.reasons,
+            ai_rank=c.ai_rank,
+            ai_reason=c.ai_reason,
         )
         for c in item.suggestion.candidates
     ]
@@ -80,6 +82,7 @@ def _to_doc(item: ReviewItem) -> ReviewItemDoc:
                 str(item.suggestion.difference) if item.suggestion.difference is not None else None
             ),
             evidence=item.suggestion.evidence,
+            ranked_by=item.suggestion.ranked_by,
         ),
         allowed_actions=[str(a) for a in item.allowed_actions],
         resolution=resolution,
@@ -96,6 +99,8 @@ def _to_domain(doc: ReviewItemDoc) -> ReviewItem:
             receipt_ids=c.receipt_ids,
             score=Decimal(c.score),
             reasons=c.reasons,
+            ai_rank=c.ai_rank,
+            ai_reason=c.ai_reason,
         )
         for c in doc.suggestion.candidates
     ]
@@ -136,6 +141,7 @@ def _to_domain(doc: ReviewItemDoc) -> ReviewItem:
                 else None
             ),
             evidence=doc.suggestion.evidence,
+            ranked_by=doc.suggestion.ranked_by,
         ),
         allowed_actions=cast(list[ResolveAction], doc.allowed_actions),
         resolution=resolution,

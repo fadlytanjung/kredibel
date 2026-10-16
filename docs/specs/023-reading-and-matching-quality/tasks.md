@@ -14,7 +14,7 @@
 
 - [ ] **T023-06** Statement reader v4, categorizer v4, classifier v3; synthetic *rekening koran*
   scenario; measured by the eval suite before shipping. (AC-023-6)
-- [ ] **T023-07** **TDD** The model ranks a proposal's candidates; shown on the review item. (AC-023-7)
+- [x] **T023-07** **TDD** The model ranks a proposal's candidates; shown on the review item. (AC-023-7) Built 16 Oct 2026: `Allocation.rivals`, `rank_candidates` prompt v1 and reader call, `month_nodes.rank_proposals`, candidates' `aiRank`/`aiReason` and `rankedBy` (contract, Firestore, schema snapshot), the review panel's AI view and its mock.
 - [x] **T023-09** **TDD** Cash withdrawals are money out (`CASH_WITHDRAWAL`); Indonesian and Malay
   words for cash, fees, tax and interest in `categorization-rules.v1.yaml`; `categorize_transactions`
   v4. (AC-023-10)

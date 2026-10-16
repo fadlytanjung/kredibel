@@ -28,6 +28,8 @@ class ReviewCandidateDoc(BaseModel):
     receipt_ids: list[str] = Field(default_factory=list)
     score: str = "0"  # a decimal string
     reasons: list[str] = Field(default_factory=list)
+    ai_rank: int | None = None  # spec 023: the model's order among the candidates (advice)
+    ai_reason: str | None = None
 
 
 class ReviewSuggestionDoc(BaseModel):
@@ -39,6 +41,7 @@ class ReviewSuggestionDoc(BaseModel):
     mapping: dict[str, Any] | None = None
     difference: str | None = None
     evidence: list[dict[str, Any]] = Field(default_factory=list)
+    ranked_by: str | None = None  # model@prompt that ordered the candidates
 
 
 class ReviewResolutionDoc(BaseModel):

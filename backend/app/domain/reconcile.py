@@ -48,6 +48,21 @@ class Allocation:
     amount_difference: Decimal
     requires_review: bool
     alternatives: tuple[str, ...] = ()  # competing candidates a person can pick instead
+    # Those competitors' parts and scores, strongest first (spec 023): shown on the proposal's
+    # review item, and what the model may rank.
+    rivals: tuple["Rival", ...] = ()
+
+
+@dataclass(frozen=True)
+class Rival:
+    match_id: str
+    left_ids: tuple[str, ...]
+    right_ids: tuple[str, ...]
+    score: Decimal
+    reasons: tuple[str, ...]
+
+
+MAX_RIVALS = 3
 
 
 @dataclass(frozen=True)
@@ -199,6 +214,13 @@ def assign_matches(
                 amount_difference=best.scored.amount_difference,
                 requires_review=best.scored.requires_review,
                 alternatives=() if auto else tuple(sorted(c.match_id for c in rivals)),
+                rivals=()
+                if auto
+                else tuple(
+                    Rival(c.match_id, c.left_ids, c.right_ids, c.scored.score, c.scored.reasons)
+                    for c in sorted(rivals, key=lambda c: (-c.scored.score, c.match_id))
+                    if c.scored.score >= thresholds.propose_score
+                )[:MAX_RIVALS],
             )
         )
     return sorted(out, key=lambda a: a.match_id)

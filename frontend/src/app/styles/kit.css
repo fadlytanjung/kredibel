@@ -1736,6 +1736,10 @@ button.tab { border: 0; background: transparent; cursor: pointer; font-family: i
 .lp-actions { gap: var(--k-space-2); }
 .lp-md summary, .ev-inspector summary { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 640; cursor: pointer; padding: 4px 0; }
 .md-tabs .tabs { margin-top: var(--k-space-1); }
+.ai-view { margin-top: var(--k-space-3); padding: var(--k-space-3); border: 1px dashed var(--k-color-border-default); border-radius: var(--k-radius-sm); background: var(--k-color-bg-sunken); }
+.ai-view-head { display: flex; align-items: center; gap: 6px; margin: 0 0 var(--k-space-2); font-size: 13px; font-weight: 640; }
+.ai-view ol { margin: 0 0 var(--k-space-2); padding-left: var(--k-space-4); font-size: 13px; line-height: 1.45; }
+.ai-view li + li { margin-top: var(--k-space-1); }
 .md-preview { margin: 6px 0; padding: var(--k-space-3); border: 1px solid var(--k-color-border-default); border-radius: var(--k-radius-sm); background: var(--k-color-bg-surface); color: var(--k-color-text-default); font-size: 13px; line-height: 1.45; overflow-x: auto; }
 .md-preview h3, .md-preview h4, .md-preview h5, .md-preview h6 { margin: var(--k-space-3) 0 var(--k-space-1); font-size: 13px; font-weight: 700; }
 .md-preview .md-h1 { margin-top: 0; font-size: 15px; }

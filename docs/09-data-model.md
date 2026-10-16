@@ -243,7 +243,7 @@ are optional until it has run (no migration: new optional fields).
 | `subject` | map | IDs of the bank line, document, entry or match concerned |
 | `status` | `OPEN` \| `RESOLVED` \| `DISMISSED` | |
 | `priority` | int | Sorting: duplicates and high-risk first |
-| `suggestion?` | map | Proposed fix (candidates for a match, the other reading for a value) |
+| `suggestion?` | map | Proposed fix (candidates for a match, the other reading for a value). A proposal's candidates are the proposal and up to 3 rivals code scored; each may carry `aiRank` and `aiReason` (spec 023: the model's order and one sentence, advice only), with `rankedBy` (model@prompt) on the suggestion |
 | `resolution?` | map | `action` (the person's action of [`10`](10-api-contract.md) §4; absent when the system closed the item because its cause is gone), `note?`, `resolvedBy` (a uid or `system`), `resolvedAt` |
 | `key` | string | Deterministic ID input, so a re-run never duplicates an item (§4) |
 

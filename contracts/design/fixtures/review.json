@@ -28,9 +28,25 @@
               "AMOUNT_EXACT",
               "PARTY_MATCH",
               "DATE_NEAR"
-            ]
+            ],
+            "aiRank": 1,
+            "aiReason": "The transfer names Daybreak Cafe and was paid three days after the invoice date."
+          },
+          {
+            "matchId": "mat_feb_0003b",
+            "invoiceIds": [
+              "inv_0004"
+            ],
+            "score": "0.74",
+            "reasons": [
+              "AMOUNT_EXACT",
+              "DATE_NEAR"
+            ],
+            "aiRank": 2,
+            "aiReason": "Same amount, but the invoice is for another client and was issued later."
           }
-        ]
+        ],
+        "rankedBy": "gemini@rank_candidates@1"
       },
       "allowedActions": [
         "CONFIRM_MATCH",

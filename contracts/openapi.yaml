@@ -2490,6 +2490,8 @@ components:
         score: { $ref: "#/components/schemas/Decimal" }
         reasons: { type: array, items: { $ref: "#/components/schemas/MatchReason" } }
         text: { type: string }
+        aiRank: { type: [integer, "null"], description: "Spec 023: the model's order among a proposal's candidates (1 first); advice, never a match" }
+        aiReason: { type: [string, "null"], description: "The model's one sentence for this candidate" }
     ReviewItem:
       type: object
       required: [itemId, kind, status, priority, subject, allowedActions]
@@ -2515,6 +2517,7 @@ components:
           type: object
           properties:
             candidates: { type: array, items: { $ref: "#/components/schemas/ReviewCandidate" } }
+            rankedBy: { type: [string, "null"], description: "Spec 023: model@prompt that ordered the candidates" }
             reading: { $ref: "#/components/schemas/ValueReading" }
             docType: { $ref: "#/components/schemas/DocType" }
             confidence: { $ref: "#/components/schemas/Decimal", description: "The classifier's confidence in docType (CONFIRM_TYPE)" }

@@ -114,6 +114,17 @@ class FakeDocumentReader(DocumentReader):
             res = self.month_explanation
         return ReaderCall(res, "fake-model", "explain_month@test", 400, 150)
 
+    async def rank_candidates(self, payment: str, candidates: str) -> ReaderCall[Any]:
+        """The candidates in reverse of code's order, so a test sees the model's order apply."""
+        from app.domain.candidate_ranking import CandidateRanking, RankedCandidate
+
+        self.calls.append(("rank_candidates", 1))
+        ids = [line.split(":", 1)[0] for line in candidates.splitlines() if ":" in line]
+        order = [RankedCandidate(match_id=i, reason=f"Fake reason for {i}.") for i in reversed(ids)]
+        return ReaderCall(
+            CandidateRanking(order=order), "fake-model", "rank_candidates@test", 50, 20
+        )
+
     async def suggest_match(
         self,
         bank_line_info: str,

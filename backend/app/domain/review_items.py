@@ -99,6 +99,10 @@ class ReviewCandidate:
     receipt_ids: list[str] = field(default_factory=list)
     score: Decimal = Decimal(0)
     reasons: list[str] = field(default_factory=list)
+    # The model's order among a proposal's candidates and its one sentence (spec 023, AC-023-7);
+    # advice for the person deciding, never a match.
+    ai_rank: int | None = None
+    ai_reason: str | None = None
 
 
 @dataclass
@@ -110,6 +114,7 @@ class ReviewSuggestion:
     mapping: dict[str, Any] | None = None
     difference: Decimal | None = None
     evidence: list[dict[str, Any]] = field(default_factory=list)
+    ranked_by: str | None = None  # model@prompt that ordered the candidates
 
 
 @dataclass
@@ -238,6 +243,7 @@ class ProposalFacts:
     day: date | None
     score: Decimal
     reasons: tuple[str, ...] = ()
+    alternatives: tuple[ReviewCandidate, ...] = ()  # rivals code scored for the same records
 
 
 @dataclass(frozen=True)
@@ -391,7 +397,8 @@ def month_items(
                         receipt_ids=list(p.receipt_ids),
                         score=p.score,
                         reasons=list(p.reasons),
-                    )
+                    ),
+                    *p.alternatives,
                 ]
             ),
         )

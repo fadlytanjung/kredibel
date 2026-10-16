@@ -439,6 +439,8 @@
   },
   "ReviewCandidateDoc": {
     "fields": {
+      "ai_rank": "int | None",
+      "ai_reason": "str | None",
       "bank_line_ids": "list[str]",
       "invoice_ids": "list[str]",
       "match_id": "str",
@@ -498,6 +500,7 @@
       "doc_type": "str | None",
       "evidence": "list[dict[str, Any]]",
       "mapping": "dict[str, Any] | None",
+      "ranked_by": "str | None",
       "reading": "dict[str, Any] | None"
     },
     "file": "review_item.py",

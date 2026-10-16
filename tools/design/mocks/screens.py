@@ -1202,11 +1202,19 @@ def review_match() -> str:
     candidate = item["suggestion"]["candidates"][0]
     score = float(candidate["score"])
     tags = "".join(f'<span class="why-tag yes">{icon("check", "icon icon-sm")}{mw(f"monthDetail.matchReasons.{r}")}</span>' for r in candidate["reasons"])
+    ranked = sorted((c for c in item["suggestion"]["candidates"] if c.get("aiRank") and c.get("aiReason")), key=lambda c: c["aiRank"])
+    ai_items = "".join(
+        f'<li><strong>{rw("panel.aiThisProposal") if c["matchId"] == candidate["matchId"] else rw("panel.aiOther")}</strong> {c["aiReason"]}</li>'
+        for c in ranked
+    )
+    ai_view = (f'<section class="ai-view" aria-label="{rw("panel.aiView")}"><p class="ai-view-head">{icon("sparkles", "icon icon-sm")}{rw("panel.aiView")}</p>'
+               f'<ol>{ai_items}</ol><p class="muted small">{rw("panel.aiNote")}</p></section>') if ranked else ""
     proposal = f"""
 <div class="candidates" role="radiogroup" aria-label="{rw("panel.proposal")}">
   <div class="candidate is-picked" role="radio" aria-checked="true" tabindex="0"><span class="radio"></span><span><span class="t">{rw("panel.proposal")}</span></span>
     <span class="why">{tags}</span>
     <span class="score">{rw("panel.fit")}<span class="meter-bar"><i style="width:{round(score * 100)}%"></i></span><span>{score:.2f}</span></span></div>
+  {ai_view}
 </div>"""
     body = line_subject(line) + record_subject(invoice) + proposal
     drawer = review_drawer(item, body, rw("actions.CONFIRM_MATCH"), [rw("actions.REJECT_MATCH")], 1)

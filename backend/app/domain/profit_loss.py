@@ -34,6 +34,9 @@ class LedgerRow(ReportModel):
     currency: str | None = None
     posting_status: Literal["POSTED", "DRAFT", "UNKNOWN"] = "UNKNOWN"
     journal_id: str | None = None
+    # The row's own words (docs/08 §6.2): what a bank line's booking is matched by.
+    description: str = ""
+    reference: str | None = None
     entry_kind: Literal["ACTIVITY", "OPENING", "CLOSING"] = "ACTIVITY"
     held_as_duplicate: bool = False
     # D06: {code, ofEntryId, decision} once the row repeats an earlier entry (docs/09 §3.8)

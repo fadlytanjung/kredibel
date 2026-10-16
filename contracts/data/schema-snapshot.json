@@ -321,6 +321,7 @@
       "currency": "str | None",
       "date": "str",
       "debit_minor": "int",
+      "description": "str",
       "doc_id": "str",
       "duplicate": "dict[str, Any] | None",
       "entry_id": "str",
@@ -329,6 +330,7 @@
       "journal_id": "str | None",
       "org_id": "str",
       "posting_status": "Literal[POSTED, DRAFT, UNKNOWN]",
+      "reference": "str | None",
       "row_number": "int"
     },
     "file": "ledger.py",

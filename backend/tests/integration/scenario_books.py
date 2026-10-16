@@ -231,6 +231,8 @@ def ledger_rows(entry: dict[str, Any], doc_id: str) -> list[LedgerRow]:
             posting_status="POSTED",
             journal_id=row.get("reference")
             or None,  # the reference column, as parse_ledger keeps it
+            description=row.get("description") or "",
+            reference=row.get("reference") or None,
         )
         for number, row in enumerate(entry["entries"], start=1)
     ]

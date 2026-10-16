@@ -18,6 +18,7 @@ from app.agents.month_data import (
     document_facts,
     document_records,
     evidence_body,
+    ledger_cash_records,
     month_bounds,
     person_decisions,
     read_month,
@@ -34,6 +35,7 @@ from app.domain.evidence import document_evidence, line_support
 from app.domain.figures import month_figures
 from app.domain.findings import Finding, merge_findings
 from app.domain.grounding import GroundingContext, check_grounding
+from app.domain.ledger_cash import match_ledger_cash
 from app.domain.models.document import DocStatus, DocType, DuplicateDecision, DuplicateKind
 from app.domain.models.match import StoredMatch
 from app.domain.models.month import Month, MonthState
@@ -46,6 +48,7 @@ from app.domain.profile_suggestions import (
     build_profile_suggestions,
 )
 from app.domain.reconcile import assign_matches
+from app.domain.reconcile_scoring import INVOICES
 from app.domain.review_items import (
     Check,
     HeldCopy,
@@ -95,6 +98,7 @@ _KIND = {
     "SALES_INVOICE": "BANK_SALES_INVOICE",
     "PURCHASE_INVOICE": "BANK_PURCHASE_INVOICE",
     "RECEIPT": "BANK_RECEIPT",
+    "LEDGER_CASH": "BANK_LEDGER",
 }
 
 
@@ -112,10 +116,21 @@ def reconcile(deps: PipelineDeps, pending: PendingMonths):
         policy = deps.reconciliation
         left = [bank_record(line, data) for line in data.lines]
         right = document_records(data)
+        decisions = person_decisions(data)
         allocations = assign_matches(
-            left, right, policy, workspace_currency=data.currency, decisions=person_decisions(data)
+            left, right, policy, workspace_currency=data.currency, decisions=decisions
         )
-        kinds = {r.record_id: r.kind for r in right}
+        # Then the lines no document explains, against their bookings on the mapped ledger account.
+        bookings = ledger_cash_records(data, policy.ledger_cash.rival_days)
+        allocations += match_ledger_cash(
+            left,
+            bookings,
+            policy,
+            workspace_currency=data.currency,
+            taken=frozenset(t for a in allocations for t in a.left_ids),
+            rejected=decisions.rejected,
+        )
+        kinds = {r.record_id: r.kind for r in (*right, *bookings)}
         amounts = {ln.tx_id: ln.amount for ln in data.all_lines}
         run_id = str(node_input.get("runId") or "")
         now = deps.clock.now()
@@ -127,8 +142,9 @@ def reconcile(deps: PipelineDeps, pending: PendingMonths):
                 status=a.status,
                 method=a.method,
                 bank_line_ids=list(a.left_ids),
-                invoice_ids=[r for r in a.right_ids if kinds[r] != "RECEIPT"],
+                invoice_ids=[r for r in a.right_ids if kinds[r] in INVOICES],
                 receipt_ids=[r for r in a.right_ids if kinds[r] == "RECEIPT"],
+                ledger_entry_ids=[r for r in a.right_ids if kinds[r] == "LEDGER_CASH"],
                 amount=sum((abs(amounts.get(t, Decimal(0))) for t in a.left_ids), Decimal(0)),
                 amount_difference=a.amount_difference,
                 score=a.score,

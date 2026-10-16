@@ -22,4 +22,7 @@
   months; a value corrected anywhere settles its label. (AC-023-8)
 - [x] **T023-11** **TDD** Matching tries the other reading of an amount the readings disagreed on
   (`OTHER_READING`, a proposal). (AC-023-9)
+- [x] **T023-12** **TDD** Bank lines matched to their bookings on the mapped ledger account
+  (`match_ledger_cash`, `ledgerCash` policy, ledger rows keep description and reference). (AC-023-11)
+  Built 17 Oct 2026: S1 84 of 87 lines no document explains, none wrong; 92–100% per month.
 - [ ] **T023-08** Update `docs/07`, `docs/08`, `docs/20`.

@@ -16,6 +16,7 @@ from app.domain.accounts import statement_account
 from app.domain.checks.month import StatementSpan
 from app.domain.evidence import AccountSpan, DocumentEvidence, DocumentFacts, PaymentConfirmation
 from app.domain.figures import AccountLines
+from app.domain.ledger_cash import BOOKED
 from app.domain.models.bank_line import BankLine
 from app.domain.models.decision import Decision
 from app.domain.models.document import DocStatus, DocType, Document, DuplicateKind
@@ -279,6 +280,53 @@ def document_records(data: MonthData) -> list[MatchRecord]:
     return out
 
 
+def ledger_cash_records(data: MonthData, rival_days: int) -> list[MatchRecord]:
+    """Bookings on the mapped ledger accounts near the month, keyed like the statements' lines."""
+    # docs/08 §6.2: never one another month's confirmed match used; each carries its description,
+    # reference and the names of its journal's other accounts (what the line is matched by).
+    account_of_code = {code: account for account, code in data.bank_account_mappings.items()}
+    if not account_of_code:
+        return []
+    first, last = month_bounds(data.month)
+    lo, hi = first - timedelta(days=2 * rival_days), last + timedelta(days=2 * rival_days)
+    taken = {
+        e
+        for m in data.matches
+        if m.status == "CONFIRMED" and m.month != data.month
+        for e in m.ledger_entry_ids
+    }
+    journals: dict[tuple[str, str], list[LedgerRow]] = {}
+    for row in data.ledger_rows:
+        if row.journal_id:
+            journals.setdefault((row.doc_id, row.journal_id), []).append(row)
+    out: list[MatchRecord] = []
+    for row in data.ledger_rows:
+        account = account_of_code.get(row.account_code)
+        if account is None or row.entry_kind != "ACTIVITY" or row.posting_status == "DRAFT":
+            continue
+        if not lo <= row.date <= hi or row.entry_id in taken:
+            continue
+        others = journals.get((row.doc_id, row.journal_id), []) if row.journal_id else []
+        out.append(
+            MatchRecord(
+                record_id=row.entry_id,
+                kind="LEDGER_CASH",
+                amount=row.debit - row.credit,  # a debit to the bank account is money in
+                date=row.date,
+                currency=row.currency,
+                party=row.description or None,
+                description=row.description,
+                reference=row.reference,
+                account_id=account,
+                held=row.held_as_duplicate,
+                aliases=tuple(
+                    sorted({o.account_name for o in others if o.account_code != row.account_code})
+                ),
+            )
+        )
+    return out
+
+
 def person_decisions(data: MonthData) -> Decisions:
     mine = [m for m in data.matches if m.month == data.month]
     return Decisions(
@@ -297,7 +345,7 @@ def stored_allocations(matches: list[StoredMatch]) -> list[Allocation]:
         Allocation(
             match_id=m.match_id,
             left_ids=tuple(m.bank_line_ids),
-            right_ids=tuple(m.document_ids),
+            right_ids=(*m.document_ids, *m.ledger_entry_ids),
             status="CONFIRMED" if m.status == "CONFIRMED" else "PROPOSED",
             method=m.method,
             score=m.score,
@@ -318,8 +366,14 @@ def stored_allocations(matches: list[StoredMatch]) -> list[Allocation]:
 def allocations_for_checks(
     fresh: list[Allocation], matches: list[StoredMatch], month: str
 ) -> list[Allocation]:
-    others = [m for m in matches if m.month != month and m.status in ("CONFIRMED", "PROPOSED")]
-    return [*fresh, *stored_allocations(others)]
+    # A booking in the ledger explains a line's cash, not a document's payment: a second payment
+    # booked there is still a second payment (D07), so the checks see document matches only.
+    others = [
+        m
+        for m in matches
+        if m.month != month and m.status in ("CONFIRMED", "PROPOSED") and m.kind != "BANK_LEDGER"
+    ]
+    return [*(a for a in fresh if BOOKED not in a.reasons), *stored_allocations(others)]
 
 
 def document_facts(record: Invoice | Receipt, data: MonthData) -> DocumentFacts | None:

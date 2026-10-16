@@ -100,6 +100,12 @@ as on GitHub and Azure DevOps.
   (`CASH_WITHDRAWAL`, operating; other spending in the profit and loss), never a transfer between
   own accounts (product decision 16 Oct 2026); Indonesian and Malay words for cash, fees, tax and
   interest are in the categorization rules.
+- **AC-023-11** A bank line no document explains is matched automatically to its booking on the
+  ledger account its bank account is mapped to (same amount, within `ledgerDays`) only when no other
+  line or booking of that amount is within `rivalDays`, neither reading conflicts, and the booking's
+  description, counter-account or reference names the line (`LEDGER_BOOKED`); otherwise it stays
+  for a person. On S1 every such match is one the truth lists and each month is at least 85%
+  matched; the risk checks still see document matches only.
 
 ## Out of scope
 

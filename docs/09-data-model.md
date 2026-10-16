@@ -187,6 +187,9 @@ contribute), `currency` defaults to null (must equal the workspace currency), an
 defaults to null. `entryKind` defaults to `ACTIVITY`; explicit `OPENING`/`CLOSING` rows are
 excluded from period performance. Rows missing posting/currency evidence are excluded explicitly. This is an
 additive v1 persistence model; no legacy row is assumed posted. Each row stores `orgId` and `entryId`.
+`description` and `reference` are stored from 17 Oct 2026 (optional, default empty; spec 023, AC-023-11):
+they are the words a bank line's booking is matched by, so rows imported before have no automatic
+bank-to-ledger match until the ledger is imported again.
 
 `orgs/{orgId}/accountClassifications/{sha256(accountCode)}` (v1): `orgId`, `accountCode`, `pnlLine`,
 `subledger`, `confirmedBy`, `confirmedAt`, `schemaVersion`. Mappings are confirmed only through the

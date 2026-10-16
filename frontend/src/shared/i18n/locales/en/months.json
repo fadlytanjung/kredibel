@@ -159,7 +159,8 @@
       "REFERENCE_IN_TEXT": "Reference in the description",
       "DATE_NEAR": "Close date",
       "SPLIT": "Paid in parts",
-      "GROUPED": "One payment for several documents"
+      "GROUPED": "One payment for several documents",
+      "LEDGER_BOOKED": "Booked once in your ledger's bank account"
     },
     "categoryByYou": "Set by you",
     "categoryAria": "Category: {{category}}, {{cashflow}}",

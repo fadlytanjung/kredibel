@@ -3,6 +3,7 @@
 Normative references: docs/09 §3.1–§3.4 and §3.18, docs/14 §4.1 and §6, ADR-011.
 """
 
+from collections.abc import Awaitable, Callable
 from datetime import timedelta
 from typing import Literal
 from zoneinfo import available_timezones
@@ -61,12 +62,14 @@ class WorkspaceService:
         clock: Clock,
         signup_mode: SignupMode,
         max_workspaces: int,
+        on_framework_change: Callable[[str, str], Awaitable[object]] | None = None,
     ) -> None:
         self._repo = repo
         self._identity = identity
         self._plans = plans
         self._clock = clock
         self._signup_mode = signup_mode
+        self._on_framework_change = on_framework_change
         self._max_workspaces = max_workspaces
 
     async def create(self, principal: Principal, request: WorkspaceCreate) -> Workspace:
@@ -133,6 +136,9 @@ class WorkspaceService:
         event = self._event("PROFILE_UPDATED", principal, {"orgId": org_id})
         event = event.model_copy(update={"details": {"fields": ",".join(changed)}})
         await self._repo.save_workspace(updated, event)
+        before, after = current.profile.accounting_framework, updated.profile.accounting_framework
+        if after != before and self._on_framework_change is not None:
+            await self._on_framework_change(org_id, after)
         return updated
 
     def _check_language(self, language: str) -> None:

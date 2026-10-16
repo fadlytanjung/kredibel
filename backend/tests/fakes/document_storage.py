@@ -8,6 +8,7 @@ class FakeDocumentStorage(DocumentStorage):
         self.originals: dict[tuple[str, str, str], tuple[bytes, str]] = {}
         self.pages: dict[tuple[str, str, int, bool], bytes] = {}
         self.cache: dict[tuple[str, str], bytes] = {}
+        self.extractions: dict[tuple[str, str, int], str] = {}
 
     async def store_original(
         self,
@@ -61,9 +62,17 @@ class FakeDocumentStorage(DocumentStorage):
         page_keys = [k for k in self.pages if k[0] == org_id and k[1] == doc_id]
         for k in page_keys:
             del self.pages[k]
+        for k in [k for k in self.extractions if k[0] == org_id and k[1] == doc_id]:
+            del self.extractions[k]
 
     async def get_cached(self, org_id: str, key: str) -> bytes | None:
         return self.cache.get((org_id, key))
 
     async def put_cached(self, org_id: str, key: str, data: bytes) -> None:
         self.cache[(org_id, key)] = data
+
+    async def put_extraction(self, org_id: str, doc_id: str, page_no: int, markdown: str) -> None:
+        self.extractions[(org_id, doc_id, page_no)] = markdown
+
+    async def get_extraction(self, org_id: str, doc_id: str, page_no: int) -> str | None:
+        return self.extractions.get((org_id, doc_id, page_no))

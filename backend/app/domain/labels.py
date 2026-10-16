@@ -140,6 +140,7 @@ def propose(
     framework: str | None = None,
     cashflow_class: str | None = None,
     page_image_url: str | None = None,
+    extraction_url: str | None = None,
 ) -> Label:
     """A fresh automatic decision as a label, before any merge with what is stored."""
     return Label(
@@ -155,6 +156,7 @@ def propose(
         framework=framework,
         cashflow_class=cashflow_class,
         page_image_url=page_image_url,
+        extraction_url=extraction_url,
     )
 
 
@@ -170,6 +172,7 @@ def merge(existing: Label | None, fresh: Label) -> Label:
         framework=fresh.framework or existing.framework,
         cashflow_class=fresh.cashflow_class or existing.cashflow_class,
         page_image_url=fresh.page_image_url or existing.page_image_url,
+        extraction_url=fresh.extraction_url or existing.extraction_url,
         ai_disagrees_with_person=fresh.ai.value != existing.final_value,
         needs_check=False,
     )

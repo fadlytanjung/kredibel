@@ -1695,6 +1695,62 @@ def plan_usage() -> str:
     return shell("settings", topbar("Plan and usage", (("Settings", "plan-usage.html"), "Plan and usage"), back=("Dashboard", "dashboard.html")), content, fab=False)
 
 
+SETTINGS_WORDS = json.loads((LOCALES / "settings.json").read_text(encoding="utf-8"))
+ONBOARD_WORDS = json.loads((LOCALES / "onboarding.json").read_text(encoding="utf-8"))
+
+
+def sw(key: str, **params) -> str:
+    return words(SETTINGS_WORDS, key, **params)
+
+
+def settings_frame(current: str, body: str) -> str:
+    """The Settings page head and section subnav around one section (SettingsPage)."""
+    links = []
+    for key, label in SETTINGS_WORDS["sections"].items():
+        if key == "members":
+            links.append(f'<a role="link" aria-disabled="true" class="cursor-default">{escape(label)}</a>')
+        else:
+            links.append(f'<a href="#"{" aria-current=\"page\"" if key == current else ""}>{escape(label)}</a>')
+    return f"""
+<div class="page">
+  <div class="page-head"><h1 class="type-title">{sw("title")}</h1></div>
+  <div class="settings-layout">
+    <nav class="subnav" aria-label="{sw("sectionsLabel")}">{"".join(links)}</nav>
+    {body}
+  </div>
+</div>"""
+
+
+def settings_profile() -> str:
+    """Settings › Profile (ProfileForm): the synthetic workspace, IFRS chosen (AC-013-14, AC-016-8)."""
+    opt = f'<span class="muted">({sw("profile.optional")})</span>'
+    legal_forms = "".join(f'<option value="{k}">{escape(v)}</option>' for k, v in SETTINGS_WORDS["profile"]["legalForms"].items())
+    industries = "".join(f"<option>{escape(v)}</option>" for v in ONBOARD_WORDS["industries"].values())
+    frameworks = seg("framework", [(k, sw(f"profile.frameworks.{k}")) for k in ("IFRS", "US_GAAP")], "IFRS", sw("profile.framework"))
+    form = f"""
+<form class="panel panel-pad stack gap-6" novalidate>
+  <p class="muted">{sw("profile.intro")}</p>
+  <div class="form-wrap">
+    <div class="form-grid">
+      <div class="field"><span class="label">{sw("profile.type")}</span><span>{sw("entityTypes.COMPANY")}</span><span class="hint">{sw("profile.typeFixed")}</span></div>
+      <div class="field"><span class="label">{sw("language.currency")}</span><span class="row gap-2 font-medium">Indonesian Rupiah (IDR)<span class="badge badge-outline">{sw("plan.comingSoon")}</span></span><span class="hint">{sw("language.currencyFixed")}</span></div>
+      <div class="field span-2"><span class="label" id="framework-l">{sw("profile.framework")}</span>{frameworks}<span class="hint">{sw("profile.frameworkHint")}</span></div>
+      <div class="field span-2"><label for="name">{sw("profile.legalName")}</label><input class="input" id="name" value="Sunrise Coffee Roasters"/></div>
+      <div class="field"><label for="tradingName">{sw("profile.tradingName")} {opt}</label><input class="input" id="tradingName"/></div>
+      <div class="field"><label for="legalForm">{sw("profile.legalForm")} {opt}</label><select class="select" id="legalForm"><option value="">{sw("profile.chooseLegalForm")}</option>{legal_forms}</select></div>
+      <div class="field"><label for="industry">{sw("profile.industry")} {opt}</label><select class="select" id="industry"><option value="">{words(ONBOARD_WORDS, "industryChoose")}</option>{industries}</select></div>
+      <div class="field"><label for="taxId">{sw("profile.taxId")} {opt}</label><input class="input" id="taxId" autocomplete="off"/><span class="hint">{sw("profile.taxIdHint")}</span></div>
+      <div class="field span-2"><label for="line1">{sw("profile.addressLine")} {opt}</label><input class="input" id="line1"/></div>
+      <div class="field"><label for="city">{sw("profile.city")} {opt}</label><input class="input" id="city"/></div>
+      <div class="field"><label for="timezone">{sw("profile.timeZone")}</label><select class="select" id="timezone"><option>Asia/Jakarta (UTC+07:00)</option></select></div>
+      <div class="field span-2"><label for="aliases">{sw("profile.aliases")} {opt}</label><textarea class="textarea" id="aliases"></textarea><span class="hint">{sw("profile.aliasesHint")}</span></div>
+    </div>
+  </div>
+  <div class="row"><button type="submit" class="button button-primary">{sw("profile.save")}</button></div>
+</form>"""
+    return shell("settings", topbar(sw("sections.profile"), ((sw("title"), "plan-usage.html"), sw("sections.profile")), back=("Dashboard", "dashboard.html")), settings_frame("profile", form), fab=False)
+
+
 # ------------------------------------------------------------------------------------------------
 # Onboarding
 # ------------------------------------------------------------------------------------------------
@@ -1760,6 +1816,7 @@ SCREENS = {
     "assistant-welcome": ("Finance Assistant: welcome", assistant_welcome),
     "assistant-history": ("Finance Assistant: history drawer", assistant_history),
     "plan-usage": ("Plan and usage", plan_usage),
+    "settings-profile": ("Settings: profile", settings_profile),
     "onboarding": ("Onboarding", onboarding),
 }
 
@@ -1782,5 +1839,6 @@ NOTES = {
     "assistant-welcome": "An empty thread: the welcome prompts to start from, the history rail and the composer.",
     "assistant-history": "The history drawer phones open from the Chat history button; wide screens show the rail instead.",
     "plan-usage": "Trial days, usage that warns before a limit, coming-soon plans and features that cannot be clicked.",
+    "settings-profile": "The profile form with the accounting framework that sets the cash-flow classes; changing it reclassifies every month.",
     "onboarding": "Individual or company in one question; the brand panel explains the promise with a ledger.",
 }

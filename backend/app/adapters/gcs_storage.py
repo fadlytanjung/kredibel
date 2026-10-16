@@ -83,11 +83,26 @@ class GcsDocumentStorage(DocumentStorage):
         return blob.download_as_bytes()
 
     async def delete_prefix(self, org_id: str, doc_id: str) -> None:
-        prefix = f"orgs/{org_id}/documents/{doc_id}/"
         bucket = self._get_bucket()
-        blobs = list(bucket.list_blobs(prefix=prefix))
-        if blobs:
-            bucket.delete_blobs(blobs)
+        for prefix in (
+            f"orgs/{org_id}/documents/{doc_id}/",
+            f"orgs/{org_id}/extractions/{doc_id}/",
+        ):
+            blobs = list(bucket.list_blobs(prefix=prefix))
+            if blobs:
+                bucket.delete_blobs(blobs)
+
+    async def put_extraction(self, org_id: str, doc_id: str, page_no: int, markdown: str) -> None:
+        blob = self._get_bucket().blob(f"orgs/{org_id}/extractions/{doc_id}/p{page_no}.md")
+        blob.upload_from_string(
+            markdown.encode("utf-8"), content_type="text/markdown; charset=utf-8"
+        )
+
+    async def get_extraction(self, org_id: str, doc_id: str, page_no: int) -> str | None:
+        blob = self._get_bucket().blob(f"orgs/{org_id}/extractions/{doc_id}/p{page_no}.md")
+        if not blob.exists():
+            return None
+        return blob.download_as_bytes().decode("utf-8")
 
     async def get_cached(self, org_id: str, key: str) -> bytes | None:
         blob = self._get_bucket().blob(f"orgs/{org_id}/cache/extraction/{key}")

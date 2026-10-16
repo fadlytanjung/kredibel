@@ -35,7 +35,7 @@
       "decidedAt": null,
       "note": null,
       "aiDisagreesWithPerson": false,
-      "extractionUrl": null,
+      "extractionUrl": "/api/documents/doc_inv_0024/pages/1/extraction.md",
       "pageImageUrl": "/api/documents/doc_inv_0024/pages/1",
       "dataset": {
         "use": "EXCLUDED",
@@ -76,7 +76,7 @@
       "decidedAt": null,
       "note": null,
       "aiDisagreesWithPerson": false,
-      "extractionUrl": null,
+      "extractionUrl": "/api/documents/doc_jun/pages/2/extraction.md",
       "pageImageUrl": "/api/documents/doc_jun/pages/2",
       "dataset": {
         "use": "EXCLUDED",
@@ -116,7 +116,7 @@
       "decidedAt": null,
       "note": null,
       "aiDisagreesWithPerson": false,
-      "extractionUrl": null,
+      "extractionUrl": "/api/documents/doc_mar/pages/3/extraction.md",
       "pageImageUrl": "/api/documents/doc_mar/pages/3",
       "dataset": {
         "use": "EXCLUDED",
@@ -158,7 +158,7 @@
       "decidedAt": null,
       "note": null,
       "aiDisagreesWithPerson": false,
-      "extractionUrl": null,
+      "extractionUrl": "/api/documents/doc_may/pages/1/extraction.md",
       "pageImageUrl": "/api/documents/doc_may/pages/1",
       "dataset": {
         "use": "EXCLUDED",
@@ -198,7 +198,7 @@
       "decidedAt": null,
       "note": null,
       "aiDisagreesWithPerson": false,
-      "extractionUrl": null,
+      "extractionUrl": "/api/documents/doc_rcp_0617/pages/1/extraction.md",
       "pageImageUrl": "/api/documents/doc_rcp_0617/pages/1",
       "dataset": {
         "use": "EXCLUDED",
@@ -239,7 +239,7 @@
       "decidedAt": "2026-07-12T10:05:00Z",
       "note": null,
       "aiDisagreesWithPerson": false,
-      "extractionUrl": null,
+      "extractionUrl": "/api/documents/doc_mar/pages/3/extraction.md",
       "pageImageUrl": "/api/documents/doc_mar/pages/3",
       "dataset": {
         "use": "EVAL",
@@ -281,7 +281,7 @@
       "decidedAt": "2026-07-12T10:04:00Z",
       "note": "Beans for roasting: cost of sales. Rule: similar lines.",
       "aiDisagreesWithPerson": false,
-      "extractionUrl": null,
+      "extractionUrl": "/api/documents/doc_mar/pages/2/extraction.md",
       "pageImageUrl": "/api/documents/doc_mar/pages/2",
       "dataset": {
         "use": "TRAIN",
@@ -321,7 +321,7 @@
       "decidedAt": null,
       "note": null,
       "aiDisagreesWithPerson": false,
-      "extractionUrl": null,
+      "extractionUrl": "/api/documents/doc_blu_118/pages/1/extraction.md",
       "pageImageUrl": "/api/documents/doc_blu_118/pages/1",
       "dataset": {
         "use": "EXCLUDED",
@@ -361,7 +361,7 @@
       "decidedAt": null,
       "note": null,
       "aiDisagreesWithPerson": false,
-      "extractionUrl": null,
+      "extractionUrl": "/api/documents/doc_res_0045/pages/1/extraction.md",
       "pageImageUrl": "/api/documents/doc_res_0045/pages/1",
       "dataset": {
         "use": "EXCLUDED",
@@ -440,7 +440,7 @@
       "decidedAt": "2026-07-12T10:03:00Z",
       "note": null,
       "aiDisagreesWithPerson": false,
-      "extractionUrl": null,
+      "extractionUrl": "/api/documents/doc_mar/pages/2/extraction.md",
       "pageImageUrl": "/api/documents/doc_mar/pages/2",
       "dataset": {
         "use": "TRAIN",
@@ -520,7 +520,7 @@
       "decidedAt": null,
       "note": null,
       "aiDisagreesWithPerson": false,
-      "extractionUrl": null,
+      "extractionUrl": "/api/documents/doc_mar/pages/1/extraction.md",
       "pageImageUrl": "/api/documents/doc_mar/pages/1",
       "dataset": {
         "use": "EXCLUDED",
@@ -547,5 +547,8 @@
       "VERIFIED": 201,
       "CORRECTED": 11
     }
+  },
+  "extractions": {
+    "/api/documents/doc_may/pages/1/extraction.md": "# ACB_May_2026.pdf, page 1 of 3\nDocument type: BANK_STATEMENT (0.97)\nPage type: not classified yet\nReading: AI_TEXT_LAYER, agreement 0.99, model gemini-2.5-flash, prompt read_page v3\n\n## Values\n\n| Record | Field | Readings | Model | Text layer |\n|---|---|---|---|---|\n| Row 5 | date | agreed | 05/05 | 05/05 |\n| Row 5 | description | agreed | TRANSFER IN DAYBREAK CAFE | TRANSFER IN DAYBREAK CAFE |\n| Row 5 | amount | agreed | 6,420,000.00 | 6,420,000.00 |\n| Row 5 | balance | agreed | 56,440,000.00 | 56,440,000.00 |\n| Row 6 | date | agreed | 06/05 | 06/05 |\n| Row 6 | description | agreed | TRANSFER OUT ROASTLINE EQUIPMENT to MERIDIAN SAVINGS ••••7720 | TRANSFER OUT ROASTLINE EQUIPMENT to MERIDIAN SAVINGS ••••7720 |\n| Row 6 | amount | agreed | 24,500,000.00 | 24,500,000.00 |\n| Row 6 | balance | agreed | 31,940,000.00 | 31,940,000.00 |\n\n## Witness text\n\n```text\nARCHIPELAGO COMMERCE BANK | ACCOUNT STATEMENT\nSUNRISE COFFEE ROASTERS | 01 May 2026 to 31 May 2026\n05/05 | TRANSFER IN DAYBREAK CAFE | | 6,420,000.00 | 56,440,000.00\n06/05 | TRANSFER OUT ROASTLINE EQUIPMENT | 24,500,000.00 | | 31,940,000.00\nto MERIDIAN SAVINGS ••••7720\nSYNTHETIC — FOR TESTING\n```\n"
   }
 }

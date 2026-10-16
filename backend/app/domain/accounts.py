@@ -46,3 +46,25 @@ def statement_account(bank_name: str | None, account_masked: str | None) -> str:
     lines = (bank_name or "").strip().splitlines()
     bank = " ".join(lines[0].split()) if lines else ""
     return " ".join(x for x in (bank, (account_masked or "").strip()) if x)
+
+
+_NUMBER_RUN = re.compile(r"\d[\d.\-]*\d|\d")
+_GROUPED_RUN = re.compile(r"\b\d{4}(?: \d{4}){2,}\b")
+_AMOUNT = re.compile(r"^\d{1,3}(?:[.,]\d{3})+(?:[.,]\d{1,2})?$|^\d+[.,]\d{1,2}$")
+_DATE = re.compile(r"^\d{1,4}[./-]\d{1,2}(?:[./-]\d{1,4})?$")
+MIN_ID_DIGITS = 8
+
+
+def mask_numbers_in_text(text: str) -> str:
+    """Account and ID numbers inside free text (a page's witness words, a description) masked to
+    their last 4 digits; amounts and dates stay as printed (docs/14 §6, non-negotiable 13)."""
+
+    def one(match: re.Match[str]) -> str:
+        token = match.group(0)
+        if _AMOUNT.match(token) or _DATE.match(token):
+            return token
+        digits = account_digits(token)
+        return mask_account(digits) if len(digits) >= MIN_ID_DIGITS else token
+
+    grouped = _GROUPED_RUN.sub(lambda m: mask_account(account_digits(m.group(0))), text)
+    return _NUMBER_RUN.sub(one, grouped)

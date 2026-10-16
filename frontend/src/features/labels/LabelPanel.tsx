@@ -7,7 +7,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { type Label, useDecideLabel } from '../../entities/label'
+import { type Label, useDecideLabel, useExtraction } from '../../entities/label'
 import { formatDate, formatMonth } from '../../shared/lib/formatDate'
 import { Icon } from '../../shared/ui'
 import { confidenceLevel, DOC_TYPES, PAGE_TYPES, ROLES, shortModel, statusKey, valueWord } from './words'
@@ -53,6 +53,18 @@ export function LabelPanel({ label, onClose }: { label: Label; onClose: () => vo
           : label.task === 'COUNTERPARTY_ROLE'
             ? ROLES
             : null
+  const page = label.subject.pageNo ?? 1
+  const extraction = useExtraction(label.extractionUrl)
+  // The file as served, saved under its own name; nothing is fetched twice.
+  const download = () => {
+    if (!extraction.data) return
+    const href = URL.createObjectURL(new Blob([extraction.data], { type: 'text/markdown' }))
+    const a = document.createElement('a')
+    a.href = href
+    a.download = `p${page}.md`
+    a.click()
+    URL.revokeObjectURL(href)
+  }
   const changed = value.trim() !== '' && value !== label.final.value
   const busy = decide.isPending
   const act = (action: 'CONFIRM' | 'CORRECT') =>
@@ -148,14 +160,33 @@ export function LabelPanel({ label, onClose }: { label: Label; onClose: () => vo
         <details className="lp-md" open>
           <summary>
             <Icon name="markdown" size="sm" />
-            {t('labels:panel.extraction')}
+            {label.extractionUrl ? t('labels:panel.extractionOf', { page }) : t('labels:panel.extraction')}
           </summary>
-          <p className="muted small">{t('labels:panel.noExtraction')}</p>
-          {label.subject.docId && (
-            <Link className="link small" to={`/documents/${encodeURIComponent(label.subject.docId)}`}>
-              {t('labels:openPage')}
-            </Link>
+          {extraction.isLoading ? (
+            <p className="muted small">{t('labels:panel.extractionLoading')}</p>
+          ) : extraction.data ? (
+            <>
+              {/* A scrolling region a keyboard can reach (axe scrollable-region-focusable). */}
+              <pre tabIndex={0} aria-label={t('labels:panel.extractionOf', { page })}>
+                {extraction.data}
+              </pre>
+            </>
+          ) : (
+            <p className="muted small">{t('labels:panel.noExtraction')}</p>
           )}
+          <div className="row gap-3 flex-wrap">
+            {extraction.data && (
+              <button type="button" className="button button-quiet button-sm" onClick={download}>
+                <Icon name="download" size="sm" />
+                {t('labels:panel.downloadExtraction', { page })}
+              </button>
+            )}
+            {label.subject.docId && (
+              <Link className="link small" to={`/documents/${encodeURIComponent(label.subject.docId)}`}>
+                {t('labels:openPage')}
+              </Link>
+            )}
+          </div>
         </details>
         <dl className="lp-prov">
           <div>

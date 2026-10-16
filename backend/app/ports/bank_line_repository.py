@@ -27,6 +27,10 @@ class BankLineRepository(Protocol):
         """Write the month run's counterparty per line (spec 014)."""
         ...
 
+    async def set_cashflow_classes(self, org_id: str, updates: dict[str, str]) -> None:
+        """txId → cash-flow class, derived again when the framework changes (AC-016-8)."""
+        ...
+
     async def set_held(self, org_id: str, doc_id: str, held: bool) -> None:
         """Hold or release a document's lines as a possible duplicate (AC-006-5)."""
         ...

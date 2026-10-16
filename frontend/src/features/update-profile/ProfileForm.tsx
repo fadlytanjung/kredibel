@@ -1,22 +1,25 @@
 /**
  * Settings → Profile (docs/11 §6.9, AC-013-14): names, legal form, industry, tax ID (masked),
- * address, other names and time zone; the entity type is shown and fixed. AI suggestions for the
- * profile arrive with spec 014.
+ * address, other names and time zone; the entity type is shown and fixed. The accounting framework
+ * (IFRS or US GAAP) sets the cash-flow classes; changing it reclassifies every month (AC-016-8).
  */
 
 import { useEffect, useMemo, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { currencyLabel, useUpdateWorkspace, type Workspace } from '../../entities/workspace'
 import { ProblemError } from '../../shared/api/client'
 import type { components } from '../../shared/api/schema'
 import onboardingEn from '../../shared/i18n/locales/en/onboarding.json'
+import { SegmentedControl } from '../../shared/ui'
 import { Badge } from '../../shared/ui/Badge'
 import { Field, Input, Select } from '../../shared/ui/Field'
 import { fieldErrorProps } from '../../shared/ui/fieldProps'
 import { timeZoneOptions } from '../create-workspace/timeZones'
 
 type LegalForm = components['schemas']['LegalForm']
+type Framework = 'IFRS' | 'US_GAAP'
+const FRAMEWORKS: Framework[] = ['IFRS', 'US_GAAP']
 const LEGAL_FORMS: LegalForm[] = ['LIMITED_COMPANY', 'PARTNERSHIP', 'SOLE_PROPRIETOR', 'COOPERATIVE', 'OTHER']
 const INDUSTRY_KEYS = Object.keys(onboardingEn.industries)
 
@@ -30,6 +33,7 @@ interface Values {
   city: string
   aliases: string
   timezone: string
+  framework: Framework
 }
 
 function valuesOf(ws: Workspace): Values {
@@ -44,17 +48,19 @@ function valuesOf(ws: Workspace): Values {
     city: p.address?.city ?? '',
     aliases: (p.aliases ?? []).join('\n'),
     timezone: ws.timezone,
+    framework: p.accountingFramework === 'US_GAAP' ? 'US_GAAP' : 'IFRS',
   }
 }
 
 export function ProfileForm({ workspace }: { workspace: Workspace }) {
   const { t } = useTranslation('settings')
   const update = useUpdateWorkspace()
-  const [saved, setSaved] = useState(false)
+  const [saved, setSaved] = useState<string | false>(false)
   const [failure, setFailure] = useState<string | null>(null)
   const { options: zones } = useMemo(() => timeZoneOptions(), [])
   const form = useForm<Values>({ defaultValues: valuesOf(workspace) })
   const { register, formState, reset, setError } = form
+  const framework = useWatch({ control: form.control, name: 'framework' })
   const company = workspace.entityType === 'COMPANY'
   const typeLabel = t(`entityTypes.${workspace.entityType}`, { ns: 'settings' })
   const industries = INDUSTRY_KEYS.map((key) => t(`industries.${key}`, { ns: 'onboarding' }))
@@ -81,9 +87,15 @@ export function ProfileForm({ workspace }: { workspace: Workspace }) {
           ...(company && values.legalForm ? { legalForm: values.legalForm as LegalForm } : {}),
           address: { line1: values.line1.trim() || undefined, city: values.city.trim() || undefined },
           aliases,
+          accountingFramework: values.framework,
         },
       })
-      setSaved(true)
+      const reclassified = values.framework !== (workspace.profile?.accountingFramework ?? 'IFRS')
+      setSaved(
+        reclassified
+          ? t('profile.frameworkSaved', { framework: t(`profile.frameworks.${values.framework}`) })
+          : t('profile.saved'),
+      )
     } catch (error) {
       if (error instanceof ProblemError && error.code === 'VALIDATION_ERROR') {
         const errors = (error.problem.errors ?? []) as { field: string; message: string }[]
@@ -129,6 +141,18 @@ export function ProfileForm({ workspace }: { workspace: Workspace }) {
               <Badge variant="outline">{t('plan.comingSoon')}</Badge>
             </span>
             <span className="hint">{t('language.currencyFixed')}</span>
+          </div>
+          <div className="field span-2">
+            <span className="label" id="framework-l">
+              {t('profile.framework')}
+            </span>
+            <SegmentedControl
+              ariaLabel={t('profile.framework')}
+              value={framework}
+              onChange={(key) => form.setValue('framework', key as Framework, { shouldDirty: true })}
+              options={FRAMEWORKS.map((key) => ({ key, label: t(`profile.frameworks.${key}`) }))}
+            />
+            <span className="hint">{t('profile.frameworkHint')}</span>
           </div>
           <Field
             id="name"
@@ -209,7 +233,7 @@ export function ProfileForm({ workspace }: { workspace: Workspace }) {
         </button>
         {saved && (
           <span role="status" className="muted small">
-            {t('profile.saved')}
+            {saved}
           </span>
         )}
       </div>

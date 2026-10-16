@@ -113,7 +113,10 @@
     "datasetExcluded": "Excluded until a person decides",
     "close": "Close",
     "month": "Month {{month}}",
-    "cashflow": "{{framework}}: {{cashflow}}"
+    "cashflow": "{{framework}}: {{cashflow}}",
+    "extractionOf": "Extraction, page {{page}}",
+    "downloadExtraction": "Download p{{page}}.md",
+    "extractionLoading": "Loading the extraction…"
   },
   "foot": "Showing {{shown}} of {{total}}, lowest confidence first. Training consent is off: verified labels are used only as examples and evals inside this workspace.",
   "exportLater": "Export dataset (later)",
@@ -122,5 +125,7 @@
   "error": "Labels could not be loaded.",
   "retry": "Try again",
   "runShort": "run …{{id}}",
-  "pageChipText": "p{{page}} {{type}}"
+  "pageChipText": "p{{page}} {{type}}",
+  "extractionFile": "p{{page}}.md",
+  "openExtraction": "Open the extraction of page {{page}}"
 }

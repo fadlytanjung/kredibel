@@ -13,9 +13,9 @@ from google.adk import Context
 from pydantic import BaseModel
 
 from app.agents.deps import PipelineDeps
-from app.agents.labels import decision, page_image, write_labels
+from app.agents.labels import decision, extraction_path, page_image, write_labels
 from app.agents.stages import stage
-from app.domain.accounts import account_hash
+from app.domain.accounts import account_hash, mask_numbers_in_text
 from app.domain.categorize import (
     Categorized,
     CategoryPolicy,
@@ -37,6 +37,12 @@ from app.domain.duplicates import (
     ledger_entry_duplicates,
     receipt_duplicate,
     statement_duplicate,
+)
+from app.domain.extraction_markdown import (
+    PageExtraction,
+    RecordReading,
+    ValueReading,
+    page_markdown,
 )
 from app.domain.findings import Evidence, Finding, finding_id
 from app.domain.invoice_records import build_invoices, build_receipts, document_type_of
@@ -758,7 +764,18 @@ def verify_pages(deps: PipelineDeps):
         await deps.doc_repo.save_document(org_id, updated)
         if outcome.statement_meta and outcome.account_hash:
             await _suggest_account(deps, org_id, updated.doc_id, outcome)
-        await _value_labels(deps, org_id, updated, task, model, prompt_version, node_input)
+        records = await _read_records(deps, org_id, updated, task)
+        await _write_extractions(
+            deps,
+            org_id,
+            updated,
+            records,
+            str(updated.reading["method"]) if updated.reading else "AI_ONLY",
+            outcome.page_agreement,
+            model,
+            prompt_version,
+        )
+        await _value_labels(deps, org_id, updated, records, model, prompt_version, node_input)
         return {
             **doc_data,
             "months": outcome.months,
@@ -773,92 +790,173 @@ def _first_line(text: str | None) -> str:
     return text.splitlines()[0] if text else ""
 
 
+@dataclass(frozen=True)
+class _ReadRecord:
+    """One record a page produced, with what the extraction file and the value labels need."""
+
+    page: int
+    title: str
+    consensus: dict[str, Any]
+    month: str | None
+    tx_id: str | None = None
+
+
+async def _read_records(
+    deps: PipelineDeps, org_id: str, doc: Document, task: str
+) -> list[_ReadRecord]:
+    out: list[_ReadRecord] = []
+    if task == "statement_page" and deps.bank_lines is not None:
+        for line in await deps.bank_lines.list_lines(org_id, doc_id=doc.doc_id, limit=5000):
+            out.append(
+                _ReadRecord(
+                    page=line.page,
+                    title=f"Row {line.row_index}",
+                    consensus=dict(line.consensus or {}),
+                    month=line.month,
+                    tx_id=line.tx_id,
+                )
+            )
+        return out
+    records: list[Any] = []
+    if task == "invoice_page" and deps.invoices is not None:
+        records = list(await deps.invoices.list_records(org_id, doc_id=doc.doc_id))
+    elif task == "receipt_page" and deps.receipts is not None:
+        records = list(await deps.receipts.list_records(org_id, doc_id=doc.doc_id))
+    for record in records:
+        number = getattr(record, "number", None)
+        noun = "Receipt" if task == "receipt_page" else "Invoice"
+        title = f"{noun} {number}" if number else noun
+        by_page: dict[int, dict[str, Any]] = {}
+        for name, info in (getattr(record, "consensus", None) or {}).items():
+            if isinstance(info, dict):
+                by_page.setdefault(int(info.get("page") or 1), {})[name] = info
+        for page_no, consensus in sorted(by_page.items()):
+            out.append(
+                _ReadRecord(
+                    page=page_no,
+                    title=title,
+                    consensus=consensus,
+                    month=getattr(record, "month", None),
+                )
+            )
+    return out
+
+
+def _reading(info: dict[str, Any], source: str) -> str | None:
+    """One source's reading of a value from its consensus ("GEMINI" or "TEXT_LAYER")."""
+    raw = info.get("raw")
+    value = raw.get(source) if isinstance(raw, dict) else None
+    return str(value) if value is not None else None
+
+
+def _model_value(info: dict[str, Any]) -> str | None:
+    return _reading(info, "GEMINI")
+
+
 async def _value_labels(
     deps: PipelineDeps,
     org_id: str,
     doc: Document,
-    task: str,
+    records: list[_ReadRecord],
     model: str,
     prompt_version: str,
     node_input: dict[str, Any],
 ) -> None:
-    """AC-016-1: each value the two readings did not agree on (CONFLICT, SINGLE_SOURCE) is a label
-    that asks a person; agreed values are grounded already and get none."""
+    # AC-016-1: a value the readings did not agree on (CONFLICT, SINGLE_SOURCE) is a label asking a
+    # person; agreed values are grounded already. The label holds the model's reading, masked.
     if deps.learning is None or deps.labels is None:
         return
     at = deps.clock.now()
     run_id = node_input.get("runId")
     labels = []
+    for record in records:
+        for name, info in record.consensus.items():
+            if not isinstance(info, dict) or info.get("status") not in (
+                "CONFLICT",
+                "SINGLE_SOURCE",
+            ):
+                continue
+            value = mask_numbers_in_text(_model_value(info) or "")
+            labels.append(
+                propose(
+                    "FIELD_VALUE",
+                    LabelSubject(
+                        display=f"{doc.file_name}, {record.title.lower()} · {name}",
+                        doc_id=doc.doc_id,
+                        page_no=record.page,
+                        field=name,
+                        tx_id=record.tx_id,
+                    ),
+                    decision(
+                        value,
+                        source="MODEL",
+                        at=at,
+                        model=model,
+                        prompt_version=prompt_version,
+                        run_id=run_id,
+                    ),
+                    policy=deps.learning,
+                    month=record.month,
+                    page_image_url=page_image(doc.doc_id, record.page),
+                    extraction_url=extraction_path(doc.doc_id, record.page),
+                )
+            )
+    await write_labels(deps, org_id, labels)
 
-    def add(subject: LabelSubject, value: Any, month: str | None, page_no: int) -> None:
-        labels.append(
-            propose(
-                "FIELD_VALUE",
-                subject,
-                decision(
-                    str(value),
-                    source="MODEL",
-                    at=at,
-                    model=model,
-                    prompt_version=prompt_version,
-                    run_id=run_id,
-                ),
-                policy=deps.learning,  # type: ignore[arg-type]
-                month=month,
-                page_image_url=page_image(doc.doc_id, page_no),
+
+async def _write_extractions(
+    deps: PipelineDeps,
+    org_id: str,
+    doc: Document,
+    records: list[_ReadRecord],
+    method: str,
+    page_agreement: dict[int, float],
+    model: str,
+    prompt_version: str,
+) -> int:
+    """AC-016-4: one Markdown file per read page, beside the document in storage."""
+    if deps.storage is None:
+        return 0
+    written = 0
+    pages = sorted({p.page_no for p in doc.pages if not p.blank} | set(page_agreement))
+    for page_no in pages:
+        chunks = await _load_chunks(deps, org_id, doc.sha256, page_no)
+        values = [
+            RecordReading(
+                title=r.title,
+                values=[
+                    ValueReading(
+                        name,
+                        str(info.get("status") or "MISSING"),
+                        _model_value(info),
+                        _reading(info, "TEXT_LAYER"),
+                    )
+                    for name, info in r.consensus.items()
+                    if isinstance(info, dict)
+                ],
+            )
+            for r in records
+            if r.page == page_no
+        ]
+        agreement = page_agreement.get(page_no)
+        markdown = page_markdown(
+            PageExtraction(
+                file_name=doc.file_name,
+                page_no=page_no,
+                page_count=doc.page_count,
+                doc_type=doc.doc_type.value,
+                type_confidence=doc.type_confidence,
+                method=method,
+                agreement=Decimal(str(round(agreement, 4))) if agreement is not None else None,
+                model=model or None,
+                prompt_version=prompt_version or None,
+                records=values,
+                witness_text="\n\n".join(c.text for c in chunks),
             )
         )
-
-    if task == "statement_page" and deps.bank_lines is not None:
-        for line in await deps.bank_lines.list_lines(org_id, doc_id=doc.doc_id, limit=5000):
-            for name, info in (line.consensus or {}).items():
-                if not isinstance(info, dict) or info.get("status") not in (
-                    "CONFLICT",
-                    "SINGLE_SOURCE",
-                ):
-                    continue
-                value = getattr(line, name, None) or info.get("ai") or info.get("value") or ""
-                add(
-                    LabelSubject(
-                        display=f"{_first_line(line.description) or line.tx_id} · {name}",
-                        doc_id=doc.doc_id,
-                        page_no=line.page,
-                        field=name,
-                        tx_id=line.tx_id,
-                    ),
-                    value,
-                    line.month,
-                    line.page,
-                )
-    else:
-        records: list[Any] = []
-        if task == "invoice_page" and deps.invoices is not None:
-            records = list(await deps.invoices.list_records(org_id, doc_id=doc.doc_id))
-        elif task == "receipt_page" and deps.receipts is not None:
-            records = list(await deps.receipts.list_records(org_id, doc_id=doc.doc_id))
-        for record in records:
-            page_no = (record.pages[0] if getattr(record, "pages", None) else 1) or 1
-            title = (
-                getattr(record, "number", None)
-                or getattr(record, "merchant_name", None)
-                or doc.file_name
-            )
-            for name, info in (getattr(record, "consensus", None) or {}).items():
-                if not isinstance(info, dict) or info.get("status") not in (
-                    "CONFLICT",
-                    "SINGLE_SOURCE",
-                ):
-                    continue
-                value = getattr(record, name, None) or info.get("ai") or info.get("value") or ""
-                add(
-                    LabelSubject(
-                        display=f"{title} · {name}", doc_id=doc.doc_id, page_no=page_no, field=name
-                    ),
-                    value,
-                    getattr(record, "month", None),
-                    page_no,
-                )
-    await write_labels(deps, org_id, labels)
+        await deps.storage.put_extraction(org_id, doc.doc_id, page_no, markdown)
+        written += 1
+    return written
 
 
 @dataclass
@@ -1382,6 +1480,7 @@ def categorize_bank_lines(deps: PipelineDeps):
                         framework=framework,
                         cashflow_class=line.cashflow_class,
                         page_image_url=page_image(doc_id, line.page),
+                        extraction_url=extraction_path(doc_id, line.page),
                     )
                 )
             await write_labels(deps, org_id, labels)

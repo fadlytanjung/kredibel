@@ -274,6 +274,16 @@ SCREEN_INVENTORY: dict[str, ScreenInfo] = {
         spec="011, 019",
         notes="The history drawer phones open from the Chat history button; wide screens show the rail instead.",
     ),
+    "settings-profile": ScreenInfo(
+        slug="settings-profile",
+        title="Settings: profile",
+        route="/settings/profile",
+        status="IMPLEMENTED",
+        badge_label="Implemented",
+        badge_class="badge-clean",
+        spec="013, 016",
+        notes="The profile form with the accounting framework (IFRS or US GAAP) that sets the cash-flow classes; changing it reclassifies every month (AC-016-8).",
+    ),
     "plan-usage": ScreenInfo(
         slug="plan-usage",
         title="Plan and usage",

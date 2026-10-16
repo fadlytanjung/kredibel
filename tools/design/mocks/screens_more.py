@@ -365,6 +365,12 @@ def label_panel(label: dict) -> str:
     similar = f'<label class="check-row"><input type="checkbox" checked/> {lw("panel.applySimilar")}</label>' if task == "CATEGORY" and label["subject"].get("txId") else ""
     run = f'<a href="runs.html">{label["ai"]["runId"]}</a>{", " + lw("panel.span", span=ai["spanId"]) if ai.get("spanId") else ""}' if ai.get("runId") else "—"
     dataset = lw("panel.datasetExcluded") if label["dataset"]["use"] == "EXCLUDED" else lw(f"dataset.{label['dataset']['use']}")
+    page = label["subject"].get("pageNo") or 1
+    md = (LABELS_FIX.get("extractions") or {}).get(label.get("extractionUrl") or "")
+    extraction_head = lw("panel.extractionOf", page=page) if label.get("extractionUrl") else lw("panel.extraction")
+    extraction_body = (f'<pre tabindex="0" aria-label="{extraction_head}">{escape(md)}</pre>'
+                       if md else f'<p class="muted small">{lw("panel.noExtraction")}</p>')
+    download = f'<button type="button" class="button button-quiet button-sm">{icon("download", "icon icon-sm")}{lw("panel.downloadExtraction", page=page)}</button>' if md else ""
     return f"""
 <aside class="lbl-panel panel" aria-labelledby="lp-h">
   <div class="lp-main">
@@ -381,7 +387,7 @@ def label_panel(label: dict) -> str:
   <div class="row lp-actions"><a class="button button-primary" href="labels.html">{icon("check", "icon icon-sm")}{lw("panel.confirm")}</a><a class="button button-secondary" href="labels.html">{lw("panel.saveCorrection")}</a></div>
   </div>
   <div class="lp-side">
-  <details class="lp-md" open><summary>{icon("markdown", "icon icon-sm")}{lw("panel.extraction")}</summary><p class="muted small">{lw("panel.noExtraction")}</p>{f'<a class="link small" href="document.html">{lw("openPage")}</a>' if label["subject"].get("docId") else ""}</details>
+  <details class="lp-md" open><summary>{icon("markdown", "icon icon-sm")}{extraction_head}</summary>{extraction_body}<div class="row gap-3 flex-wrap">{download}{f'<a class="link small" href="document.html">{lw("openPage")}</a>' if label["subject"].get("docId") else ""}</div></details>
   <dl class="lp-prov">
     <div><dt>{lw("panel.model")}</dt><dd>{short_model(ai.get("model")) or "—"}</dd></div>
     <div><dt>{lw("panel.prompt")}</dt><dd>{escape(ai.get("promptVersion") or "—")}</dd></div>
@@ -406,7 +412,8 @@ def labels() -> str:
             if label["status"] == "CORRECTED":
                 parts.append(lw("was", value=value_word(label["task"], label["ai"]["value"])))
             decided = f'<span class="sub">{". ".join(parts)}</span>'
-        ext = f'<a class="md-link" href="#">{icon("markdown", "icon icon-sm")}p{s.get("pageNo") or 1}.md</a>' if label.get("extractionUrl") else f'<span class="muted">{lw("noExtraction")}</span>'
+        ext = (f'<a class="md-link" href="labels.html" title="{lw("openExtraction", page=s.get("pageNo") or 1)}">{icon("markdown", "icon icon-sm")}{lw("extractionFile", page=s.get("pageNo") or 1)}</a>'
+               if label.get("extractionUrl") else f'<span class="muted">{lw("noExtraction")}</span>')
         run = f'<a class="run-link" href="runs.html">run …{label["ai"]["runId"][-4:]}</a>' if label["ai"].get("runId") else '<span class="muted">—</span>'
         trs.append(f"""<tr class="is-clickable{" is-selected" if label is selected else ""}">
   <td class="chk hide-rt"><input type="checkbox" aria-label="{lw("selectRow", subject=s["display"])}"{" disabled" if label["status"] != "AI_PROPOSED" else ""}/></td>

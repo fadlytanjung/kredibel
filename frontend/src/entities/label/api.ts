@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { apiClient } from '../../shared/api/client'
+import { apiBlob, apiClient } from '../../shared/api/client'
 import type { components } from '../../shared/api/schema'
 
 export type Label = components['schemas']['Label']
@@ -46,6 +46,16 @@ export function useLabel(labelId: string | undefined) {
     queryKey: ['labels', 'one', labelId],
     queryFn: () => apiClient<Label>(`/api/labels/${encodeURIComponent(labelId ?? '')}`),
     enabled: Boolean(labelId),
+  })
+}
+
+/** The page as read, in Markdown (AC-016-4): the label's extraction file, when it exists. */
+export function useExtraction(url: string | null | undefined) {
+  return useQuery({
+    queryKey: ['extraction', url],
+    queryFn: async () => (await apiBlob(url ?? '')).text(),
+    enabled: Boolean(url),
+    retry: false,
   })
 }
 

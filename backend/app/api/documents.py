@@ -189,6 +189,16 @@ def create_documents_router(
         )
         return Response(content=png_bytes, media_type="image/png")
 
+    @router.get("/{doc_id}/pages/{page_no}/extraction.md")
+    async def get_page_extraction(
+        doc_id: str,
+        page_no: int,
+        principal: Principal = Depends(workspace_dep),
+    ) -> Response:
+        """AC-016-4: the page as Kredibel read it, in Markdown (docs/10 §2.3)."""
+        text = await provider.document_service.get_extraction(principal, doc_id, page_no)
+        return Response(content=text, media_type="text/markdown; charset=utf-8")
+
     @router.delete("/{doc_id}", status_code=status.HTTP_204_NO_CONTENT)
     async def delete_document(
         doc_id: str,

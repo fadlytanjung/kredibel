@@ -726,7 +726,7 @@ suggested questions and composer of the welcome state with its mock at three wid
 
 | Section | Content |
 |---|---|
-| Profile | Type (read-only after onboarding), names, tax ID, address, industry, time zone; pending suggestions with evidence and **Accept** / **Reject** |
+| Profile | Type (read-only after onboarding), the accounting framework (**IFRS** or **US GAAP**, which sets the cash-flow classes; changing it reclassifies every month, AC-016-8), names, tax ID, address, industry, time zone; pending suggestions with evidence and **Accept** / **Reject**. Mock: `settings-profile.html` |
 | Bank accounts | Bank, masked number, holder, purpose; `Declared` or `Detected` (from an accepted suggestion) |
 | Language and formats | **English** (selected); other languages disabled with "Coming soon"; the workspace currency read-only with "Changing the currency is coming soon"; date format read-only |
 | Plan and usage | Trial hero (days left as a 30-cell track, end date, what happens after); usage meters from `contracts/plans.v1.yaml` (documents, pages read, AI use, month reconciliations today, members, assistant questions) that warn at 80%; plan cards **Free trial** (current), **Starter**, **Professional**, **Enterprise** with "Coming soon", no price and disabled buttons; coming-soon features **Loan readiness report** and **Bank feeds**. Nothing here starts a payment |

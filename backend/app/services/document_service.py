@@ -392,6 +392,18 @@ class DocumentService:
             raise NotFoundError(detail=f"Page {page_no} image not found")
         return data
 
+    async def get_extraction(self, principal: Principal, doc_id: str, page_no: int) -> str:
+        """AC-016-4: the page as read, in Markdown, after the workspace check."""
+        if principal.org_id is None:
+            raise WorkspaceRequiredError()
+        doc = await self.get_document(principal, doc_id)
+        if page_no < 1 or (doc.page_count > 0 and page_no > doc.page_count):
+            raise NotFoundError(detail=f"Page {page_no} not found")
+        text = await self._storage.get_extraction(principal.org_id, doc.doc_id, page_no)
+        if text is None:
+            raise NotFoundError(detail=f"Page {page_no} has no extraction yet")
+        return text
+
     async def delete_document(self, principal: Principal, doc_id: str) -> None:
         """Remove a document, its GCS prefix and records. Records DOCUMENT_REMOVED event."""
         if principal.org_id is None:

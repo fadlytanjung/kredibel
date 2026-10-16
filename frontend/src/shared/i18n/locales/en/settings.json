@@ -72,7 +72,14 @@
     "account": "Your account",
     "signedInAs": "Signed in as {{email}}",
     "signOut": "Sign out",
-    "optional": "optional"
+    "optional": "optional",
+    "framework": "Accounting framework",
+    "frameworks": {
+      "IFRS": "IFRS",
+      "US_GAAP": "US GAAP"
+    },
+    "frameworkHint": "Sets how the statement of cash flows classifies each line: interest paid is financing under IFRS and operating under US GAAP. Changing it reclassifies every month; categories stay as they are.",
+    "frameworkSaved": "Saved. Every month is being reclassified under {{framework}}."
   },
   "bank": {
     "intro": "Accounts of this workspace. Numbers are kept only as the last 4 digits.",

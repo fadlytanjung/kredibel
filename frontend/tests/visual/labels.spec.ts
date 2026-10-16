@@ -16,6 +16,9 @@ async function serve(page: Page) {
     const one = path.match(/^\/api\/labels\/(lbl_\w+)$/)
     if (path === '/api/labels') return route.fulfill({ json: LABELS })
     if (one) return route.fulfill({ json: LABELS.items.find((i) => i.labelId === one[1]) })
+    const md = (LABELS.extractions as Record<string, string>)[path]
+    if (md !== undefined) return route.fulfill({ body: md, contentType: 'text/markdown; charset=utf-8' })
+    if (path.endsWith('/extraction.md')) return route.fulfill({ status: 404, json: { code: 'NOT_FOUND' } })
     if (path === '/api/workspace') return route.fulfill({ json: WORKSPACE })
     return route.fulfill({ json: { items: [] } })
   })
@@ -56,6 +59,8 @@ async function outline(page: Page) {
     panelAi: await texts(page, '#content .lbl-panel .lp-ai strong'),
     panelFields: await texts(page, '#content .lbl-panel .field label'),
     panelProvenance: await texts(page, '#content .lbl-panel .lp-prov dt'),
+    extraction: await texts(page, '#content .lbl-panel .lp-md summary, #content .lbl-panel .lp-md pre'),
+    extractionLinks: await texts(page, '#content .lbl-table .md-link'),
     panelActions: await texts(page, '#content .lbl-panel .lp-actions .button'),
     foot: await texts(page, '#content .lbl-foot p'),
   }
@@ -66,6 +71,7 @@ test('AC-016-5: the labels page lists every AI decision with its confidence and 
   await page.goto(`/preview/labels/${OPEN}`)
   await expect(page.getByRole('heading', { name: 'Labels' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'TRANSFER OUT ROASTLINE EQUIPMENT' })).toBeVisible()
+  await expect(page.locator('.lp-md pre')).toContainText('MERIDIAN SAVINGS ••••7720')
   await noOverflow(page)
   await expect(page).toHaveScreenshot('labels.png', { fullPage: true, mask: [page.locator('select')] })
   await axeClean(page)

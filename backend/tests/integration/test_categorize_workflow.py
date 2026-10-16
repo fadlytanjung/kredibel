@@ -2,6 +2,7 @@
 cached batches, unsure answers stay UNKNOWN; the cash-flow class comes from the framework."""
 
 import io
+import re
 
 from app.adapters.cloud_tasks import InlineTaskQueue
 from app.domain.reading import TransactionItem
@@ -47,6 +48,15 @@ async def test_lines_are_categorized_by_rules_then_the_model():
                 headers={"Authorization": "Bearer owner"},
             )
         ).json()
+        # AC-016-4: every read page has its extraction, served after the workspace check.
+        page_one = await client.get(
+            f"/api/documents/{doc_id}/pages/1/extraction.md",
+            headers={"Authorization": "Bearer owner"},
+        )
+        missing = await client.get(
+            f"/api/documents/{doc_id}/pages/99/extraction.md",
+            headers={"Authorization": "Bearer owner"},
+        )
 
     stored = await lines.list_lines("org_1", doc_id=doc_id)
     truth = {(r["description"], r["date"]): r["category"] for r in TRUTH["rows"]}
@@ -69,6 +79,13 @@ async def test_lines_are_categorized_by_rules_then_the_model():
         "NONE",
         "UNCLASSIFIED",
     )
+    assert page_one.status_code == 200, page_one.text
+    assert page_one.headers["content-type"].startswith("text/markdown")
+    md = page_one.text
+    assert md.startswith("# acb.pdf, page 1 of ") and "Document type: BANK_STATEMENT" in md
+    assert "| Record | Field | Readings | Model | Text layer |" in md and "## Witness text" in md
+    assert not re.search(r"\d{8,}", md), "no account or ID number in clear"
+    assert missing.status_code == 404
     # AC-016-1: every category the run decided is a label, with its source and confidence.
     labels = await deps.label_repo.list_labels("org_1", task="CATEGORY", limit=None)
     by_tx = {lb.subject.tx_id: lb for lb in labels}
@@ -77,6 +94,10 @@ async def test_lines_are_categorized_by_rules_then_the_model():
     assert by_tx[payroll.tx_id].ai.source == "RULE" and by_tx[payroll.tx_id].ai.model is None
     assert unsure.tx_id not in by_tx, "an undecided line is no label yet"
     assert all(lb.status == "AI_PROPOSED" and lb.month == "2026-03" for lb in labels)
+    assert (
+        by_tx[sale.tx_id].extraction_url
+        == f"/api/documents/{doc_id}/pages/{sale.page}/extraction.md"
+    )
     api_sale = next(i for i in body["items"] if i["txId"] == sale.tx_id)
     assert (api_sale["category"], api_sale["cashflowClass"], api_sale["categorizedBy"]) == (
         "SALES_RECEIPT",

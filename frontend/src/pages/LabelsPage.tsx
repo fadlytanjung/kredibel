@@ -224,10 +224,15 @@ export function LabelsPage() {
                         <td className="hide-rt small muted">{sourceWord(t, label)}</td>
                         <td className="hide-rt">
                           {label.extractionUrl ? (
-                            <a className="md-link" href={label.extractionUrl}>
+                            <Link
+                              className="md-link"
+                              to={`/labels/${label.labelId}`}
+                              title={t('labels:openExtraction', { page: label.subject.pageNo ?? 1 })}
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               <Icon name="markdown" size="sm" />
-                              {`p${label.subject.pageNo ?? 1}.md`}
-                            </a>
+                              {t('labels:extractionFile', { page: label.subject.pageNo ?? 1 })}
+                            </Link>
                           ) : (
                             <span className="muted">{t('labels:noExtraction')}</span>
                           )}

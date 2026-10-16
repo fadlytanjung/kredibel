@@ -54,3 +54,8 @@ async def write_labels(deps: PipelineDeps, org_id: str, labels: list[Label]) -> 
 
 def page_image(doc_id: str, page_no: int | None) -> str:
     return f"/api/documents/{doc_id}/pages/{page_no or 1}"
+
+
+def extraction_path(doc_id: str, page_no: int | None) -> str:
+    """The API path of a page's extraction Markdown (AC-016-4)."""
+    return f"/api/documents/{doc_id}/pages/{page_no or 1}/extraction.md"

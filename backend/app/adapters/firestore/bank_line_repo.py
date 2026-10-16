@@ -126,6 +126,14 @@ class FirestoreBankLineRepository(BankLineRepository):
                 batch.update(self._col(org_id).document(tx_id), {"counterpartyId": counterparty_id})
             await batch.commit()
 
+    async def set_cashflow_classes(self, org_id: str, updates: dict[str, str]) -> None:
+        items = sorted(updates.items())
+        for start in range(0, len(items), _BATCH):
+            batch = self._db.batch()
+            for tx_id, cashflow_class in items[start : start + _BATCH]:
+                batch.update(self._col(org_id).document(tx_id), {"cashflowClass": cashflow_class})
+            await batch.commit()
+
     async def set_support(
         self, org_id: str, updates: dict[str, tuple[str, list[str], str]]
     ) -> None:

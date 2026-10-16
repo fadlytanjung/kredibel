@@ -50,8 +50,14 @@ class DocumentStorage(Protocol):
         ...
 
     async def delete_prefix(self, org_id: str, doc_id: str) -> None:
-        """Delete all objects under orgs/{orgId}/documents/{docId}/."""
+        """Delete all objects under orgs/{orgId}/documents/{docId}/ and the page extractions."""
         ...
+
+    async def put_extraction(self, org_id: str, doc_id: str, page_no: int, markdown: str) -> None:
+        """orgs/{orgId}/extractions/{docId}/p{n}.md (docs/09 §5; AC-016-4)."""
+        ...
+
+    async def get_extraction(self, org_id: str, doc_id: str, page_no: int) -> str | None: ...
 
     async def get_cached(self, org_id: str, key: str) -> bytes | None:
         """A cached extraction artifact at orgs/{orgId}/cache/extraction/{key} (docs/07 §8)."""

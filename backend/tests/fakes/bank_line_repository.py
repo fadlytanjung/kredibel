@@ -42,6 +42,12 @@ class FakeBankLineRepository(BankLineRepository):
             if line is not None:
                 line.counterparty_id = counterparty_id
 
+    async def set_cashflow_classes(self, org_id: str, updates: dict[str, str]) -> None:
+        for tx_id, cashflow_class in updates.items():
+            line = self.lines.get((org_id, tx_id))
+            if line is not None:
+                line.cashflow_class = cashflow_class
+
     async def set_held(self, org_id: str, doc_id: str, held: bool) -> None:
         (self.held.add if held else self.held.discard)((org_id, doc_id))
 

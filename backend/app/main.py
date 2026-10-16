@@ -330,6 +330,9 @@ class AppDeps:
                 clock=self.clock,
                 signup_mode=self.settings.signup_mode,
                 max_workspaces=self.settings.max_workspaces,
+                on_framework_change=lambda org_id, fw: self.bank_line_service.rederive_cashflow(
+                    org_id, fw
+                ),
             ),
         )
 

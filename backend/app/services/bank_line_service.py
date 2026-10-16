@@ -69,6 +69,26 @@ class BankLineService:
         await self._months.mark_dirty(org_id, [line.month])
         return changed, workspace.currency
 
+    async def rederive_cashflow(self, org_id: str, framework: str) -> list[str]:
+        """AC-016-8: the framework changed, so every line's cash-flow class is derived again from
+        categories.v1.yaml; categories stay as they are; every month with lines runs once."""
+        chosen = "US_GAAP" if framework == "US_GAAP" else "IFRS"
+        lines = await self._lines.list_lines(org_id, limit=100_000)
+        updates = {}
+        for line in lines:
+            category = self._categories.categories.get(line.category)
+            if category is None:
+                continue
+            cashflow = category.cashflow_class(chosen)
+            if cashflow != line.cashflow_class:
+                updates[line.tx_id] = cashflow
+        if updates:
+            await self._lines.set_cashflow_classes(org_id, updates)
+        months = sorted({line.month for line in lines})
+        if months:
+            await self._months.mark_dirty(org_id, months, reason="framework_changed")
+        return months
+
     async def list_lines(
         self,
         org_id: str,

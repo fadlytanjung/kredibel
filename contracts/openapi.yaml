@@ -105,6 +105,26 @@ paths:
         "409": { $ref: "#/components/responses/Problem" }
         "422": { $ref: "#/components/responses/Problem" }
 
+  /api/workspaces/demo:
+    post:
+      tags: [workspace]
+      operationId: createDemoWorkspace
+      description: |
+        Spec 021: create the caller's workspace as a copy of the demo company (the server's demo
+        template workspace): its profile, every record and file, with the template's IDs and people
+        swapped for the new workspace and the caller, on the default plan's free trial. The rules of
+        POST /api/workspaces apply; the client refreshes its ID token after it.
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Workspace" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "503": { $ref: "#/components/responses/Problem" }
+
   /api/workspace:
     get:
       tags: [workspace]
@@ -1705,6 +1725,7 @@ components:
         orgId: { type: [string, "null"] }
         role: { $ref: "#/components/schemas/Role" }
         needsWorkspace: { type: boolean }
+        demoAvailable: { type: boolean, description: "Spec 021: onboarding may offer the demo company" }
         language: { type: string, enum: [en], default: en }
         workspace:
           type: [object, "null"]

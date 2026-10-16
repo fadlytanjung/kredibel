@@ -1,0 +1,64 @@
+{
+  "label": "Guided tour",
+  "take": "Take the tour",
+  "stepOf": "Step {{n}} of {{total}}",
+  "back": "Back",
+  "next": "Next",
+  "done": "Done",
+  "skip": "Skip the tour",
+  "yourWorkspace": "your workspace",
+  "steps": {
+    "welcome": {
+      "title": "Welcome to {{name}}",
+      "body": "Kredibel reads every statement, invoice, receipt and ledger export twice, checks it, and reconciles each month. This tour shows where everything is."
+    },
+    "period": {
+      "title": "Choose the period",
+      "body": "The dashboard shows one month, a range of up to 12 months, or a year. It opens on the current month; here it shows the months that have books."
+    },
+    "figures": {
+      "title": "The figures",
+      "body": "Money in and out, what the accounts kept, and how much Kredibel matched, each against the previous period. Every number comes from code, never from a model."
+    },
+    "flow": {
+      "title": "Where the money went",
+      "body": "The money flow by statement line or by client and supplier, money in and out by month, and the cash-flow statement under IFRS or US GAAP. Select a band to see its bank lines."
+    },
+    "upload": {
+      "title": "Upload anything, in any order",
+      "body": "Drop statements, invoices, receipts or a ledger export. A file sent twice is never read twice, a possible copy waits for you, and a new ledger layout asks for its columns once."
+    },
+    "months": {
+      "title": "Reconciliation, month by month",
+      "body": "Each month matches its bank lines with invoices, receipts and the ledger. The same data gives the same result, whatever the upload order."
+    },
+    "review": {
+      "title": "What needs a person",
+      "body": "Everything the AI could not settle comes here: a match to confirm, a possible copy, a value to check, columns to confirm. Only a person resolves it."
+    },
+    "risk": {
+      "title": "Risk, with its evidence",
+      "body": "Each month and document gets a risk level. A finding shows the printed value, the calculation and both readings, and what to do next."
+    },
+    "clients": {
+      "title": "Clients and suppliers",
+      "body": "Built from the books: totals by month and the accounts each one was paid into. A supplier paid to a new account is flagged."
+    },
+    "labels": {
+      "title": "Labels you can correct",
+      "body": "Every AI decision is a label: document and page types, categories, values read. Confirm or correct it; a person's label is never overwritten."
+    },
+    "runs": {
+      "title": "Runs, like a tracing tool",
+      "body": "Every document and month run with its steps, model calls, tokens and estimated cost. Open one to see its waterfall."
+    },
+    "assistant": {
+      "title": "Ask about your books",
+      "body": "The assistant answers from read-only tools over your books, with a citation for every figure."
+    },
+    "done": {
+      "title": "You are ready",
+      "body": "Upload your own files any time. Take the tour again with the lightbulb in the top bar."
+    }
+  }
+}

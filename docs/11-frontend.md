@@ -349,6 +349,11 @@ wins; on looks, the mock and [`12`](12-design-system.md) win.
 
 <p><img src="assets/mocks/onboarding-desktop.png" alt="Onboarding at 1440 px: dark ledger-paper brand panel with the logo, tagline and three ledger lines; the form asks whose books these are" width="66%"> <img src="assets/mocks/onboarding-mobile.png" alt="Onboarding on a phone: brand band with the tagline above the form" width="26%"></p>
 
+- When the server has a demo template (`demoAvailable`), the form opens with **Explore a demo
+  company**: Sunrise Coffee Roasters' six months of synthetic books, already read and reconciled.
+  **Open the demo company** → `POST /api/workspaces/demo` (a copy of the template for this person,
+  spec 021) → refresh the ID token → the dashboard with the guided tour. Below it, "or set up your
+  own business" and the form.
 - For a business only (no "myself or a company" question), in three sections:
   **Your business** (legal name, trading name optional, legal form, industry, tax ID optional),
   **Your books** (the currency of the books: IDR, MYR, SGD, JPY or USD, suggested from the time zone
@@ -362,6 +367,18 @@ wins; on looks, the mock and [`12`](12-design-system.md) win.
   setup…" and one retry after 2 s.
 - The brand panel shows three ledger lines with what Kredibel does to each (read twice, matched,
   copy not read). It is the only decorative surface in the product.
+
+<p><img src="assets/mocks/tour-desktop.png" alt="The guided tour at 1440 px: the dashboard dimmed except for the figures, with the card Step 3 of 13, The figures, Skip the tour, Back and Next" width="66%"> <img src="assets/mocks/tour-mobile.png" alt="The guided tour on a phone: the figures at the top, the card at the bottom" width="26%"></p>
+
+**Guided tour** (spec 021; mock `tour.html`). After a workspace is created the dashboard starts it,
+once per person in this browser; **Take the tour** (the lightbulb in the top bar) starts it again.
+Each step opens its page and lights one part, the page dimmed around it, with a card: "Step n of
+13", a title, one or two sentences, **Skip the tour**, **Back** and **Next** (**Done** on the last).
+The steps: welcome, the period, the figures, where the money went, the upload tray, reconciliation,
+the review queue, risk, clients and suppliers, labels, runs (owners), the assistant, the end. The
+dashboard steps show the months that have books. The card sits beside the part, or at the bottom on
+phones with the part scrolled to the top; it is a labelled dialog that keeps the focus, the arrows
+move and Esc ends; no motion when motion is reduced.
 
 ### 6.2 Dashboard
 

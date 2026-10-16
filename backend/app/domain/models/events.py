@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict
 
 EventType = Literal[
     "WORKSPACE_CREATED",
+    "DEMO_COPIED",
     "BANK_ACCOUNT_ADDED",
     "PROFILE_UPDATED",
     "LABEL_VERIFIED",

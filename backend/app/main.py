@@ -26,6 +26,7 @@ from app.adapters.firestore.review_item_repo import FirestoreReviewItemRepo
 from app.adapters.firestore.run_repo import FirestoreRunRepository
 from app.adapters.firestore.suggestion_repo import FirestoreSuggestionRepository
 from app.adapters.firestore.usage_repo import FirestoreUsageRepository
+from app.adapters.firestore.workspace_copier import FirestoreWorkspaceCopier
 from app.adapters.firestore.workspace_repo import FirestoreWorkspaceRepository
 from app.adapters.gcs_storage import GcsDocumentStorage
 from app.adapters.gemini_embedder import GeminiEmbedder
@@ -117,6 +118,7 @@ from app.ports.run_repository import RunRepository
 from app.ports.spreadsheet_reader import SpreadsheetReader
 from app.ports.suggestion_repository import SuggestionRepository
 from app.ports.task_queue import TaskQueue
+from app.ports.workspace_copier import WorkspaceCopier
 from app.ports.workspace_repository import UsageRepository, WorkspaceRepository
 from app.services.assistant_service import AssistantService
 from app.services.bank_line_service import BankLineService
@@ -156,6 +158,7 @@ class AppDeps:
         clock: Clock | None = None,
         token_verifier: TokenVerifier | None = None,
         doc_repo: DocumentRepository | None = None,
+        workspace_copier: WorkspaceCopier | None = None,
         storage: DocumentStorage | None = None,
         task_queue: TaskQueue | None = None,
         renderer: PageRenderer | None = None,
@@ -188,6 +191,7 @@ class AppDeps:
         self._clock = clock
         self._token_verifier = token_verifier
         self._doc_repo = doc_repo
+        self._workspace_copier = workspace_copier
         self._storage = storage
         self._task_queue = task_queue
         self._renderer = renderer
@@ -339,6 +343,23 @@ class AppDeps:
                 on_framework_change=lambda org_id, fw: self.bank_line_service.rederive_cashflow(
                     org_id, fw
                 ),
+                copier=self.workspace_copier,
+                demo_template_org=self.settings.demo_template_org,
+            ),
+        )
+
+    @property
+    def workspace_copier(self) -> WorkspaceCopier | None:
+        """Spec 021: only built when a demo template is configured."""
+        if not self.settings.demo_template_org:
+            return None
+        return self._once(
+            "workspace_copier",
+            lambda: (
+                self._workspace_copier
+                or FirestoreWorkspaceCopier(
+                    self.firestore, self.settings.google_cloud_project, self.settings.docs_bucket
+                )
             ),
         )
 

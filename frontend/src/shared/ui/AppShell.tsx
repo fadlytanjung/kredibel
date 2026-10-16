@@ -27,6 +27,8 @@ export interface AppShellProps {
   trial?: AppShellTrial
   counts?: AppShellCounts
   onUpload?: () => void
+  /** Spec 021: Take the tour, in the top bar. */
+  onTour?: () => void
   /** Why Upload is disabled (the trial ended); the server refuses it anyway (AC-013-12). */
   uploadBlockedReason?: string
   /** Shown above every page, e.g. the trial banner. */
@@ -44,6 +46,7 @@ export function AppShell({
   trial,
   counts,
   onUpload,
+  onTour,
   uploadBlockedReason,
   banner,
   topbarExtra,
@@ -69,6 +72,7 @@ export function AppShell({
             riskCount={counts?.risk}
             trial={trial}
             onUpload={onUpload}
+            onTour={onTour}
             uploadBlockedReason={uploadBlockedReason}
             extra={topbarExtra}
           />

@@ -186,7 +186,11 @@ months later, April to September 2026, so a demo in October has books up to last
 date, month key, file name and printed month moves together (the edited statement is June, the
 copies are of May, the diverted Roastline invoice is August, the unpaid Bluewater bills are July,
 the ledger is `ledger-2026-04_2026-09.csv`). Without the option the output is byte for byte the
-same (`kredibel_synth/shift.py`). `make demo-books EMAIL=…`
+same (`kredibel_synth/shift.py`).
+`make demo-template` builds the **demo template workspace** `org_demo_template` from these books
+(seeded, then read through the real workflows with Gemini once); with `DEMO_TEMPLATE_ORG` set,
+onboarding offers **Explore a demo company**, which copies it for the new person in seconds and with
+no model call (spec 021). `make demo-books EMAIL=…`
 (`backend/scripts/upload_demo_books.py`) uploads S1 in full and then only what S2 to S4 change: 81
 files, the half-year once plus ten scenario files (the edited March statement; the February copy, its
 re-export, the scanned invoice, the second receipt photo and the ledger keyed twice; the diverted

@@ -26,6 +26,8 @@ const PREVIEW_PROPS = {
   workspace: { name: 'Sunrise Coffee Roasters', subtitle: 'Company, IDR, IFRS' },
   trial: { status: 'TRIALING' as const, daysLeft: 23, pagesUsed: 286, pagesMax: 400 },
   counts: { documents: 92, review: 10, risk: 2, labels: 37 },
+  // Take the tour is in the app's top bar (spec 021); the tour preview starts it from the address.
+  onTour: () => undefined,
 }
 
 export function ShellPreview() {

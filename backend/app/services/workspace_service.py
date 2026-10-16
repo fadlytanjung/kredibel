@@ -4,6 +4,7 @@ Normative references: docs/09 §3.1–§3.4 and §3.18, docs/14 §4.1 and §6, A
 """
 
 from collections.abc import Awaitable, Callable
+from dataclasses import replace
 from datetime import timedelta
 from typing import Literal
 from zoneinfo import available_timezones
@@ -26,6 +27,7 @@ from app.domain.accounts import (
     mask_account,
     mask_tax_id,
 )
+from app.domain.errors import DemoUnavailableError
 from app.domain.models.events import AuditEvent
 from app.domain.models.workspace import (
     BankAccount,
@@ -39,6 +41,7 @@ from app.domain.models.workspace import (
 )
 from app.domain.plans import PlanCatalog
 from app.ports.identity_admin import IdentityAdmin
+from app.ports.workspace_copier import WorkspaceCopier
 from app.ports.workspace_repository import (
     AlreadyMember,
     Created,
@@ -63,6 +66,8 @@ class WorkspaceService:
         signup_mode: SignupMode,
         max_workspaces: int,
         on_framework_change: Callable[[str, str], Awaitable[object]] | None = None,
+        copier: WorkspaceCopier | None = None,
+        demo_template_org: str = "",
     ) -> None:
         self._repo = repo
         self._identity = identity
@@ -71,6 +76,8 @@ class WorkspaceService:
         self._signup_mode = signup_mode
         self._on_framework_change = on_framework_change
         self._max_workspaces = max_workspaces
+        self._copier = copier
+        self._demo_template_org = demo_template_org
 
     async def create(self, principal: Principal, request: WorkspaceCreate) -> Workspace:
         # A claim only counts while its workspace exists; a stale one (never created, or removed by
@@ -93,6 +100,60 @@ class WorkspaceService:
         if isinstance(outcome, AlreadyMember):
             # A double submit, or claims lost after an earlier commit: point the token at the
             # workspace that exists, and let the client refresh.
+            await self._identity.set_claims(
+                principal.uid, {"orgId": outcome.org_id, "role": outcome.role}
+            )
+            raise AlreadyInWorkspaceError(outcome.org_id)
+        raise SignupClosedError()
+
+    @property
+    def demo_available(self) -> bool:
+        return bool(self._demo_template_org and self._copier is not None)
+
+    async def create_demo(self, principal: Principal) -> Workspace:
+        """Spec 021: a new workspace, owned by the principal, holding a copy of the demo template's
+        records and files; the rules for a new workspace apply, and a failed copy leaves nothing."""
+        if principal.org_id is not None and await self._repo.get_workspace(principal.org_id):
+            raise AlreadyInWorkspaceError(principal.org_id)
+        if self._signup_mode != "open":
+            raise SignupClosedError()
+        if not self.demo_available or self._copier is None:
+            raise DemoUnavailableError()
+        template = await self._repo.get_workspace(self._demo_template_org)
+        if template is None:
+            raise DemoUnavailableError()
+
+        request = WorkspaceCreate(
+            name=template.name,
+            profile=template.profile,
+            timezone=template.timezone,
+            currency=template.currency,
+        )
+        made = self._new_workspace(principal, request)
+        new = replace(
+            made,
+            workspace=made.workspace.model_copy(
+                update={"entity_type": template.entity_type, "country": template.country}
+            ),
+        )
+        org_id = new.workspace.org_id
+        new.events.append(
+            self._event("DEMO_COPIED", principal, {"orgId": org_id, "fromOrgId": template.org_id})
+        )
+        swap = {template.org_id: org_id, template.created_by: principal.uid}
+        try:
+            await self._copier.copy_records(template.org_id, org_id, swap)
+            outcome = await self._repo.create_workspace(new, max_workspaces=self._max_workspaces)
+            if isinstance(outcome, Created):
+                await self._copier.copy_workspace_fields(template.org_id, org_id, swap)
+        except Exception:
+            await self._copier.discard(org_id)
+            raise
+        if isinstance(outcome, Created):
+            await self._identity.set_claims(principal.uid, {"orgId": org_id, "role": OWNER})
+            return new.workspace
+        await self._copier.discard(org_id)
+        if isinstance(outcome, AlreadyMember):
             await self._identity.set_claims(
                 principal.uid, {"orgId": outcome.org_id, "role": outcome.role}
             )

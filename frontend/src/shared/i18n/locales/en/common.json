@@ -114,7 +114,8 @@
     "trialBadgeShort_other": "{{count}} days left",
     "pagesShort": "{{used}} of {{max}} pages",
     "profile": "Settings, signed in as {{name}}",
-    "profileWithRole": "Settings, signed in as {{name}} ({{role}})"
+    "profileWithRole": "Settings, signed in as {{name}} ({{role}})",
+    "tour": "Take the tour"
   },
   "roles": {
     "owner": "Owner",

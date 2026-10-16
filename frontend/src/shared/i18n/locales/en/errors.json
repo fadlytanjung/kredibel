@@ -4,5 +4,6 @@
   "VALIDATION_ERROR": "Some fields need a look.",
   "UNAUTHENTICATED": "Your session ended. Sign in again.",
   "fallback": "Something went wrong. Try again.",
-  "UPLOAD_IN_PROGRESS": "This file is still being uploaded. Try again in a minute."
+  "UPLOAD_IN_PROGRESS": "This file is still being uploaded. Try again in a minute.",
+  "DEMO_UNAVAILABLE": "The demo company is not available right now. Set up your own business instead."
 }

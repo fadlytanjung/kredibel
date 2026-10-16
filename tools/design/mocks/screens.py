@@ -203,7 +203,7 @@ def period_picker(first: str, last: str, today: str) -> str:
             f'</div><span class="muted small period-hint">{words(DASH_WORDS, "periods.rangeHint", count=12)}</span></div>')
 
 
-def dashboard() -> str:
+def dashboard(extra: str = "") -> str:
     """The dashboard as the app draws it (DashboardPage, docs/11 §6.2): period, header, figures, the
     P&L panel, where the money went, reconciliation and findings, three panels, the months. The
     profile-suggestions card at the end is a planned design (spec 014)."""
@@ -361,8 +361,65 @@ def dashboard() -> str:
     {months_section}
     {found}
   </div>
-</div>"""
+</div>{extra}"""
     return shell("dashboard", topbar("Dashboard", ("Dashboard",)), content)
+
+
+TOUR_WORDS = json.loads((LOCALES / "tour.json").read_text(encoding="utf-8"))
+TOUR_IDS = ["welcome", "period", "figures", "flow", "upload", "months", "review", "risk", "clients", "labels", "runs", "assistant", "done"]
+
+# The same placement as features/tour/position.ts, measured in the browser like the app.
+TOUR_SCRIPT = """<script>
+(function () {
+  var part = document.querySelector('#content .dash .ledger');
+  var spot = document.querySelector('.tour-spot');
+  var card = document.querySelector('.tour-card');
+  function place() {
+    var vw = window.innerWidth, vh = window.innerHeight;
+    var r = part.getBoundingClientRect();
+    var top = Math.max(r.top - 8, 0), left = Math.max(r.left - 8, 0);
+    var bottom = Math.min(r.top + r.height + 8, vh), right = Math.min(r.left + r.width + 8, vw);
+    spot.style.top = top + 'px'; spot.style.left = left + 'px';
+    spot.style.width = Math.max(right - left, 0) + 'px'; spot.style.height = Math.max(bottom - top, 0) + 'px';
+    var c = card.getBoundingClientRect();
+    var t, l;
+    if (vw < 600) { t = vh - c.height - 16; l = 16; }
+    else {
+      var clamp = function (x) { return Math.min(Math.max(x, 16), vw - c.width - 16); };
+      var below = bottom + 12;
+      if (below + c.height + 16 <= vh) { t = below; } else if (top - 12 - c.height >= 16) { t = top - 12 - c.height; } else { t = Math.max(vh - c.height - 16, 16); }
+      l = clamp(left);
+    }
+    card.style.top = t + 'px'; card.style.left = l + 'px'; card.classList.remove('is-measuring');
+  }
+  if (window.innerWidth < 600) window.scrollTo({ top: window.scrollY + part.getBoundingClientRect().top - 72 });
+  else part.scrollIntoView({ block: 'center' });
+  place();
+  window.addEventListener('scroll', place, true);
+  window.addEventListener('resize', place);
+})();
+</script>"""
+
+
+def tour_overlay(step_id: str = "figures") -> str:
+    """One step of the guided tour as features/tour/TourOverlay.tsx draws it (spec 021)."""
+    n = TOUR_IDS.index(step_id) + 1
+    tw = lambda key, **kw: words(TOUR_WORDS, key, **kw)  # noqa: E731
+    return f"""
+<div class="tour">
+  <div class="tour-catch" aria-hidden="true"></div>
+  <div class="tour-spot" aria-hidden="true"></div>
+  <section class="tour-card is-measuring" role="dialog" aria-modal="true" aria-labelledby="tour-h" aria-describedby="tour-p">
+    <p class="tour-step">{tw("stepOf", n=n, total=len(TOUR_IDS))}</p>
+    <h2 id="tour-h" tabindex="-1">{tw(f"steps.{step_id}.title", name="Sunrise Coffee Roasters")}</h2>
+    <p id="tour-p">{tw(f"steps.{step_id}.body")}</p>
+    <div class="tour-actions"><button type="button" class="button button-quiet button-sm">{tw("skip")}</button><span class="tour-grow"></span><button type="button" class="button button-secondary button-sm">{icon("chevron-left", "icon icon-sm")}{tw("back")}</button><button type="button" class="button button-primary button-sm">{tw("next")}{icon("chevron-right", "icon icon-sm")}</button></div>
+  </section>
+</div>{TOUR_SCRIPT}"""
+
+
+def tour() -> str:
+    return dashboard(extra=tour_overlay("figures"))
 
 # ------------------------------------------------------------------------------------------------
 # Documents
@@ -1924,6 +1981,8 @@ def onboarding() -> str:
     form = f"""
 <section class="onboard-form" aria-labelledby="ob-h">
   <div class="stack gap-2"><h1 class="type-title" id="ob-h">Set up your business</h1><p class="muted">One workspace is one business. You can add details later; Kredibel will suggest them from your documents.</p></div>
+  <section class="onboard-demo" aria-labelledby="demo-h">{icon("sparkles")}<div class="stack gap-1"><h2 id="demo-h">{words(ONBOARD_WORDS, "demo.title")}</h2><p>{words(ONBOARD_WORDS, "demo.body")}</p></div><div class="actions"><a class="button button-secondary" href="tour.html">{words(ONBOARD_WORDS, "demo.open")}</a></div></section>
+  <p class="onboard-or">{words(ONBOARD_WORDS, "demo.or")}</p>
   <section class="form-section" aria-labelledby="ob-biz"><h2 id="ob-biz">Your business</h2><div class="form-wrap"><div class="form-grid">
     <div class="field span-2"><label for="n">Legal name</label><input class="input" id="n" value="Sunrise Coffee Roasters"/></div>
     <div class="field"><label for="t">Trading name <span class="muted">(optional)</span></label><input class="input" id="t" placeholder="As on your invoices"/></div>
@@ -1965,6 +2024,7 @@ SCREENS = {
     "plan-usage": ("Plan and usage", plan_usage),
     "settings-profile": ("Settings: profile", settings_profile),
     "onboarding": ("Onboarding", onboarding),
+    "tour": ("Guided tour", tour),
 }
 
 NOTES = {
@@ -1987,5 +2047,6 @@ NOTES = {
     "assistant-history": "The history drawer phones open from the Chat history button; wide screens show the rail instead.",
     "plan-usage": "Trial days, usage that warns before a limit, coming-soon plans and features that cannot be clicked.",
     "settings-profile": "The profile form with the accounting framework that sets the cash-flow classes; changing it reclassifies every month.",
-    "onboarding": "Individual or company in one question; the brand panel explains the promise with a ledger.",
+    "onboarding": "The demo company when the server has one, then the business in one form; the brand panel explains the promise with a ledger.",
+    "tour": "The guided tour on the dashboard: the figures lit, the page dimmed around them, and the card with Back, Next and Skip.",
 }

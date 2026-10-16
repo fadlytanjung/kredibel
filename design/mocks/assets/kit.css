@@ -2608,3 +2608,28 @@ button.span-name:focus-visible { outline: 2px solid var(--k-color-focus-ring); o
 .alert-list li.suggestion { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--k-space-3); align-items: start; padding: var(--k-space-3) var(--k-space-4); }
 .alert-list li.suggestion .actions { grid-column: 2; display: flex; gap: var(--k-space-2); flex-wrap: wrap; }
 .alert-list li.suggestion .kind { margin-top: 2px; }
+
+/* Spec 021: the demo company on onboarding. */
+.onboard-demo { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--k-space-2) var(--k-space-4); align-items: start; padding: var(--k-space-5); border: 1px solid var(--k-color-border-default); border-radius: var(--k-radius-md); background: var(--k-color-brand-soft); }
+.onboard-demo > .icon { color: var(--k-color-brand-default); margin-top: 2px; }
+.onboard-demo h2 { font-size: 16px; line-height: 22px; font-weight: 660; }
+.onboard-demo p { font-size: 14px; line-height: 20px; color: var(--k-color-text-muted); }
+.onboard-demo .actions { grid-column: 2; display: flex; flex-wrap: wrap; align-items: center; gap: var(--k-space-3); }
+.onboard-or { display: flex; align-items: center; gap: var(--k-space-3); font-size: 13px; color: var(--k-color-text-muted); }
+.onboard-or::before, .onboard-or::after { content: ""; flex: 1; height: 1px; background: var(--k-color-border-default); }
+
+/* Spec 021: the guided tour. The page is dimmed around the lit part; the card says what it is. */
+.tour { position: fixed; inset: 0; z-index: var(--k-z-dialog); }
+.tour-catch { position: absolute; inset: 0; }
+.tour.no-spot .tour-catch { background: var(--k-color-scrim); }
+.tour-spot { position: fixed; border-radius: var(--k-radius-md); box-shadow: 0 0 0 3px var(--k-color-brand-default), 0 0 0 9999px var(--k-color-scrim); pointer-events: none; transition: top 0.2s ease, left 0.2s ease, width 0.2s ease, height 0.2s ease; }
+.tour-card { position: fixed; top: 50%; left: 50%; width: min(380px, calc(100vw - 32px)); display: flex; flex-direction: column; gap: var(--k-space-2); padding: var(--k-space-5); border-radius: var(--k-radius-lg); background: var(--k-color-bg-surface); box-shadow: var(--k-shadow-overlay); }
+.tour-card.is-measuring { visibility: hidden; }
+.tour-card h2 { font-size: 18px; line-height: 24px; font-weight: 680; outline: none; }
+.tour-card p { font-size: 14.5px; line-height: 21px; color: var(--k-color-text-default); }
+.tour-card .tour-step { font-size: 12.5px; font-weight: 620; color: var(--k-color-text-muted); }
+.tour-actions { display: flex; align-items: center; gap: var(--k-space-2); margin-top: var(--k-space-2); }
+.tour-grow { flex: 1; }
+@container app (width < 600px) { .tour-card { width: calc(100vw - 32px); } }
+@media (prefers-reduced-motion: reduce) { .tour-spot { transition: none; } }
+

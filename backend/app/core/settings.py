@@ -45,6 +45,8 @@ class Settings(BaseSettings):
     signup_mode: Literal["open", "invite_only", "closed"] = "open"
     max_workspaces: int = 15
     runs_enabled: bool = True
+    # Spec 021: the workspace a demo company is copied from; empty means no demo on onboarding.
+    demo_template_org: str = ""
     run_quota_per_org_per_day: int = 80
 
     # Google Cloud Platform

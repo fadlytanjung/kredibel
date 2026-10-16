@@ -112,6 +112,7 @@ def topbar(title: str, crumb_parts: tuple, back: tuple[str, str] | None = None, 
   <div class="topbar-actions">
     {extra}
     <a class="search-field" href="#">{icon("search", "icon icon-sm")}Search books<span class="kbd">/</span></a>
+    <a class="icon-button" href="tour.html" aria-label="Take the tour" title="Take the tour">{icon("lightbulb")}</a>
     <a class="icon-button" href="risk.html" aria-label="Notifications, 2 new">{icon("bell")}<span class="dot"></span></a>
     {up}
   </div>

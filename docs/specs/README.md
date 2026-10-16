@@ -29,6 +29,7 @@ documents sit under `docs/`. Paths to other docs are relative (`../01-…`, `../
 | 018 | [Company classifications and P&L](018-subledger-profit-and-loss/spec.md) | P1 | B + C + A | 010, 011; ledger population 005 | After P0 |
 | 019 | [Current UI and mock parity](019-ui-parity/spec.md) | P0 maintenance | C + D | Implemented screens 001–018 | Continuation |
 | 020 | [Public site](020-public-site/spec.md) | P0 (submission) | C (+D) | 001, 013 | D7 |
+| 021 | [Demo company and guided tour](021-demo-and-guided-tour/spec.md) | P0 (submission demo) | B, C | 002, 013, 016, 017 | D8 |
 
 Spec numbers are identifiers, not the build order: 013 is built right after 001, because 003 and 004
 call its entitlement checks.

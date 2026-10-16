@@ -22,7 +22,8 @@ import { PricingPage } from '../pages/public/PricingPage'
 import { PrivacyPage } from '../pages/public/PrivacyPage'
 import { SecurityPage } from '../pages/public/SecurityPage'
 import { TermsPage } from '../pages/public/TermsPage'
-import { AppShell, Button } from '../shared/ui'
+import { AppShell, type AppShellProps, Button } from '../shared/ui'
+import { TourProvider, useTour } from '../features/tour'
 import { TrialBanner } from '../widgets/TrialBanner'
 import { useLabels } from '../entities/label'
 
@@ -46,6 +47,7 @@ const OnboardingPreview = lazy(() => import('./OnboardingPreview').then((m) => (
 const AssistantPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.AssistantPreview })))
 const DocumentPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.DocumentPreview })))
 const DocumentsPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.DocumentsPreview })))
+const TourPreview = lazy(() => import('./TourPreview').then((m) => ({ default: m.TourPreview })))
 const MonthPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.MonthPreview })))
 const MonthsPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.MonthsPreview })))
 const ProfitLossPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.ProfitLossPreview })))
@@ -114,19 +116,27 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
       )
     : undefined
   return (
-    <AppShell
-      user={{ name, role: me?.role }}
+    <TourProvider role={me?.role} uid={me?.uid} workspaceName={workspaceQuery.data?.name}>
+      <ShellWithTour
+        user={{ name, role: me?.role }}
       counts={{ review: reviewQuery.data?.items.length, labels: labelsQuery.data?.summary.needsCheck }}
       workspace={shell?.workspace}
       trial={shell?.trial}
       banner={shell?.trial && <TrialBanner trial={shell.trial} />}
       uploadBlockedReason={shell?.uploadBlocked ? t('shell.uploadBlocked') : undefined}
       onUpload={() => navigate('/documents?upload=1')}
-    >
-      {/* The page chunk loads inside the shell, so the chrome never flashes away. */}
-      <Suspense fallback={null}>{children}</Suspense>
-    </AppShell>
+      >
+        {/* The page chunk loads inside the shell, so the chrome never flashes away. */}
+        <Suspense fallback={null}>{children}</Suspense>
+      </ShellWithTour>
+    </TourProvider>
   )
+}
+
+/** The shell with Take the tour wired to the tour around it (spec 021). */
+function ShellWithTour(props: AppShellProps) {
+  const tour = useTour()
+  return <AppShell {...props} onTour={tour.start} />
 }
 
 export function OnboardingRoute({ children }: { children: ReactNode }) {
@@ -204,6 +214,7 @@ export function AppRouter() {
         {/* Visual regression targets (tests/visual) on synthetic fixtures; never part of a production
             build unless VITE_PREVIEW_ROUTES=1 asks for one to measure (Lighthouse, AC-010-11). */}
         {PREVIEW_ROUTES && <Route path="/preview/shell" element={<ShellPreview />} />}
+        {PREVIEW_ROUTES && <Route path="/preview/tour/*" element={<TourPreview />} />}
         {PREVIEW_ROUTES && <Route path="/preview/onboarding" element={<OnboardingPreview />} />}
         {PREVIEW_ROUTES && (
           <Route path="/preview/settings/:section" element={<SettingsPreview />} />

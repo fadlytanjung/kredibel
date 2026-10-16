@@ -61,6 +61,14 @@ def create_workspace_router(
         workspace = await provider.workspace_service.create(principal, body)
         return await workspace_body(provider, workspace)
 
+    @router.post("/workspaces/demo", status_code=status.HTTP_201_CREATED)
+    async def create_demo_workspace(
+        principal: Principal = Depends(principal_dep),
+    ) -> dict[str, Any]:
+        """Spec 021: a workspace holding a copy of the demo company, owned by the caller."""
+        workspace = await provider.workspace_service.create_demo(principal)
+        return await workspace_body(provider, workspace)
+
     @router.get("/workspace")
     async def get_workspace(principal: Principal = Depends(workspace_dep)) -> dict[str, Any]:
         workspace = await provider.workspace_service.get(org_of(principal))

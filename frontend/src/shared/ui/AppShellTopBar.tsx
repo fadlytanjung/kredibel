@@ -27,6 +27,7 @@ interface TopBarProps {
   riskCount?: number
   trial?: AppShellTrial
   onUpload?: () => void
+  onTour?: () => void
   uploadBlockedReason?: string
   extra?: React.ReactNode
 }
@@ -36,6 +37,7 @@ export function AppShellTopBar({
   riskCount,
   trial,
   onUpload,
+  onTour,
   uploadBlockedReason,
   extra,
 }: TopBarProps) {
@@ -117,6 +119,11 @@ export function AppShellTopBar({
             {t('shell.search')}
             <span className="kbd">/</span>
           </button>
+          {onTour && (
+            <button type="button" className="icon-button" onClick={onTour} aria-label={t('shell.tour')} title={t('shell.tour')}>
+              <Icon name="lightbulb" />
+            </button>
+          )}
           <Link
             className="icon-button"
             to="/risk"

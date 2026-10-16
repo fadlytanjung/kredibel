@@ -43,6 +43,8 @@ def create_me_router(provider: ServiceProvider, principal_dep: PrincipalDependen
             "orgId": org_id,
             "role": principal.role if ws is not None else None,
             "needsWorkspace": org_id is None,
+            # Spec 021: onboarding offers the demo company when the server has its template.
+            "demoAvailable": provider.workspace_service.demo_available,
             "language": "en",
             "workspace": workspace,
         }

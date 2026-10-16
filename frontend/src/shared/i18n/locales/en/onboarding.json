@@ -61,5 +61,12 @@
   "frameworks": {
     "IFRS": "IFRS",
     "US_GAAP": "US GAAP"
+  },
+  "demo": {
+    "title": "Explore a demo company",
+    "body": "Sunrise Coffee Roasters: six months of a coffee roaster's synthetic books, already read twice and reconciled, with an edited statement, copies, a changed supplier account and unpaid bills. Nothing to upload; a guided tour shows the way.",
+    "open": "Open the demo company",
+    "opening": "Preparing the demo company…",
+    "or": "or set up your own business"
   }
 }

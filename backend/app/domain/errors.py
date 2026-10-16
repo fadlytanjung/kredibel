@@ -375,3 +375,12 @@ class SuggestionAlreadyDecidedError(DomainError):
             detail=f"Suggestion {suggestion_id} is already {status.lower()}.",
             extras={"suggestionId": suggestion_id, "status": status},
         )
+
+
+class DemoUnavailableError(DomainError):
+    """No demo template is configured, or it is missing (503, spec 021 AC-021-3)."""
+
+    def __init__(self, detail: str = "The demo company is not available on this server.") -> None:
+        super().__init__(
+            code="DEMO_UNAVAILABLE", status=503, title="Demo unavailable", detail=detail
+        )

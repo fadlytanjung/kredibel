@@ -14,6 +14,8 @@ AI_CONTENT_CAPTURE=off
 LOG_LEVEL=INFO
 TRACE_EXPORT=cloud
 SIGNUP_MODE=open
+# Spec 021: the demo template workspace (make demo-template); empty means no demo on onboarding.
+DEMO_TEMPLATE_ORG=
 MAX_WORKSPACES=15
 RUNS_ENABLED=true
 RUN_QUOTA_PER_ORG_PER_DAY=80

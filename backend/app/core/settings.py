@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     data_class: Literal["synthetic", "real"] = "synthetic"
     signup_mode: Literal["open", "invite_only", "closed"] = "open"
-    max_workspaces: int = 15
+    max_workspaces: int = 200
     runs_enabled: bool = True
     # Spec 021: the workspace a demo company is copied from; empty means no demo on onboarding.
     demo_template_org: str = ""

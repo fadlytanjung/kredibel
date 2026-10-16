@@ -255,7 +255,7 @@ Assumes the page cache (§5) and recordings for tests.
 | Eval runs (Gemini cache bypassed) | ~60 scenario runs × ≈ USD 0.45 | ≈ USD 27 |
 | Assistant development and DeepEval (P1) | ~1,000 questions, ~10 eval runs | ≈ USD 20 |
 | Demo and judging (seeded workspace + live uploads) | ~50 uploads, a few S1 imports | ≈ USD 5–10 |
-| Public free trials during judging (`MAX_WORKSPACES=15`, most stay small) | realistic: 10 trials × ~100 pages | ≈ USD 5–15 (hard cap 15 × USD 5/month) |
+| Public free trials during judging (`MAX_WORKSPACES=200` since 16 Oct 2026, most stay small; a demo company is a copy and runs no model) | realistic: 10 trials × ~100 pages | ≈ USD 5–15 (hard cap 200 × USD 5/month = USD 1,000/month; lower `MAX_WORKSPACES` or set `SIGNUP_MODE` if sign-ups climb) |
 | Infrastructure (Cloud Run, Storage, Artifact Registry, Build, Logging, Firestore, BigQuery agent events) | 2 months | ≈ USD 3–8 |
 | **Total** | | **≈ USD 60–90** (+15% buffer ≈ **100**) |
 | Add Cloud SQL instead of Firestore | | + ≈ USD 20–35 (micro, 2 months) or + ≈ USD 100 (1 vCPU) |

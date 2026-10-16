@@ -280,7 +280,7 @@ for hashed assets. Firebase Hosting (`kredibel-app.web.app`) serves the same fil
 | `RUN_QUOTA_PER_ORG_PER_DAY` | `80` (global ceiling above each plan's `monthRunsPerDay`) | web, worker |
 | `SIGNUP_MODE` | `open` \| `invite_only` \| `closed` | web |
 | `DEMO_TEMPLATE_ORG` | The workspace a demo company is copied from (spec 021; `org_demo_template`, made by `make demo-template`); empty: onboarding offers no demo | web |
-| `MAX_WORKSPACES` | `15` | web |
+| `MAX_WORKSPACES` | `200` | web |
 | `PLANS_FILE` | `/app/contracts/plans.v1.yaml` | both |
 | `MODEL_FAST` / `MODEL_LITE` / `MODEL_EMBEDDING` | see [`06`](06-agent-design.md) §11 | worker, web |
 | `MODEL_ARMOR_LOCATION` / `MODEL_ARMOR_TEMPLATE` | `asia-southeast1` / `kredibel-docs` | worker (P1) |

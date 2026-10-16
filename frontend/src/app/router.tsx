@@ -24,6 +24,7 @@ import { SecurityPage } from '../pages/public/SecurityPage'
 import { TermsPage } from '../pages/public/TermsPage'
 import { AppShell, type AppShellProps, Button } from '../shared/ui'
 import { TourProvider, useTour } from '../features/tour'
+import { apiClient } from '../shared/api/client'
 import { TrialBanner } from '../widgets/TrialBanner'
 import { useLabels } from '../entities/label'
 
@@ -116,7 +117,13 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
       )
     : undefined
   return (
-    <TourProvider role={me?.role} uid={me?.uid} workspaceName={workspaceQuery.data?.name}>
+    <TourProvider
+      role={me?.role}
+      uid={me?.uid}
+      workspaceName={workspaceQuery.data?.name}
+      autoStart={me?.tourSeen === false}
+      onSeen={markTourSeen}
+    >
       <ShellWithTour
         user={{ name, role: me?.role }}
       counts={{ review: reviewQuery.data?.items.length, labels: labelsQuery.data?.summary.needsCheck }}
@@ -131,6 +138,11 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
       </ShellWithTour>
     </TourProvider>
   )
+}
+
+/** Spec 021: the tour no longer starts by itself for this person, on any device. */
+function markTourSeen() {
+  void apiClient('/api/me/tour', { method: 'POST' }).catch(() => undefined)
 }
 
 /** The shell with Take the tour wired to the tour around it (spec 021). */

@@ -48,8 +48,10 @@ a short explanation and Next, Back and Skip.
   figures, where the money went, the upload tray, reconciliation, the review queue, risk, labels, runs
   (owners only), the assistant, and an ending card. Each step opens its page
   first; a step whose part is not on the page shows its card without a highlight.
-- **AC-021-5** **Skip the tour**, Esc or **Done** ends it; the tour starts by itself once per person
-  in this browser and can be started again with **Take the tour** in the top bar. On the demo
+- **AC-021-5** **Skip the tour**, Esc or **Done** ends it and records it for the person (`POST
+  /api/me/tour`; `tourSeen` on `GET /api/me`): the tour starts by itself for anyone who has not seen
+  it, which is right after onboarding, once per person on any device, and can be started again with
+  **Take the tour** in the top bar. On the demo
   company the dashboard steps show the months that have books.
 - **AC-021-6** The tour works from 360 to 1600 px (on phones the card sits at the bottom and the part
   is scrolled into view), with the keyboard (Tab stays in the card, arrows move, Esc ends), with a

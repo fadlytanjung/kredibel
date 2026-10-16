@@ -105,6 +105,15 @@ paths:
         "409": { $ref: "#/components/responses/Problem" }
         "422": { $ref: "#/components/responses/Problem" }
 
+  /api/me/tour:
+    post:
+      tags: [system]
+      operationId: markTourSeen
+      description: Spec 021, the caller finished or skipped the guided tour; it no longer starts by itself.
+      responses:
+        "204": { description: Recorded }
+        "401": { $ref: "#/components/responses/Problem" }
+
   /api/workspaces/demo:
     post:
       tags: [workspace]
@@ -1726,6 +1735,7 @@ components:
         role: { $ref: "#/components/schemas/Role" }
         needsWorkspace: { type: boolean }
         demoAvailable: { type: boolean, description: "Spec 021: onboarding may offer the demo company" }
+        tourSeen: { type: boolean, description: "Spec 021: this person finished or skipped the guided tour; until then it starts by itself" }
         language: { type: string, enum: [en], default: en }
         workspace:
           type: [object, "null"]

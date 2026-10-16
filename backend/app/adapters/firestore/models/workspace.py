@@ -39,6 +39,8 @@ class MemberDoc(FirestoreModel):
     role: str
     language: str = "en"
     created_at: datetime
+    # Spec 021: when this person finished or skipped the guided tour (additive; none: not yet).
+    tour_seen_at: datetime | None = None
 
 
 class BankAccountDoc(FirestoreModel):

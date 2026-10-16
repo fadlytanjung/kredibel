@@ -20,7 +20,15 @@ import {
 
 export function TourPreview() {
   return (
-    <TourProvider role="owner" uid="u_preview" workspaceName="Sunrise Coffee Roasters" pathFor={(path) => `/preview/tour${path}`}>
+    <TourProvider
+      role="owner"
+      uid="u_preview"
+      workspaceName="Sunrise Coffee Roasters"
+      // ?fresh=1: a person whose tour is not seen yet (spec 021, AC-021-5).
+      autoStart={new URLSearchParams(window.location.search).get('fresh') === '1'}
+      onSeen={() => void fetch('/api/me/tour', { method: 'POST' })}
+      pathFor={(path) => `/preview/tour${path}`}
+    >
       <Routes>
         <Route path="dashboard" element={<ShellPreview />} />
         <Route path="documents" element={<DocumentsPreview />} />

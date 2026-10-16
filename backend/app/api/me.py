@@ -45,8 +45,15 @@ def create_me_router(provider: ServiceProvider, principal_dep: PrincipalDependen
             "needsWorkspace": org_id is None,
             # Spec 021: onboarding offers the demo company when the server has its template.
             "demoAvailable": provider.workspace_service.demo_available,
+            # Spec 021: the guided tour starts by itself until this person has seen it.
+            "tourSeen": (await provider.workspace_service.tour_seen(principal)) if ws else False,
             "language": "en",
             "workspace": workspace,
         }
+
+    @router.post("/tour", status_code=204)
+    async def mark_tour_seen(principal: Principal = Depends(principal_dep)) -> None:
+        """Spec 021: this person finished or skipped the guided tour."""
+        await provider.workspace_service.mark_tour_seen(principal)
 
     return router

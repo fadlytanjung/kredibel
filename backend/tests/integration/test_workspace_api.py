@@ -277,3 +277,14 @@ async def test_adr020_onboarding_takes_the_currency_and_patch_refuses_it(h):
 
     assert patched.status_code == 422
     assert patched.json()["code"] == "VALIDATION_ERROR"
+
+
+async def test_ac021_5_the_tour_starts_by_itself_until_the_person_has_seen_it(h):
+    async with h.client() as c:
+        await h.onboard(c)
+        before = (await c.get("/api/me", headers=h.auth("owner"))).json()
+        res = await c.post("/api/me/tour", headers=h.auth("owner"))
+        after = (await c.get("/api/me", headers=h.auth("owner"))).json()
+        fresh = (await c.get("/api/me", headers=h.auth("new"))).json()
+    assert before["tourSeen"] is False and res.status_code == 204 and after["tourSeen"] is True
+    assert fresh["tourSeen"] is False, "a person without a workspace has not seen it"

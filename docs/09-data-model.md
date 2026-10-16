@@ -89,7 +89,8 @@ erDiagram
 ### 3.3 `orgs/{orgId}/members/{uid}` and `invites/{inviteId}` (P1)
 
 `members`: `email`, `displayName`, `role` (`owner` in P0; P1 adds `accountant`, `reviewer`, `viewer`;
-authorization uses the custom claim), `language`, `createdAt`. `invites`: `email`, `role`, `status`
+authorization uses the custom claim), `language`, `createdAt`, `tourSeenAt?` (spec 021: when this person
+finished or skipped the guided tour; until then it starts by itself). `invites`: `email`, `role`, `status`
 (`PENDING`, `ACCEPTED`, `REVOKED`, `EXPIRED`), `createdBy`, `expiresAt`.
 
 ### 3.4 `orgs/{orgId}/bankAccounts/{accountId}`

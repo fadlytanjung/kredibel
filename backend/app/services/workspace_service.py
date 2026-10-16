@@ -166,6 +166,16 @@ class WorkspaceService:
             raise NotFoundError()
         return workspace
 
+    async def tour_seen(self, principal: Principal) -> bool:
+        """Spec 021: the guided tour starts by itself until this person finishes or skips it."""
+        if principal.org_id is None:
+            return False
+        return await self._repo.tour_seen(principal.org_id, principal.uid)
+
+    async def mark_tour_seen(self, principal: Principal) -> None:
+        if principal.org_id is not None:
+            await self._repo.mark_tour_seen(principal.org_id, principal.uid, self._clock.now())
+
     async def seats_used(self, org_id: str) -> int:
         return await self._repo.count_members(org_id)
 

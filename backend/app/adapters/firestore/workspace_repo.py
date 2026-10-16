@@ -3,6 +3,7 @@
 Normative references: docs/09 §3.1–§3.4, §3.16, §3.18; docs/13 §2.2 (atomic audit).
 """
 
+from datetime import datetime
 from typing import Any
 
 from google.cloud.firestore import AsyncClient, AsyncTransaction, async_transactional
@@ -195,6 +196,20 @@ class FirestoreWorkspaceRepository(WorkspaceRepository):
             dump(EventDoc(org_id=workspace.org_id, **event.model_dump())),
         )
         await batch.commit()
+
+    async def tour_seen(self, org_id: str, uid: str) -> bool:
+        snap = (
+            await self._db.collection("orgs")
+            .document(org_id)
+            .collection("members")
+            .document(uid)
+            .get()
+        )
+        return bool(snap.exists and (snap.to_dict() or {}).get("tourSeenAt"))
+
+    async def mark_tour_seen(self, org_id: str, uid: str, at: datetime) -> None:
+        member = self._db.collection("orgs").document(org_id).collection("members").document(uid)
+        await member.set({"tourSeenAt": at}, merge=True)
 
     async def count_members(self, org_id: str) -> int:
         members = self._db.collection("orgs").document(org_id).collection("members")

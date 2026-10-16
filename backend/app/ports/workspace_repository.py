@@ -2,6 +2,7 @@
 
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
+from datetime import datetime
 from decimal import Decimal
 from typing import Any, Protocol
 
@@ -81,6 +82,12 @@ class WorkspaceRepository(Protocol):
         ...
 
     async def count_members(self, org_id: str) -> int: ...
+
+    async def tour_seen(self, org_id: str, uid: str) -> bool:
+        """Spec 021: this person finished or skipped the guided tour in this workspace."""
+        ...
+
+    async def mark_tour_seen(self, org_id: str, uid: str, at: datetime) -> None: ...
 
     async def list_bank_accounts(self, org_id: str) -> list[BankAccount]: ...
 

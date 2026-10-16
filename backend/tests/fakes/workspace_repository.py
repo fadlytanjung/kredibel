@@ -1,6 +1,7 @@
 """In-memory WorkspaceRepository; a lock stands in for the Firestore transaction."""
 
 import asyncio
+from datetime import datetime
 from typing import Any
 
 from app.domain.models.events import AuditEvent
@@ -26,6 +27,7 @@ class FakeWorkspaceRepository(WorkspaceRepository):
         self.events: dict[str, list[AuditEvent]] = {}
         self.users: dict[str, AlreadyMember] = {}
         self.workspaces_created = workspaces_created
+        self.tours: dict[tuple[str, str], datetime] = {}
         self._txn = asyncio.Lock()
 
     async def create_workspace(self, new: NewWorkspace, *, max_workspaces: int) -> CreateOutcome:
@@ -68,6 +70,12 @@ class FakeWorkspaceRepository(WorkspaceRepository):
                 update={"ledger_mappings": {**ws.ledger_mappings, layout_signature: mapping}}
             )
             self.events.setdefault(org_id, []).append(event)
+
+    async def tour_seen(self, org_id: str, uid: str) -> bool:
+        return (org_id, uid) in self.tours
+
+    async def mark_tour_seen(self, org_id: str, uid: str, at: datetime) -> None:
+        self.tours[(org_id, uid)] = at
 
     async def count_members(self, org_id: str) -> int:
         return len(self.members.get(org_id, {}))

@@ -44,12 +44,18 @@ export function TourProvider({
   role,
   uid,
   workspaceName,
+  autoStart = false,
+  onSeen,
   pathFor = (path) => path,
 }: {
   children: ReactNode
   role?: string | null
   uid?: string
   workspaceName?: string
+  /** The person has not seen the tour yet (`tourSeen` on /api/me): it starts by itself, once. */
+  autoStart?: boolean
+  /** Records on the server that the tour was finished or skipped. */
+  onSeen?: () => void
   /** Previews map the app's paths to their own. */
   pathFor?: (path: string) => string
 }) {
@@ -71,13 +77,15 @@ export function TourProvider({
   const stop = useCallback(() => {
     setIndex(null)
     remember(uid)
-  }, [uid])
+    onSeen?.()
+  }, [uid, onSeen])
 
   // After onboarding the dashboard opens with ?tour=1: the tour starts (state derived while
   // rendering, as React allows), and the flag leaves the address.
   const asked = new URLSearchParams(location.search).get('tour') === '1'
+  // A fresh person (the server says the tour is not seen) gets it once, wherever they land first.
   const [handled, setHandled] = useState(false)
-  if (asked && !handled) {
+  if ((asked || autoStart) && !handled) {
     setHandled(true)
     if (index === null && !seen(uid)) setIndex(0)
   }

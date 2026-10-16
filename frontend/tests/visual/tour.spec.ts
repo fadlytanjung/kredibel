@@ -106,3 +106,17 @@ test('AC-021-4: every step opens its page and lights its part', async ({ page })
   await expect(page.locator('.tour')).toHaveCount(0)
 })
 
+test('AC-021-5: a person who has not seen the tour gets it by itself; skipping records it', async ({ page }) => {
+  await serve(page)
+  const seen: string[] = []
+  await page.route('**/api/me/tour', (route) => {
+    seen.push(route.request().method())
+    return route.fulfill({ status: 204 })
+  })
+  await page.goto('/preview/tour/dashboard?fresh=1')
+  await expect(card(page).getByRole('heading', { name: 'Welcome to Sunrise Coffee Roasters' })).toBeVisible()
+  await card(page).getByRole('button', { name: 'Skip the tour' }).click()
+  await expect(page.locator('.tour')).toHaveCount(0)
+  await expect.poll(() => seen).toEqual(['POST'])
+})
+

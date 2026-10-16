@@ -348,6 +348,7 @@
       "language": "str",
       "org_id": "str",
       "role": "str",
+      "tour_seen_at": "datetime | None",
       "uid": "str"
     },
     "file": "workspace.py",

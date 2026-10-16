@@ -196,8 +196,8 @@ demo-books: ## Upload synthetic demo books into EMAIL's workspace (docs/18 §5; 
 extractions-rebuild: ## Rebuild a workspace's chunks and page Markdown from what is stored, no model call (spec 022; ORG=... or EMAIL=...)
 	cd backend && uv run python -m scripts.rebuild_extractions $(if $(ORG),--org "$(ORG)",--email "$(EMAIL)")
 
-reread-photos: ## Read a workspace's photos and scans again with the OCR witness (spec 022; ORG=..., DISAGREED=1 also those whose fields did not all agree)
-	cd backend && uv run python -m scripts.reread_documents --org "$(ORG)" $(if $(DISAGREED),--disagreed,)
+reread-photos: ## Read a workspace's photos and scans again with the OCR witness (spec 022; ORG=..., DISAGREED=1 also those whose fields did not all agree, ALL=1 every OCR document)
+	cd backend && uv run python -m scripts.reread_documents --org "$(ORG)" $(if $(DISAGREED),--disagreed,) $(if $(ALL),--ocr,)
 
 demo-template: ## Build the demo template workspace (spec 021): seed it, then read the demo books ending last month (TEMPLATE_EMAIL=..., RETRY=1 reads failed documents again)
 	cd tools/synthetic && uv run kredibel-synth demo --shift-months 3 --out out/demo-recent

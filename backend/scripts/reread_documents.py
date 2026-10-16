@@ -15,12 +15,15 @@ import sys
 from typing import Any
 
 
+def _by_ocr(reading: dict[str, Any] | None) -> bool:
+    return (reading or {}).get("method") in ("AI_OCR", "AI_MIXED")
+
+
 def _disagreed(reading: dict[str, Any] | None) -> bool:
-    reading = reading or {}
-    return reading.get("method") in ("AI_OCR", "AI_MIXED") and (reading.get("agreement") or 0) < 1
+    return _by_ocr(reading) and ((reading or {}).get("agreement") or 0) < 1
 
 
-async def _run(org: str, disagreed: bool) -> int:
+async def _run(org: str, disagreed: bool, ocr: bool) -> int:
     from app.adapters.cloud_tasks import InlineTaskQueue, month_task_id
     from app.adapters.policy_files import load_plans
     from app.core.settings import Settings
@@ -39,7 +42,8 @@ async def _run(org: str, disagreed: bool) -> int:
         if d.status.value in ("DONE", "NEEDS_INPUT")
         and d.doc_type.value != "LEDGER_EXPORT"
         and (
-            (disagreed and _disagreed(d.reading))
+            (ocr and _by_ocr(d.reading))
+            or (disagreed and _disagreed(d.reading))
             or not await deps.chunk_repo.list_chunks(org, d.doc_id)
         )
     ]
@@ -82,8 +86,13 @@ def main() -> int:
         action="store_true",
         help="also documents read by OCR whose fields did not all agree with it",
     )
+    parser.add_argument(
+        "--ocr",
+        action="store_true",
+        help="every document read by OCR (after a change to how its words are built)",
+    )
     args = parser.parse_args()
-    return asyncio.run(_run(args.org, args.disagreed))
+    return asyncio.run(_run(args.org, args.disagreed, args.ocr))
 
 
 if __name__ == "__main__":

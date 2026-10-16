@@ -63,3 +63,27 @@ async def test_t001_12_api_and_tasks_paths_never_fall_back_to_the_spa(spa_client
     assert api_res.status_code == 404
     assert api_res.headers["content-type"] == "application/problem+json"
     assert tasks_res.status_code == 404
+
+
+async def test_t020_36_a_public_page_is_served_from_its_own_html(tmp_path: Path):
+    """The build writes `<route>.html` with the page's head (AC-020-13); the origin serves it at the
+    clean URL like Firebase Hosting's cleanUrls, so both hosts answer alike."""
+    static_dir = tmp_path / "static"
+    static_dir.mkdir()
+    (static_dir / "index.html").write_text("<html>landing</html>")
+    (static_dir / "pricing.html").write_text("<html>pricing head</html>")
+    (tmp_path / "outside.html").write_text("outside the static root")
+    app = FastAPI()
+    register_error_handlers(app)
+    mount_static_spa(app, static_dir=str(static_dir))
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        page = await client.get("/pricing")
+        app_route = await client.get("/dashboard")
+        escape = await client.get("/..%2Foutside")
+
+    assert page.status_code == 200
+    assert page.text == "<html>pricing head</html>"
+    assert page.headers["cache-control"] == "no-cache"
+    assert app_route.text == "<html>landing</html>"
+    assert "outside the static root" not in escape.text

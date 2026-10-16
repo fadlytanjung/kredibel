@@ -329,7 +329,9 @@ make env-push      # add a version from .env.production; then make deploy
 key is empty), `VITE_APP_VERSION` (the commit). **`VITE_` values are inlined into the public bundle.**
 Never put a server-side value behind a `VITE_` name. Restrict the Firebase web API key to the app's
 domains in the console. `VITE_PREVIEW_ROUTES=1` keeps the synthetic preview routes in a build so
-Lighthouse can measure the dashboard locally; it is never set for a deployed build.
+Lighthouse can measure the dashboard locally; it is never set for a deployed build. `VITE_SITE_URL`
+(default `https://kredibel.app`) is the public site's canonical origin: canonical links, `og:url`,
+the social image, `sitemap.xml` and `robots.txt` name it (spec 020, AC-020-13).
 
 ---
 

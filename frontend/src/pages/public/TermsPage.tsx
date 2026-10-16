@@ -11,7 +11,7 @@ export function TermsPage() {
 
   return (
     <PublicShell>
-      <PageMeta title={t('meta.termsTitle')} description={t('meta.termsDescription')} />
+      <PageMeta title={t('meta.termsTitle')} description={t('meta.termsDescription')} path="/terms" />
       <LegalDocument ns="terms" sections={SECTIONS} crossLink={{ to: '/privacy', label: t('terms.privacyLink') }} />
     </PublicShell>
   )

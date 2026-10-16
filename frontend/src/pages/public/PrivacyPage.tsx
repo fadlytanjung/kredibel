@@ -11,7 +11,7 @@ export function PrivacyPage() {
 
   return (
     <PublicShell>
-      <PageMeta title={t('meta.privacyTitle')} description={t('meta.privacyDescription')} />
+      <PageMeta title={t('meta.privacyTitle')} description={t('meta.privacyDescription')} path="/privacy" />
       <LegalDocument ns="privacy" sections={SECTIONS} crossLink={{ to: '/terms', label: t('privacy.termsLink') }} />
     </PublicShell>
   )

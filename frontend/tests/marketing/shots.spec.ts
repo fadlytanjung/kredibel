@@ -96,3 +96,11 @@ test('evidence: the lamp on the printed value beside both readings', async ({ pa
   await page.evaluate(() => window.scrollTo(0, 0))
   await shoot(page, 'evidence-viewer')
 })
+
+test('social card: the settled landing hero at 1200×630 (spec 020, AC-020-13)', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.setViewportSize({ width: 1200, height: 630 })
+  await page.goto('/')
+  await expect(page.getByRole('heading', { level: 1, name: /Every number has a source/ })).toBeVisible()
+  await shoot(page, 'og')
+})

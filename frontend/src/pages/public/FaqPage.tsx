@@ -15,7 +15,7 @@ export function FaqPage() {
 
   return (
     <PublicShell>
-      <PageMeta title={t('meta.faqTitle')} description={t('meta.faqDescription')} />
+      <PageMeta title={t('meta.faqTitle')} description={t('meta.faqDescription')} path="/faq" />
       <PageHero eyebrow={t('faq.eyebrow')} title={t('faq.title')} lead={t('faq.lead')} />
 
       <section className="pub-section pub-paper is-sheet">

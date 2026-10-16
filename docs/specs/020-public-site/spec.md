@@ -80,12 +80,21 @@ describing it, so a first-time visitor understands it in seconds.
   custom properties; pointer effects only on a fine pointer; decorative 3D layers carry no text and
   are hidden from assistive technology; under `prefers-reduced-motion` every scene is settled and
   nothing pins or moves; at 200 % zoom or under 1024 px wide the narrative is stacked, not pinned.
+- **AC-020-13** Search engines and link previews get each public page without running JavaScript:
+  the build writes one HTML file per public route whose `<head>` carries that page's title,
+  description, canonical URL on `VITE_SITE_URL` (default `https://kredibel.app`), Open Graph and
+  Twitter card with a 1200×630 social image, and JSON-LD (Organization, WebSite and
+  SoftwareApplication on `/`, FAQPage on `/faq`, WebPage everywhere). `sitemap.xml` lists the public
+  pages and `robots.txt` names it; the 404 page is `noindex`. In the app the head never holds two
+  titles or canonicals, and the landing's cumulative layout shift stays under 0.1 (amended
+  2026-10-16, T020-33).
 
 ## Out of scope
 
 - No billing, checkout or real prices; paid plans stay "coming soon".
 - No backend endpoints, no contact-form backend, no CMS — copy lives in `locales/en/public.json`.
-- No new languages (English only), no dark theme, no prerender/SSG, no analytics.
+- No new languages (English only), no dark theme, no analytics. No body prerender or SSG: only the
+  `<head>` of each public route is written at build time (AC-020-13).
 - No smooth-scroll or scroll-hijack library and no WebGL; `motion` is the only animation dependency
   and only its hooks are used (amended 2026-10-14, T020-18).
 

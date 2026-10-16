@@ -22,6 +22,7 @@ import { PricingPage } from '../pages/public/PricingPage'
 import { PrivacyPage } from '../pages/public/PrivacyPage'
 import { SecurityPage } from '../pages/public/SecurityPage'
 import { TermsPage } from '../pages/public/TermsPage'
+import type { PublicPath } from '../shared/config/publicSite'
 import { AppShell, type AppShellProps, Button } from '../shared/ui'
 import { TourProvider, useTour } from '../features/tour'
 import { apiClient } from '../shared/api/client'
@@ -168,15 +169,18 @@ export function IndexRoute() {
 }
 
 // Public pages served by the same SPA (spec 020, AC-020-6).
-const PUBLIC_ROUTES: { path: string; element: ReactNode }[] = [
-  { path: '/pricing', element: <PricingPage /> },
-  { path: '/how-it-works', element: <HowItWorksPage /> },
-  { path: '/security', element: <SecurityPage /> },
-  { path: '/faq', element: <FaqPage /> },
-  { path: '/contact', element: <ContactPage /> },
-  { path: '/privacy', element: <PrivacyPage /> },
-  { path: '/terms', element: <TermsPage /> },
-]
+// Typed against the SEO page list (AC-020-13): a page missing here, or a route missing there, fails
+// the type check, so the build never writes a head for a page the router does not serve.
+const PUBLIC_ELEMENTS: Record<Exclude<PublicPath, '/'>, ReactNode> = {
+  '/pricing': <PricingPage />,
+  '/how-it-works': <HowItWorksPage />,
+  '/security': <SecurityPage />,
+  '/faq': <FaqPage />,
+  '/contact': <ContactPage />,
+  '/privacy': <PrivacyPage />,
+  '/terms': <TermsPage />,
+}
+const PUBLIC_ROUTES = Object.entries(PUBLIC_ELEMENTS).map(([path, element]) => ({ path, element }))
 
 // docs/11 §4.2; the dashboard is at /dashboard so `/` can be the public landing (spec 020).
 const PROTECTED_ROUTES: { path: string; element: ReactNode }[] = [

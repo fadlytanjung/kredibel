@@ -147,7 +147,7 @@ export function LandingPage() {
 
   return (
     <PublicShell>
-      <PageMeta title={t('meta.homeTitle')} description={t('meta.homeDescription')} />
+      <PageMeta title={t('meta.homeTitle')} description={t('meta.homeDescription')} path="/" />
 
       <Lamp className="pub-hero">
         <div className="pub-hero-inner">
@@ -408,7 +408,7 @@ function ScreensSection() {
         <div ref={screensRef} className="pub-screens">
           {SCREENS.map((shot) => (
             <figure className="pub-shot" key={shot.src}>
-              <img src={shot.src} alt="" loading="lazy" />
+              <img src={shot.src} alt="" loading="lazy" width={1440} height={900} />
               <figcaption>{t(shot.caption)}</figcaption>
             </figure>
           ))}

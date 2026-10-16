@@ -85,8 +85,8 @@
   implemented screen never keeps a deprecated mock); the baselines are still to record on the CI image
   (`make test-visual`), and the axe pass in Storybook is still to run (`make storybook-build`). Lighthouse mobile on `/`
   (15 Oct 2026, production build): performance 80, accessibility, best practices and SEO 100 after the
-  finding table got headers and a robots file was added; the open item is CLS 0.15 from the hero's
-  `.pub-stage` settling after the first paint.
+  finding table got headers and a robots file was added; the open item was CLS 0.15 from the hero's
+  animations, fixed by T020-37.
 - [x] **T020-31** After merging main (specs 005, 010, 011, 018, 019): the product screenshots come
   from the app's synthetic preview routes (`npm run marketing:shots`, `tests/marketing/`, the parity
   fixtures of spec 019) instead of copies of the mock shots; copy follows the shipped product (ledger
@@ -96,3 +96,21 @@
   §3): screening, workspace deletion, team members, the unmeasured match and review numbers and the
   client-side limit check are corrected; the reading cost is kept as measured; a ninth FAQ answer
   introduces the demo company. (AC-020-4, 6)
+
+## Phase 8 — SEO (plan.md "SEO")
+
+- [x] **T020-33** Amend spec (AC-020-13), plan, docs/11 (SEO), docs/16 §6.2 (`VITE_SITE_URL`),
+  docs/20. (AC-020-13)
+- [x] **T020-34** **TDD** `publicSite.ts` and `shared/config/seo.ts` + `build/seoPlugin.ts`: head tags, JSON-LD, sitemap and robots
+  builders; the build plugin; the router's public routes match the list. (AC-020-13)
+- [x] **T020-35** **TDD** `PageMeta`: canonical, Open Graph, Twitter, `noindex`, and the
+  `data-prerendered` tags removed on mount; every public page passes its path; the 404 page is
+  `noindex`. (AC-020-13)
+- [x] **T020-36** **TDD** the Cloud Run origin serves `<path>.html`; the 1200×630 social card.
+  (AC-020-13)
+- [x] **T020-37** Measure and fix the landing's layout shift (< 0.1); product images declare their
+  size; Lighthouse mobile on `/` recorded. (AC-020-13)
+  16 Oct 2026, production build, `layout-shift` observer on `/`: before 0.017 at 1440 px and 0.038 at
+  390 px (the scan sweep, the headline's width axis and others; see plan.md "SEO"), after 0.000 at
+  both widths and 0.001 with the CPU slowed 4×. Lighthouse on the deployed site is still to re-run
+  once `kredibel.app` serves this build.

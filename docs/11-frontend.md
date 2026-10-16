@@ -866,6 +866,18 @@ are keyboard operable; dialogs and drawers trap and restore focus; targets ≥ 4
 200% zoom and at 360 px without sideways page scroll; `prefers-reduced-motion` respected. Checklist:
 [`12`](12-design-system.md) §10.
 
+## 8a. Search and link previews (public pages)
+
+The public pages are client-rendered, but each one ships its own `<head>` ([spec 020](specs/020-public-site/spec.md),
+AC-020-13). At build time `frontend/build/seoPlugin.ts` (with the pure builders in `src/shared/config/seo.ts`) writes `dist/index.html` (the landing) and
+`dist/<route>.html` for the other public routes with the title, description, canonical URL on
+`VITE_SITE_URL`, Open Graph and Twitter tags with `/marketing/og.png`, and JSON-LD (Organization,
+WebSite and SoftwareApplication on `/`, FAQPage on `/faq`, WebPage everywhere), plus `sitemap.xml`
+and the `Sitemap:` line of `robots.txt`. The route list is `src/shared/config/publicSite.ts`; the
+copy is `public.json` (`meta.*`). At runtime `PageMeta` renders the same tags (and `noindex` on the
+404 page) and removes the build's `data-prerendered` copies, so navigation never doubles them. The
+app's routes stay out of the index through `robots.txt`.
+
 ---
 
 ## 9. Testing

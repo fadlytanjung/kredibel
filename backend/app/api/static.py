@@ -47,6 +47,11 @@ def mount_static_spa(app: FastAPI, static_dir: str = "/app/static") -> None:
         if target_file.is_relative_to(root) and target_file.is_file():
             cache = _LONG_CACHE if full_path.startswith(_HASHED_ASSETS_PREFIX) else _NO_CACHE
             return FileResponse(target_file, headers={"Cache-Control": cache})
+        # A public page has its own HTML with its head (spec 020, AC-020-13): `/pricing` is
+        # `pricing.html`, as Firebase Hosting's cleanUrls serves it. Same guard as above.
+        page_file = (root / f"{full_path}.html").resolve()
+        if full_path and page_file.is_relative_to(root) and page_file.is_file():
+            return FileResponse(page_file, headers={"Cache-Control": _NO_CACHE})
         if index_html.is_file():
             return FileResponse(index_html, headers={"Cache-Control": _NO_CACHE})
         raise NotFoundError()

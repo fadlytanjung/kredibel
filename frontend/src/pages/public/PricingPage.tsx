@@ -25,7 +25,7 @@ export function PricingPage() {
 
   return (
     <PublicShell>
-      <PageMeta title={t('meta.pricingTitle')} description={t('meta.pricingDescription')} />
+      <PageMeta title={t('meta.pricingTitle')} description={t('meta.pricingDescription')} path="/pricing" />
       <PageHero eyebrow={t('pricing.eyebrow')} title={t('pricing.title')} lead={t('pricing.lead')} />
 
       <section className="pub-section pub-paper is-sheet">

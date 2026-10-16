@@ -33,7 +33,7 @@ export function HowItWorksPage() {
 
   return (
     <PublicShell>
-      <PageMeta title={t('meta.howTitle')} description={t('meta.howDescription')} />
+      <PageMeta title={t('meta.howTitle')} description={t('meta.howDescription')} path="/how-it-works" />
       <PageHero eyebrow={t('how.eyebrow')} title={t('how.title')} lead={t('how.lead')}>
         <div className="pub-actions">
           <Link className="button button-accent button-lg pub-cta" to="/login">
@@ -87,7 +87,7 @@ export function HowItWorksPage() {
           <div ref={galleryRef} className="pub-gallery" {...galleryView}>
             {SHOTS.map((shot) => (
               <figure className="pub-shot" key={shot.src}>
-                <img src={shot.src} alt="" loading="lazy" />
+                <img src={shot.src} alt="" loading="lazy" width={1440} height={900} />
                 <figcaption>{t(`how.${shot.caption}`)}</figcaption>
               </figure>
             ))}

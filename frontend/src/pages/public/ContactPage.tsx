@@ -17,7 +17,7 @@ export function ContactPage() {
 
   return (
     <PublicShell>
-      <PageMeta title={t('meta.contactTitle')} description={t('meta.contactDescription')} />
+      <PageMeta title={t('meta.contactTitle')} description={t('meta.contactDescription')} path="/contact" />
       <PageHero eyebrow={t('contact.eyebrow')} title={t('contact.title')} lead={t('contact.lead')} />
 
       <section className="pub-section pub-paper is-sheet">

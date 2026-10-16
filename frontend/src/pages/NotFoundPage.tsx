@@ -1,11 +1,14 @@
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
+import { PageMeta } from '../shared/ui'
 
+/** Page not found. The SPA answers 200 for every path, so the page asks not to be indexed (AC-020-13). */
 export function NotFoundPage() {
   const { t } = useTranslation()
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-canvas px-4">
+      <PageMeta title={t('notFound.title')} noindex />
       <div className="text-center">
         <p className="text-6xl font-extrabold text-brand">{t('notFound.code')}</p>
         <h1 className="mt-4 text-xl font-semibold text-ink">{t('notFound.title')}</h1>

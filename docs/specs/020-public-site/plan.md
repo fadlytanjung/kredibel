@@ -81,7 +81,31 @@ dashboard Sankey (docs/12 §6.4).
 - **JS budget:** only `motion` hooks (~10–15 KB gzip); split the signed-in app out of the first load.
 - **Styles gate:** everything through `kit.css`/tokens; no arbitrary Tailwind values or inline styles.
 
-## Verification
+## SEO: a static head per public route (2026-10, T020-33…37)
+
+The SPA returns one `index.html` for every URL, so without JavaScript a crawler or a link preview saw
+only "Kredibel". The body stays client-rendered (Google renders it); the head is written at build time.
+
+- `frontend/src/shared/config/publicSite.ts` lists the public pages (path, `meta.*` key, sitemap
+  hints, JSON-LD kinds) and `DEFAULT_SITE_URL`; it reads no env, so `vite.config.ts` can import it. The
+  router's public routes are tested against it.
+- `frontend/src/shared/config/seo.ts` holds the pure builders (head tags, JSON-LD, sitemap, robots;
+  `PageMeta` reuses `pageUrl`), and `frontend/build/seoPlugin.ts` the build-only Vite plugin. After the bundle it rewrites `dist/index.html` for `/`, writes `dist/<route>.html` for
+  the other pages (`cleanUrls` serves `/pricing` from `pricing.html`), `dist/sitemap.xml`, and the
+  `Sitemap:` line of `dist/robots.txt`. Copy comes from `public.json`; every tag it writes carries
+  `data-prerendered`.
+- `PageMeta` renders the same tags at runtime (canonical, Open Graph, Twitter, `noindex`) and removes
+  the `data-prerendered` ones on its first mount, so in-app navigation never leaves duplicates.
+- The Cloud Run origin serves `<path>.html` too (`backend/app/api/static.py`), so both hosts answer
+  alike; the canonical always names `VITE_SITE_URL`.
+- The social card `public/marketing/og.png` is the settled landing hero at 1200×630, captured by
+  `npm run marketing:shots`.
+- Core Web Vitals: animations move only transform, opacity and filter. Measured with a
+  `layout-shift` observer, the landing's shifts came from the scan sweep and the scroll cue
+  animating `top`, the headline and footer tagline animating `font-stretch`, the figure's
+  `letter-spacing`, the header pill's `max-width`, the steps' and contents rail's width and padding
+  changes; all are transforms now, and product images declare their size.
+
 
 `make check` (lint, tsc, boundaries, `no_raw_styles`, tokens-check, repo checks, tests),
 `make test-visual` with the new baselines (recorded with `reducedMotion: 'reduce'` so scenes are settled), `make storybook-build`. Manual: `/` logged out shows the

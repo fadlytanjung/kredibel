@@ -625,5 +625,7 @@ balance and reconciles the month. Light pages (pricing, FAQ, legal) keep the dep
   headings and copy in DOM order. Interactive controls never sit inside a pinned stage.
 - **Pointer effects** (tilt, lamp) only on `(pointer: fine)`; nothing is hover-only.
 - **Reduced motion** settles every scene: nothing pins, tilts, loops or reveals; everything is shown.
-- Ambient loops are slow (≥ 1.6 s), low-contrast and decorative. The Archivo width axis animates once
-  on load, never on scroll.
+- Ambient loops are slow (≥ 1.6 s), low-contrast and decorative.
+- **No layout shift:** animations and transitions move only `transform`, `opacity` and `filter`;
+  never `top`, sizes, padding, `letter-spacing` or Archivo's width axis, which reflow the page and
+  count as layout shift (spec 020, AC-020-13: CLS under 0.1). A width "unfold" is a `scaleX`.

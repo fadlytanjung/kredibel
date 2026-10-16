@@ -27,7 +27,7 @@ export function SecurityPage() {
 
   return (
     <PublicShell>
-      <PageMeta title={t('meta.securityTitle')} description={t('meta.securityDescription')} />
+      <PageMeta title={t('meta.securityTitle')} description={t('meta.securityDescription')} path="/security" />
       <PageHero
         eyebrow={t('security.eyebrow')}
         title={t('security.title')}

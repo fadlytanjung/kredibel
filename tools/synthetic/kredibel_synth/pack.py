@@ -37,9 +37,11 @@ def make_pack(out: Path, scenarios: tuple[str, ...]) -> Path:
         for path in sorted(folder.iterdir()):
             if not path.is_file() or path.name in SKIP or path.name.startswith("ledger-"):
                 continue
-            target = pack / path.name
-            if not target.exists() or target.read_bytes() != path.read_bytes():
-                shutil.copyfile(path, target)
+            # What the scenario changed against the base: a copy equal to the base is not a change
+            # and must not undo an earlier scenario's (S3 and S4 carry S1's August statement too).
+            original = base / path.name
+            if not original.exists() or original.read_bytes() != path.read_bytes():
+                shutil.copyfile(path, pack / path.name)
     order = sorted((p.name for p in pack.iterdir() if p.is_file()), key=_key)
     truth = json.loads((base / "truth.json").read_text(encoding="utf-8"))
     truth["uploadOrder"] = order

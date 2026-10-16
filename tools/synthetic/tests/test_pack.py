@@ -34,12 +34,21 @@ def test_ac024_1_the_pack_replaces_and_adds_what_each_scenario_changes(tmp_path)
     _scenario(
         tmp_path,
         "S3",
-        {"inv-sales-2026-08-01-scan.pdf": b"scan", "ledger-2026-08_2026-10.csv": b"keyed twice"},
+        {
+            "inv-sales-2026-08-01-scan.pdf": b"scan",
+            "ledger-2026-08_2026-10.csv": b"keyed twice",
+            # Every scenario is a whole set of books: its unchanged copy must not undo S2's edit.
+            "statement-2026-08.pdf": b"original",
+        },
     )
     _scenario(
         tmp_path,
         "S4",
-        {"statement-2026-10.pdf": b"diverted", "inv-purchase-2026-09-04.pdf": b"unpaid"},
+        {
+            "statement-2026-10.pdf": b"diverted",
+            "inv-purchase-2026-09-04.pdf": b"unpaid",
+            "statement-2026-08.pdf": b"original",
+        },
     )
 
     pack = make_pack(tmp_path, ("S1", "S2", "S3", "S4"))

@@ -391,6 +391,7 @@ class AppDeps:
                     invoices=self.invoices,
                     receipts=self.receipts,
                     labels=self.label_repo,
+                    embedder=self.embedder,
                 ),
                 documents=self.doc_repo,
             ),
@@ -907,6 +908,7 @@ class AppDeps:
                 invoices=self.invoices,
                 receipts=self.receipts,
                 entitlements=self.entitlement_service,
+                search=self.extraction_service.search_org,
             ),
         )
 

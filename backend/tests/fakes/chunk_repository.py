@@ -7,6 +7,7 @@ from app.ports.chunk_repository import ChunkRepository
 class FakeChunkRepository(ChunkRepository):
     def __init__(self) -> None:
         self.chunks: dict[str, dict[str, StoredChunk]] = {}
+        self.vectors: dict[str, dict[str, list[float]]] = {}
 
     async def replace_document(self, org_id: str, doc_id: str, chunks: list[StoredChunk]) -> None:
         store = self.chunks.setdefault(org_id, {})
@@ -26,3 +27,19 @@ class FakeChunkRepository(ChunkRepository):
 
     async def delete_document(self, org_id: str, doc_id: str) -> None:
         await self.replace_document(org_id, doc_id, [])
+
+    async def save_embeddings(
+        self, org_id: str, vectors: dict[str, list[float]], model: str
+    ) -> None:
+        self.vectors.setdefault(org_id, {}).update(vectors)
+
+    async def nearest(
+        self, org_id: str, vector: list[float], limit: int
+    ) -> list[tuple[StoredChunk, float]]:
+        store = self.chunks.get(org_id, {})
+        scored = [
+            (store[cid], sum(a * b for a, b in zip(v, vector, strict=True)))
+            for cid, v in self.vectors.get(org_id, {}).items()
+            if cid in store
+        ]
+        return sorted(scored, key=lambda pair: -pair[1])[:limit]

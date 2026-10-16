@@ -1,6 +1,8 @@
 """Chunks in Firestore (spec 022, docs/09 §3.21)."""
 
 from google.cloud.firestore import AsyncClient, FieldFilter
+from google.cloud.firestore_v1.base_vector_query import DistanceMeasure
+from google.cloud.firestore_v1.vector import Vector
 
 from app.adapters.firestore.models.chunk import ChunkDoc
 from app.adapters.firestore.txn import dump
@@ -102,3 +104,34 @@ class FirestoreChunkRepository:
 
     async def delete_document(self, org_id: str, doc_id: str) -> None:
         await self.replace_document(org_id, doc_id, [])
+
+    async def save_embeddings(
+        self, org_id: str, vectors: dict[str, list[float]], model: str
+    ) -> None:
+        batch, pending = self._db.batch(), 0
+        for chunk_id, vector in vectors.items():
+            ref = self._col(org_id).document(chunk_id)
+            batch.update(ref, {"embedding_v1": Vector(vector), "embeddingModel": model})
+            pending += 1
+            if pending == BATCH:
+                await batch.commit()
+                batch, pending = self._db.batch(), 0
+        if pending:
+            await batch.commit()
+
+    async def nearest(
+        self, org_id: str, vector: list[float], limit: int
+    ) -> list[tuple[StoredChunk, float]]:
+        query = self._col(org_id).find_nearest(
+            vector_field="embedding_v1",
+            query_vector=Vector(vector),
+            distance_measure=DistanceMeasure.COSINE,
+            limit=limit,
+            distance_result_field="vectorDistance",
+        )
+        out: list[tuple[StoredChunk, float]] = []
+        async for snap in query.stream():
+            data = snap.to_dict() or {}
+            distance = float(data.get("vectorDistance") or 0.0)
+            out.append((_from_doc(ChunkDoc.model_validate(data)), 1.0 - distance))
+        return out

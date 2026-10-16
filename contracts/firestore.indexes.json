@@ -259,7 +259,7 @@
       ]
     },
     {
-      "collectionGroup": "retrievalChunks",
+      "collectionGroup": "chunks",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -272,7 +272,7 @@
       ]
     },
     {
-      "collectionGroup": "retrievalChunks",
+      "collectionGroup": "chunks",
       "queryScope": "COLLECTION",
       "fields": [
         {

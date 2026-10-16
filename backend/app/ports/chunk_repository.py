@@ -17,3 +17,15 @@ class ChunkRepository(Protocol):
         ...
 
     async def delete_document(self, org_id: str, doc_id: str) -> None: ...
+
+    async def save_embeddings(
+        self, org_id: str, vectors: dict[str, list[float]], model: str
+    ) -> None:
+        """Spec 022 phase C: each chunk's embedding of its masked text."""
+        ...
+
+    async def nearest(
+        self, org_id: str, vector: list[float], limit: int
+    ) -> list[tuple[StoredChunk, float]]:
+        """The workspace's chunks nearest to the vector, with their cosine similarity."""
+        ...

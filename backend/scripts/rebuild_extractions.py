@@ -40,6 +40,7 @@ async def _run(org: str | None, email: str | None) -> int:
         invoices=deps.invoices,
         receipts=deps.receipts,
         labels=deps.label_repo,
+        embedder=deps.embedder,
     )
     counts = await rebuild_workspace(ports, deps.doc_repo, org)
     print(f"{org}: {counts}")

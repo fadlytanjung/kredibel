@@ -964,6 +964,7 @@ def extraction_ports(deps: PipelineDeps) -> ExtractionPorts | None:
             invoices=deps.invoices,
             receipts=deps.receipts,
             labels=deps.labels,
+            embedder=deps.embedder,
         )
     )
 

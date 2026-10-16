@@ -14,7 +14,7 @@
 
 ## Phase C — embeddings and retrieval (P1)
 
-- [ ] **T022-07** Chunk embeddings, vector index, workspace-scoped search. (AC-022-6)
-- [ ] **T022-08** The assistant's `search_documents` with citations (with spec 011 T011-02, T011-03). (AC-022-7)
+- [x] **T022-07** Chunk embeddings, vector index, workspace-scoped search. (AC-022-6) Built 16 Oct 2026: each build embeds the chunks' masked text (`embedding_v1`, `embeddingModel`, best effort), the vector index moved from `retrievalChunks` to `chunks`, `GET /api/extractions/search` within the workspace (`test_extraction_store_api.py`).
+- [x] **T022-08** The assistant's `search_documents` with citations (with spec 011 T011-02, T011-03). (AC-022-7) Built 16 Oct 2026: the assistant adds the five nearest passages to its context as data with `[[doc:<docId>#p<page>]]` markers, and a figure quoted from a passage is grounded in it (`finance_assistant` v2, `test_assistant_passages.py`). The full agent with tools stays spec 011 (T011-03, T011-04).
 
 - [ ] **T022-09** Update `docs/20-implementation-status.md`, docs/07 §8, docs/09.

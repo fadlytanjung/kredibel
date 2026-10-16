@@ -55,6 +55,9 @@ class GroundingContext:
     matches: set[str] = field(default_factory=set)
     invoices: set[str] = field(default_factory=set)
     allowed_fact_prefixes: tuple[str, ...] = ()
+    # Spec 022: the numbers printed in a document passage the answer may quote, by its marker
+    # ("docId#p2"), so a quoted figure is grounded in the page it came from.
+    document_values: dict[str, set[Decimal]] = field(default_factory=dict)
 
 
 @dataclass
@@ -189,6 +192,7 @@ def check_grounding(text: str, context: GroundingContext) -> GroundingResult:
                 doc_base = marker_id.split("#")[0]
                 if doc_base in context.documents:
                     resolved = True
+                    sentence_cited_values.update(context.document_values.get(marker_id, set()))
             elif kind == "match":
                 if marker_id in context.matches:
                     resolved = True
@@ -271,3 +275,13 @@ def check_grounding(text: str, context: GroundingContext) -> GroundingResult:
         problems=problems,
         clean_text=MARKER_REGEX.sub("", text),
     )
+
+
+def numbers_in(text: str) -> set[Decimal]:
+    """Spec 022: the amounts printed in a document passage, as the values a quote of it may use."""
+    out: set[Decimal] = set()
+    for token in re.findall(r"\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?", text):
+        value = _parse_decimal(token)
+        if value is not None:
+            out.add(value)
+    return out

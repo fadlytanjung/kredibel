@@ -30,6 +30,7 @@ from app.ports.bank_line_repository import BankLineRepository
 from app.ports.chunk_repository import ChunkRepository
 from app.ports.document_repository import DocumentRepository
 from app.ports.document_storage import DocumentStorage
+from app.ports.embedder import Embedder
 from app.ports.label_repository import LabelRepository
 from app.ports.page_text import PageText
 from app.ports.record_repository import DocumentRecords
@@ -44,6 +45,8 @@ READ_TYPES = {
 }
 NOT_READ = {DocStatus.DUPLICATE, DocStatus.QUARANTINED, DocStatus.FAILED, DocStatus.UPLOADED}
 CAN_REBUILD = {"owner", "accountant"}
+EMBED_BATCH = 50
+SEARCH_LIMIT = 8
 
 
 def chunks_key(sha256: str, page_no: int) -> str:
@@ -83,6 +86,7 @@ class ExtractionPorts:
     invoices: DocumentRecords[Invoice] | None = None
     receipts: DocumentRecords[Receipt] | None = None
     labels: LabelRepository | None = None
+    embedder: Embedder | None = None
 
 
 async def _layout(ports: ExtractionPorts, org_id: str, doc: Document) -> dict[int, list[Chunk]]:
@@ -234,7 +238,25 @@ async def build_extraction(
         )
     if ports.chunks is not None:
         await ports.chunks.replace_document(org_id, doc.doc_id, stored)
+        await _embed(ports, org_id, stored)
     return len(layout)
+
+
+async def _embed(ports: ExtractionPorts, org_id: str, chunks: list[StoredChunk]) -> None:
+    """AC-022-6: each chunk's masked text embedded, best effort (a rebuild fills any gap)."""
+    if ports.embedder is None or ports.chunks is None or not chunks:
+        return
+    try:
+        for start in range(0, len(chunks), EMBED_BATCH):
+            part = chunks[start : start + EMBED_BATCH]
+            vectors = await ports.embedder.embed([c.text for c in part])
+            await ports.chunks.save_embeddings(
+                org_id,
+                {c.chunk_id: v for c, v in zip(part, vectors, strict=True)},
+                ports.embedder.model,
+            )
+    except Exception:  # noqa: BLE001 - search waits for the next rebuild; the reading goes on
+        log.warning("chunk_embedding_failed", count=len(chunks))
 
 
 class ExtractionService:
@@ -286,6 +308,32 @@ class ExtractionService:
         if not found and await build_extraction(self._ports, org_id, doc):
             found = await self._ports.chunks.list_chunks(org_id, doc.doc_id, page_no)
         return found
+
+    async def search(
+        self, principal: Principal, query: str, limit: int = SEARCH_LIMIT
+    ) -> list[tuple[StoredChunk, float, str]]:
+        """AC-022-6: the workspace's chunks nearest to the question, with their similarity and the
+        document's file name; never another workspace's (the store is scoped by workspace)."""
+        if principal.org_id is None:
+            raise WorkspaceRequiredError()
+        return await self.search_org(principal.org_id, query, limit)
+
+    async def search_org(
+        self, org_id: str, query: str, limit: int = SEARCH_LIMIT
+    ) -> list[tuple[StoredChunk, float, str]]:
+        """The search for a workspace the caller already checked (the assistant's context)."""
+        if self._ports.embedder is None or self._ports.chunks is None or not query.strip():
+            return []
+        [vector] = await self._ports.embedder.embed([query.strip()])
+        found = await self._ports.chunks.nearest(org_id, vector, limit)
+        names: dict[str, str] = {}
+        out: list[tuple[StoredChunk, float, str]] = []
+        for chunk, similarity in found:
+            if chunk.doc_id not in names:
+                doc = await self._documents.get_document(org_id, chunk.doc_id)
+                names[chunk.doc_id] = doc.file_name if doc else ""
+            out.append((chunk, similarity, names[chunk.doc_id]))
+        return out
 
     async def rebuild_all(self, principal: Principal) -> dict[str, int]:
         """AC-022-3: every read document's chunks and Markdown, from what is stored."""

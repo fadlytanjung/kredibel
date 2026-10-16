@@ -414,6 +414,37 @@ paths:
               schema: { type: string }
         "404": { $ref: "#/components/responses/Problem" }
 
+  /api/extractions/search:
+    get:
+      tags: [documents]
+      operationId: searchExtractions
+      description: |
+        Spec 022, AC-022-6: the workspace's stored chunks nearest to a question (cosine over the
+        embeddings of their masked text), never another workspace's.
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string, minLength: 2, maxLength: 500 } }
+        - { name: limit, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 20, default: 8 } }
+      responses:
+        "200":
+          description: Nearest chunks
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: "#/components/schemas/Chunk"
+                        - type: object
+                          required: [fileName, similarity, pageUrl]
+                          properties:
+                            fileName: { type: string }
+                            similarity: { type: number }
+                            pageUrl: { type: string }
+
   /api/documents/{docId}/reread:
     parameters:
       - $ref: "#/components/parameters/DocId"

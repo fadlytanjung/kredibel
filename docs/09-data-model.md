@@ -363,8 +363,8 @@ One layout chunk of a read page (ADR-023): `docId`, `docType`, `pageNo`, `ordina
 `kind` (the layout kinds: `TABLE_HEADER`, `TABLE_ROW`, `TOTALS`, `TEXT`), `text` (≤ 2,000
 characters, account and ID numbers masked), `box` {`x0`, `y0`, `x1`, `y1`} normalised to the page,
 `source` (`TEXT_LAYER`, `OCR`, `LEDGER`), `months`, `links` {`fields`, `txIds`, `invoiceIds`,
-`receiptIds`, `ledgerEntryIds`}, `embedding_v1?` (vector, 768, `MODEL_EMBEDDING`, of the masked text;
-phase C), `runId`, `schemaVersion`. ID `chk_` + sha1(docId|pageNo|ordinal). Written after reading and
+`receiptIds`, `ledgerEntryIds`}, `embedding_v1?` (vector, 768, `MODEL_EMBEDDING`, of the masked text),
+`embeddingModel?`, `runId`, `schemaVersion`. ID `chk_` + sha1(docId|pageNo|ordinal). Written after reading and
 by the rebuild; replaced as a whole per document; deleted with the document. The page and document
 Markdown (§7) are rebuilt from these and the records. They also serve the assistant's retrieval
 (§3.17), replacing the planned `retrievalChunks`.

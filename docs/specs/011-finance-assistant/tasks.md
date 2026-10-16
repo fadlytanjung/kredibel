@@ -3,7 +3,7 @@
 ## Phase 1 — Platform
 
 - [ ] **T011-01** Spike S5; create the Memory Bank (with memory topics) and the Sessions container; record findings in `docs/02`. (AC-011-8, AC-011-9)
-- [ ] **T011-02** Embedder, retrieval chunk writing and deletion, knowledge build; vector indexes deployed. (AC-011-6, AC-011-7) Retrieval chunks are spec 022's `chunks` (T022-07, T022-08).
+- [ ] **T011-02** Embedder, retrieval chunk writing and deletion, knowledge build; vector indexes deployed. (AC-011-6, AC-011-7) Retrieval chunks are spec 022's `chunks` (T022-07, T022-08): built 16 Oct 2026, embedded and searched, and quoted by the current assistant; the knowledge build of policy and help pages stays open.
 
 ## Phase 2 — Agent
 

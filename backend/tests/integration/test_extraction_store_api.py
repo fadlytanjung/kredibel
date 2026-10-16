@@ -79,3 +79,38 @@ async def test_ac022_a_read_statement_is_stored_as_chunks_and_rebuilt_without_a_
     assert counts == {"documents": 1, "pages": 2, "withoutText": 0}
     assert gone.status_code == 204 and after == []
     assert stored_lines is None, "the document's lines went with it"
+
+
+async def test_ac022_6_the_workspace_searches_its_own_chunks():
+    from tests.fakes.embedder import FakeEmbedder
+
+    lines = FakeBankLineRepository()
+    deps = _deps(lines, FakeDocumentRepository())
+    deps._embedder = FakeEmbedder()
+    app = create_app(deps.settings, deps=deps)
+    pdf = (FIXTURES / "acb-2026-03.pdf").read_bytes()
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        res = await client.post(
+            "/api/documents",
+            headers=AUTH,
+            files={"file": ("acb.pdf", io.BytesIO(pdf), "application/pdf")},
+        )
+        queue = deps.task_queue
+        assert isinstance(queue, InlineTaskQueue)
+        await queue.drain()
+        doc_id = res.json()["docId"]
+        chunks = (await client.get(f"/api/documents/{doc_id}/chunks", headers=AUTH)).json()["items"]
+        target = next(c for c in chunks if "PRIMEPACK" in c["text"])
+        found = (
+            await client.get(
+                "/api/extractions/search", params={"q": "primepack packaging"}, headers=AUTH
+            )
+        ).json()["items"]
+        other = await deps.chunk_repo.nearest("org_other", [1.0] + [0.0] * 767, 5)
+
+    assert found and found[0]["chunkId"] == target["chunkId"] and found[0]["fileName"] == "acb.pdf"
+    assert (
+        found[0]["pageUrl"] == f"/api/documents/{doc_id}/pages/{found[0]['pageNo']}/extraction.md"
+    )
+    assert found[0]["similarity"] >= found[-1]["similarity"]
+    assert other == [], "another workspace sees nothing"

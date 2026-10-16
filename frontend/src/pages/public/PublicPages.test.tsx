@@ -82,10 +82,10 @@ describe('Public pages (spec 020)', () => {
     expect(privacyLinks.some((link) => link.getAttribute('href') === '/privacy')).toBe(true)
   })
 
-  it('faq: eight questions', () => {
+  it('faq: nine questions', () => {
     const { container } = renderAt(<FaqPage />)
     expect(screen.getByRole('heading', { level: 1, name: /Good to know/i })).toBeInTheDocument()
-    expect(container.querySelectorAll('details')).toHaveLength(8)
+    expect(container.querySelectorAll('details')).toHaveLength(9)
   })
 
   it('contact: a real mailbox, no backend form', () => {

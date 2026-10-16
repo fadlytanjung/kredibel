@@ -34,6 +34,7 @@ Specifications are the source of truth: code implements them, and both change to
 | 21 | [Cost analysis & database options](21-cost-analysis.md) | What it costs per document, half-year and question; reading strategies compared; why Firestore over Cloud SQL; cost guardrails |
 | 22 | [Data migrations](22-data-migrations.md) | Versioned documents, upcasters, forward-only migrations, backups, portability |
 | 23 | [How the agents work, and how to trace them](23-agents-and-tracing-guide.md) | ADK for LangGraph and LangSmith users: workflows, runs, the dev UI (`make dev-agents`), Cloud Trace |
+| 24 | [Submission checklist](24-submission-checklist.md) | What is live, every spec's open tasks, the public copy against what is built, and the owner actions outside the code |
 | — | [Glossary](glossary.md) | Terms |
 | — | [ADRs](adr) | Decisions and their trade-offs |
 

@@ -1866,7 +1866,7 @@ def plan_usage() -> str:
         btn = '<a class="button button-secondary button-block" href="#">See limits</a>' if current else '<button class="button button-block" disabled>Not available yet</button>'
         return f'<div class="{cls}"><div class="plan-head">{badge}<h3>{name}</h3><p class="muted small">{price}</p></div><ul>{lis}</ul><div class="plan-foot">{btn}</div></div>'
     plans = "".join([
-        plan("Free trial", "Free for 30 days", ["Every feature of the prototype", "Up to 3 team members", "400 pages read per month"], True),
+        plan("Free trial", "Free for 30 days", ["Every feature of the prototype", "Team invites coming soon", "400 pages read per month"], True),
         plan("Starter", "Pricing announced later", ["More documents and pages", "Up to 10 team members", "Email support"]),
         plan("Professional", "Pricing announced later", ["A second reader on every page", "Several workspaces for a firm", "Audit export"]),
         plan("Enterprise", "Contact us later", ["Processing in your region", "Single sign-on", "Custom limits"]),

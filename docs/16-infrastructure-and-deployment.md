@@ -242,6 +242,9 @@ gcloud run jobs execute kredibel-migrate --region="$REGION" --wait --args=-m,mig
 `kredibel-web` serves `/app/static` with SPA fallback for non-`/api` paths and long-cache headers
 for hashed assets. Firebase Hosting (`kredibel-app.web.app`) serves the same files and rewrites `/api/**`,
 `/docs` and `/openapi.json` to `kredibel-web` ([ADR-018](adr/ADR-018-firebase-hosting-in-front-of-cloud-run.md)).
+A custom domain (`kredibel.app`) is connected in the Firebase console; `infra/allow-web-domain.sh <domain>…`
+then adds it to the browser key's website restrictions and Firebase Authentication's authorized
+domains, without which sign-in is refused on it ([`24`](24-submission-checklist.md) §4).
 
 ---
 

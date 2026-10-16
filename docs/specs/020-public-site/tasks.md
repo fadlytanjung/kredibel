@@ -92,3 +92,7 @@
   fixtures of spec 019) instead of copies of the mock shots; copy follows the shipped product (ledger
   columns proposed by code with the model as fallback, the dashboard's profit and loss flow, the
   assistant's cited answers); the unused `landing.how` copy is removed. (AC-020-4, 6)
+- [x] **T020-32** Copy audit against what is built (16 Oct 2026, [`docs/24`](../../24-submission-checklist.md)
+  §3): screening, workspace deletion, team members, the unmeasured match and review numbers and the
+  client-side limit check are corrected; the reading cost is kept as measured; a ninth FAQ answer
+  introduces the demo company. (AC-020-4, 6)

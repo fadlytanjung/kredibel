@@ -29,7 +29,7 @@ flowchart TB
     up --> read["Read each page twice<br/>Gemini + free witness<br/>(text layer or OCR)"]
     read --> check["Check<br/>content duplicates held,<br/>balances, revisions, fonts"]
     check --> month["Reconcile the month<br/>bank ↔ invoices, receipts,<br/>ledger; same result in any order"]
-    month --> review["Review queue<br/>the 15% AI could not match"]
+    month --> review["Review queue<br/>what AI could not settle"]
     month --> risk["Fraud risk per month<br/>evidence + next steps"]
     month --> dash["Dashboard<br/>where the money went"]
     review -->|"each fix re-reconciles"| month
@@ -40,8 +40,9 @@ flowchart TB
 2. **Read twice, pay once.** Gemini reads every page image; the PDF's own text layer (or Document AI
    OCR for scans and photos) is an independent witness. Every value carries its page and box. About
    USD 0.45 for a half-year of books.
-3. **Ledger files by code.** Gemini proposes which column is which from the header alone; you confirm
-   once; code imports every row.
+3. **Ledger files by code.** Code proposes which column is which from the header words and the
+   shape of the values (Gemini only for headers code cannot place); a new layout is confirmed once;
+   code imports every row.
 4. **Forensics.** Running balances, opening and closing totals, PDF revision history, odd fonts in
    amount columns, statement continuity, and a supplier paid to a bank account never seen before.
 5. **Months that reconcile themselves.** Exact, split, net-of-tax and ledger matches with reasons;
@@ -51,9 +52,13 @@ flowchart TB
 7. **Fraud risk you can explain.** A policy file sets the level; Gemini explains it and orders the
    next steps; a grounding guard checks every number it writes.
 
-Around it: a **dashboard** with a money-flow Sankey, a **free trial** for individuals and companies
-(paid tiers and a **loan readiness report** shown as coming soon), and a **Finance Assistant** (P1)
-that answers questions about your books with read-only tools, retrieval and Memory Bank.
+Around it: a **dashboard** with a money-flow Sankey and a profit and loss flow, a **free trial** for
+individuals and companies (paid tiers and a **loan readiness report** shown as coming soon), a
+**Finance Assistant** that answers from your books' figures and quotes the pages of your documents it
+relied on (searched in Firestore vector search), **labels** people confirm or correct, a **Runs**
+page with every workflow's stages, models and cost, and a **demo company** with a guided tour for a
+first look. The assistant's agent with tools and Memory Bank, Model Armor screening and team invites
+are planned (P1); [`docs/24`](docs/24-submission-checklist.md) lists what is built and what is not.
 
 ## Built on Google Cloud
 
@@ -62,8 +67,8 @@ that answers questions about your books with read-only tools, retrieval and Memo
 | Agent orchestration | **Agent Development Kit (ADK) 2.x** workflows (per document, per month), traces in **Cloud Trace** |
 | Models | **Gemini** on Gemini Enterprise Agent Platform (Flash, Flash-Lite, embeddings) |
 | Document reading | **Gemini** on page images + **Document AI** Enterprise OCR for scans and photos |
-| Prompt-injection defence | **Model Armor** (P1) |
-| Assistant memory | **Agent Platform Sessions** and **Memory Bank** (P1) |
+| Prompt-injection defence | Documents are data in every prompt; **Model Armor** screening planned (P1) |
+| Assistant memory | **Agent Platform Sessions** and **Memory Bank** planned (P1) |
 | Runtime | **Cloud Run** (web + worker), **Cloud Tasks** |
 | Data | **Firestore** (incl. vector search), **Cloud Storage** |
 | Identity | **Firebase Authentication** |

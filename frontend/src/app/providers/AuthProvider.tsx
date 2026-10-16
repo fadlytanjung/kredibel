@@ -14,7 +14,8 @@ import {
   signOut as firebaseSignOut,
   type User,
 } from 'firebase/auth'
-import React, { useEffect, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import React, { useEffect, useRef, useState } from 'react'
 import { apiClient, setTokenProvider, setUnauthorizedHandler } from '../../shared/api/client'
 import { auth, googleAuthProvider } from '../../shared/firebase/app'
 import { AuthContext, type AuthContextType, type MeResponse } from '../../entities/session'
@@ -26,10 +27,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // 'idle' until the first /api/me answer after sign-in: routes wait for it instead of guessing
   // that the user has a workspace (which used to show the dashboard before onboarding).
   const [meState, setMeState] = useState<'idle' | 'ready' | 'error'>('idle')
+  const queries = useRef(useQueryClient())
+  // Whose data the query cache holds: no query key names the person or the workspace, so the
+  // cache is emptied when either changes (a sign-out, another account, a new or demo workspace).
+  const cachedFor = useRef<string | null>(null)
 
   const fetchMe = async (): Promise<MeResponse | null> => {
     try {
       const data = await apiClient<MeResponse>('/api/me')
+      const owner = `${data.uid}/${data.orgId ?? ''}`
+      if (cachedFor.current !== owner) queries.current.clear()
+      cachedFor.current = owner
       setMe(data)
       setMeState('ready')
       return data
@@ -52,6 +60,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await firebaseSignOut(auth)
     } finally {
+      queries.current.clear()
+      cachedFor.current = null
       setUser(null)
       setMe(null)
       setMeState('idle')
@@ -68,6 +78,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setTokenProvider(async () => currentUser.getIdToken())
         await fetchMe()
       } else {
+        queries.current.clear()
+        cachedFor.current = null
         setTokenProvider(null)
         setMe(null)
         setMeState('idle')

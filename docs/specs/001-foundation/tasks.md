@@ -24,7 +24,7 @@ Each task lists the acceptance criteria it serves.
 
 ## Phase 3 — Frontend shell
 
-- [x] **T001-14** `shared/firebase/app.ts`, `AuthProvider`, `LoginPage` (email/password + Google), sign-out. (AC-001-3, AC-001-7)
+- [x] **T001-14** `shared/firebase/app.ts`, `AuthProvider`, `LoginPage` (email/password + Google), sign-out. (AC-001-3, AC-001-7) Fixed 16 Oct 2026: no query key names the person or the workspace, so signing out, another account signing in, or moving to a new or demo workspace empties the query cache; another account no longer sees the last one's workspace (`AuthProvider.test.tsx`).
 - [x] **T001-15** `shared/api/client.ts` with problem parsing and 401 → sign-out; **TDD** with MSW. (AC-001-5)
 - [x] **T001-16** Router with protected routes for every route of [`docs/11`](../../11-frontend.md) §4 (placeholders); `DashboardPage` empty state; redirect to the `/onboarding` placeholder when `needsWorkspace`. (AC-001-3, AC-001-4)
 - [x] **T001-25** i18n scaffold: i18next + react-i18next, `locales/en/common.json`, `useTranslation` in the shell, `eslint-plugin-i18next` rule, `Intl`-based `formatMoney`/`formatDate`. (AC-001-14)

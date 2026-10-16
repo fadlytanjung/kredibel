@@ -44,8 +44,16 @@ def test_hint_formatted_and_messy_period_strings_resolve_cleanly():
     assert resolve_period("  2026-03  ", DATA).months == ("2026-03",)
 
 
-@pytest.mark.parametrize("bad", ["2026-13", "2026-Q5", "2026-03..2026-01", "March", ""])
+@pytest.mark.parametrize(
+    "bad", ["2026-13", "2026-Q5", "2026-03..2026-01", "2025-10..2026-10", "March", ""]
+)
 def test_anything_else_is_refused(bad):
     with pytest.raises(ValueError):
         resolve_period(bad, DATA)
 
+
+def test_a_range_is_at_most_twelve_months():
+    year = resolve_period("2025-11..2026-10", DATA)
+    assert len(year.months) == 12 and year.previous[0] == "2024-11"
+    with pytest.raises(ValueError):
+        resolve_period("2025-10..2026-10", DATA)

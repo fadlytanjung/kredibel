@@ -24,7 +24,9 @@ bar opens the bank lines it is made of.
 
 ### US-010-1: The dashboard
 
-- **AC-010-1** `/` shows, for a period picker (month, quarter, all; default: last 3 months with data):
+- **AC-010-1** `/` shows, for a period picker (one month, a range of at most 12 months, or a year;
+  default: the current month in the workspace's time zone; the choice is kept in the address as
+  `?period=`):
   KPI cards for money in, money out, net, auto-match rate, open review items and documents waiting,
   each with the change against the previous period of equal length; the month strip; the money flow;
   up to 5 alerts; and a preview of the top 5 review items. Data from `GET /api/dashboard?period=`.

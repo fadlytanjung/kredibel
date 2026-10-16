@@ -172,6 +172,37 @@ def flow_rows(nodes: list[dict], maximum: Decimal, out: bool = False) -> str:
     return "".join(rows)
 
 
+DASH_TODAY = "2026-06"  # the mock's today; the browser check fixes the clock to the same month
+
+
+def _month_index(month: str) -> int:
+    return int(month[:4]) * 12 + int(month[5:7]) - 1
+
+
+def _month_at(index: int) -> str:
+    return f"{index // 12:04d}-{index % 12 + 1:02d}"
+
+
+def period_picker(first: str, last: str, today: str) -> str:
+    """The dashboard's period as widgets/dashboard/PeriodPicker.tsx draws a range: Month, Range or
+    Year, then the first and last month (at most 12), nothing after today."""
+    data = sorted(m["month"] for m in DASH["months"])
+    top = max(_month_index(today), _month_index(data[-1]))
+    bottom = min(_month_index(today) - 23, _month_index(data[0]))
+    months = [_month_at(i) for i in range(top, bottom - 1, -1)]
+    to_months = [m for m in months if 0 <= _month_index(m) - _month_index(first) < 12]
+
+    def options(items: list[str], chosen: str) -> str:
+        return "".join(f'<option value="{m}"{" selected" if m == chosen else ""}>{month_name(m)}</option>' for m in items)
+
+    kinds = seg("periodkind", [(k, words(DASH_WORDS, f"periods.kinds.{k}")) for k in ("month", "range", "year")], "range", words(DASH_WORDS, "periods.label"))
+    return (f'<div class="period-picker">{kinds}<div class="period-fields">'
+            f'<select class="select select-sm" aria-label="{words(DASH_WORDS, "periods.from")}">{options(months, first)}</select>'
+            f'<span class="muted small">{words(DASH_WORDS, "periods.to")}</span>'
+            f'<select class="select select-sm" aria-label="{words(DASH_WORDS, "periods.toLabel")}">{options(to_months, last)}</select>'
+            f'</div><span class="muted small period-hint">{words(DASH_WORDS, "periods.rangeHint", count=12)}</span></div>')
+
+
 def dashboard() -> str:
     """The dashboard as the app draws it (DashboardPage, docs/11 §6.2): period, header, figures, the
     P&L panel, where the money went, reconciliation and findings, three panels, the months. The
@@ -186,7 +217,7 @@ def dashboard() -> str:
                    key=lambda m: ["CRITICAL", "HIGH", "MEDIUM", "LOW"].index(m["riskLevel"]))[0]
     why = [a for a in alerts if a["severity"] in ("CRITICAL", "HIGH")][:2]
 
-    period_row = f'<div class="dash-period">{seg("period", [("recent", words(DASH_WORDS, "periods.recent")), ("2026", "2026"), ("all", words(DASH_WORDS, "periods.all"))], "all", words(DASH_WORDS, "periods.label"))}</div>'
+    period_row = f'<div class="dash-period">{period_picker(months[0], months[-1], DASH_TODAY)}</div>'
     header = f'<header class="stack gap-1"><h1 class="type-title">{name}</h1><p class="greeting muted">{words(DASH_WORDS, "greeting", name=name, range=period)}</p></header>'
     figs = f"""
 <section class="ledger" aria-label="{words(DASH_WORDS, "figuresAria", range=period)}">

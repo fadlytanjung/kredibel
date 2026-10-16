@@ -12,7 +12,9 @@ from app.api.deps import ServiceProvider, org_of
 from app.api.review_items import review_item_body
 from app.core.auth import Principal
 from app.domain.cash_flow import CashFlow
+from app.domain.errors import ValidationProblem
 from app.domain.money_flow import FlowNode, MoneyFlow
+from app.domain.period import resolve_period
 from app.services.insight_service import Dashboard, Kpi
 
 PERIOD = (
@@ -21,6 +23,16 @@ PERIOD = (
 )
 Framework = Literal["IFRS", "US_GAAP"]
 View = Literal["STATEMENT", "COUNTERPARTIES"]
+
+
+def checked_period(period: str) -> str:
+    """A period the pattern lets through but that is no period (a reversed range, a range of more
+    than 12 months) is the caller's mistake, a 422."""
+    try:
+        resolve_period(period, ())
+    except ValueError as error:
+        raise ValidationProblem("period", str(error)) from error
+    return period
 
 
 def money(value: Decimal | None, currency: str) -> dict[str, str] | None:
@@ -188,7 +200,9 @@ def create_insights_router(provider: ServiceProvider, workspace_dep: Any) -> API
         principal: Principal = Depends(workspace_dep),
     ) -> dict[str, Any]:
         return dashboard_body(
-            await provider.insight_service.dashboard(org_of(principal), period=period)
+            await provider.insight_service.dashboard(
+                org_of(principal), period=checked_period(period)
+            )
         )
 
     @router.get("/money-flow")
@@ -202,7 +216,7 @@ def create_insights_router(provider: ServiceProvider, workspace_dep: Any) -> API
     ) -> dict[str, Any]:
         flow, currency, resolved = await provider.insight_service.money_flow(
             org_of(principal),
-            period=period,
+            period=checked_period(period),
             view=view,
             framework=framework,
             account_id=account_id,
@@ -217,7 +231,7 @@ def create_insights_router(provider: ServiceProvider, workspace_dep: Any) -> API
         principal: Principal = Depends(workspace_dep),
     ) -> dict[str, Any]:
         cash, currency, resolved = await provider.insight_service.cash_flow(
-            org_of(principal), period=period, framework=framework
+            org_of(principal), period=checked_period(period), framework=framework
         )
         return cash_flow_body(cash, currency, resolved.key)
 

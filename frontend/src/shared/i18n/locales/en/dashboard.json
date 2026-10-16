@@ -1,9 +1,22 @@
 {
   "periods": {
     "label": "Period",
-    "recent": "Last 3 months",
-    "year": "{{year}}",
-    "all": "All months"
+    "kinds": {
+      "month": "Month",
+      "range": "Range",
+      "year": "Year"
+    },
+    "month": "Month",
+    "previousMonth": "Previous month",
+    "nextMonth": "Next month",
+    "from": "From month",
+    "to": "to",
+    "toLabel": "To month",
+    "year": "Year",
+    "rangeHint_one": "Up to {{count}} month",
+    "rangeHint_other": "Up to {{count}} months",
+    "noBooks": "No bank statements for {{range}} yet.",
+    "showLatest": "Show {{month}}"
   },
   "periodRange": "{{first}} to {{last}}",
   "greeting": "{{name}}, {{range}}",

@@ -130,13 +130,16 @@ describe('DashboardPage', () => {
     expect(within(figures).getByRole('link', { name: '3 items to decide' })).toHaveAttribute('href', '/review')
   })
 
-  it('asks for the period it shows', async () => {
+  it('asks for the current month first, then the period chosen (AC-010-1)', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-09-15T05:00:00Z'))
     serve(DASHBOARD)
     renderPage()
 
-    await waitFor(() => expect(apiClient).toHaveBeenCalledWith('/api/dashboard?period=recent'))
-    fireEvent.click(await screen.findByRole('button', { name: 'All months' }))
-    await waitFor(() => expect(apiClient).toHaveBeenCalledWith('/api/dashboard?period=all'))
+    await waitFor(() => expect(apiClient).toHaveBeenCalledWith('/api/dashboard?period=2026-09'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Range' }))
+    await waitFor(() => expect(apiClient).toHaveBeenCalledWith('/api/dashboard?period=2026-07..2026-09'))
+    vi.useRealTimers()
   })
 
   it('guides the first upload when there is nothing yet (AC-001-3, AC-010-3)', async () => {

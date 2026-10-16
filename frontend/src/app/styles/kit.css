@@ -365,6 +365,16 @@ a:hover { color: var(--k-color-brand-hover); }
 /* The hero's heading and its actions share one section head (DashboardPage, mock dashboard.html). */
 .status-hero > .section-head { margin-bottom: 0; align-items: center; }
 .dash-period { display: flex; justify-content: flex-end; margin-bottom: var(--k-space-4); }
+/* The dashboard's period: Month, Range or Year, then its fields (spec 010, AC-010-1). */
+.period-picker { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--k-space-3); }
+.period-fields { display: flex; flex-wrap: wrap; align-items: center; gap: var(--k-space-2); }
+.select-sm { width: auto; min-height: 34px; padding: 6px 34px 6px 10px; font-size: 14px; line-height: 20px; }
+.period-hint { flex-basis: 100%; text-align: right; }
+.period-empty { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--k-space-2); margin: calc(-1 * var(--k-space-2)) 0 var(--k-space-4); font-size: 14px; color: var(--k-color-text-muted); }
+@container app (width < 600px) {
+  .dash-period, .period-picker, .period-empty { justify-content: flex-start; }
+  .period-hint { text-align: left; }
+}
 
 .ledger { container: ledger / inline-size; }
 /* Each cell draws its own right and bottom rule (clipped at the frame), so any column count and an

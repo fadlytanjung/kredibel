@@ -50,8 +50,7 @@ async function shoot(page: Page, name: string) {
 
 test('dashboard: the figures and where the money went', async ({ page }) => {
   await serve(page)
-  await page.goto('/preview/shell')
-  await page.getByRole('button', { name: 'All months', exact: true }).click()
+  await page.goto('/preview/shell?period=2026-01..2026-06')
   const panel = page.getByRole('heading', { name: 'Profit and loss', exact: true }).first()
   await expect(panel).toBeVisible()
   // Frame the profit and loss flow: the section is "where the money went".

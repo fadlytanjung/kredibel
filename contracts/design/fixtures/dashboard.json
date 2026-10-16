@@ -1,44 +1,282 @@
 {
-  "period": "all",
-  "periodMonths": ["2026-01", "2026-02", "2026-03", "2026-04", "2026-05", "2026-06"],
+  "period": "2026-01..2026-06",
+  "periodMonths": [
+    "2026-01",
+    "2026-02",
+    "2026-03",
+    "2026-04",
+    "2026-05",
+    "2026-06"
+  ],
   "kpis": [
-    { "id": "MONEY_IN", "value": { "amount": "1355800000.00", "currency": "IDR" }, "previous": { "amount": "1201000000.00", "currency": "IDR" } },
-    { "id": "MONEY_OUT", "value": { "amount": "1286800000.00", "currency": "IDR" }, "previous": { "amount": "1190000000.00", "currency": "IDR" } },
-    { "id": "NET", "value": { "amount": "69000000.00", "currency": "IDR" }, "previous": null },
-    { "id": "AUTO_MATCH_RATE", "value": "0.8960", "previous": "0.8700" },
-    { "id": "DOCUMENTS_WAITING", "value": 4, "previous": null },
-    { "id": "OPEN_REVIEW_ITEMS", "value": 10, "previous": null }
+    {
+      "id": "MONEY_IN",
+      "value": {
+        "amount": "1355800000.00",
+        "currency": "IDR"
+      },
+      "previous": {
+        "amount": "1201000000.00",
+        "currency": "IDR"
+      }
+    },
+    {
+      "id": "MONEY_OUT",
+      "value": {
+        "amount": "1286800000.00",
+        "currency": "IDR"
+      },
+      "previous": {
+        "amount": "1190000000.00",
+        "currency": "IDR"
+      }
+    },
+    {
+      "id": "NET",
+      "value": {
+        "amount": "69000000.00",
+        "currency": "IDR"
+      },
+      "previous": null
+    },
+    {
+      "id": "AUTO_MATCH_RATE",
+      "value": "0.8960",
+      "previous": "0.8700"
+    },
+    {
+      "id": "DOCUMENTS_WAITING",
+      "value": 4,
+      "previous": null
+    },
+    {
+      "id": "OPEN_REVIEW_ITEMS",
+      "value": 10,
+      "previous": null
+    }
   ],
   "months": [
-    { "month": "2026-01", "state": "RECONCILED", "statementsPresent": 1, "statementsExpected": 1, "autoMatchRate": "0.9400", "riskLevel": "LOW" },
-    { "month": "2026-02", "state": "NEEDS_REVIEW", "statementsPresent": 1, "statementsExpected": 1, "autoMatchRate": "0.8900", "riskLevel": "MEDIUM" },
-    { "month": "2026-03", "state": "NEEDS_REVIEW", "statementsPresent": 1, "statementsExpected": 1, "autoMatchRate": "0.8600", "riskLevel": "CRITICAL" },
-    { "month": "2026-04", "state": "RECONCILED", "statementsPresent": 1, "statementsExpected": 1, "autoMatchRate": "0.9300", "riskLevel": "LOW" },
-    { "month": "2026-05", "state": "NEEDS_REVIEW", "statementsPresent": 1, "statementsExpected": 1, "autoMatchRate": "0.8800", "riskLevel": "HIGH" },
-    { "month": "2026-06", "state": "NEEDS_REVIEW", "statementsPresent": 1, "statementsExpected": 1, "autoMatchRate": "0.8700", "riskLevel": "MEDIUM" }
+    {
+      "month": "2026-01",
+      "state": "RECONCILED",
+      "statementsPresent": 1,
+      "statementsExpected": 1,
+      "autoMatchRate": "0.9400",
+      "riskLevel": "LOW"
+    },
+    {
+      "month": "2026-02",
+      "state": "NEEDS_REVIEW",
+      "statementsPresent": 1,
+      "statementsExpected": 1,
+      "autoMatchRate": "0.8900",
+      "riskLevel": "MEDIUM"
+    },
+    {
+      "month": "2026-03",
+      "state": "NEEDS_REVIEW",
+      "statementsPresent": 1,
+      "statementsExpected": 1,
+      "autoMatchRate": "0.8600",
+      "riskLevel": "CRITICAL"
+    },
+    {
+      "month": "2026-04",
+      "state": "RECONCILED",
+      "statementsPresent": 1,
+      "statementsExpected": 1,
+      "autoMatchRate": "0.9300",
+      "riskLevel": "LOW"
+    },
+    {
+      "month": "2026-05",
+      "state": "NEEDS_REVIEW",
+      "statementsPresent": 1,
+      "statementsExpected": 1,
+      "autoMatchRate": "0.8800",
+      "riskLevel": "HIGH"
+    },
+    {
+      "month": "2026-06",
+      "state": "NEEDS_REVIEW",
+      "statementsPresent": 1,
+      "statementsExpected": 1,
+      "autoMatchRate": "0.8700",
+      "riskLevel": "MEDIUM"
+    }
   ],
   "alerts": [
-    { "severity": "CRITICAL", "title": "Statement edited after the bank issued it", "month": "2026-03", "findingId": "fnd_mar_edit", "link": "/risk/fnd_mar_edit" },
-    { "severity": "HIGH", "title": "Roastline Equipment Service paid to a new account", "month": "2026-05", "findingId": "fnd_may_account", "link": "/risk/fnd_may_account" },
-    { "severity": "MEDIUM", "title": "Invoices from an unknown supplier", "month": "2026-06", "findingId": "fnd_jun_supplier", "link": "/risk/fnd_jun_supplier" }
+    {
+      "severity": "CRITICAL",
+      "title": "Statement edited after the bank issued it",
+      "month": "2026-03",
+      "findingId": "fnd_mar_edit",
+      "link": "/risk/fnd_mar_edit"
+    },
+    {
+      "severity": "HIGH",
+      "title": "Roastline Equipment Service paid to a new account",
+      "month": "2026-05",
+      "findingId": "fnd_may_account",
+      "link": "/risk/fnd_may_account"
+    },
+    {
+      "severity": "MEDIUM",
+      "title": "Invoices from an unknown supplier",
+      "month": "2026-06",
+      "findingId": "fnd_jun_supplier",
+      "link": "/risk/fnd_jun_supplier"
+    }
   ],
   "reviewPreview": [
-    { "itemId": "itm_0000000000000001", "kind": "PROPOSED_MATCH", "month": "2026-02", "status": "OPEN", "priority": 70, "title": "IDR 18,700,000 on 9 Feb fits two invoices", "subject": { "bankLineIds": ["tx_9feb"] }, "allowedActions": ["CONFIRM_MATCH", "MATCH", "REJECT_MATCH"] },
-    { "itemId": "itm_0000000000000002", "kind": "POSSIBLE_DUPLICATE", "month": "2026-02", "status": "OPEN", "priority": 100, "title": "Possible copy of the February statement", "subject": { "docIds": ["doc_feb_copy", "doc_feb"] }, "allowedActions": ["CONFIRM_DUPLICATE", "NOT_DUPLICATE"] },
-    { "itemId": "itm_0000000000000003", "kind": "LEDGER_DIFFERENCE", "month": "2026-03", "status": "OPEN", "priority": 80, "title": "IDR 7,250,000 on 14 Mar differs from your ledger", "subject": { "bankLineIds": ["tx_14mar"] }, "allowedActions": ["IGNORE"] },
-    { "itemId": "itm_0000000000000004", "kind": "UNMATCHED_DOCUMENT", "month": "2026-06", "status": "OPEN", "priority": 50, "title": "Two Bluewater Trading Co. invoices never paid", "subject": { "invoiceIds": ["inv_bw41", "inv_bw42"] }, "allowedActions": ["MATCH", "NOT_YET_PAID", "IGNORE"] },
-    { "itemId": "itm_0000000000000005", "kind": "UNMATCHED_BANK_LINE", "month": "2026-06", "status": "OPEN", "priority": 40, "title": "Cash deposit of IDR 2,150,000 is not in the ledger", "subject": { "bankLineIds": ["tx_21jun"] }, "allowedActions": ["MATCH", "NO_DOCUMENT_NEEDED", "IGNORE"] }
+    {
+      "itemId": "itm_0000000000000001",
+      "kind": "PROPOSED_MATCH",
+      "month": "2026-02",
+      "status": "OPEN",
+      "priority": 70,
+      "title": "IDR 18,700,000 on 9 Feb fits two invoices",
+      "subject": {
+        "bankLineIds": [
+          "tx_9feb"
+        ]
+      },
+      "allowedActions": [
+        "CONFIRM_MATCH",
+        "MATCH",
+        "REJECT_MATCH"
+      ]
+    },
+    {
+      "itemId": "itm_0000000000000002",
+      "kind": "POSSIBLE_DUPLICATE",
+      "month": "2026-02",
+      "status": "OPEN",
+      "priority": 100,
+      "title": "Possible copy of the February statement",
+      "subject": {
+        "docIds": [
+          "doc_feb_copy",
+          "doc_feb"
+        ]
+      },
+      "allowedActions": [
+        "CONFIRM_DUPLICATE",
+        "NOT_DUPLICATE"
+      ]
+    },
+    {
+      "itemId": "itm_0000000000000003",
+      "kind": "LEDGER_DIFFERENCE",
+      "month": "2026-03",
+      "status": "OPEN",
+      "priority": 80,
+      "title": "IDR 7,250,000 on 14 Mar differs from your ledger",
+      "subject": {
+        "bankLineIds": [
+          "tx_14mar"
+        ]
+      },
+      "allowedActions": [
+        "IGNORE"
+      ]
+    },
+    {
+      "itemId": "itm_0000000000000004",
+      "kind": "UNMATCHED_DOCUMENT",
+      "month": "2026-06",
+      "status": "OPEN",
+      "priority": 50,
+      "title": "Two Bluewater Trading Co. invoices never paid",
+      "subject": {
+        "invoiceIds": [
+          "inv_bw41",
+          "inv_bw42"
+        ]
+      },
+      "allowedActions": [
+        "MATCH",
+        "NOT_YET_PAID",
+        "IGNORE"
+      ]
+    },
+    {
+      "itemId": "itm_0000000000000005",
+      "kind": "UNMATCHED_BANK_LINE",
+      "month": "2026-06",
+      "status": "OPEN",
+      "priority": 40,
+      "title": "Cash deposit of IDR 2,150,000 is not in the ledger",
+      "subject": {
+        "bankLineIds": [
+          "tx_21jun"
+        ]
+      },
+      "allowedActions": [
+        "MATCH",
+        "NO_DOCUMENT_NEEDED",
+        "IGNORE"
+      ]
+    }
   ],
   "moneyFlowSummary": {
     "topSources": [
-      { "id": "src:client:cp_daybreak", "column": "SOURCE", "label": "Daybreak Café", "value": { "amount": "412000000.00", "currency": "IDR" } },
-      { "id": "src:client:cp_harborview", "column": "SOURCE", "label": "Harborview Hotel Group", "value": { "amount": "301500000.00", "currency": "IDR" } },
-      { "id": "src:cash", "column": "SOURCE", "label": "Cash sales deposited", "value": { "amount": "96400000.00", "currency": "IDR" } }
+      {
+        "id": "src:client:cp_daybreak",
+        "column": "SOURCE",
+        "label": "Daybreak Café",
+        "value": {
+          "amount": "412000000.00",
+          "currency": "IDR"
+        }
+      },
+      {
+        "id": "src:client:cp_harborview",
+        "column": "SOURCE",
+        "label": "Harborview Hotel Group",
+        "value": {
+          "amount": "301500000.00",
+          "currency": "IDR"
+        }
+      },
+      {
+        "id": "src:cash",
+        "column": "SOURCE",
+        "label": "Cash sales deposited",
+        "value": {
+          "amount": "96400000.00",
+          "currency": "IDR"
+        }
+      }
     ],
     "topUses": [
-      { "id": "line:COST_OF_SALES", "column": "LINE", "label": "Cost of sales", "value": { "amount": "564000000.00", "currency": "IDR" } },
-      { "id": "line:OPERATING_EXPENSES:PAYROLL", "column": "LINE", "label": "Payroll", "value": { "amount": "288000000.00", "currency": "IDR" } },
-      { "id": "line:OPERATING_EXPENSES:RENT", "column": "LINE", "label": "Rent", "value": { "amount": "90000000.00", "currency": "IDR" } }
+      {
+        "id": "line:COST_OF_SALES",
+        "column": "LINE",
+        "label": "Cost of sales",
+        "value": {
+          "amount": "564000000.00",
+          "currency": "IDR"
+        }
+      },
+      {
+        "id": "line:OPERATING_EXPENSES:PAYROLL",
+        "column": "LINE",
+        "label": "Payroll",
+        "value": {
+          "amount": "288000000.00",
+          "currency": "IDR"
+        }
+      },
+      {
+        "id": "line:OPERATING_EXPENSES:RENT",
+        "column": "LINE",
+        "label": "Rent",
+        "value": {
+          "amount": "90000000.00",
+          "currency": "IDR"
+        }
+      }
     ]
   }
 }

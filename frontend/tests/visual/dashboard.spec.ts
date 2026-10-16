@@ -35,13 +35,15 @@ async function outline(page: Page) {
     headings: (await page.locator('#content :is(h1, h2, h3):visible').allTextContents()).map((s) => s.trim()),
     controls: await page.locator('#content .seg[role="group"]:visible').evaluateAll((els) => els.map((el) => `${el.getAttribute('aria-label')}: ${Array.from(el.querySelectorAll('button')).map((b) => b.textContent?.trim()).join(' | ')}`)),
     panelLinks: (await page.locator('#content :is(.panel-head .link, .section-head .link, .section-head .button):visible').allTextContents()).map((s) => s.trim()),
+    period: await page.locator('#content .period-picker select').evaluateAll((els) => els.map((el) => `${el.getAttribute('aria-label')}: ${(el as HTMLSelectElement).selectedOptions[0]?.textContent?.trim()} (${(el as HTMLSelectElement).options.length})`)),
   }
 }
 
 async function open(page: Page) {
   await serve(page)
-  await page.goto('/preview/shell')
-  await page.getByRole('button', { name: 'All months', exact: true }).click()
+  // The mock's today is June 2026; the fixture's books are January to June.
+  await page.clock.setFixedTime(new Date('2026-06-20T03:00:00Z'))
+  await page.goto('/preview/shell?period=2026-01..2026-06')
   await expect(page.getByText('2 of 6 months are reconciled.')).toBeVisible()
   // The flow has loaded at every width once its unit note is printed (phones draw ranked bars, not the Sankey).
   await expect(page.getByRole('region', { name: 'Money flow' }).getByText(/Amounts in millions/)).toBeVisible()
@@ -85,3 +87,28 @@ test('AC-010-3: a workspace without months sees the upload empty state, never in
   await expect(page.getByText('Upload your first documents')).toBeVisible()
   await expect(page.getByText('1,355,800,000')).toHaveCount(0)
 })
+
+test('AC-010-1: the dashboard opens on the current month; a range is at most 12 months; a year is one choice', async ({ page }) => {
+  const asked: string[] = []
+  page.on('request', (req) => {
+    const url = new URL(req.url())
+    if (url.pathname === '/api/dashboard') asked.push(url.searchParams.get('period') ?? '')
+  })
+  await serve(page)
+  await page.clock.setFixedTime(new Date('2026-06-20T03:00:00Z'))
+  await page.goto('/preview/shell')
+  const month = page.getByRole('combobox', { name: 'Month', exact: true })
+  await expect(month).toHaveValue('2026-06')
+  await expect(page.getByRole('button', { name: 'Next month' })).toBeDisabled()
+  await page.getByRole('button', { name: 'Previous month' }).click()
+  await expect(page).toHaveURL(/period=2026-05$/)
+  await page.getByRole('group', { name: 'Period' }).getByRole('button', { name: 'Range' }).click()
+  await expect(page).toHaveURL(/period=2026-03\.\.2026-05$/)
+  await page.getByRole('combobox', { name: 'From month' }).selectOption('2025-01')
+  await expect(page.getByRole('combobox', { name: 'To month' })).toHaveValue('2025-12')
+  expect(await page.getByRole('combobox', { name: 'To month' }).locator('option').count()).toBe(12)
+  await page.getByRole('group', { name: 'Period' }).getByRole('button', { name: 'Year' }).click()
+  await expect(page.getByRole('combobox', { name: 'Year', exact: true })).toHaveValue('2025')
+  expect(asked).toEqual(expect.arrayContaining(['2026-06', '2026-05', '2026-03..2026-05', '2025-01..2025-12', '2025']))
+})
+

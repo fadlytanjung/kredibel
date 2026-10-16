@@ -164,3 +164,15 @@ async def test_the_dashboard_shows_the_period_figures_months_and_top_flows():
     )
     top = board["moneyFlowSummary"]
     assert 0 < len(top["topSources"]) <= 3 and 0 < len(top["topUses"]) <= 3
+
+
+async def test_a_period_is_a_month_a_range_of_at_most_twelve_months_or_a_year():
+    deps, _ = _deps()
+    async with _client(deps) as client:
+        await _books(client, deps)
+        month = (await client.get("/api/dashboard?period=2026-03", headers=AUTH)).json()
+        year = (await client.get("/api/dashboard?period=2026", headers=AUTH)).json()
+        too_long = await client.get("/api/dashboard?period=2025-03..2026-03", headers=AUTH)
+        reversed_range = await client.get("/api/cash-flow?period=2026-03..2026-01", headers=AUTH)
+    assert month["periodMonths"] == ["2026-03"] and len(year["periodMonths"]) == 12
+    assert too_long.status_code == 422 and reversed_range.status_code == 422

@@ -1417,7 +1417,7 @@ components:
     Period:
       name: period
       in: query
-      description: "A month (2026-03), quarter (2026-Q1), year (2026), range (2026-01..2026-06), recent (the last 3 months with data, the dashboard's default) or all"
+      description: "A month (2026-03, the dashboard's default is the current one), quarter (2026-Q1), year (2026), range of at most 12 months (2026-01..2026-06), recent (the last 3 months with data) or all. A reversed range or one longer than 12 months is a 422."
       schema:
         type: string
         default: all

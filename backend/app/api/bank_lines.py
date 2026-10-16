@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, ConfigDict
 
 from app.api.deps import ServiceProvider, org_of
-from app.api.insights import PERIOD
+from app.api.insights import PERIOD, checked_period
 from app.core.auth import Principal
 from app.domain.models.bank_line import BankLine
 
@@ -90,7 +90,7 @@ def create_bank_lines_router(provider: ServiceProvider, workspace_dep: Any) -> A
             lines, currency = await provider.insight_service.flow_lines(
                 org_of(principal),
                 flow,
-                period=period,
+                period=checked_period(period),
                 view=view,
                 framework=framework,
                 show_transfers=show_transfers,

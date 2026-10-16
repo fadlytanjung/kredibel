@@ -8,16 +8,28 @@
  * cash-flow statement (T010-05).
  */
 
-import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { type Dashboard, type Framework, useDashboard } from '../entities/insight'
 import { useWorkspace } from '../entities/workspace'
 import { formatMonth } from '../shared/lib/formatDate'
 import { Button } from '../shared/ui/Button'
 import { EmptyState } from '../shared/ui/EmptyState'
 import { Icon } from '../shared/ui/Icon'
-import { AlertList, ChartsSection, FlowSummary, KpiCard, MonthStrip, ReviewPreview, SuggestionCard } from '../widgets/dashboard'
+import {
+  AlertList,
+  ChartsSection,
+  currentMonthIn,
+  FlowSummary,
+  KpiCard,
+  MonthStrip,
+  type PeriodParts,
+  PeriodPicker,
+  parsePeriod,
+  periodKey,
+  ReviewPreview,
+  SuggestionCard,
+} from '../widgets/dashboard'
 
 const RISK_ORDER = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']
 
@@ -132,15 +144,18 @@ function Body({ data, name, period, framework }: { data: Dashboard; name: string
 export function DashboardPage() {
   const { t } = useTranslation(['dashboard', 'common'])
   const navigate = useNavigate()
-  const latestYear = String(new Date().getUTCFullYear())
-  const [period, setPeriod] = useState('recent')
-  const { data, isLoading, isError } = useDashboard(period)
+  const [params, setParams] = useSearchParams()
   const { data: workspace } = useWorkspace(true)
-  const periods = [
-    { key: 'recent', label: t('dashboard:periods.recent') },
-    { key: latestYear, label: t('dashboard:periods.year', { year: latestYear }) },
-    { key: 'all', label: t('dashboard:periods.all') },
-  ]
+  // The current month where the workspace keeps its books, unless the address names a period.
+  const current = currentMonthIn(workspace?.timezone)
+  const parts: PeriodParts = parsePeriod(params.get('period')) ?? { kind: 'month', from: current, to: current }
+  const period = periodKey(parts)
+  const { data, isLoading, isError } = useDashboard(period)
+  const choose = (next: PeriodParts) => {
+    const q = new URLSearchParams(params)
+    q.set('period', periodKey(next))
+    setParams(q, { replace: true })
+  }
 
   if (isLoading) {
     return (
@@ -168,17 +183,21 @@ export function DashboardPage() {
     )
   }
 
+  const withData = data.months.map((m) => m.month).sort()
+  const latestWithData = withData[withData.length - 1]
   return (
     <div className="page">
       <div className="dash-period">
-        <div className="seg" role="group" aria-label={t('dashboard:periods.label')}>
-          {periods.map((p) => (
-            <button key={p.key} type="button" aria-pressed={period === p.key} onClick={() => setPeriod(p.key)}>
-              {p.label}
-            </button>
-          ))}
-        </div>
+        <PeriodPicker value={parts} onChange={choose} dataMonths={withData} current={current} />
       </div>
+      {withData.length > 0 && !(data.periodMonths ?? []).some((m) => withData.includes(m)) && (
+        <p className="period-empty" role="status">
+          {t('dashboard:periods.noBooks', { range: rangeOf(data.periodMonths ?? [], (key, o) => t(`dashboard:${key}`, o)) })}{' '}
+          <button type="button" className="link-button" onClick={() => choose({ kind: 'month', from: latestWithData, to: latestWithData })}>
+            {t('dashboard:periods.showLatest', { month: formatMonth(latestWithData, 'longYear') })}
+          </button>
+        </p>
+      )}
       <Body data={data} name={workspace?.name ?? ''} period={period} framework={workspace?.profile?.accountingFramework as Framework | undefined} />
     </div>
   )

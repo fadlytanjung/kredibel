@@ -138,7 +138,7 @@ put):
 | `/privacy`, `/terms` | Privacy Policy, Terms of Service | Public |
 | `/login` | Login | Public. Email and password, or Google |
 | `/onboarding` | Onboarding | Signed in, no workspace yet. Every other route redirects here while `me.needsWorkspace` |
-| `/dashboard` | Dashboard | Period picker in the top bar (default: the months with data) |
+| `/dashboard` | Dashboard | `?period=` a month (default: the current month), a range of at most 12 months, or a year |
 | `/documents` | Documents | Filters by type and state; `?upload=1` opens the upload tray focused |
 | `/documents/:docId` | Document | Page viewer, read values, its findings, matches and events |
 | `/months` | — | Opens the current calendar month (`/months/<this month>`): reconciliation is monthly |
@@ -373,8 +373,11 @@ The mock and the page draw the same synthetic payload (`contracts/design/fixture
 spec 019 AC-019-2) and the page's own words (`dashboard.json`); a browser check compares their
 visible headings, segmented controls and panel links at 390, 834 and 1440 px. Top to bottom:
 
-- **Period:** a segmented control (**Last 3 months**, the current year, **All months**) that drives
-  every figure and chart on the page.
+- **Period:** **Month**, **Range** or **Year**, then its fields, driving every figure and chart on
+  the page and kept in the address (`?period=`). It opens on the current month in the workspace's
+  time zone; a month steps with the arrows or its list, a range picks its first and last month (at
+  most 12; the last list only offers what is allowed), a year is one list; nothing after today. A
+  period without statements says so and offers the latest month with books.
 - **Header:** the workspace name, then "Sunrise Coffee Roasters, January to June 2026".
 - **Figures:** money in and money out against the previous period of equal length, net (kept in or
   taken from the accounts), matched by Kredibel (share, with the previous period and a small meter),

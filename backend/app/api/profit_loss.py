@@ -5,7 +5,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, Query
 
 from app.api.deps import ServiceProvider, org_of
-from app.api.insights import PERIOD
+from app.api.insights import PERIOD, checked_period
 from app.core.auth import Principal
 from app.domain.profit_loss import Classification, ProfitLoss
 
@@ -18,7 +18,7 @@ def create_profit_loss_router(provider: ServiceProvider, workspace_dep: Any) -> 
         period: str = Query(default="recent", pattern=PERIOD),
         principal: Principal = Depends(workspace_dep),
     ) -> ProfitLoss:
-        return await provider.profit_loss_service.report(org_of(principal), period)
+        return await provider.profit_loss_service.report(org_of(principal), checked_period(period))
 
     @router.get("/accounts")
     async def accounts(principal: Principal = Depends(workspace_dep)) -> dict[str, Any]:

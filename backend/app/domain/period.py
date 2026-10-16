@@ -1,7 +1,8 @@
 """A dashboard period and the previous one of equal length (spec 010, AC-010-1; contracts Period).
 
-A month (2026-03), quarter (2026-Q1), year (2026), range (2026-01..2026-06), recent (the last three
-months with data) or all (every month with data, no previous period). Pure.
+A month (2026-03), quarter (2026-Q1), year (2026), range of at most 12 months (2026-01..2026-06),
+recent (the last three months with data) or all (every month with data, no previous period). The
+dashboard offers a month (the current one by default), a range or a year. Pure.
 """
 
 import re
@@ -10,6 +11,7 @@ from dataclasses import dataclass
 
 _MONTH = r"\d{4}-(0[1-9]|1[0-2])"
 RECENT_MONTHS = 3
+MAX_RANGE_MONTHS = 12  # a range longer than a year is not a dashboard period
 
 
 @dataclass(frozen=True)
@@ -78,6 +80,6 @@ def resolve_period(period: str, with_data: Sequence[str]) -> Period:
         return _with_previous(period, first, first + 11)
     if m := re.fullmatch(rf"({_MONTH})\.\.({_MONTH})", period):
         first, last = _index(m.group(1)), _index(m.group(3))
-        if first <= last:
+        if first <= last and last - first < MAX_RANGE_MONTHS:
             return _with_previous(period, first, last)
     raise ValueError(f"Not a period: {period!r}")

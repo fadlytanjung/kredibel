@@ -8,12 +8,14 @@
  */
 
 import { useEffect, useRef, useState, type ChangeEvent, type DragEvent } from 'react'
-import { useTranslation } from 'react-i18next'
+import { Trans, useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { useUploadDocument, type DocType, type Document } from '../../entities/document'
+import { useReviewItems } from '../../entities/review'
 import { ProblemError } from '../../shared/api/client'
 import { formatDate } from '../../shared/lib/formatDate'
 import { Button, Icon, type IconName } from '../../shared/ui'
+import { type TrayRow, type TrayState, trayRows } from './trayRows'
 
 export interface UploadItem {
   id: string
@@ -28,17 +30,36 @@ export interface UploadSheetProps {
   onUploaded?: (doc: Document) => void
   docTypeHint?: DocType
   className?: string
+  /** The workspace's documents, live: the tray follows each upload and shows what waits for a person. */
+  documents?: Document[]
 }
 
-function getUploadItemIcon(item: UploadItem): IconName {
-  if (item.document?.status === 'DUPLICATE') return 'copy'
-  if (item.status === 'uploading' || item.status === 'queued') return 'refresh'
-  if (item.file.name.endsWith('.csv') || item.file.name.endsWith('.xlsx')) return 'table'
-  return 'file-text'
+const ICON: Record<TrayState, IconName> = {
+  uploading: 'refresh',
+  reading: 'refresh',
+  copy: 'copy',
+  held: 'copy',
+  columns: 'table',
+  needsInput: 'triangle-alert',
+  failed: 'triangle-alert',
+  error: 'triangle-alert',
+  done: 'file-text',
+}
+const ICON_TONE: Partial<Record<TrayState, string>> = { uploading: 'is-busy', reading: 'is-busy', copy: 'is-dup', held: 'is-held' }
+
+function rowIcon(row: TrayRow): IconName {
+  if (row.state === 'done' && row.docType === 'LEDGER_EXPORT') return 'table'
+  if (row.state === 'done' && row.docType === 'RECEIPT') return 'receipt'
+  return ICON[row.state]
 }
 
-export function UploadSheet({ onUploaded, docTypeHint, className = '' }: UploadSheetProps) {
+export function UploadSheet({ onUploaded, docTypeHint, className = '', documents = [] }: UploadSheetProps) {
   const { t } = useTranslation(['documents', 'errors', 'common'])
+  // Only a ledger waiting for its columns or a file that needs input is found through the queue;
+  // a held copy names its review item itself.
+  const { data: review } = useReviewItems(
+    documents.some((d) => d.status === 'NEEDS_INPUT' || (d.docType === 'LEDGER_EXPORT' && d.ledgerMeta?.mappingStatus === 'PROPOSED')),
+  )
   const uploadMutation = useUploadDocument()
   const [items, setItems] = useState<UploadItem[]>([])
   const [isDragging, setIsDragging] = useState(false)
@@ -132,6 +153,109 @@ export function UploadSheet({ onUploaded, docTypeHint, className = '' }: UploadS
     }
   }
 
+  // Files sending from this tab, then the workspace's uploads of the last day and anything waiting.
+  const now = new Date()
+  const rows = trayRows(
+    documents.length ? documents : items.flatMap((i) => (i.document ? [i.document] : [])),
+    items.map((i) => ({ id: i.id, fileName: i.file.name, status: i.status, progress: i.progress, docId: i.document?.docId, error: i.error })),
+    review?.items ?? [],
+    now,
+  )
+  const original = (row: TrayRow) =>
+    row.original ? (
+      <Link to={`/documents/${encodeURIComponent(row.original.docId)}`}>{row.original.fileName || t('documents:upload.anEarlierFile')}</Link>
+    ) : (
+      <span>{t('documents:upload.anEarlierFile')}</span>
+    )
+  const message = (row: TrayRow) => {
+    switch (row.state) {
+      case 'uploading':
+        return (
+          <>
+            {t('documents:upload.uploading')}
+            <span className="pbar">
+              <i style={{ width: `${row.progress ?? 0}%` }} /* allow-raw-style: dynamic upload progress */ />
+            </span>
+          </>
+        )
+      case 'reading':
+        return row.page && row.pages ? (
+          <>
+            {t('documents:upload.readingPage', { page: row.page, total: row.pages })}
+            <span className="pbar">
+              <i style={{ width: `${row.progress ?? 0}%` }} /* allow-raw-style: the share of pages read */ />
+            </span>
+          </>
+        ) : (
+          t('documents:upload.readingFile')
+        )
+      case 'copy':
+        return (
+          <Trans
+            t={t}
+            i18nKey={row.original?.uploadedAt ? 'documents:upload.copyNotice' : 'documents:upload.copyNoticePlain'}
+            values={{ date: row.original?.uploadedAt ? formatDate(row.original.uploadedAt, { year: undefined }) : '', name: row.original?.fileName || t('documents:upload.anEarlierFile') }}
+            components={{ original: original(row) }}
+          />
+        )
+      case 'held':
+        return (
+          <Trans
+            t={t}
+            i18nKey={row.reasonCode && t(`documents:upload.heldReasons.${row.reasonCode}`, { defaultValue: '' }) ? 'documents:upload.heldNotice' : 'documents:upload.heldNoticePlain'}
+            values={{ name: row.original?.fileName || t('documents:upload.anEarlierFile'), reason: row.reasonCode ? t(`documents:upload.heldReasons.${row.reasonCode}`, { defaultValue: '' }) : '' }}
+            components={{ original: original(row) }}
+          />
+        )
+      case 'columns':
+        return t('documents:upload.columnsNotice')
+      case 'needsInput':
+        return row.detail || t('documents:status.needsInput')
+      case 'failed':
+        return <span className="text-danger">{row.detail || t('documents:upload.failed')}</span>
+      case 'error':
+        return <span className="text-danger">{row.detail || t('errors:fallback')}</span>
+      default:
+        return row.rows ? t('documents:upload.rowsImported', { count: row.rows }) : t('documents:upload.read', { type: t(`documents:detail.docType.${row.docType}`, { defaultValue: '' }) || t('documents:status.done') })
+    }
+  }
+  const action = (row: TrayRow) => {
+    const to = row.reviewItemId ? `/review/${encodeURIComponent(row.reviewItemId)}` : '/review'
+    if (row.state === 'held')
+      return (
+        <span className="act">
+          <Link className="button button-secondary button-sm" to={to}>
+            {t('documents:upload.decide')}
+          </Link>
+        </span>
+      )
+    if (row.state === 'columns')
+      return (
+        <span className="act">
+          <Link className="button button-primary button-sm" to={to}>
+            {t('documents:upload.checkColumns')}
+          </Link>
+        </span>
+      )
+    if (row.state === 'needsInput')
+      return (
+        <span className="act">
+          <Link className="button button-secondary button-sm" to={to}>
+            {t('documents:upload.review')}
+          </Link>
+        </span>
+      )
+    if (row.state === 'done' && row.docId)
+      return (
+        <span className="act">
+          <Link className="button button-quiet button-sm" to={`/documents/${encodeURIComponent(row.docId)}`}>
+            {t('documents:upload.open')}
+          </Link>
+        </span>
+      )
+    return null
+  }
+
   return (
     <section
       className={`tray ${isDragging ? 'is-dragging' : ''} ${className}`.trim()}
@@ -188,59 +312,18 @@ export function UploadSheet({ onUploaded, docTypeHint, className = '' }: UploadS
         </Button>
       </div>
 
-      {items.length > 0 && (
-        <ul className="tray-list" aria-label={t('documents:upload.title')}>
-          {items.map((item) => {
-            const isDup = item.document?.status === 'DUPLICATE'
-            const isUploading = item.status === 'uploading' || item.status === 'queued'
-            const isError = item.status === 'error'
-            const iconName = getUploadItemIcon(item)
-
-            return (
-              <li key={item.id}>
-                <span className={`file-ico ${isDup ? 'is-dup' : isUploading ? 'is-busy' : ''}`}>
-                  <Icon name={iconName} />
-                </span>
-
-                <span className="f">{item.file.name}</span>
-
-                <span className={`m ${isDup ? 'is-dup' : ''}`}>
-                  {isUploading && (
-                    <>
-                      {t('documents:upload.uploading')}
-                      <span className="pbar">
-                        <i style={{ width: `${item.progress}%` }} /* allow-raw-style: dynamic upload progress */ />
-                      </span>
-                    </>
-                  )}
-
-                  {isError && <span className="text-danger">{item.error}</span>}
-
-                  {isDup && item.document?.duplicate && (
-                    <>
-                      {t('documents:upload.duplicateNotice', {
-                        date: formatDate(item.document.uploadedAt),
-                        name: item.document.fileName,
-                      })}
-                      {' '}
-                      <Link to={`/documents/${item.document.duplicate.ofDocId}`}>
-                        {t('documents:upload.viewOriginal')}
-                      </Link>
-                    </>
-                  )}
-
-                  {!isUploading && !isError && !isDup && item.document && (
-                    <span>
-                      {t('documents:status.done')} &middot;{' '}
-                      <Link to={`/documents/${item.document.docId}`}>
-                        {t('documents:upload.viewOriginal')}
-                      </Link>
-                    </span>
-                  )}
-                </span>
-              </li>
-            )
-          })}
+      {rows.length > 0 && (
+        <ul className="tray-list" aria-label={t('documents:upload.justUploaded')}>
+          {rows.map((row) => (
+            <li key={row.key}>
+              <span className={`file-ico ${ICON_TONE[row.state] ?? ''}`.trim()}>
+                <Icon name={rowIcon(row)} />
+              </span>
+              <span className="f">{row.fileName}</span>
+              <span className={`m${row.state === 'copy' ? ' is-dup' : ''}`}>{message(row)}</span>
+              {action(row)}
+            </li>
+          ))}
         </ul>
       )}
     </section>

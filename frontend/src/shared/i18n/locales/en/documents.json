@@ -6,11 +6,9 @@
     "description": "PDF, photos, CSV or Excel, in any order. A file you already sent is never read twice.",
     "chooseFiles": "Choose files",
     "takePhoto": "Photo of a receipt",
-    "uploading": "Uploading...",
+    "uploading": "Uploading…",
     "readingPage": "Reading page {{page}} of {{total}}",
-    "duplicateNotice": "Already uploaded on {{date}} as {{name}}. Not read again and not counted.",
-    "heldNotice": "Looks like {{name}}. Held until you decide.",
-    "viewOriginal": "View original",
+    "heldNotice": "Looks like <original>{{name}}</original> ({{reason}}). Held until you decide.",
     "decide": "Decide",
     "hintLabel": "Document type (optional)",
     "hints": {
@@ -20,7 +18,26 @@
       "purchaseInvoice": "Purchase invoice",
       "receipt": "Receipt",
       "ledger": "Ledger export"
-    }
+    },
+    "justUploaded": "Just uploaded",
+    "readingFile": "Reading",
+    "copyNotice": "Already uploaded on {{date}} as <original>{{name}}</original>. Not read again and not counted.",
+    "copyNoticePlain": "Already uploaded as <original>{{name}}</original>. Not read again and not counted.",
+    "heldNoticePlain": "Looks like <original>{{name}}</original>. Held until you decide.",
+    "heldReasons": {
+      "D02_STATEMENT_PERIOD_DUPLICATE": "same account and period",
+      "D03_INVOICE_DUPLICATE": "same supplier, number and total",
+      "D05_RECEIPT_DUPLICATE": "same merchant, date and total"
+    },
+    "anEarlierFile": "an earlier file",
+    "columnsNotice": "New column layout. Check the columns once and every row is imported.",
+    "checkColumns": "Check columns",
+    "review": "Review",
+    "failed": "Could not be read.",
+    "read": "Read as {{type}}.",
+    "rowsImported_one": "{{count}} row imported.",
+    "rowsImported_other": "{{count}} rows imported.",
+    "open": "Open"
   },
   "filters": {
     "all": "All",

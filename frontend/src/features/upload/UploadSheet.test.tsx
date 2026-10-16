@@ -141,12 +141,10 @@ describe('UploadSheet', () => {
     })
 
     await waitFor(() => {
-      expect(screen.getByText(/Already uploaded on/i)).toBeInTheDocument()
-      expect(screen.getByText('View original')).toBeInTheDocument()
+      expect(screen.getByText(/Already uploaded as/i)).toBeInTheDocument()
+      expect(screen.getByRole('link', { name: 'an earlier file' })).toHaveAttribute('href', '/documents/doc_orig_123')
     })
 
-    const origLink = screen.getByText('View original').closest('a')
-    expect(origLink).toHaveAttribute('href', '/documents/doc_orig_123')
   })
 
   it('displays error message when upload fails with problem error', async () => {

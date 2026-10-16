@@ -609,7 +609,7 @@ a:hover { color: var(--k-color-brand-hover); }
 .tray-list .m.is-dup { color: var(--k-color-text-default); }
 .tray-list .act { grid-column: 2; display: flex; gap: var(--k-space-2); }
 @container app (width >= 840px) { .tray-list .act { grid-column: 3; grid-row: 1 / span 2; } }
-.tray-list .pbar { height: 4px; border-radius: 2px; background: var(--k-color-bg-sunken); overflow: hidden; margin-top: 6px; }
+.tray-list .pbar { display: block; max-width: 280px; height: 4px; border-radius: 2px; background: var(--k-color-bg-sunken); overflow: hidden; margin-top: 6px; }
 .tray-list .pbar i { display: block; height: 100%; background: var(--k-color-brand-default); }
 .file-ico { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: var(--k-color-bg-sunken); color: var(--k-color-text-muted); grid-row: span 2; }
 .file-ico.is-dup { background: var(--k-color-bg-sunken); color: var(--k-color-text-subtle); }

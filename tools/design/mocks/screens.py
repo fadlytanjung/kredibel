@@ -368,22 +368,130 @@ def dashboard() -> str:
 # Documents
 # ------------------------------------------------------------------------------------------------
 
-def documents() -> str:
-    tray = f"""
+UPLOADS_FIX = json.loads((ROOT / "contracts/design/fixtures/documents.json").read_text(encoding="utf-8"))
+TRAY_ICON = {"uploading": "refresh", "reading": "refresh", "copy": "copy", "held": "copy", "columns": "table",
+             "needsInput": "triangle-alert", "failed": "triangle-alert", "error": "triangle-alert", "done": "file-text"}
+TRAY_TONE = {"uploading": "is-busy", "reading": "is-busy", "copy": "is-dup", "held": "is-held"}
+BUSY_STATES = ("UPLOADED", "SCREENING", "READING", "CHECKING")
+
+
+def _ts_of(iso: str) -> float:
+    from datetime import datetime
+    return datetime.fromisoformat(iso.replace("Z", "+00:00")).timestamp()
+
+
+def tray_row(doc: dict, by_id: dict, items: list[dict]) -> dict:
+    """As features/upload/trayRows.ts rowOf: the state of one upload and its next step."""
+    base = {"key": doc["docId"], "fileName": doc["fileName"], "docId": doc["docId"], "docType": doc.get("docType")}
+    dup = doc.get("duplicate") or {}
+    original = by_id.get(dup.get("ofDocId"))
+    if doc["status"] == "DUPLICATE":
+        return {**base, "state": "copy", "original": original}
+    if doc.get("heldAsDuplicate"):
+        return {**base, "state": "held", "original": original, "reasonCode": dup.get("code"), "reviewItemId": dup.get("reviewItemId")}
+    if doc.get("docType") == "LEDGER_EXPORT" and (doc.get("ledgerMeta") or {}).get("mappingStatus") == "PROPOSED":
+        item = next((i for i in items if i["kind"] == "CONFIRM_LEDGER_MAPPING" and i.get("docId") == doc["docId"]), None)
+        return {**base, "state": "columns", "reviewItemId": item and item["itemId"]}
+    if doc["status"] in BUSY_STATES:
+        pages = doc.get("pageCount") or len(doc.get("pages") or [])
+        done = sum(1 for pg in doc.get("pages") or [] if pg["status"] in ("DONE", "BLANK"))
+        progress = round((min(done, pages - 1) + 0.5) / pages * 100) if pages else None
+        return {**base, "state": "reading", "page": min(done + 1, pages) if pages else None, "pages": pages, "progress": progress}
+    if doc["status"] == "NEEDS_INPUT":
+        return {**base, "state": "needsInput", "detail": doc.get("statusDetail")}
+    if doc["status"] in ("FAILED", "QUARANTINED"):
+        return {**base, "state": "failed", "detail": doc.get("statusDetail")}
+    meta = doc.get("ledgerMeta") or {}
+    return {**base, "state": "done", "rows": meta.get("rowsImported") or meta.get("rows")}
+
+
+def tray_rows(docs: list[dict], items: list[dict], now: str) -> list[dict]:
+    """As trayRows.ts: the last day and anything waiting for a person, newest first, at most 6."""
+    by_id = {d["docId"]: d for d in docs}
+
+    def needs(d: dict) -> bool:
+        return bool(d.get("heldAsDuplicate")) or (d.get("docType") == "LEDGER_EXPORT" and (d.get("ledgerMeta") or {}).get("mappingStatus") == "PROPOSED") or d["status"] in ("NEEDS_INPUT", "FAILED")
+
+    recent = [d for d in docs if needs(d) or _ts_of(now) - _ts_of(d["uploadedAt"]) < 86400]
+    recent.sort(key=lambda d: _ts_of(d["uploadedAt"]), reverse=True)
+    return [tray_row(d, by_id, items) for d in recent][:6]
+
+
+def tray_message(row: dict) -> str:
+    dw = lambda key, **kw: words(DOC_WORDS, key, **kw)  # noqa: E731
+    orig = row.get("original")
+    link = (f'<a href="document.html">{escape(orig["fileName"])}</a>' if orig else dw("upload.anEarlierFile"))
+
+    def tagged(key: str, **kw) -> str:
+        """The sentence with its <original> part as a link to the earlier file, as <Trans> does."""
+        text = dw(key, **kw).replace("&lt;original&gt;", "<original>").replace("&lt;/original&gt;", "</original>")
+        if "<original>" not in text:
+            return text
+        before, rest = text.split("<original>", 1)
+        return before + link + rest.split("</original>", 1)[1]
+
+    state = row["state"]
+    if state == "reading":
+        if row.get("page") and row.get("pages"):
+            return f'{dw("upload.readingPage", page=row["page"], total=row["pages"])}<span class="pbar"><i style="width:{row["progress"]}%"></i></span>'
+        return dw("upload.readingFile")
+    if state == "copy":
+        day = ""
+        if orig:
+            year, month, rest = orig["uploadedAt"][:10].split("-")
+            day = f"{int(rest)} {MONTH_NAMES[int(month) - 1][:3]}"
+        return tagged("upload.copyNotice", date=day, name=orig["fileName"] if orig else "")
+    if state == "held":
+        reason = (DOC_WORDS["upload"].get("heldReasons") or {}).get(row.get("reasonCode") or "", "")
+        if reason:
+            return tagged("upload.heldNotice", name=orig["fileName"] if orig else "", reason=reason)
+        return tagged("upload.heldNoticePlain", name=orig["fileName"] if orig else "")
+    if state == "columns":
+        return dw("upload.columnsNotice")
+    if state == "needsInput":
+        return escape(row.get("detail") or dw("status.needsInput"))
+    if state == "failed":
+        return f'<span class="text-danger">{escape(row.get("detail") or dw("upload.failed"))}</span>'
+    if row.get("rows"):
+        return dw("upload.rowsImported", count=row["rows"])
+    return dw("upload.read", type=dw(f"detail.docType.{row.get('docType')}"))
+
+
+def tray_action(row: dict) -> str:
+    dw = lambda key: words(DOC_WORDS, key)  # noqa: E731
+    if row["state"] == "held":
+        return f'<span class="act"><a class="button button-secondary button-sm" href="review-correction.html">{dw("upload.decide")}</a></span>'
+    if row["state"] == "columns":
+        return f'<span class="act"><a class="button button-primary button-sm" href="review-mapping.html">{dw("upload.checkColumns")}</a></span>'
+    if row["state"] == "needsInput":
+        return f'<span class="act"><a class="button button-secondary button-sm" href="review.html">{dw("upload.review")}</a></span>'
+    if row["state"] == "done":
+        return f'<span class="act"><a class="button button-quiet button-sm" href="document.html">{dw("upload.open")}</a></span>'
+    return ""
+
+
+def upload_tray() -> str:
+    """The upload tray as features/upload/UploadSheet.tsx draws it, from documents.json."""
+    dw = lambda key: words(DOC_WORDS, key)  # noqa: E731
+    rows = tray_rows(UPLOADS_FIX["items"], UPLOADS_FIX["reviewItems"], UPLOADS_FIX["now"])
+    lis = "".join(
+        f'<li><span class="{" ".join(c for c in ("file-ico", TRAY_TONE.get(r["state"], "")) if c)}">{icon("table" if r["state"] == "done" and r.get("docType") == "LEDGER_EXPORT" else TRAY_ICON[r["state"]])}</span>'
+        f'<span class="f">{escape(r["fileName"])}</span><span class="m{" is-dup" if r["state"] == "copy" else ""}">{tray_message(r)}</span>{tray_action(r)}</li>'
+        for r in rows)
+    return f"""
 <section class="tray" aria-labelledby="tray-h">
   <div class="tray-drop">
     <span class="ico">{icon("upload")}</span>
-    <p><strong id="tray-h">Drop statements, invoices, receipts or a ledger export</strong>PDF, photos, CSV or Excel, in any order. A file you already sent is never read twice.</p>
-    <a class="button button-primary" href="#">{icon("plus", "icon icon-sm")}Choose files</a>
-    <a class="button button-secondary only-compact" href="#">{icon("camera", "icon icon-sm")}Photo of a receipt</a>
+    <p><strong id="tray-h">{dw("upload.title")}</strong>{dw("upload.description")}</p>
+    <a class="button button-primary" href="#">{icon("plus", "icon icon-sm")}{dw("upload.chooseFiles")}</a>
+    <a class="button button-secondary only-compact" href="#">{icon("camera", "icon icon-sm")}{dw("upload.takePhoto")}</a>
   </div>
-  <ul class="tray-list" aria-label="Just uploaded">
-    <li><span class="file-ico is-dup">{icon("copy")}</span><span class="f">ACB_Feb_2026 (1).pdf</span><span class="m is-dup">Already uploaded on 2 Jul as <a href="labels.html">ACB_Feb_2026.pdf</a>. Not read again and not counted.</span></li>
-    <li><span class="file-ico is-held">{icon("copy")}</span><span class="f">Receipt 0617 (2).jpg</span><span class="m">Looks like <a href="review.html">Receipt 0617.jpg</a> (same merchant, date and total). Held until you decide.</span><span class="act"><a class="button button-secondary button-sm" href="review.html">Decide</a></span></li>
-    <li><span class="file-ico is-busy">{icon("refresh")}</span><span class="f">ACB_Jun_2026.pdf</span><span class="m">Reading page 2 of 3<span class="pbar"><i style="width:58%"></i></span></span></li>
-    <li><span class="file-ico">{icon("table")}</span><span class="f">ledger-2026-H1.csv</span><span class="m">New column layout. Check the columns once and every row is imported.</span><span class="act"><a class="button button-primary button-sm" href="review.html">Check columns</a></span></li>
-  </ul>
+  <ul class="tray-list" aria-label="{dw("upload.justUploaded")}">{lis}</ul>
 </section>"""
+
+
+def documents() -> str:
+    tray = upload_tray()
     chips = "".join(
         f'<a class="chip" href="#"{" aria-pressed=\"true\"" if i == 0 else ""}>{label} <span class="n">{n}</span></a>'
         for i, (label, n) in enumerate([("All", 92), ("Statements", 7), ("Sales invoices", 24), ("Purchase invoices", 18),

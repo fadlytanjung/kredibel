@@ -45,6 +45,7 @@ const RunsPage = lazy(() => import('../pages/RunsPage').then((m) => ({ default: 
 const OnboardingPreview = lazy(() => import('./OnboardingPreview').then((m) => ({ default: m.OnboardingPreview })))
 const AssistantPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.AssistantPreview })))
 const DocumentPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.DocumentPreview })))
+const DocumentsPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.DocumentsPreview })))
 const MonthPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.MonthPreview })))
 const MonthsPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.MonthsPreview })))
 const ProfitLossPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.ProfitLossPreview })))
@@ -207,6 +208,7 @@ export function AppRouter() {
         {PREVIEW_ROUTES && (
           <Route path="/preview/settings/:section" element={<SettingsPreview />} />
         )}
+        {PREVIEW_ROUTES && <Route path="/preview/documents" element={<DocumentsPreview />} />}
         {PREVIEW_ROUTES && <Route path="/preview/documents/:docId" element={<DocumentPreview />} />}
         {PREVIEW_ROUTES && <Route path="/preview/months" element={<MonthsPreview />} />}
         {PREVIEW_ROUTES && <Route path="/preview/months/:month" element={<MonthPreview />} />}

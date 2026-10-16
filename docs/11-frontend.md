@@ -451,6 +451,12 @@ the draw.io source using its extension when that editor is available (never hand
 
 - **Upload tray:** many files at once, any type and order. Client-side pre-checks against the plan
   (size, page count read with pdf.js) are early warnings only. Each file gets a row that changes live.
+  Its list, **Just uploaded**, holds the files sending from this tab, then the workspace's uploads of
+  the last day and any upload still waiting for a person, newest first, at most six: an exact copy
+  ("Already uploaded on 2 Jul as ACB_Feb_2026.pdf. Not read again and not counted."), a held copy
+  with the reason and **Decide**, "Reading page 2 of 3" with its bar, a ledger with a new column
+  layout and **Check columns**, a file that needs input or failed; a read file says what it was read
+  as and offers **Open**.
 
 ```mermaid
 %%{init: {"theme": "base", "themeVariables": {"fontFamily": "Arial, Helvetica, sans-serif", "fontSize": "14px", "primaryColor": "#E7F2EE", "primaryBorderColor": "#0E5A47", "primaryTextColor": "#16212B", "lineColor": "#56636F", "secondaryColor": "#E8ECEE", "tertiaryColor": "#FFFFFF", "clusterBkg": "#F2F4F5", "clusterBorder": "#B9C2CA", "noteBkgColor": "#FFF5D6", "noteTextColor": "#16212B"}, "htmlLabels": false, "flowchart": {"htmlLabels": false, "padding": 16, "nodeSpacing": 40, "rankSpacing": 50, "wrappingWidth": 220}, "sequence": {"wrap": true, "useMaxWidth": true, "noteFontFamily": "Arial, Helvetica, sans-serif", "messageFontFamily": "Arial, Helvetica, sans-serif", "actorFontFamily": "Arial, Helvetica, sans-serif"}}}%%

@@ -122,7 +122,7 @@ SCREEN_INVENTORY: dict[str, ScreenInfo] = {
         badge_label="Implemented",
         badge_class="badge-clean",
         spec="003",
-        notes="Upload anything in any order. Exact copies are recognised at once; possible copies wait for you; ledgers ask for their columns once.",
+        notes="Upload anything in any order. Exact copies are recognised at once; possible copies wait for you; ledgers ask for their columns once. The tray draws from contracts/design/fixtures/documents.json. Parity: documents.spec.ts.",
     ),
     "document": ScreenInfo(
         slug="document",

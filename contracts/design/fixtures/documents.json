@@ -1,0 +1,135 @@
+{
+  "_comment": "Synthetic uploads of Sunrise Coffee Roasters (IDR) for the upload tray on Documents (spec 003, docs/11 §6.3): an exact copy, a held receipt copy, a statement being read and a ledger export waiting for its columns, with the two originals. Shared by design/mocks/documents.html and frontend/tests/visual/documents.spec.ts; `now` is the mock's clock.",
+  "now": "2026-07-10T09:30:00Z",
+  "items": [
+    {
+      "docId": "doc_feb_copy",
+      "fileName": "ACB_Feb_2026 (1).pdf",
+      "contentType": "application/pdf",
+      "sizeBytes": 182044,
+      "pageCount": 3,
+      "docType": "BANK_STATEMENT",
+      "status": "DUPLICATE",
+      "months": ["2026-02"],
+      "duplicate": { "kind": "EXACT", "code": "D01_EXACT_FILE_DUPLICATE", "ofDocId": "doc_feb", "decision": "CONFIRMED" },
+      "heldAsDuplicate": false,
+      "countsAgainstLimits": false,
+      "pages": [],
+      "uploadedBy": "u_maya",
+      "uploadedAt": "2026-07-10T09:26:00Z"
+    },
+    {
+      "docId": "doc_rcp_0617_2",
+      "fileName": "Receipt 0617 (2).jpg",
+      "contentType": "image/jpeg",
+      "sizeBytes": 412880,
+      "pageCount": 1,
+      "docType": "RECEIPT",
+      "status": "DONE",
+      "months": ["2026-06"],
+      "duplicate": { "kind": "CONTENT", "code": "D05_RECEIPT_DUPLICATE", "ofDocId": "doc_rcp_0617", "decision": "PENDING", "reviewItemId": "itm_rcp_0617_2" },
+      "heldAsDuplicate": true,
+      "countsAgainstLimits": true,
+      "pages": [{ "pageNo": 1, "status": "DONE", "textLayer": false, "witness": "OCR" }],
+      "uploadedBy": "u_maya",
+      "uploadedAt": "2026-07-10T09:21:00Z"
+    },
+    {
+      "docId": "doc_jun",
+      "fileName": "ACB_Jun_2026.pdf",
+      "contentType": "application/pdf",
+      "sizeBytes": 190412,
+      "pageCount": 3,
+      "docType": "BANK_STATEMENT",
+      "status": "READING",
+      "months": [],
+      "heldAsDuplicate": false,
+      "countsAgainstLimits": true,
+      "pages": [
+        { "pageNo": 1, "status": "DONE", "textLayer": true, "witness": "TEXT_LAYER" },
+        { "pageNo": 2, "status": "READING", "textLayer": true },
+        { "pageNo": 3, "status": "PENDING", "textLayer": true }
+      ],
+      "uploadedBy": "u_maya",
+      "uploadedAt": "2026-07-10T09:18:00Z"
+    },
+    {
+      "docId": "doc_ledger_h1",
+      "fileName": "ledger-2026-H1.csv",
+      "contentType": "text/csv",
+      "sizeBytes": 96214,
+      "pageCount": 0,
+      "docType": "LEDGER_EXPORT",
+      "status": "NEEDS_INPUT",
+      "statusDetail": "A new column layout: check the columns once.",
+      "months": ["2026-01", "2026-02", "2026-03", "2026-04", "2026-05", "2026-06"],
+      "heldAsDuplicate": false,
+      "countsAgainstLimits": true,
+      "pages": [],
+      "ledgerMeta": { "layoutSignature": "lay_6c1f", "mappingStatus": "PROPOSED", "rows": 1184, "dateFrom": "2026-01-02", "dateTo": "2026-06-30" },
+      "uploadedBy": "u_maya",
+      "uploadedAt": "2026-07-10T09:12:00Z"
+    },
+    {
+      "docId": "doc_rcp_0617",
+      "fileName": "Receipt 0617.jpg",
+      "contentType": "image/jpeg",
+      "sizeBytes": 401220,
+      "pageCount": 1,
+      "docType": "RECEIPT",
+      "status": "DONE",
+      "months": ["2026-06"],
+      "heldAsDuplicate": false,
+      "countsAgainstLimits": true,
+      "pages": [{ "pageNo": 1, "status": "DONE", "textLayer": false, "witness": "OCR" }],
+      "integrity": { "verdict": "CLEAN" },
+      "risk": { "level": "LOW" },
+      "uploadedBy": "u_maya",
+      "uploadedAt": "2026-07-02T08:41:00Z"
+    },
+    {
+      "docId": "doc_feb",
+      "fileName": "ACB_Feb_2026.pdf",
+      "contentType": "application/pdf",
+      "sizeBytes": 182044,
+      "pageCount": 3,
+      "docType": "BANK_STATEMENT",
+      "status": "DONE",
+      "months": ["2026-02"],
+      "heldAsDuplicate": false,
+      "countsAgainstLimits": true,
+      "pages": [
+        { "pageNo": 1, "status": "DONE", "textLayer": true, "witness": "TEXT_LAYER" },
+        { "pageNo": 2, "status": "DONE", "textLayer": true, "witness": "TEXT_LAYER" },
+        { "pageNo": 3, "status": "DONE", "textLayer": true, "witness": "TEXT_LAYER" }
+      ],
+      "integrity": { "verdict": "CLEAN" },
+      "risk": { "level": "MEDIUM" },
+      "uploadedBy": "u_maya",
+      "uploadedAt": "2026-07-02T08:30:00Z"
+    }
+  ],
+  "reviewItems": [
+    {
+      "itemId": "itm_rcp_0617_2",
+      "kind": "POSSIBLE_DUPLICATE",
+      "month": "2026-06",
+      "docId": "doc_rcp_0617_2",
+      "status": "OPEN",
+      "priority": 80,
+      "title": "Is Receipt 0617 (2).jpg the same receipt as Receipt 0617.jpg?",
+      "subject": { "docIds": ["doc_rcp_0617_2", "doc_rcp_0617"] },
+      "allowedActions": ["CONFIRM_DUPLICATE", "NOT_DUPLICATE"]
+    },
+    {
+      "itemId": "itm_ledger_h1",
+      "kind": "CONFIRM_LEDGER_MAPPING",
+      "docId": "doc_ledger_h1",
+      "status": "OPEN",
+      "priority": 75,
+      "title": "Check the columns of ledger-2026-H1.csv",
+      "subject": { "docIds": ["doc_ledger_h1"] },
+      "allowedActions": ["CONFIRM_MAPPING"]
+    }
+  ]
+}

@@ -192,7 +192,7 @@ export function DocumentsPage() {
       </div>
 
       <div className="stack gap-6">
-        <UploadSheet />
+        <UploadSheet documents={documents} />
         <DataTable
           data={documents}
           columns={columns}

@@ -13,9 +13,11 @@ import month from '../../../contracts/design/fixtures/month.json' with { type: '
 import review from '../../../contracts/design/fixtures/review.json' with { type: 'json' }
 import risk from '../../../contracts/design/fixtures/risk.json' with { type: 'json' }
 import runs from '../../../contracts/design/fixtures/runs.json' with { type: 'json' }
+import uploads from '../../../contracts/design/fixtures/documents.json' with { type: 'json' }
 
 export const COUNTERPARTIES = counterparties
 export const DOCUMENT = document
+export const UPLOADS = uploads
 export const MONTH = month
 export const REVIEW = review
 export const RISK = risk

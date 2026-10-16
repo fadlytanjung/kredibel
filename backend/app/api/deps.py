@@ -26,6 +26,7 @@ from app.services.record_service import RecordService
 from app.services.review_service import ReviewService
 from app.services.runs import RunService
 from app.services.suggestion_service import SuggestionService
+from app.services.transaction_service import TransactionService
 from app.services.workspace_service import WorkspaceService
 
 
@@ -44,6 +45,9 @@ class ServiceProvider(Protocol):
 
     @property
     def expectation_service(self) -> ExpectationService: ...
+
+    @property
+    def transaction_service(self) -> TransactionService: ...
 
     @property
     def entitlement_service(self) -> EntitlementService: ...

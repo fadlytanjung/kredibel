@@ -12,6 +12,7 @@ import {
   DocumentsPreview,
   LabelsPreview,
   MonthsPreview,
+  TransactionsPreview,
   ReviewPreview,
   RiskPreview,
   RunsPreview,
@@ -33,6 +34,7 @@ export function TourPreview() {
         <Route path="dashboard" element={<ShellPreview />} />
         <Route path="documents" element={<DocumentsPreview />} />
         <Route path="months/all" element={<MonthsPreview />} />
+        <Route path="transactions" element={<TransactionsPreview />} />
         <Route path="review" element={<ReviewPreview />} />
         <Route path="risk" element={<RiskPreview />} />
         <Route path="counterparties" element={<CounterpartiesPreview />} />

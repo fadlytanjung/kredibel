@@ -9,6 +9,7 @@ export type NavKey =
   | 'dashboard'
   | 'documents'
   | 'months'
+  | 'transactions'
   | 'review'
   | 'risk'
   | 'counterparties'
@@ -47,6 +48,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
     fab: true,
   },
   { key: 'months', path: '/months', icon: 'reconcile', group: 'books', fab: true },
+  { key: 'transactions', path: '/transactions', icon: 'table', group: 'books', fab: true },
   {
     key: 'review',
     path: '/review',

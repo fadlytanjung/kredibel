@@ -1,0 +1,76 @@
+{
+  "title": "Transactions",
+  "subtitle": "Every bank line of the month, one row each: what it is, how IFRS and US GAAP classify it, and what Kredibel matched it to.",
+  "month": "Month",
+  "search": "Search description, party or category",
+  "empty": "No bank lines in this month yet. Upload its statement on the Documents page.",
+  "filters": {
+    "label": "Match",
+    "all": "All",
+    "AUTO": "Matched by Kredibel",
+    "MANUAL": "Matched by you",
+    "PROPOSED": "To confirm",
+    "UNMATCHED": "Not matched"
+  },
+  "columns": {
+    "date": "Date",
+    "description": "Description",
+    "amount": "Amount",
+    "category": "Category",
+    "ifrs": "IFRS",
+    "usGaap": "US GAAP",
+    "subledger": "Subledger",
+    "reading": "Reading",
+    "match": "Matched to"
+  },
+  "by": {
+    "USER": "Set by you",
+    "MATCH": "From its match",
+    "TRANSFER": "Transfer",
+    "RULE": "Rule",
+    "MODEL": "AI, {{confidence}}% sure",
+    "MODEL_plain": "AI",
+    "NONE": "Not categorized"
+  },
+  "classes": {
+    "OPERATING": "Operating",
+    "INVESTING": "Investing",
+    "FINANCING": "Financing",
+    "NON_CASH": "Not a cash flow",
+    "UNCLASSIFIED": "Unclassified"
+  },
+  "reading": {
+    "AGREED": "Read twice, agreed",
+    "CONFLICT": "Readings differ",
+    "SINGLE_SOURCE": "Read once",
+    "MISSING": "Missing"
+  },
+  "match": {
+    "AUTO": "Matched by Kredibel",
+    "MANUAL": "Matched by you",
+    "PROPOSED": "To confirm",
+    "UNMATCHED": "Not matched",
+    "EXCLUDED": "Excluded"
+  },
+  "records": {
+    "INVOICE": "Invoice {{label}}",
+    "RECEIPT": "Receipt {{label}}",
+    "LEDGER_ENTRY": "Ledger {{label}}"
+  },
+  "range": "{{from}}–{{to}} of {{total}}",
+  "drawer": {
+    "close": "Close",
+    "statement": "Open the statement",
+    "month": "Open the month",
+    "date": "Date",
+    "amount": "Amount",
+    "category": "Category",
+    "ifrs": "Cash flow under IFRS",
+    "usGaap": "Cash flow under US GAAP",
+    "pnl": "Profit and loss line",
+    "subledger": "Subledger",
+    "reading": "Reading",
+    "matchedTo": "Matched to",
+    "nothing": "Nothing yet. If Kredibel needs you, it is in the Review queue."
+  }
+}

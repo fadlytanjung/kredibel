@@ -10,6 +10,7 @@ import { DASHBOARD, WORKSPACE } from '../../src/widgets/dashboard/dashboard.fixt
 import { CASH, FLOW_STATEMENT, LINES } from '../../src/widgets/dashboard/charts.fixture'
 import { PNL } from '../../src/widgets/profit-loss/fixture'
 import { COUNTERPARTIES, LABELS, MONTH, mockUrl, REVIEW, RISK, RUNS, texts, UPLOADS } from './fixtures'
+import TRANSACTIONS from '../../../contracts/design/fixtures/transactions.json' with { type: 'json' }
 
 const require = createRequire(import.meta.url)
 
@@ -30,6 +31,7 @@ async function serve(page: Page) {
     if (path === '/api/counterparties') return route.fulfill({ json: { items: COUNTERPARTIES.counterparties, nextCursor: null } })
     if (path === '/api/labels') return route.fulfill({ json: LABELS })
     if (path === '/api/runs') return route.fulfill({ json: { items: RUNS.items, nextCursor: null } })
+    if (path === '/api/transactions') return route.fulfill({ json: TRANSACTIONS })
     return route.fulfill({ json: { items: [] } })
   })
 }
@@ -67,7 +69,7 @@ test('AC-021-4: the tour lights the figures with its card like the mock', async 
 test('AC-021-4: Next opens the next page and lights its part; Back and the arrows move; Esc ends', async ({ page }) => {
   await serve(page)
   await page.goto('/preview/tour/dashboard?tour=1')
-  await expect(card(page)).toContainText('Step 1 of 12')
+  await expect(card(page)).toContainText('Step 1 of 13')
   for (let i = 0; i < 4; i += 1) await page.keyboard.press('ArrowRight')
   await expect(page).toHaveURL(/\/preview\/tour\/documents$/)
   await expect(card(page).getByRole('heading', { name: 'Upload anything, in any order' })).toBeVisible()
@@ -93,13 +95,13 @@ test('AC-021-4: every step opens its page and lights its part', async ({ page })
   test.setTimeout(90_000)
   await serve(page)
   await page.goto('/preview/tour/dashboard?tour=1')
-  const lit = ['period', 'figures', 'flow', 'upload', 'months', 'review', 'risk', 'labels', 'runs', 'assistant']
+  const lit = ['period', 'figures', 'flow', 'upload', 'months', 'transactions', 'review', 'risk', 'labels', 'runs', 'assistant']
   const titles: string[] = []
-  for (let step = 1; step <= 12; step += 1) {
-    await expect(card(page)).toContainText(`Step ${step} of 12`)
+  for (let step = 1; step <= 13; step += 1) {
+    await expect(card(page)).toContainText(`Step ${step} of 13`)
     titles.push((await card(page).getByRole('heading').textContent()) ?? '')
     if (step > 1 && step <= lit.length + 1) await expect(page.locator('.tour-spot'), `step ${step} lights its part`).toBeVisible({ timeout: 8000 })
-    if (step < 12) await card(page).getByRole('button', { name: 'Next', exact: true }).click()
+    if (step < 13) await card(page).getByRole('button', { name: 'Next', exact: true }).click()
   }
   expect(titles.at(-1)).toBe('You are ready')
   await card(page).getByRole('button', { name: 'Done' }).click()

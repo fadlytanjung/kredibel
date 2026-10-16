@@ -61,6 +61,10 @@
       "long": "Reconciliation",
       "short": "Reconcile"
     },
+    "transactions": {
+      "long": "Transactions",
+      "short": "Transactions"
+    },
     "review": {
       "long": "Review",
       "short": "Review"

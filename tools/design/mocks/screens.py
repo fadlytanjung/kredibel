@@ -227,6 +227,7 @@ def expectations_panel(currency: str = "IDR") -> str:
         sides = "".join(side(words(DASH_WORDS, f"expectations.{k}"), m[k]) for k in ("moneyIn", "moneyOut") if m.get(k))
         items += (f'<li><div class="expect-month"><h3>{month_name(m["month"])}</h3><div class="expect-links">'
                   f'<a class="button button-secondary button-sm" href="month.html">{words(DASH_WORDS, "expectations.openMonth")}</a>'
+                  f'<a class="button button-quiet button-sm" href="transactions.html">{icon("table", "icon icon-sm")}{words(DASH_WORDS, "expectations.transactions")}</a>'
                   f'<a class="button button-quiet button-sm" href="documents.html">{icon("files", "icon icon-sm")}{words(DASH_WORDS, "expectations.documents")}</a>'
                   f'</div></div><div class="expect-sides">{sides}</div></li>')
     tolerance = round(float(EXPECT["tolerance"]) * 100)
@@ -400,7 +401,7 @@ def dashboard(extra: str = "", expectations: bool = False) -> str:
 
 
 TOUR_WORDS = json.loads((LOCALES / "tour.json").read_text(encoding="utf-8"))
-TOUR_IDS = ["welcome", "period", "figures", "flow", "upload", "months", "review", "risk", "labels", "runs", "assistant", "done"]
+TOUR_IDS = ["welcome", "period", "figures", "flow", "upload", "months", "transactions", "review", "risk", "labels", "runs", "assistant", "done"]
 
 # The same placement as features/tour/position.ts, measured in the browser like the app.
 TOUR_SCRIPT = """<script>
@@ -2091,6 +2092,124 @@ def welcome(expect: bool = False) -> str:
     return f'<div class="viewport"><div class="onboard">{onboard_brand()}{section}</div></div>'
 
 
+
+TX_WORDS = json.loads((LOCALES / "transactions.json").read_text(encoding="utf-8"))
+TX_FIX = json.loads((ROOT / "contracts/design/fixtures/transactions.json").read_text(encoding="utf-8"))
+TX_CHIP = {"AUTO": ("auto", "link"), "MANUAL": ("manual", "hand"), "PROPOSED": ("proposed", "eye"),
+           "UNMATCHED": ("none", "file-text"), "EXCLUDED": ("excluded", "refresh")}
+TX_MARK = {"AGREED": "reading-agreed", "SINGLE_SOURCE": "reading-single", "CONFLICT": "reading-conflict", "MISSING": "reading-conflict"}
+TX_RECORD_ICON = {"INVOICE": "file-text", "RECEIPT": "receipt", "LEDGER_ENTRY": "book"}
+
+
+def txw(key: str, **params) -> str:
+    return words(TX_WORDS, key, **params)
+
+
+def tx_by(tx: dict) -> str:
+    """widgets/transactions/categorizedBy.ts: a person, the match, a rule, or the model and its confidence."""
+    by = tx.get("categorizedBy") or "NONE"
+    if by == "MODEL":
+        conf = tx.get("categoryConfidence")
+        return txw("by.MODEL", confidence=round(float(conf) * 100)) if conf else txw("by.MODEL_plain")
+    return txw(f"by.{by}")
+
+
+def tx_amount(tx: dict) -> str:
+    value = tx["amount"]["amount"]
+    incoming = not value.startswith("-")
+    return (f'<span class="{"amt-in" if incoming else "amt-out"}"><span class="reading {TX_MARK[tx["reading"]]}">'
+            f'{"+" if incoming else ""}{amount(value)}</span></span>')
+
+
+def tx_chip(tx: dict) -> str:
+    chip, glyph = TX_CHIP.get(tx["match"]["state"], TX_CHIP["UNMATCHED"])
+    return f'<span class="match-chip {chip}">{icon(glyph, "icon icon-sm")}<span>{txw("match." + tx["match"]["state"])}</span></span>'
+
+
+def transactions(selected: str | None = None) -> str:
+    """The Transactions table (spec 024), as pages/TransactionsPage.tsx, from the shared fixture."""
+    items = TX_FIX["items"]
+    trs = []
+    for tx in items:
+        first = tx["description"].split("\n")[0]
+        party = tx.get("counterpartyName")
+        desc = f'<strong>{escape(party or first)}</strong>' + (f'<span class="reason">{escape(first)}</span>' if party else "")
+        records = ", ".join(txw(f"records.{r['kind']}", label=r["label"]) for r in tx["match"]["records"])
+        sel = tx["txId"] == selected
+        trs.append(f"""<tr class="is-clickable{" is-selected" if sel else ""}"{' aria-selected="true"' if sel else ""} tabindex="0">
+  <td>{fmt_date(tx["date"])}</td>
+  <td data-cell="wide"><div class="stack gap-1">{desc}</div></td>
+  <td class="r">{tx_amount(tx)}</td>
+  <td><div class="stack gap-1"><span>{escape(tx["categoryLabel"])}</span><span class="reason">{tx_by(tx)}</span></div></td>
+  <td class="hide-rt small" data-cell="hide">{txw("classes." + tx["cashflow"]["ifrs"])}</td>
+  <td class="hide-rt small" data-cell="hide">{txw("classes." + tx["cashflow"]["usGaap"])}</td>
+  <td class="hide-rt small" data-cell="hide"><div class="stack gap-1"><span>{escape(tx.get("subledger") or "—")}</span>{f'<span class="reason">{escape(tx["pnlLine"])}</span>' if tx.get("pnlLine") else ""}</div></td>
+  <td class="hide-rt small" data-cell="hide">{txw("reading." + tx["reading"])}</td>
+  <td><div class="stack gap-1">{tx_chip(tx)}{f'<span class="reason">{escape(records)}</span>' if records else ""}</div></td>
+</tr>""")
+    states = ["AUTO", "MANUAL", "PROPOSED", "UNMATCHED"]
+    filters = [(txw("filters.all"), len(items))] + [(txw(f"filters.{s}"), sum(1 for tx in items if tx["match"]["state"] == s)) for s in states]
+    columns = [(txw("columns.date"), ""), (txw("columns.description"), "wide"), (txw("columns.amount"), "r"), (txw("columns.category"), ""),
+               (txw("columns.ifrs"), "hide small"), (txw("columns.usGaap"), "hide small"), (txw("columns.subledger"), "hide small"),
+               (txw("columns.reading"), "hide small"), (txw("columns.match"), "")]
+    picker = f'<select class="select select-sm" aria-label="{txw("month")}"><option selected>{month_name(TX_FIX["month"])}</option></select>'
+    table = data_table(filters, 0, txw("filters.label"), txw("search"), columns, "".join(trs), actions=picker,
+                       pager=words(COMMON_WORDS, "table.showingRange", **{"from": 1, "to": len(items), "total": len(items)}), table_class="tx-table")
+    drawer = transaction_drawer(next(tx for tx in items if tx["txId"] == selected)) if selected else ""
+    content = f"""
+<div class="page">
+  <div class="page-head">
+    <h1 class="type-title">{txw("title")}</h1>
+    <p>{txw("subtitle")}</p>
+  </div>
+  {table}
+  {drawer}
+</div>"""
+    return shell("transactions", topbar(txw("title"), (txw("title"),)), content)
+
+
+def transaction_drawer(tx: dict) -> str:
+    """One transaction in the kit's drawer, as widgets/transactions/TransactionDrawer.tsx."""
+    value = tx["amount"]["amount"]
+    incoming = not value.startswith("-")
+    facts = [(txw("drawer.date"), fmt_date(tx["date"])), (txw("drawer.category"), f'{escape(tx["categoryLabel"])} ({tx_by(tx)})'),
+             (txw("drawer.ifrs"), txw("classes." + tx["cashflow"]["ifrs"])), (txw("drawer.usGaap"), txw("classes." + tx["cashflow"]["usGaap"])),
+             (txw("drawer.pnl"), escape(tx.get("pnlLine") or "—")), (txw("drawer.subledger"), escape(tx.get("subledger") or "—")),
+             (txw("drawer.reading"), txw("reading." + tx["reading"]))]
+    dl = "".join(f"<div><dt>{k}</dt><dd>{v}</dd></div>" for k, v in facts)
+    records = tx["match"]["records"]
+    recs = (f'<p class="muted small">{txw("drawer.nothing")}</p>' if not records else
+            '<ul class="tx-records">' + "".join(
+                f'<li><a class="link" href="document.html">{icon(TX_RECORD_ICON[r["kind"]], "icon icon-sm")}{escape(txw("records." + r["kind"], label=r["label"]))}</a></li>'
+                for r in records) + "</ul>")
+    sub = escape(tx.get("counterpartyName") or month_name(tx["month"]))
+    return f"""
+<div class="drawer-frame">
+  <div class="drawer-behind" aria-hidden="true"></div>
+  <div class="drawer" role="dialog" aria-modal="true" aria-labelledby="tx-h">
+    <div class="drawer-head">
+      <div class="stack gap-2 flex-1 min-w-0">
+        <span class="muted small">{sub}</span>
+        <h1 id="tx-h">{escape(tx["description"].split(chr(10))[0])}</h1>
+        <p class="{"amt-in" if incoming else "amt-out"}"><span class="reading {TX_MARK[tx["reading"]]}">{"+" if incoming else ""}{amount(value)}</span> <small>{tx["amount"]["currency"]}</small></p>
+      </div>
+      <a class="icon-button" href="transactions.html" aria-label="{txw("drawer.close")}">{icon("x")}</a>
+    </div>
+    <div class="drawer-body tx-body">
+      <dl class="tx-facts">{dl}</dl>
+      <section class="stack gap-2" aria-labelledby="tx-matched-h">
+        <h2 id="tx-matched-h" class="small muted">{txw("drawer.matchedTo")}</h2>
+        {tx_chip(tx)}
+        {recs}
+      </section>
+      <div class="actions">
+        <a class="button button-secondary button-sm" href="document.html">{icon("file-text", "icon icon-sm")}{txw("drawer.statement")}</a>
+        <a class="button button-quiet button-sm" href="month.html">{txw("drawer.month")}</a>
+      </div>
+    </div>
+  </div>
+</div>"""
+
 SCREENS = {
     "dashboard": ("Dashboard", dashboard),
     "profit-loss": ("Company profit and loss", profit_loss),
@@ -2116,6 +2235,8 @@ SCREENS = {
     "welcome": ("Welcome", welcome),
     "welcome-expect": ("Welcome: expectations", lambda: welcome(expect=True)),
     "dashboard-expectations": ("Dashboard: expectations", lambda: dashboard(expectations=True)),
+    "transactions": ("Transactions", transactions),
+    "transaction": ("Transactions: one transaction", lambda: transactions(selected="st-05#6")),
     "tour": ("Guided tour", tour),
 }
 
@@ -2142,6 +2263,8 @@ NOTES = {
     "onboarding": "The demo company when the server has one, then the business in one form; the brand panel explains the promise with a ledger.",
     "welcome": "Spec 024: asked once after onboarding, with no navigation: keep the books, or check what you expect first.",
     "welcome-expect": "Spec 024: the money in and out expected per month; empty means unknown. Saved, then the dashboard.",
-    "dashboard-expectations": "Spec 024: the dashboard with what the person expected against the reconciled months, and the way to each month and its documents.",
+    "dashboard-expectations": "Spec 024: the dashboard with what the person expected against the reconciled months, and the way to each month and its transactions and documents.",
+    "transactions": "Spec 024: every bank line of a month in one table, with its category and who chose it, its cash-flow class under IFRS and US GAAP, its subledger, its reading and what it is matched to.",
+    "transaction": "Spec 024: one transaction in the drawer, with its classes, reading, matched records and the way to its statement and month.",
     "tour": "The guided tour on the dashboard: the figures lit, the page dimmed around them, and the card with Back, Next and Skip.",
 }

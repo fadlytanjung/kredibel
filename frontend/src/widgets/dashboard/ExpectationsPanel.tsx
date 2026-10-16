@@ -67,6 +67,10 @@ export function ExpectationsPanel({ currency }: { currency: string }) {
                 <Link className="button button-secondary button-sm" to={`/months/${m.month}`}>
                   {t('expectations.openMonth')}
                 </Link>
+                <Link className="button button-quiet button-sm" to={`/transactions?month=${m.month}`}>
+                  <Icon name="table" size="sm" />
+                  {t('expectations.transactions')}
+                </Link>
                 <Link className="button button-quiet button-sm" to={`/documents?month=${m.month}`}>
                   <Icon name="files" size="sm" />
                   {t('expectations.documents')}

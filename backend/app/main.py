@@ -73,6 +73,7 @@ from app.api.runs import create_runs_router
 from app.api.static import mount_static_spa
 from app.api.suggestions import create_suggestions_router
 from app.api.tasks import create_tasks_router
+from app.api.transactions import create_transactions_router
 from app.api.workspace import create_workspace_router
 from app.core.auth import (
     FirebaseTokenVerifier,
@@ -143,6 +144,7 @@ from app.services.record_service import RecordService
 from app.services.review_service import ReviewService
 from app.services.runs import DocumentWorkflowRunner, MonthWorkflowRunner, RunService
 from app.services.suggestion_service import SuggestionService
+from app.services.transaction_service import TransactionService
 from app.services.workspace_service import WorkspaceService
 
 T = TypeVar("T")
@@ -879,6 +881,24 @@ class AppDeps:
         )
 
     @property
+    def transaction_service(self) -> TransactionService:
+        return self._once(
+            "transaction_service",
+            lambda: TransactionService(
+                bank_lines=self.bank_lines,
+                matches=self.matches,
+                invoices=self.invoices,
+                receipts=self.receipts,
+                ledger=self.ledger_repo,
+                workspaces=self.workspace_repo,
+                categories=self.categories,
+                profit_loss=load_profit_loss_policy(
+                    self.settings.contract_path(self.settings.policy_dir)
+                ),
+            ),
+        )
+
+    @property
     def expectation_service(self) -> ExpectationService:
         return self._once(
             "expectation_service",
@@ -984,6 +1004,7 @@ def create_app(
         app.include_router(create_runs_router(deps, workspace_dep))
         app.include_router(create_months_router(deps, workspace_dep))
         app.include_router(create_bank_lines_router(deps, workspace_dep))
+        app.include_router(create_transactions_router(deps, workspace_dep))
         app.include_router(create_insights_router(deps, workspace_dep))
         app.include_router(create_profit_loss_router(deps, workspace_dep))
         app.include_router(create_records_router(deps, workspace_dep))

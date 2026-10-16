@@ -2681,3 +2681,15 @@ button.span-name:focus-visible { outline: 2px solid var(--k-color-focus-ring); o
 .expect-side .v { display: flex; flex-wrap: wrap; gap: 4px var(--k-space-4); font-size: 13.5px; }
 .expect-side .v strong { font-variant-numeric: tabular-nums; }
 .expect-links { display: flex; flex-wrap: wrap; gap: var(--k-space-2); }
+
+/* Spec 024: the Transactions table's drawer. */
+.tx-facts { display: grid; grid-template-columns: 1fr; gap: var(--k-space-3); margin: 0; }
+@container app (width >= 600px) { .tx-facts { grid-template-columns: 1fr 1fr; } }
+.tx-facts dt { font-size: 12.5px; font-weight: 620; color: var(--k-color-text-muted); }
+.tx-facts dd { margin: 2px 0 0; }
+.tx-records { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--k-space-2); }
+.tx-records .link { display: inline-flex; align-items: center; gap: 6px; }
+.drawer-body.tx-body { display: flex; flex-direction: column; gap: var(--k-space-5); padding: var(--k-space-5); }
+.tx-table td:first-child { white-space: nowrap; }
+.tx-body .match-chip { align-self: flex-start; }
+.tx-body .actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--k-space-2); }

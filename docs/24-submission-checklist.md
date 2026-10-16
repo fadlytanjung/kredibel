@@ -13,6 +13,7 @@ and [`20`](20-implementation-status.md) for detail and never replaces them._
 | Sign-in on `https://kredibel.app` | **Blocked** until the API key allows the domain | §4, `infra/allow-web-domain.sh kredibel.app www.kredibel.app` |
 | `https://www.kredibel.app` | **No certificate**: not added in Firebase Hosting | §4 |
 | A new account can open the demo company and the guided tour starts by itself | Works (spec 021) | sign in with a fresh Google account → *Explore a demo company* |
+| The public demo account signs in without Google and can be reset | Works (spec 024) | `demo@kredibel.app` on `/login` ([docs/25](25-demo.md)); `make demo-account` resets it |
 | New workspaces | `MAX_WORKSPACES=200`, `SIGNUP_MODE` open | `infra/env-secret.sh keys`; counter in `system/signup` |
 | Every gate green on `main` | `make check` | CI and local |
 
@@ -44,6 +45,7 @@ Open tasks are counted from each `tasks.md`; the status column is [`20`](20-impl
 | 020 Public site | P0 | 30 / 2 | Deployed | T020-17 docs, T020-30 tests |
 | 021 Demo and guided tour | P0 | 6 / 0 | Deployed | — |
 | 022 Extraction store | P0 / P1 | 9 / 0 | Deployed | — |
+| 024 Demo account, expectations, transactions | P0 / P1 | 7 / 0 | Deployed | — |
 
 **The one P0 gap is spec 012**: there are no measured results yet, so neither the public site nor the
 README may quote an accuracy, match rate or review share (§3).
@@ -59,7 +61,7 @@ stays only when it was measured.
 | "Files are screened before any model reads them"; "quarantined files never reach a model" | Model Armor screening is spec 015 (not built); nothing sets `QUARANTINED` | Prompts treat documents as data; the assistant's tools are read-only and workspace-scoped; screening "on the roadmap" |
 | "A workspace can be deleted" (Security, FAQ, Privacy, landing) | Only a document can be deleted (`DELETE /api/documents/{docId}`) | Document deletion; a whole workspace "on request by email" |
 | "Up to 3 team members", "up to three people" | The plan has 3 seats but invites are T013-17 (not built) | "Team invites coming soon" (site, plan contract, Plan & usage mock) |
-| "More than nine in ten bank lines are matched automatically with no wrong automatic matches" | Never measured (spec 012); the demo company has 88 of 221 bank lines unmatched | How matching decides, no number |
+| "More than nine in ten bank lines are matched automatically with no wrong automatic matches" | Never measured by the eval suite (spec 012). The August–October demo company (synthetic) has 71 of 73 bank lines matched automatically (17 Oct 2026, after bank-to-ledger matching); on S1 no automatic bank-to-ledger match is wrong (test) | How matching decides, no number |
 | "About 15% of what Kredibel reads goes to one queue" | Never measured | No number |
 | "Client-side checks warn about a plan limit before anything is read" | Limits are enforced by the server; the upload sheet has no limit check | Server check, Plan & usage shows what is left |
 | "Adaptive reading costs about USD 0.45 for a half-year of books" | Measured on the demo company: one reading of 80 documents, 89 pages = USD 0.43 (`run_usage`, `pricing.v1.yaml`) | Kept |

@@ -36,7 +36,8 @@ Planted on purpose, to see what Kredibel finds:
 | October | Roastline's invoice asks for payment to a new bank account, and it was paid there | Risk: October is **HIGH** (a supplier paid to an account never seen before) |
 
 Then try: the **Dashboard** (money in and out, the money flow and the profit and loss), a **month**
-(its matches, with the reason for each), the **Review** queue, **Labels** (what the AI read, to confirm
+(its matches, with the reason for each), **Transactions** (every bank line with its IFRS and US GAAP
+class, subledger and what it is matched to), the **Review** queue, **Labels** (what the AI read, to confirm
 or correct), **Runs** (every workflow, its model calls and cost), and the **Assistant** ("How much
 money went out in October?").
 

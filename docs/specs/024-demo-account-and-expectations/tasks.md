@@ -5,8 +5,10 @@
 - [x] **T024-01** **TDD** `kredibel-synth demo --window`: keep the window's files and ledger rows.
   (AC-024-1) Built 17 Oct 2026: `--window 2026-08:2026-10` (window.py) and `--pack` (pack.py, one
   folder of 39 files with its upload order); the upload maps the bank account to ledger 1110.
-- [ ] **T024-02** Rebuild the demo company from August–October with the bank account mapped to the
-  ledger cash account; measure "Matched by Kredibel" per month. (AC-024-2)
+- [x] **T024-02** Rebuild the demo company from August–October with the bank account mapped to the
+  ledger cash account; measure "Matched by Kredibel" per month. (AC-024-2) Built 17 Oct 2026 with
+  bank-to-ledger matching (spec 023, T023-12): August 91.7 % (CRITICAL: A01, A02, M01–M04, X09),
+  September 100 % (R02 twice), October 100 % (X08 HIGH); the scanned copy held (D03).
 
 ## B. Demo account (P0)
 
@@ -26,6 +28,8 @@
 
 ## D. Transactions table (P1)
 
-- [ ] **T024-06** Transactions page from the bank lines with their classes, subledger and confidence;
-  mock. (AC-024-6)
-- [ ] **T024-07** Update `docs/20`, `docs/24`, README.
+- [x] **T024-06** Transactions page from the bank lines with their classes, subledger and confidence;
+  mock. (AC-024-6) Built 17 Oct 2026: `GET /api/transactions?month=` (`domain/transactions.py`), the
+  Transactions menu and tour step, the row drawer, mocks transactions and transaction, parity in
+  transactions.spec.ts; every shell baseline refreshed for the new menu item.
+- [x] **T024-07** Update `docs/20`, `docs/24`, README.

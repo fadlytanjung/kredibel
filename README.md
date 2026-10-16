@@ -56,8 +56,10 @@ Around it: a **dashboard** with a money-flow Sankey and a profit and loss flow, 
 individuals and companies (paid tiers and a **loan readiness report** shown as coming soon), a
 **Finance Assistant** that answers from your books' figures and quotes the pages of your documents it
 relied on (searched in Firestore vector search), **labels** people confirm or correct, a **Runs**
-page with every workflow's stages, models and cost, and a **demo company** with a guided tour for a
-first look. The assistant's agent with tools and Memory Bank, Model Armor screening and team invites
+page with every workflow's stages, models and cost, a **Transactions** table with each bank line's
+IFRS and US GAAP class, subledger and match, and a **demo company** with a guided tour for a first
+look, also open to anyone through a **demo account** with email and password
+([docs/25](docs/25-demo.md)). The assistant's agent with tools and Memory Bank, Model Armor screening and team invites
 are planned (P1); [`docs/24`](docs/24-submission-checklist.md) lists what is built and what is not.
 
 ## Built on Google Cloud

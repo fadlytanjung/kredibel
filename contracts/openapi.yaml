@@ -615,6 +615,32 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/BankLinePage" }
 
+  /api/transactions:
+    get:
+      tags: [books]
+      operationId: listTransactions
+      description: |
+        Spec 024, AC-024-6: every bank line of a month, by date, with its category and, from the
+        category policy, its cash-flow class under IFRS and US GAAP, its profit-and-loss line and
+        subledger (cash basis); the model's confidence when a model chose the category; the weakest
+        of its amount and date readings; and the records its confirmed or proposed match points to.
+      parameters:
+        - { name: month, in: query, required: true, schema: { $ref: "#/components/schemas/YearMonth" } }
+      responses:
+        "200":
+          description: The month's transactions
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [month, items]
+                properties:
+                  month: { $ref: "#/components/schemas/YearMonth" }
+                  items: { type: array, items: { $ref: "#/components/schemas/Transaction" } }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
   /api/bank-lines/{txId}:
     parameters:
       - { name: txId, in: path, required: true, schema: { type: string, pattern: "^tx_[0-9a-f]{16}$" } }
@@ -2329,6 +2355,47 @@ components:
         corrected: { type: boolean }
         source: { type: string, enum: [AI, WITNESS], description: "WITNESS: a row only the page's words have (ADR-023)" }
         notes: { type: array, items: { type: string } }
+    Transaction:
+      type: object
+      required: [txId, docId, date, month, description, amount, category, categoryLabel, cashflow, reading, match]
+      properties:
+        txId: { type: string }
+        docId: { type: string, description: "The statement" }
+        page: { type: integer }
+        date: { type: string, format: date }
+        month: { $ref: "#/components/schemas/YearMonth" }
+        description: { type: string }
+        counterpartyName: { type: [string, "null"] }
+        amount: { $ref: "#/components/schemas/Money" }
+        category: { $ref: "#/components/schemas/Category" }
+        categoryLabel: { type: string }
+        categorizedBy: { type: string, enum: [USER, MATCH, TRANSFER, RULE, MODEL, NONE] }
+        categoryConfidence: { oneOf: [{ $ref: "#/components/schemas/Decimal" }, { type: "null" }], description: "0–1, only when a model chose the category" }
+        cashflow:
+          type: object
+          required: [ifrs, usGaap]
+          properties:
+            ifrs: { $ref: "#/components/schemas/CashflowClass" }
+            usGaap: { $ref: "#/components/schemas/CashflowClass" }
+        pnlLine: { type: [string, "null"], description: "The profit-and-loss line's label (cash basis)" }
+        subledger: { type: [string, "null"], description: "The subledger's label" }
+        reading: { $ref: "#/components/schemas/ValueStatus" }
+        match:
+          type: object
+          required: [state, records]
+          properties:
+            state: { $ref: "#/components/schemas/MatchState" }
+            kind: { oneOf: [{ $ref: "#/components/schemas/MatchKind" }, { type: "null" }] }
+            records:
+              type: array
+              items:
+                type: object
+                required: [kind, id, docId, label]
+                properties:
+                  kind: { type: string, enum: [INVOICE, RECEIPT, LEDGER_ENTRY] }
+                  id: { type: string }
+                  docId: { type: string }
+                  label: { type: string }
     BankLineUpdate:
       type: object
       required: [category]

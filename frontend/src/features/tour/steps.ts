@@ -19,6 +19,7 @@ export const TOUR_STEPS: TourStep[] = [
   { id: 'flow', path: '/dashboard', target: '#content .charts' },
   { id: 'upload', path: '/documents', target: '#content .tray' },
   { id: 'months', path: '/months/all', target: '#content .table-panel' },
+  { id: 'transactions', path: '/transactions', target: '#content .table-panel' },
   { id: 'review', path: '/review', target: '#content .table-panel' },
   { id: 'risk', path: '/risk', target: '#content .find-group' },
   { id: 'labels', path: '/labels', target: '#content .table-panel' },

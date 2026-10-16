@@ -35,6 +35,7 @@ Specifications are the source of truth: code implements them, and both change to
 | 22 | [Data migrations](22-data-migrations.md) | Versioned documents, upcasters, forward-only migrations, backups, portability |
 | 23 | [How the agents work, and how to trace them](23-agents-and-tracing-guide.md) | ADK for LangGraph and LangSmith users: workflows, runs, the dev UI (`make dev-agents`), Cloud Trace |
 | 24 | [Submission checklist](24-submission-checklist.md) | What is live, every spec's open tasks, the public copy against what is built, and the owner actions outside the code |
+| 25 | [Try Kredibel with the demo account](25-demo.md) | The public demo sign-in, what its synthetic books hold, and how to reset it |
 | — | [Glossary](glossary.md) | Terms |
 | — | [ADRs](adr) | Decisions and their trade-offs |
 

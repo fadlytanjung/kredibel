@@ -134,6 +134,38 @@ paths:
         "409": { $ref: "#/components/responses/Problem" }
         "503": { $ref: "#/components/responses/Problem" }
 
+  /api/expectations:
+    get:
+      tags: [workspace]
+      operationId: compareExpectations
+      description: |
+        Spec 024, AC-024-5: each month the person expects money in or out for, against the month's
+        reconciled figures: AS_EXPECTED within the tolerance, DIFFERENT with the difference, WAITING
+        until the month is reconciled. It never judges the expectation.
+      responses:
+        "200":
+          description: The comparison
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ExpectationComparison" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+  /api/workspaces/demo/reset:
+    post:
+      tags: [workspace]
+      operationId: resetDemoAccount
+      description: |
+        Spec 024: the public demo account's workspace (DEMO_ACCOUNT_EMAIL) replaced by a fresh copy
+        of the demo company; any other caller gets 403. The client refreshes its ID token after it.
+      responses:
+        "200":
+          description: The new workspace
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Workspace" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "503": { $ref: "#/components/responses/Problem" }
   /api/workspace:
     get:
       tags: [workspace]
@@ -1986,6 +2018,41 @@ components:
         timezone: { type: string }
         defaultLanguage: { type: string, enum: [en] }
         learning: { $ref: "#/components/schemas/LearningSettings" }
+        goal: { $ref: "#/components/schemas/WorkspaceGoal" }
+        expectations: { type: array, maxItems: 12, items: { $ref: "#/components/schemas/MonthExpectation" } }
+    WorkspaceGoal:
+      type: string
+      enum: [BOOKKEEPING, CHECK_EXPECTATIONS]
+      description: "Spec 024: what the person wants from Kredibel, asked once after onboarding"
+    MonthExpectation:
+      type: object
+      required: [month]
+      properties:
+        month: { $ref: "#/components/schemas/YearMonth" }
+        moneyIn: { oneOf: [{ $ref: "#/components/schemas/Decimal" }, { type: "null" }], description: "Expected money in, major units, never negative" }
+        moneyOut: { oneOf: [{ $ref: "#/components/schemas/Decimal" }, { type: "null" }] }
+    ExpectationSide:
+      type: object
+      required: [expected, status]
+      properties:
+        expected: { $ref: "#/components/schemas/Decimal" }
+        actual: { oneOf: [{ $ref: "#/components/schemas/Decimal" }, { type: "null" }] }
+        difference: { oneOf: [{ $ref: "#/components/schemas/Decimal" }, { type: "null" }], description: "Actual minus expected" }
+        status: { type: string, enum: [AS_EXPECTED, DIFFERENT, WAITING] }
+    ExpectationComparison:
+      type: object
+      required: [tolerance, months]
+      properties:
+        tolerance: { $ref: "#/components/schemas/Decimal" }
+        months:
+          type: array
+          items:
+            type: object
+            required: [month]
+            properties:
+              month: { $ref: "#/components/schemas/YearMonth" }
+              moneyIn: { oneOf: [{ $ref: "#/components/schemas/ExpectationSide" }, { type: "null" }] }
+              moneyOut: { oneOf: [{ $ref: "#/components/schemas/ExpectationSide" }, { type: "null" }] }
     SubscriptionState:
       type: object
       required: [planId, status]
@@ -2020,6 +2087,8 @@ components:
         subscription: { $ref: "#/components/schemas/SubscriptionState" }
         usage: { $ref: "#/components/schemas/UsageSummary" }
         learning: { $ref: "#/components/schemas/LearningSettings" }
+        goal: { oneOf: [{ $ref: "#/components/schemas/WorkspaceGoal" }, { type: "null" }] }
+        expectations: { type: array, items: { $ref: "#/components/schemas/MonthExpectation" } }
         counts:
           type: object
           properties:

@@ -14,6 +14,7 @@ from app.services.counterparty_service import CounterpartyService
 from app.services.decision_service import DecisionService
 from app.services.document_service import DocumentService
 from app.services.entitlement_service import EntitlementService
+from app.services.expectation_service import ExpectationService
 from app.services.extraction_service import ExtractionService
 from app.services.finding_service import FindingService
 from app.services.insight_service import InsightService
@@ -40,6 +41,9 @@ class ServiceProvider(Protocol):
 
     @property
     def workspace_service(self) -> WorkspaceService: ...
+
+    @property
+    def expectation_service(self) -> ExpectationService: ...
 
     @property
     def entitlement_service(self) -> EntitlementService: ...

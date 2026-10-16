@@ -27,7 +27,7 @@ from app.domain.accounts import (
     mask_account,
     mask_tax_id,
 )
-from app.domain.errors import DemoUnavailableError
+from app.domain.errors import DemoUnavailableError, ForbiddenError
 from app.domain.models.events import AuditEvent
 from app.domain.models.workspace import (
     BankAccount,
@@ -68,6 +68,7 @@ class WorkspaceService:
         on_framework_change: Callable[[str, str], Awaitable[object]] | None = None,
         copier: WorkspaceCopier | None = None,
         demo_template_org: str = "",
+        demo_account_email: str = "",
     ) -> None:
         self._repo = repo
         self._identity = identity
@@ -78,6 +79,7 @@ class WorkspaceService:
         self._max_workspaces = max_workspaces
         self._copier = copier
         self._demo_template_org = demo_template_org
+        self._demo_account_email = demo_account_email.strip().lower()
 
     async def create(self, principal: Principal, request: WorkspaceCreate) -> Workspace:
         # A claim only counts while its workspace exists; a stale one (never created, or removed by
@@ -109,6 +111,18 @@ class WorkspaceService:
     @property
     def demo_available(self) -> bool:
         return bool(self._demo_template_org and self._copier is not None)
+
+    async def reset_demo_account(self, principal: Principal) -> Workspace:
+        """Spec 024, AC-024-3: the public demo account's workspace replaced by a fresh copy of the
+        demo company; nobody else's workspace can be reset this way."""
+        email = (principal.email or "").strip().lower()
+        if not self._demo_account_email or email != self._demo_account_email:
+            raise ForbiddenError("Only the demo account can be reset.")
+        if not self.demo_available or self._copier is None:
+            raise DemoUnavailableError()
+        if principal.org_id is not None and principal.org_id != self._demo_template_org:
+            await self._copier.discard(principal.org_id)
+        return await self.create_demo(principal.model_copy(update={"org_id": None, "role": None}))
 
     async def create_demo(self, principal: Principal) -> Workspace:
         """Spec 021: a new workspace, owned by the principal, holding a copy of the demo template's
@@ -196,6 +210,13 @@ class WorkspaceService:
             updates["default_language"] = patch.default_language
         if patch.learning is not None:
             updates["share_verified_labels"] = patch.learning.share_verified_labels
+        if patch.goal is not None:
+            updates["goal"] = patch.goal
+        if patch.expectations is not None:
+            months = [e.month for e in patch.expectations]
+            if len(set(months)) != len(months):
+                raise ValidationProblem("expectations", "One expectation per month.")
+            updates["expectations"] = sorted(patch.expectations, key=lambda e: e.month)
         profile_updates = patch.profile.model_dump(exclude_unset=True) if patch.profile else {}
         profile_updates.pop("tax_id_masked", None)  # read-only; set from taxId only
         if patch.tax_id is not None:

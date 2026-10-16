@@ -68,5 +68,33 @@
     "open": "Open the demo company",
     "opening": "Preparing the demo company…",
     "or": "or set up your own business"
+  },
+  "welcome": {
+    "title": "What would you like Kredibel to do first?",
+    "subtitle": "You can change this later. Either way, every document is read twice and every number keeps its source.",
+    "books": {
+      "title": "Keep my books",
+      "body": "Reconcile bank statements, invoices, receipts and your ledger month by month, with one short review queue.",
+      "action": "Go to my dashboard"
+    },
+    "expect": {
+      "title": "Check what I expect",
+      "body": "Write the money in and out you expect for one or more months. Once your documents are read, see whether the books agree.",
+      "action": "Set my expectations"
+    },
+    "form": {
+      "title": "What you expect",
+      "hint": "Leave a box empty if you do not know. Whole amounts in {{currency}}.",
+      "month": "Month",
+      "moneyIn": "Money in",
+      "moneyOut": "Money out",
+      "add": "Add a month",
+      "remove": "Remove {{month}}",
+      "save": "Save and go to my dashboard",
+      "saving": "Saving…",
+      "invalid": "Choose a month and write at least one amount as digits, e.g. 150000000.",
+      "rowAria": "Expectation {{index}}"
+    },
+    "skip": "Skip for now"
   }
 }

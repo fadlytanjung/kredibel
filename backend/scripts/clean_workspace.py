@@ -34,6 +34,9 @@ COLLECTIONS = (
     "runs",
     "events",
     "fileHashes",
+    "labels",
+    "counterparties",
+    "chunks",
 )
 
 

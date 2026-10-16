@@ -73,6 +73,10 @@ class LedgerCash(_Part):
     min_party: Share
 
 
+class Expectations(_Part):
+    tolerance: Share
+
+
 class ReasonThresholds(_Part):
     party: Share
     date: Share
@@ -93,6 +97,7 @@ class ReconciliationPolicy(_Part):
     ledger: dict[str, Any]
     ledger_cash: LedgerCash
     review_items: dict[str, Any]
+    expectations: Expectations
 
     @model_validator(mode="after")
     def identity_needed_for_auto(self) -> Self:

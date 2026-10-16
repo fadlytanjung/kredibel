@@ -75,7 +75,7 @@ function renderForm(refreshes: MeResponse[] = [me(false)]) {
         <MemoryRouter initialEntries={['/onboarding']}>
           <Routes>
             <Route path="/onboarding" element={<CreateWorkspaceForm retryDelayMs={5} />} />
-            <Route path="/dashboard" element={<p>Dashboard home</p>} />
+            <Route path="/welcome" element={<p>Welcome question</p>} />
           </Routes>
         </MemoryRouter>
       </AuthContext.Provider>
@@ -104,7 +104,7 @@ describe('CreateWorkspaceForm (AC-013-2)', () => {
     expect(screen.getByText(/150 documents and 400 pages a month/)).toBeInTheDocument()
   })
 
-  it('creates the workspace, refreshes the session and lands on the dashboard', async () => {
+  it('creates the workspace, refreshes the session and asks the welcome question (spec 024)', async () => {
     const { user, refreshSession } = renderForm()
 
     await user.type(screen.getByLabelText('Legal name'), 'Synthetic Roasters Ltd')
@@ -114,7 +114,7 @@ describe('CreateWorkspaceForm (AC-013-2)', () => {
     await user.click(screen.getByRole('button', { name: 'US GAAP' }))
     await user.click(screen.getByRole('button', { name: 'Start the free trial' }))
 
-    expect(await screen.findByText('Dashboard home')).toBeInTheDocument()
+    expect(await screen.findByText('Welcome question')).toBeInTheDocument()
     expect(created).toEqual([
       expect.objectContaining({
         name: 'Synthetic Roasters Ltd',
@@ -139,7 +139,7 @@ describe('CreateWorkspaceForm (AC-013-2)', () => {
     await user.selectOptions(screen.getByLabelText('Currency'), 'MYR')
     await user.click(screen.getByRole('button', { name: 'Start the free trial' }))
 
-    await screen.findByText('Dashboard home')
+    await screen.findByText('Welcome question')
     expect(created[0]).toMatchObject({ currency: 'MYR' })
   })
 
@@ -188,7 +188,7 @@ describe('CreateWorkspaceForm (AC-013-2)', () => {
     await user.type(screen.getByLabelText('Account number'), '123-456-4821')
     await user.click(screen.getByRole('button', { name: 'Start the free trial' }))
 
-    await screen.findByText('Dashboard home')
+    await screen.findByText('Welcome question')
     expect(created[0]).toMatchObject({
       bankAccounts: [{ bankName: 'Bank Sintetis', accountNumber: '123-456-4821', holderName: 'SR Ltd' }],
     })
@@ -200,7 +200,7 @@ describe('CreateWorkspaceForm (AC-013-2)', () => {
     await user.type(screen.getByLabelText('Legal name'), 'Synthetic Roasters Ltd')
     await user.click(screen.getByRole('button', { name: 'Start the free trial' }))
 
-    expect(await screen.findByText('Dashboard home')).toBeInTheDocument()
+    expect(await screen.findByText('Welcome question')).toBeInTheDocument()
     expect(refreshSession).toHaveBeenCalledTimes(2)
   })
 
@@ -220,7 +220,7 @@ describe('CreateWorkspaceForm (AC-013-2)', () => {
     await user.type(screen.getByLabelText('Legal name'), 'Synthetic Roasters Ltd')
     await user.click(screen.getByRole('button', { name: 'Start the free trial' }))
 
-    expect(await screen.findByText('Dashboard home')).toBeInTheDocument()
+    expect(await screen.findByText('Welcome question')).toBeInTheDocument()
   })
 
   it('shows SIGNUP_CLOSED in words (AC-013-3)', async () => {

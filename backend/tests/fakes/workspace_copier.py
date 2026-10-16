@@ -1,12 +1,15 @@
 """A WorkspaceCopier that records what it was asked to copy (spec 021); it can be told to fail."""
 
+from typing import Any
+
 from app.ports.workspace_copier import WorkspaceCopier
 
 
 class FakeWorkspaceCopier(WorkspaceCopier):
-    def __init__(self, records: int = 1284, fail: bool = False) -> None:
+    def __init__(self, records: int = 1284, fail: bool = False, workspaces: Any = None) -> None:
         self.records = records
         self.fail = fail
+        self.workspaces = workspaces  # a FakeWorkspaceRepository: discard removes the workspace
         self.copies: list[tuple[str, str, dict[str, str]]] = []
         self.fields: list[tuple[str, str]] = []
         self.discarded: list[str] = []
@@ -24,3 +27,6 @@ class FakeWorkspaceCopier(WorkspaceCopier):
 
     async def discard(self, org_id: str) -> None:
         self.discarded.append(org_id)
+        if self.workspaces is not None:
+            self.workspaces.workspaces.pop(org_id, None)
+            self.workspaces.members.pop(org_id, None)

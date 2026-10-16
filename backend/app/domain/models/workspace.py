@@ -108,6 +108,17 @@ class BankAccount(DomainModel):
     last_month: str | None = None
 
 
+Goal = Literal["BOOKKEEPING", "CHECK_EXPECTATIONS"]
+
+
+class MonthExpectation(DomainModel):
+    """Spec 024: the money in and out a person expects for a month (major units, never negative)."""
+
+    month: str = Field(pattern=r"^\d{4}-(0[1-9]|1[0-2])$")
+    money_in: Decimal | None = Field(default=None, ge=0, max_digits=17, decimal_places=2)
+    money_out: Decimal | None = Field(default=None, ge=0, max_digits=17, decimal_places=2)
+
+
 class Workspace(DomainModel):
     """orgs/{orgId} as the services see it."""
 
@@ -123,6 +134,9 @@ class Workspace(DomainModel):
     share_verified_labels: bool = False
     # docs/09 §3.8: per file layout signature, the column mapping a person confirmed (spec 005).
     ledger_mappings: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    # Spec 024: what the person wants from Kredibel, and what they expect per month.
+    goal: Goal | None = None
+    expectations: list[MonthExpectation] = Field(default_factory=list)
     created_by: str
     created_at: datetime
 
@@ -141,6 +155,8 @@ class WorkspaceUpdate(DomainModel):
     # No currency: it is fixed after onboarding (ADR-020); support changes it with a script.
     default_language: str | None = Field(default=None, min_length=2, max_length=8)
     learning: LearningSettings | None = None
+    goal: Goal | None = None
+    expectations: list[MonthExpectation] | None = Field(default=None, max_length=12)
 
 
 class BankAccountUpdate(DomainModel):

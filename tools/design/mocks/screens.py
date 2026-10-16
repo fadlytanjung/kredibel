@@ -28,6 +28,7 @@ ROOT = Path(__file__).resolve().parents[3]
 LOCALES = ROOT / "frontend/src/shared/i18n/locales/en"
 DASH = json.loads((ROOT / "contracts/design/fixtures/dashboard.json").read_text(encoding="utf-8"))
 DASH_WORDS = json.loads((LOCALES / "dashboard.json").read_text(encoding="utf-8"))
+EXPECT = json.loads((ROOT / "contracts/design/fixtures/expectations.json").read_text(encoding="utf-8"))
 CP_FIX = json.loads((ROOT / "contracts/design/fixtures/counterparties.json").read_text(encoding="utf-8"))
 CP_WORDS = json.loads((LOCALES / "counterparties.json").read_text(encoding="utf-8"))
 REVIEW_WORDS = json.loads((LOCALES / "review.json").read_text(encoding="utf-8"))
@@ -203,7 +204,40 @@ def period_picker(first: str, last: str, today: str) -> str:
             f'</div><span class="muted small period-hint">{words(DASH_WORDS, "periods.rangeHint", count=12)}</span></div>')
 
 
-def dashboard(extra: str = "") -> str:
+def expectations_panel(currency: str = "IDR") -> str:
+    """Spec 024: what the person expected against the reconciled months (ExpectationsPanel)."""
+    status_icon = {"AS_EXPECTED": "check-circle", "DIFFERENT": "scale", "WAITING": "clock"}
+    status_class = {"AS_EXPECTED": "ok", "DIFFERENT": "wait", "WAITING": "busy"}
+
+    def side(label: str, s: dict) -> str:
+        if s["status"] == "DIFFERENT":
+            diff = s["difference"]
+            key = "DIFFERENT_less" if diff.startswith("-") else "DIFFERENT_more"
+            status = words(DASH_WORDS, f"expectations.status.{key}", difference=amount(diff.lstrip("-")))
+        else:
+            status = words(DASH_WORDS, f"expectations.status.{s['status']}")
+        found = (f'<span>{words(DASH_WORDS, "expectations.found")} <strong>{amount(s["actual"])}</strong></span>'
+                 if s["actual"] is not None else "")
+        return (f'<div class="expect-side"><span class="k">{label}</span><span class="v">'
+                f'<span>{words(DASH_WORDS, "expectations.expected")} <strong>{amount(s["expected"])}</strong></span>{found}</span>'
+                f'<span class="status-line {status_class[s["status"]]}">{icon(status_icon[s["status"]], "icon icon-sm")}{status}</span></div>')
+
+    items = ""
+    for m in EXPECT["months"]:
+        sides = "".join(side(words(DASH_WORDS, f"expectations.{k}"), m[k]) for k in ("moneyIn", "moneyOut") if m.get(k))
+        items += (f'<li><div class="expect-month"><h3>{month_name(m["month"])}</h3><div class="expect-links">'
+                  f'<a class="button button-secondary button-sm" href="month.html">{words(DASH_WORDS, "expectations.openMonth")}</a>'
+                  f'<a class="button button-quiet button-sm" href="documents.html">{icon("files", "icon icon-sm")}{words(DASH_WORDS, "expectations.documents")}</a>'
+                  f'</div></div><div class="expect-sides">{sides}</div></li>')
+    tolerance = round(float(EXPECT["tolerance"]) * 100)
+    return f"""
+<section class="panel" aria-labelledby="dash-expect-h">
+  <div class="panel-head"><div class="stack gap-1"><h2 id="dash-expect-h">{words(DASH_WORDS, "expectations.title")}</h2><p class="small muted">{words(DASH_WORDS, "expectations.subtitle", currency=currency, tolerance=tolerance)}</p></div><a class="link" href="welcome-expect.html">{words(DASH_WORDS, "expectations.change")}</a></div>
+  <ul class="expect-list">{items}</ul>
+</section>"""
+
+
+def dashboard(extra: str = "", expectations: bool = False) -> str:
     """The dashboard as the app draws it (DashboardPage, docs/11 §6.2): period, header, figures, the
     P&L panel, where the money went, reconciliation and findings, three panels, the months. The
     profile-suggestions card at the end is a planned design (spec 014)."""
@@ -353,7 +387,7 @@ def dashboard(extra: str = "") -> str:
   {period_row}
   <div class="dash">
     {header}
-    {figs}
+    {figs}{expectations_panel() if expectations else ""}
     {profit_loss_panel()}
     {charts_section}
     {hero}
@@ -1975,8 +2009,8 @@ def settings_profile() -> str:
 # Onboarding
 # ------------------------------------------------------------------------------------------------
 
-def onboarding() -> str:
-    brand = f"""
+def onboard_brand() -> str:
+    return f"""
 <section class="onboard-brand" aria-label="Kredibel">
   <img class="logo" src="{BRAND}/kredibel-logo-on-dark.svg" alt="Kredibel"/>
   <div class="stack gap-6">
@@ -1994,6 +2028,10 @@ def onboarding() -> str:
   </div>
   <p class="small-print">Kredibel only reads your documents. It never moves money and never changes your accounting system.</p>
 </section>"""
+
+
+def onboarding() -> str:
+    brand = onboard_brand()
     form = f"""
 <section class="onboard-form" aria-labelledby="ob-h">
   <div class="stack gap-2"><h1 class="type-title" id="ob-h">Set up your business</h1><p class="muted">One workspace is one business. You can add details later; Kredibel will suggest them from your documents.</p></div>
@@ -2018,6 +2056,41 @@ def onboarding() -> str:
     return f'<div class="viewport"><div class="onboard">{brand}{form}</div></div>'
 
 
+def welcome(expect: bool = False) -> str:
+    """Spec 024: the welcome question after onboarding (WelcomePage), with no navigation."""
+    def ow(key: str, **params) -> str:
+        return words(ONBOARD_WORDS, f"welcome.{key}", **params)
+
+    def card(kind: str, glyph: str, attrs: str) -> str:
+        return (f'<button type="button" class="welcome-choice"{attrs}>{icon(glyph)}<span class="stack gap-1">'
+                f'<span class="w-t">{ow(kind + ".title")}</span><span class="w-b">{ow(kind + ".body")}</span></span></button>')
+
+    expanded = "true" if expect else "false"
+    form = ""
+    if expect:
+        rows = ""
+        for i, (month, money_in, money_out) in enumerate([("2026-09", "150000000", "120000000"), ("2026-10", "160000000", "")]):
+            rows += (f'<div class="expect-row" role="group" aria-label="{ow("form.rowAria", index=i + 1)}">'
+                     f'<div class="field"><label for="exp-month-{i}">{ow("form.month")}</label><input class="input" id="exp-month-{i}" type="month" value="{month}"/></div>'
+                     f'<div class="field"><label for="exp-in-{i}">{ow("form.moneyIn")}</label><input class="input n" id="exp-in-{i}" inputmode="numeric" value="{money_in}"/></div>'
+                     f'<div class="field"><label for="exp-out-{i}">{ow("form.moneyOut")}</label><input class="input n" id="exp-out-{i}" inputmode="numeric" value="{money_out}"/></div>'
+                     f'<button type="button" class="button button-quiet button-sm expect-remove" aria-label="{ow("form.remove", month=month_name(month))}">{icon("x", "icon icon-sm")}</button></div>')
+        form = f"""
+  <form class="form-section stack gap-4" aria-labelledby="welcome-form-h">
+    <h2 id="welcome-form-h">{ow("form.title")}</h2>
+    <div class="expect-rows"><p class="hint">{ow("form.hint", currency="IDR")}</p>{rows}</div>
+    <div class="actions"><button type="button" class="button button-secondary">{icon("plus", "icon icon-sm")}{ow("form.add")}</button></div>
+    <a class="button button-primary button-lg button-block" href="dashboard-expectations.html">{ow("form.save")}</a>
+  </form>"""
+    section = f"""
+<section class="onboard-form" aria-labelledby="welcome-h">
+  <div class="stack gap-2"><h1 class="type-title" id="welcome-h">{ow("title")}</h1><p class="muted">{ow("subtitle")}</p></div>
+  <div class="welcome-choices">{card("books", "reconcile", "")}{card("expect", "scale", f' aria-expanded="{expanded}"')}</div>{form}
+  <a class="button button-quiet welcome-skip" href="dashboard.html">{ow("skip")}</a>
+</section>"""
+    return f'<div class="viewport"><div class="onboard">{onboard_brand()}{section}</div></div>'
+
+
 SCREENS = {
     "dashboard": ("Dashboard", dashboard),
     "profit-loss": ("Company profit and loss", profit_loss),
@@ -2040,6 +2113,9 @@ SCREENS = {
     "plan-usage": ("Plan and usage", plan_usage),
     "settings-profile": ("Settings: profile", settings_profile),
     "onboarding": ("Onboarding", onboarding),
+    "welcome": ("Welcome", welcome),
+    "welcome-expect": ("Welcome: expectations", lambda: welcome(expect=True)),
+    "dashboard-expectations": ("Dashboard: expectations", lambda: dashboard(expectations=True)),
     "tour": ("Guided tour", tour),
 }
 
@@ -2064,5 +2140,8 @@ NOTES = {
     "plan-usage": "Trial days, usage that warns before a limit, coming-soon plans and features that cannot be clicked.",
     "settings-profile": "The profile form with the accounting framework that sets the cash-flow classes; changing it reclassifies every month.",
     "onboarding": "The demo company when the server has one, then the business in one form; the brand panel explains the promise with a ledger.",
+    "welcome": "Spec 024: asked once after onboarding, with no navigation: keep the books, or check what you expect first.",
+    "welcome-expect": "Spec 024: the money in and out expected per month; empty means unknown. Saved, then the dashboard.",
+    "dashboard-expectations": "Spec 024: the dashboard with what the person expected against the reconciled months, and the way to each month and its documents.",
     "tour": "The guided tour on the dashboard: the figures lit, the page dimmed around them, and the card with Back, Next and Skip.",
 }

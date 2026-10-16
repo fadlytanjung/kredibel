@@ -72,6 +72,8 @@ erDiagram
 | `profile.accountingFramework` | `IFRS` \| `US_GAAP` | Decides each category's cash-flow class (`contracts/policy/categories.v1.yaml`); default `IFRS` ([ADR-016](adr/ADR-016-human-verified-labels-and-learning-loop.md)) |
 | `learning` | map | `shareVerifiedLabels` (bool, default `false`): consent to use masked verified labels in tuning datasets (later) |
 | `ledgerMappings` | map | per file layout signature → confirmed column mapping (§3.8); bank account → ledger account code |
+| `goal` | string? | spec 024: `BOOKKEEPING` or `CHECK_EXPECTATIONS`, asked once after onboarding (optional field, no version bump) |
+| `expectations` | array | spec 024: `{month, moneyInMinor?, moneyOutMinor?}` the person expects per month, at most 12; compared with the reconciled months, never used in reconciliation |
 | `subscription` | map | `planId`, `status` (`TRIALING`, `TRIAL_EXPIRED`, `ACTIVE`), `trialStartedAt`, `trialEndsAt`, `limitOverrides?` |
 | `counts` | map | `documents`, `openReviewItems`, `openFindingsBySeverity` — for the dashboard header |
 | `createdBy`, `createdAt` | | |

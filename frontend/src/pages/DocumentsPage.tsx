@@ -9,7 +9,7 @@
 
 import { useContext } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { DOC_TYPE_BADGE, useDocuments, useDocumentsLive, type DocType, type Document } from '../entities/document'
 import { AuthContext } from '../entities/session'
 import { UploadSheet } from '../features/upload'
@@ -40,6 +40,7 @@ export function DocumentsPage() {
   const { t } = useTranslation(['documents', 'common'])
   const auth = useContext(AuthContext)
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
 
   // Every document of the workspace, newest first; the table filters, searches and pages them.
   const { data, isLoading: isRestLoading } = useDocuments({ limit: 200 })
@@ -201,6 +202,7 @@ export function DocumentsPage() {
           filterGroupAriaLabel={t('documents:filters.label')}
           searchable
           searchPlaceholder={t('documents:table.search')}
+          initialSearch={searchParams.get('month') ?? ''}
           searchPredicate={(doc, q) =>
             [doc.fileName, _docSubtitle(doc, t), statusOf(doc), ...(doc.months ?? [])].some((text) =>
               String(text).toLowerCase().includes(q),

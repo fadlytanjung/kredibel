@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<title>Kredibel mock: Welcome</title>
+<meta name="description" content="High-fidelity mock with synthetic data. Tokens: contracts/design/tokens.json. Components: docs/12-design-system.md."/>
+<link rel="icon" href="../brand/favicon.svg"/>
+<link rel="stylesheet" href="assets/tokens.css"/>
+<link rel="stylesheet" href="assets/kit.css"/>
+<script src="assets/proto.js" defer></script>
+</head>
+<body>
+<div class="viewport"><div class="onboard"><div class="topbar-status hide-compact" style="grid-column:1/-1;text-align:right"><div class="topbar-status hide-compact"><span class="badge badge-clean" title="Route: /welcome">Implemented · <code>/welcome</code></span></div></div>
+<section class="onboard-brand" aria-label="Kredibel">
+  <img class="logo" src="../brand/kredibel-logo-on-dark.svg" alt="Kredibel"/>
+  <div class="stack gap-6">
+    <p class="tagline">Every number has a source.</p>
+    <ul class="promise">
+      <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8"/></svg><span>Send the same file twice and it is never counted twice.</span></li>
+      <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/><path d="M7.5 12s1.7-3 4.5-3 4.5 3 4.5 3-1.7 3-4.5 3-4.5-3-4.5-3z"/><circle cx="12" cy="12" r="1"/></svg><span>Every number is read twice before it counts, and you can see where it came from.</span></li>
+      <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h11.5M12 3.5 15.5 7 12 10.5"/><path d="M20 17H8.5M12 13.5 8.5 17l3.5 3.5"/></svg><span>Months reconcile themselves, in any upload order. You only fix what is left.</span></li>
+    </ul>
+  </div>
+  <div class="ledger" aria-hidden="true">
+    <div class="ledger-line"><span>05 Mar</span><span class="desc">TRANSFER OUT GREEN VALLEY FARMS</span><span class="amt"><span class="reading reading-agreed">32,100,000</span> <span class="tick"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/><path d="M7.5 12s1.7-3 4.5-3 4.5 3 4.5 3-1.7 3-4.5 3-4.5-3-4.5-3z"/><circle cx="12" cy="12" r="1"/></svg>read twice</span></span></div>
+    <div class="ledger-line"><span>11 Mar</span><span class="desc">TRANSFER IN DAYBREAK CAFE</span><span class="amt">6,420,000 <span class="tick"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>matched</span></span></div>
+    <div class="ledger-line"><span>12 Mar</span><span class="desc">ACB_Feb_2026 (1).pdf</span><span class="amt"><span class="tick dup"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8"/></svg>copy, not read</span></span></div>
+  </div>
+  <p class="small-print">Kredibel only reads your documents. It never moves money and never changes your accounting system.</p>
+</section>
+<section class="onboard-form" aria-labelledby="welcome-h">
+  <div class="stack gap-2"><h1 class="type-title" id="welcome-h">What would you like Kredibel to do first?</h1><p class="muted">You can change this later. Either way, every document is read twice and every number keeps its source.</p></div>
+  <div class="welcome-choices"><button type="button" class="welcome-choice"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h11.5M12 3.5 15.5 7 12 10.5"/><path d="M20 17H8.5M12 13.5 8.5 17l3.5 3.5"/></svg><span class="stack gap-1"><span class="w-t">Keep my books</span><span class="w-b">Reconcile bank statements, invoices, receipts and your ledger month by month, with one short review queue.</span></span></button><button type="button" class="welcome-choice" aria-expanded="false"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v16M7 20h10M5 8h14M5 8l-2.5 6a3 3 0 0 0 5 0zM19 8l-2.5 6a3 3 0 0 0 5 0z"/></svg><span class="stack gap-1"><span class="w-t">Check what I expect</span><span class="w-b">Write the money in and out you expect for one or more months. Once your documents are read, see whether the books agree.</span></span></button></div>
+  <a class="button button-quiet welcome-skip" href="dashboard.html">Skip for now</a>
+</section></div></div>
+</body>
+</html>

@@ -25,6 +25,9 @@ class OrgDoc(FirestoreModel):
     # docs/09 §3.1, §3.8: layout signature → the confirmed column mapping (spec 005, additive).
     ledger_mappings: dict[str, Any] = Field(default_factory=dict)
     counts: dict[str, Any] = Field(default_factory=dict)
+    # Spec 024 (additive): the person's goal, and per month {month, moneyInMinor?, moneyOutMinor?}.
+    goal: str | None = None
+    expectations: list[dict[str, Any]] = Field(default_factory=list)
     created_by: str
     created_at: datetime
 

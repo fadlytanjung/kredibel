@@ -131,6 +131,7 @@ from app.services.counterparty_service import CounterpartyService
 from app.services.decision_service import DecisionService
 from app.services.document_service import DocumentService
 from app.services.entitlement_service import EntitlementService
+from app.services.expectation_service import ExpectationService
 from app.services.extraction_service import ExtractionPorts, ExtractionService
 from app.services.finding_service import FindingService
 from app.services.insight_service import InsightService
@@ -353,6 +354,7 @@ class AppDeps:
                 ),
                 copier=self.workspace_copier,
                 demo_template_org=self.settings.demo_template_org,
+                demo_account_email=self.settings.demo_account_email,
             ),
         )
 
@@ -873,6 +875,17 @@ class AppDeps:
                 on_category_set=lambda principal, before, after: (
                     self.label_service.record_person_category(principal, before, after)
                 ),
+            ),
+        )
+
+    @property
+    def expectation_service(self) -> ExpectationService:
+        return self._once(
+            "expectation_service",
+            lambda: ExpectationService(
+                self.workspace_repo,
+                self.month_repo,
+                self.reconciliation.expectations.tolerance,
             ),
         )
 

@@ -101,14 +101,28 @@ def fixtures(out: Path, seed: int) -> None:
     show_default=True,
     help="Move every date by this many months (3: April to September 2026).",
 )
-def demo(out: Path, shift_months: int) -> None:
+@click.option(
+    "--window",
+    default=None,
+    help="Keep only these months, after the shift: START:END as yyyy-mm (spec 024).",
+)
+@click.option("--pack", is_flag=True, help="Also merge the scenarios into one set in OUT/pack.")
+def demo(out: Path, shift_months: int, window: str | None, pack: bool) -> None:
     """S1–S4, seed 1: the files of the demo workspace and the video (docs/18 §5)."""
     from .shift import set_shift
+    from .window import keep_window
 
     set_shift(shift_months)
     for name in DEMO_SCENARIOS:
         folder = write_scenario(build(name, 1), out)
+        if window:
+            start, end = window.split(":")
+            keep_window(folder, start, end)
         click.echo(f"wrote {folder}")
+    if pack:
+        from .pack import make_pack
+
+        click.echo(f"wrote {make_pack(out, tuple(DEMO_SCENARIOS))}")
 
 
 if __name__ == "__main__":

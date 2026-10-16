@@ -205,7 +205,11 @@ async def _run(
     from app.core.settings import Settings
     from app.domain.models.document import DocStatus
     from app.domain.models.run import RunStatus
-    from app.domain.models.workspace import BankAccountCreate, WorkspaceUpdate
+    from app.domain.models.workspace import (
+        BankAccountCreate,
+        BankAccountUpdate,
+        WorkspaceUpdate,
+    )
     from app.main import AppDeps, load_plans
     from app.observability.tracing import setup_tracing
 
@@ -298,7 +302,18 @@ async def _run(
         _log("legal name set to", business["profile"]["legalName"])
     declared = await deps.workspace_repo.list_bank_accounts(org_id)
     for account in business["bankAccounts"]:
-        if any(a.account_masked.endswith(account["accountNumber"][-4:]) for a in declared):
+        # The ledger's cash account for this bank account (spec 024): without it no bank line can
+        # match a ledger entry, and "Matched by Kredibel" stays low.
+        code = account.get("ledgerAccountCode")
+        same = next(
+            (a for a in declared if a.account_masked.endswith(account["accountNumber"][-4:])), None
+        )
+        if same is not None:
+            if code and same.ledger_account_code != code:
+                await deps.workspace_service.update_bank_account(
+                    org_id, same.account_id, BankAccountUpdate(ledger_account_code=code)
+                )
+                _log("bank account mapped to ledger account", code)
             continue
         await deps.workspace_service.add_bank_account(
             principal,
@@ -307,6 +322,7 @@ async def _run(
                 bank_name=account["bankName"],
                 account_number=account["accountNumber"],
                 holder_name=account["holderName"],
+                ledger_account_code=code,
             ),
         )
         _log("bank account declared:", account["bankName"])

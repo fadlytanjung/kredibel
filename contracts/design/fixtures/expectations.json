@@ -1,0 +1,21 @@
+{
+  "_about": "Synthetic: Sunrise Coffee Roasters, amounts in IDR (spec 024)",
+  "tolerance": "0.05",
+  "months": [
+    {
+      "month": "2026-04",
+      "moneyIn": { "expected": "220000000.00", "actual": "218450000.00", "difference": "-1550000.00", "status": "AS_EXPECTED" },
+      "moneyOut": { "expected": "200000000.00", "actual": "196300000.00", "difference": "-3700000.00", "status": "AS_EXPECTED" }
+    },
+    {
+      "month": "2026-05",
+      "moneyIn": { "expected": "230000000.00", "actual": "229800000.00", "difference": "-200000.00", "status": "AS_EXPECTED" },
+      "moneyOut": { "expected": "200000000.00", "actual": "231450000.00", "difference": "31450000.00", "status": "DIFFERENT" }
+    },
+    {
+      "month": "2026-06",
+      "moneyIn": { "expected": "240000000.00", "actual": null, "difference": null, "status": "WAITING" },
+      "moneyOut": null
+    }
+  ]
+}

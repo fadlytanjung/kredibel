@@ -26,6 +26,15 @@ async def workspace_body(provider: ServiceProvider, workspace: Workspace) -> dic
         "timezone": workspace.timezone,
         "currency": workspace.currency,
         "defaultLanguage": workspace.default_language,
+        "goal": workspace.goal,
+        "expectations": [
+            {
+                "month": e.month,
+                "moneyIn": None if e.money_in is None else f"{e.money_in:.2f}",
+                "moneyOut": None if e.money_out is None else f"{e.money_out:.2f}",
+            }
+            for e in workspace.expectations
+        ],
         "subscription": {
             "planId": sub.plan_id,
             "status": subscription_status(sub, now),
@@ -67,6 +76,35 @@ def create_workspace_router(
     ) -> dict[str, Any]:
         """Spec 021: a workspace holding a copy of the demo company, owned by the caller."""
         workspace = await provider.workspace_service.create_demo(principal)
+        return await workspace_body(provider, workspace)
+
+    @router.get("/expectations")
+    async def expectations(principal: Principal = Depends(workspace_dep)) -> dict[str, Any]:
+        """Spec 024, AC-024-5: each expected month against its reconciled money in and out."""
+        tolerance, months = await provider.expectation_service.compare(org_of(principal))
+
+        def side(s: Any) -> dict[str, Any] | None:
+            if s is None:
+                return None
+            return {
+                "expected": f"{s.expected:.2f}",
+                "actual": None if s.actual is None else f"{s.actual:.2f}",
+                "difference": None if s.difference is None else f"{s.difference:.2f}",
+                "status": s.status,
+            }
+
+        return {
+            "tolerance": str(tolerance),
+            "months": [
+                {"month": m.month, "moneyIn": side(m.money_in), "moneyOut": side(m.money_out)}
+                for m in months
+            ],
+        }
+
+    @router.post("/workspaces/demo/reset")
+    async def reset_demo_account(principal: Principal = Depends(principal_dep)) -> dict[str, Any]:
+        """Spec 024: the demo account's workspace becomes a fresh copy of the demo company."""
+        workspace = await provider.workspace_service.reset_demo_account(principal)
         return await workspace_body(provider, workspace)
 
     @router.get("/workspace")

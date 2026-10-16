@@ -383,6 +383,8 @@
       "currency": "Currency",
       "default_language": "str",
       "entity_type": "EntityType",
+      "expectations": "list[dict[str, Any]]",
+      "goal": "str | None",
       "learning": "dict[str, Any]",
       "ledger_mappings": "dict[str, Any]",
       "name": "str",

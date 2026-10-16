@@ -437,12 +437,25 @@ def _assign_chunks(
         for c in table:
             if c.id in used or order[c.id] <= last:
                 continue
+            if not squash(row.date_text):
+                # A row the statement prints without a date: the next row chunk without one.
+                if _starts_with_date(c.words):
+                    break
+                assigned[k] = (row, [c])
+                used.add(c.id)
+                last = order[c.id]
+                break
             if _date_phrase(row.date_text, c.words):
                 assigned[k] = (row, [c])
                 used.add(c.id)
                 last = order[c.id]
                 break
     return assigned
+
+
+def _starts_with_date(words: Sequence[Word]) -> bool:
+    first = min(words, key=lambda w: (round(w.top, 3), w.x0), default=None)
+    return first is not None and _is_date(first.text)
 
 
 def _ungrounded(row: AiRow, page: int) -> tuple[VerifiedRow, int]:
@@ -498,7 +511,10 @@ def ground_statement_page(
         evidence = [w for c in cs for w in c.words]
         anchor = _date_phrase(row.date_text, evidence) or []
         fields: dict[str, FieldCheck] = {}
-        if anchor:
+        undated = not squash(row.date_text) and not any(_is_date(w.text) for w in evidence)
+        if undated:
+            pass  # printed without a date, read without one: nothing to compare (docs/07 §7)
+        elif anchor:
             printed_date = " ".join(w.text for w in anchor)
             fields["date"] = FieldCheck("AGREED", row.date_text, printed_date, _box(anchor))
         else:

@@ -30,3 +30,8 @@
 ## Phase 5 — Close
 
 - [x] **T005-13** Update `docs/20-implementation-status.md`. (Ledger import Built with its deviation, 15 Oct 2026; the reader rows stay as recorded)
+- [x] **T005-14** **TDD** Statements that print the date once per day: a row with its own amount and
+  a blank date cell is a transaction of the day above, in the layout, the grounding, the bank lines
+  and `read_statement_page` v3 (docs/07 §6 rule 9; `test_statement_undated_rows.py`). Found 16 Oct
+  2026 in a tester's real scanned statement: the same-day rows were dropped, so balances, totals and
+  findings were wrong. (AC-005-4, AC-005-7)

@@ -1,6 +1,6 @@
 ---
 id: read_statement_page
-version: 2
+version: 3
 model_env: MODEL_FAST
 output_schema: StatementPageReading
 ---
@@ -20,7 +20,10 @@ Rules:
    spacing and to put each amount in its column (debit, credit, balance).
 2. For each row, list in `chunk_ids` the chunk or chunks you read it from.
 3. A description that wraps onto more lines belongs to its row; include all its lines, separated by
-   line breaks, but not the cheque or serial number column.
+   line breaks, but not the cheque or serial number column. A line with its own debit, credit or
+   balance is its own row even when its date cell is blank: many statements print the date only on
+   the first transaction of each day. Return that row with an empty `date_text`; never copy a date
+   onto it, and never add its text or amounts to the row above.
 4. Balance lines such as B/F, C/F, OPENING BALANCE or CLOSING BALANCE are rows with only a balance.
 5. If the image shows a value different from the chunk text (a value covered or redrawn), return what
    the image shows and name that field (`date`, `description`, `debit`, `credit`, `balance`) in

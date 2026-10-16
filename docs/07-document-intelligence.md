@@ -380,6 +380,12 @@ belong to a row when a citation is missing), `CONFLICT` when the cited chunk hol
    below the last row belong to the totals line, not to the last row's band.
 8. **Continuations.** A reader row with no date and no amounts is the rest of a wrapped description:
    it joins the row above, or, at the top of a page, the previous page's last row.
+9. **Same-day rows.** Many statements (Indonesian *rekening koran* among them) print the date only
+   on the first transaction of each day. A line with its own amount in one of the row's amount
+   columns is its own row chunk even without a date (`layout._same_day_row`); the reader returns it
+   with an empty date; grounding takes the next undated row chunk for it and compares no date; the
+   bank line takes the date of the row above, with the note *date of the row above* (16 Oct 2026,
+   found on a real scanned statement whose same-day rows had been dropped).
 
 On a real 13-page RHB statement (spike S1) these rules give 1.000 agreement on every page.
 

@@ -18,6 +18,7 @@ from .layout import Chunk
 from .models.bank_line import BankLine
 from .normalize import (
     AmountStyle,
+    Parsed,
     detect_amount_style,
     extract_counterparty,
     parse_amount,
@@ -334,8 +335,11 @@ def build_statement(
             notes.append(f"row {index}: both debit and credit")
             continue
         when = parse_date(_chosen(f.get("date")), period=period)
+        if when.value is None and not _chosen(f.get("date")) and lines:
+            # Printed without a date: statements that print the date once per day (docs/07 §7).
+            when = Parsed(lines[-1].date, "date of the row above")
         if when.value is None:
-            notes.append(f"row {index}: {when.note}")
+            notes.append(f"row {index}: {when.note or 'no date'}")
             continue
         amount = credit if credit is not None else -abs(debit or Decimal(0))
         amount_check = f.get("credit") if credit is not None else f.get("debit")

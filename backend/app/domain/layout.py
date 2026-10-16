@@ -15,6 +15,7 @@ from .verify import BBox, Word, is_amount, squash
 ChunkKind = Literal["TABLE_HEADER", "TABLE_ROW", "TOTALS", "TEXT"]
 
 CELL_GAP = 0.015  # of the page width: a wider gap between words starts a new cell
+SAME_COLUMN = 0.03  # of the page width: right edges this close are one amount column
 _DATE_START = re.compile(
     r"^(?:\d{1,2}[/.\-]\d{1,2}(?:[/.\-]\d{2,4})?|\d{1,2}[\-]?[A-Za-z]{3,9}(?:[\-]?\d{2,4})?|\d{4}-\d{2}-\d{2})$"
 )
@@ -110,6 +111,17 @@ def _starts_with_date(line: Line) -> bool:
     return bool(_DATE_START.match(squash(first.text)))
 
 
+def _same_day_row(line: Line, row: "Chunk") -> bool:
+    """A line under a dated row with its own amount in one of that row's amount columns: another
+    transaction of the same day (statements that print the date once per day), not a wrapped
+    description."""
+    columns = [w.x1 for w in row.lines[0].words if is_amount(w.text)]
+    return any(
+        is_amount(w.text) and any(abs(w.x1 - x1) <= SAME_COLUMN for x1 in columns)
+        for w in line.words
+    )
+
+
 def _is_header(line: Line) -> bool:
     found = {squash(w.text).strip(":/") for w in line.words} & _HEADER_WORDS
     return len(found) >= 3
@@ -153,6 +165,15 @@ def chunk_page(words: list[Word], *, page: int) -> list[Chunk]:
             new("TABLE_ROW", line)
         elif _is_totals(line):
             new("TOTALS", line)
+        elif (
+            current
+            and current.kind == "TABLE_ROW"
+            and column is not None
+            and line.x0 > column + 0.02
+            and gap < 2.0 * pitch
+            and _same_day_row(line, current)
+        ):
+            new("TABLE_ROW", line)  # another transaction of the same day
         elif (
             current
             and current.kind == "TOTALS"

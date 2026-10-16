@@ -118,3 +118,30 @@ def test_ac023_5_the_party_score_uses_the_counterpartys_known_spellings(policy):
     assert without is not None and with_aliases is not None
     assert with_aliases.party == 1 > without.party
     assert "PARTY_MATCH" in with_aliases.reasons
+
+
+def test_ac023_9_when_the_readings_disagree_the_other_reading_can_find_the_match(policy):
+    invoice = _invoice("24800000", "PURCHASE_INVOICE", party="PT Jaya Teknik")
+    disputed = MatchRecord(
+        "bank-1",
+        "BANK",
+        D("-24000000"),
+        DAY,
+        "IDR",
+        party="Jaya Teknik",
+        description="TRF JAYA TEKNIK",
+        has_conflict=True,
+        alt_amounts=(D("-24800000"),),
+    )
+    scored = score_pair(disputed, invoice, policy, workspace_currency="IDR")
+    assert scored is not None and "OTHER_READING" in scored.reasons and scored.requires_review
+    settled = MatchRecord(
+        "bank-1",
+        "BANK",
+        D("-24000000"),
+        DAY,
+        "IDR",
+        party="Jaya Teknik",
+        description="TRF JAYA TEKNIK",
+    )
+    assert score_pair(settled, invoice, policy, workspace_currency="IDR") is None

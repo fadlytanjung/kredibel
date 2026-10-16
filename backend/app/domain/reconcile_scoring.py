@@ -44,6 +44,9 @@ class MatchRecord:
     # The spellings the line's counterparty is known by (spec 014): a terse bank description can
     # still name the invoice's party.
     aliases: tuple[str, ...] = ()
+    # The other reading of the amount when the two readings disagree and no person settled it
+    # (signed like `amount`): a match on it is a proposal that also says which value to correct.
+    alt_amounts: tuple[Decimal, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -153,6 +156,15 @@ def score_pair(
     fee = policy.fee_allowance.get(workspace_currency)
     if abs(paid - total) <= tolerance:
         amount, reason, adjusted = Decimal(1), "AMOUNT_EXACT", False
+    elif any(
+        abs(abs(a) - abs(b)) <= tolerance
+        for a in (left.amount, *left.alt_amounts)
+        for b in (right.amount, *right.alt_amounts)
+        if a is not None and b is not None
+    ):
+        # The readings disagreed on an amount and the other reading is the one that matches:
+        # stronger evidence than any adjustment below.
+        amount, reason = Decimal(1), "OTHER_READING"
     elif (
         invoice
         and right.kind == "SALES_INVOICE"

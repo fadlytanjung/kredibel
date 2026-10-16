@@ -90,6 +90,16 @@ as on GitHub and Azure DevOps.
 - **AC-023-7** For an ambiguous proposal, the model ranks the candidates code found and says why in
   one sentence; the ranking orders the review item's choices and is shown as the AI's view; a
   person still decides.
+- **AC-023-8** A value a person corrects on the Labels page changes the line, invoice or receipt and
+  reconciles its months, as a correction in the review queue does, with the same validation; a value
+  a person corrected anywhere is their decision on its label, which stops asking.
+- **AC-023-9** When the two readings disagree on an amount and no person settled it, matching also
+  tries the other reading; a match only the other reading explains is a proposal (`OTHER_READING`)
+  that says which value to correct.
+- **AC-023-10** A cash withdrawal (`TRK TUNAI`, `TARIKAN TUNAI`, `ATM WITHDRAWAL`…) is money out
+  (`CASH_WITHDRAWAL`, operating; other spending in the profit and loss), never a transfer between
+  own accounts (product decision 16 Oct 2026); Indonesian and Malay words for cash, fees, tax and
+  interest are in the categorization rules.
 
 ## Out of scope
 

@@ -56,6 +56,15 @@ def _day(text: str) -> date:
         raise ValidationProblem("value", "Write the date as YYYY-MM-DD.") from None
 
 
+def check_correction(field: str, text: str) -> None:
+    """The value a person typed parses as the field needs (an amount in digits, a date as
+    YYYY-MM-DD); other fields are kept as typed."""
+    if field in ("total", "amount"):
+        _amount(text)
+    elif field in ("issueDate", "date"):
+        _day(text)
+
+
 def correct_record[R: (Invoice, Receipt, BankLine)](
     record: R, field: str, text: str, *, by: str, at: datetime
 ) -> R:

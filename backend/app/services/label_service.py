@@ -11,6 +11,7 @@ from app.core.auth import Principal
 from app.core.clock import Clock
 from app.core.ids import new_id
 from app.domain.categorize import CategoryPolicy
+from app.domain.corrections import CORRECTABLE, check_correction, correct_record
 from app.domain.counterparties import ROLE_ORDER, fold_name
 from app.domain.errors import (
     ForbiddenError,
@@ -273,6 +274,51 @@ class LabelService:
             raise ValidationProblem("value", "Choose a document type.")
         if label.task == "COUNTERPARTY_ROLE" and chosen not in ROLE_ORDER:
             raise ValidationProblem("value", "Choose a counterparty role.")
+        if label.task == "FIELD_VALUE" and label.subject.field:
+            check_correction(label.subject.field, chosen)
+
+    async def _value_record(self, org_id: str, label: Label) -> tuple[Any, Any]:
+        """The record a value label is about, and the store that keeps it: the bank line it names,
+        or the document's only invoice or receipt."""
+        s = label.subject
+        if s.tx_id and self._lines is not None:
+            line = await self._lines.get_line(org_id, s.tx_id)
+            if line is not None:
+                return line, self._lines
+        for store in (self._invoices, self._receipts):
+            if store is None or not s.doc_id:
+                continue
+            records = await store.list_records(org_id, doc_id=s.doc_id)
+            if len(records) == 1:
+                return records[0], store
+        return None, None
+
+    async def _apply_value(self, principal: Principal, label: Label) -> None:
+        """AC-023-8: a value a person corrected on the Labels page changes the record and
+        reconciles its months, as a correction in the review queue does."""
+        org_id = _org(principal)
+        field = label.subject.field or ""
+        record, store = await self._value_record(org_id, label)
+        if record is None or field not in CORRECTABLE[type(record)]:
+            return
+        now = self._clock.now()
+        fixed = correct_record(record, field, label.final_value, by=principal.uid, at=now)
+        event = AuditEvent(
+            event_id=new_id("evt"),
+            type="VALUE_CORRECTED",
+            actor_uid=principal.uid,
+            actor_role=principal.role or "owner",
+            at=now,
+            subject={
+                "recordId": label.subject.tx_id or label.subject.doc_id or "",
+                "docId": str(record.doc_id),
+            },
+            details={"field": field, "via": "label"},  # no values: they are the document's content
+        )
+        await store.save_correction(org_id, fixed, event)
+        months = sorted({m for m in (record.month, fixed.month) if m})
+        if self._months is not None and months:
+            await self._months.mark_dirty(org_id, months, reason="value_corrected")
 
     async def _apply(self, principal: Principal, label: Label, *, apply_to_similar: bool) -> None:
         org_id = _org(principal)
@@ -302,6 +348,8 @@ class LabelService:
                         at=self._clock.now(),
                     )
                     await self._labels.save_rule(org_id, rule)
+        elif label.task == "FIELD_VALUE" and label.status == "CORRECTED":
+            await self._apply_value(principal, label)
         elif label.task == "DOC_TYPE" and label.subject.doc_id and self._documents is not None:
             doc = await self._documents.get_document(org_id, label.subject.doc_id)
             if doc is None:

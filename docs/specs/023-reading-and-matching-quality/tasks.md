@@ -15,4 +15,11 @@
 - [ ] **T023-06** Statement reader v4, categorizer v4, classifier v3; synthetic *rekening koran*
   scenario; measured by the eval suite before shipping. (AC-023-6)
 - [ ] **T023-07** **TDD** The model ranks a proposal's candidates; shown on the review item. (AC-023-7)
+- [x] **T023-09** **TDD** Cash withdrawals are money out (`CASH_WITHDRAWAL`); Indonesian and Malay
+  words for cash, fees, tax and interest in `categorization-rules.v1.yaml`; `categorize_transactions`
+  v4. (AC-023-10)
+- [x] **T023-10** **TDD** A value corrected on the Labels page reaches the record and reconciles its
+  months; a value corrected anywhere settles its label. (AC-023-8)
+- [x] **T023-11** **TDD** Matching tries the other reading of an amount the readings disagreed on
+  (`OTHER_READING`, a proposal). (AC-023-9)
 - [ ] **T023-08** Update `docs/07`, `docs/08`, `docs/20`.

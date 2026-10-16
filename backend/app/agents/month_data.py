@@ -21,6 +21,7 @@ from app.domain.models.decision import Decision
 from app.domain.models.document import DocStatus, DocType, Document, DuplicateKind
 from app.domain.models.invoice import Invoice, Receipt
 from app.domain.models.match import StoredMatch
+from app.domain.normalize import detect_amount_style, parse_amount
 from app.domain.profit_loss import LedgerRow
 from app.domain.reconcile import Allocation, Decisions, ManualMatch
 from app.domain.reconcile_scoring import MatchRecord, in_workspace_currency
@@ -189,6 +190,26 @@ def _conflict(consensus: dict[str, dict[str, Any]], *fields: str) -> bool:
     return any(consensus.get(f, {}).get("status") == "CONFLICT" for f in fields)
 
 
+def other_readings(
+    consensus: dict[str, Any], name: str, current: Decimal | None, corrected: list[str]
+) -> tuple[Decimal, ...]:
+    """The other readings of an amount the two readers disagreed on and no person settled, signed
+    like the current value (spec 023, AC-023-9)."""
+    info = consensus.get(name) or {}
+    if current is None or name in corrected or info.get("status") != "CONFLICT":
+        return ()
+    raw = info.get("raw")
+    texts = (
+        [v for v in raw.values() if isinstance(v, str) and v.strip()]
+        if isinstance(raw, dict)
+        else []
+    )
+    style = detect_amount_style(texts)
+    sign = Decimal(-1) if current < 0 else Decimal(1)
+    values = {parse_amount(text, style).value for text in texts}
+    return tuple(sorted(sign * abs(v) for v in values if v is not None and abs(v) != abs(current)))
+
+
 def bank_record(line: BankLine, data: MonthData) -> MatchRecord:
     statement = next((s for s in data.statements if s.doc_id == line.doc_id), None)
     currency = (statement.statement_meta or {}).get("currency") if statement else None
@@ -204,6 +225,7 @@ def bank_record(line: BankLine, data: MonthData) -> MatchRecord:
         has_conflict=_conflict(line.consensus, "amount", "date"),
         currency_override_confirmed=line.doc_id in data.accepted_docs,
         aliases=data.spellings.get(line.counterparty_id or "", ()),
+        alt_amounts=other_readings(line.consensus, "amount", line.amount, line.corrected_fields),
     )
 
 
@@ -233,6 +255,7 @@ def document_records(data: MonthData) -> list[MatchRecord]:
                 due_date=inv.due_date,
                 has_conflict=_conflict(inv.consensus, "total", "issueDate"),
                 currency_override_confirmed=inv.doc_id in data.accepted_docs,
+                alt_amounts=other_readings(inv.consensus, "total", inv.total, inv.corrected_fields),
             )
         )
     for rc in data.receipts:
@@ -250,6 +273,7 @@ def document_records(data: MonthData) -> list[MatchRecord]:
                 payment_method=rc.payment_method,
                 has_conflict=_conflict(rc.consensus, "total", "date"),
                 currency_override_confirmed=rc.doc_id in data.accepted_docs,
+                alt_amounts=other_readings(rc.consensus, "total", rc.total, rc.corrected_fields),
             )
         )
     return out

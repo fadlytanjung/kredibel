@@ -430,7 +430,10 @@ is paid when its total is fully covered by bank lines (a confirmed net-of-tax, w
 adjustment counts as fully covered).
 
 **Spec 023 (16 Oct 2026).** Every adjustment (`NET_OF_TAX`, `WITHHOLDING_RATE`, `FEE_DEDUCTED`) is a
-proposal a person confirms, never automatic. A group of several documents for one bank line is found
+proposal a person confirms, never automatic. When the two readings disagree on an amount and no
+person settled it, matching also tries the other reading; a match only that reading explains is a
+proposal (`OTHER_READING`) that tells the reviewer which value to correct. A cash withdrawal is
+`CASH_WITHDRAWAL`, money out, never a transfer between own accounts. A group of several documents for one bank line is found
 by a subset sum over the line's party in its date window (at most `maxGroupParts`, the 24 nearest
 candidates); a group of more than `maxAutoGroupParts` is never automatic. The party score is the
 best of the line's cleaned counterparty name, its printed description and the spellings its

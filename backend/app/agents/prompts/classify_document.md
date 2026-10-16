@@ -1,6 +1,6 @@
 ---
 id: classify_document
-version: 2
+version: 3
 model_env: MODEL_LITE
 output_schema: DocClassification
 ---
@@ -17,6 +17,19 @@ You get the image of page 1 and up to 2,000 characters of its text. Decide which
 - RECEIPT: a till or e-receipt for a purchase already paid.
 - LEDGER_EXPORT: a general-ledger or journal listing from accounting software.
 - OTHER: anything else.
+
+Documents that look alike:
+
+- A *rekening koran*, *mutasi rekening*, e-statement or internet-banking transaction history is a
+  BANK_STATEMENT, even without a bank logo.
+- A *Faktur Pajak* (tax invoice) and an invoice that prints PPN are invoices.
+- A proforma invoice, quotation (*penawaran*), purchase order, delivery note (*surat jalan*) or
+  statement of account from a supplier is OTHER: none of them asks for or proves a payment.
+- A *kuitansi*, *struk*, *nota* or a payment confirmation for a purchase is a RECEIPT.
+- A *buku besar*, *jurnal umum* or trial balance export is a LEDGER_EXPORT.
+
+Confidence: above 0.9 only when the page says what it is (a title, a bank's statement layout);
+below 0.6 when two types fit.
 
 Return the confidence you have (0 to 1), the document's language (BCP-47), the issuer and the other
 party as printed, the period for a statement (for example "AUG 2026"), the currency as printed, and

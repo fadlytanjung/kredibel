@@ -1,6 +1,6 @@
 ---
 id: categorize_transactions
-version: 4
+version: 5
 model_env: MODEL_LITE
 output_schema: CategorizeResult
 ---
@@ -25,6 +25,16 @@ printed, direction, amount).
   - Money out: `LOAN_REPAYMENT` (principal loan amortisation), `INTEREST_PAID` (financing charges, loan interest), `OWNER_DRAWING` (dividends, partner drawings).
 - **Non-Cash / Non-Operational**:
   - `INTERNAL_TRANSFER` (transfers between the business's own bank accounts and sweep accounts; never a cash withdrawal), `REVERSAL` (chargebacks, failed transaction reversals).
+
+### Words in Indonesian and Malay statements
+- `BIAYA ADM`, `ADM BANK`, `CAJ` → `BANK_FEES`; `JASA GIRO`, `BUNGA`, `FAEDAH` (money in) → `INTEREST_RECEIVED`.
+- `PAJAK`, `PPH`, `PPN`, `PAJAK JASA GIRO` → `TAX_PAYMENT`.
+- `SETORAN`, `SETOR TUNAI` (money in): from a customer `SALES_RECEIPT`, from the owner `OWNER_CAPITAL`; `UNKNOWN` when the line does not say which.
+- `SP2D` (money in) is a government treasury payment to a supplier of the government: `SALES_RECEIPT`.
+- `GAJI` → `PAYROLL`; `SEWA` → `RENT`; `LISTRIK`, `PLN`, `PDAM`, `TELKOM`, `INTERNET` → `UTILITIES`.
+
+Confidence: above 0.9 only when the description names what it is; 0.5 to 0.7 when you infer it from a
+name alone; `UNKNOWN` rather than a guess below 0.5.
 
 For every line return its id and:
 1. `category`: one id from the list that best fits the description and line's direction. Use `UNKNOWN` when there is not enough information to categorize reliably.

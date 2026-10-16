@@ -10,6 +10,7 @@ from fastapi import FastAPI
 from google.cloud.firestore import AsyncClient
 
 from app.adapters.cloud_tasks import CloudTasksQueue, InlineTaskQueue
+from app.adapters.docai_ocr import DocAiOcr
 from app.adapters.firebase_identity import FirebaseIdentityAdmin
 from app.adapters.firestore.assistant_repo import FirestoreAssistantRepository
 from app.adapters.firestore.bank_line_repo import FirestoreBankLineRepository
@@ -113,6 +114,7 @@ from app.ports.label_repository import LabelRepository
 from app.ports.ledger_repository import LedgerRepository
 from app.ports.match_repository import MatchRepository
 from app.ports.month_repository import MonthRepository
+from app.ports.ocr_text import OcrText
 from app.ports.page_renderer import PageRenderer
 from app.ports.page_text import PageText
 from app.ports.record_repository import DocumentRecords
@@ -163,6 +165,7 @@ class AppDeps:
         token_verifier: TokenVerifier | None = None,
         doc_repo: DocumentRepository | None = None,
         workspace_copier: WorkspaceCopier | None = None,
+        ocr: OcrText | None = None,
         storage: DocumentStorage | None = None,
         task_queue: TaskQueue | None = None,
         renderer: PageRenderer | None = None,
@@ -196,6 +199,7 @@ class AppDeps:
         self._token_verifier = token_verifier
         self._doc_repo = doc_repo
         self._workspace_copier = workspace_copier
+        self._ocr = ocr
         self._storage = storage
         self._task_queue = task_queue
         self._renderer = renderer
@@ -349,6 +353,23 @@ class AppDeps:
                 ),
                 copier=self.workspace_copier,
                 demo_template_org=self.settings.demo_template_org,
+            ),
+        )
+
+    @property
+    def ocr(self) -> OcrText | None:
+        """Spec 022 phase B: Document AI OCR, the witness of scans and photos, when configured."""
+        if self._ocr is not None:
+            return self._ocr
+        if not self.settings.docai_ocr_processor_id:
+            return None
+        return self._once(
+            "ocr",
+            lambda: DocAiOcr(
+                self.settings.google_cloud_project,
+                self.settings.docai_location,
+                self.settings.docai_ocr_processor_id,
+                self.settings.docai_ocr_version,
             ),
         )
 
@@ -717,6 +738,7 @@ class AppDeps:
                 learning=self.learning,
                 embedder=self.embedder,
                 chunks=self.chunk_repo,
+                ocr=self.ocr,
             )
             await run_workflow(
                 build_document_workflow(pipeline_deps),
@@ -760,6 +782,7 @@ class AppDeps:
                 learning=self.learning,
                 embedder=self.embedder,
                 chunks=self.chunk_repo,
+                ocr=self.ocr,
                 reader=self.reader,  # explain_month words the month's risk (spec 008)
             )
             return await run_workflow(

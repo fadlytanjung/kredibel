@@ -14,8 +14,8 @@
 - [x] **T005-07** `classify_document` node incl. `NEEDS_INPUT` + `CONFIRM_TYPE`. (AC-005-1, AC-005-2) The `E03` finding, the item and `SET_TYPE` (the choice is kept on the document as `typeSetBy`, the workflow continues) built 15 Oct 2026.
 - [x] **T005-08** `read_page` and `witness_pages` (text layer and OCR); `verify_pages` writing records. (AC-005-4…8)
   The OCR witness is not built yet: no adapter reads `DOCAI_OCR_PROCESSOR_ID`, so scans and photos
-  have no witness (every value single-source, `E01`). It comes with T005-05 S3, now spec 022 phase B
-  (T022-05).
+  have no witness (every value single-source, `E01`). Built 16 Oct 2026 with spec 022 phase B
+  (T022-05): Document AI OCR reads every page without a usable text layer.
 - [x] **T005-09** `propose_ledger_mapping` and `parse_ledger` incl. `CONFIRM_LEDGER_MAPPING`. (AC-005-11, AC-005-12)
 
 ## Phase 3 — Scenarios

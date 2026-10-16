@@ -25,6 +25,7 @@ from app.domain.label_sync import model_reading
 from app.domain.layout import Chunk, chunk_page, chunks_from_json, chunks_to_json
 from app.domain.models.document import DocStatus, DocType, Document, TextLayerStatus
 from app.domain.models.invoice import Invoice, Receipt
+from app.domain.page_triage import WitnessType
 from app.ports.bank_line_repository import BankLineRepository
 from app.ports.chunk_repository import ChunkRepository
 from app.ports.document_repository import DocumentRepository
@@ -176,6 +177,7 @@ async def build_extraction(
     kinds = page_types if page_types is not None else await _page_types(ports, org_id, doc)
     reading = doc.reading or {}
     agreement_of: dict[int, Any] = {p.page_no: p.agreement for p in doc.pages}
+    witness_of = {p.page_no: p.witness for p in doc.pages}
     agreement_of.update(page_agreement or {})
     stored: list[StoredChunk] = []
     for page_no, chunks in layout.items():
@@ -227,7 +229,7 @@ async def build_extraction(
             months=doc.months,
             page_no=page_no,
             layout=chunks,
-            source="TEXT_LAYER",
+            source="OCR" if witness_of.get(page_no) == WitnessType.OCR else "TEXT_LAYER",
             records=[i.record for i in inputs],
         )
     if ports.chunks is not None:

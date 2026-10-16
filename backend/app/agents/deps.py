@@ -24,6 +24,7 @@ from app.ports.label_repository import LabelRepository
 from app.ports.ledger_repository import LedgerRepository
 from app.ports.match_repository import MatchRepository
 from app.ports.month_repository import MonthRepository
+from app.ports.ocr_text import OcrText
 from app.ports.page_text import PageText
 from app.ports.record_repository import DocumentRecords
 from app.ports.review_item_repository import ReviewItemRepository
@@ -76,3 +77,5 @@ class PipelineDeps:
     embedder: Embedder | None = None  # verified examples in prompts (AC-016-9)
     # The extraction store (spec 022): each read page's chunks.
     chunks: ChunkRepository | None = None
+    # The OCR witness of scans and photos (spec 022 phase B); none without a processor.
+    ocr: OcrText | None = None

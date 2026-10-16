@@ -177,7 +177,7 @@ uv run --project backend python tools/knowledge/build.py --project "$PROJECT_ID"
 a time to live; confirmed in spike S5) and a Sessions container (an Agent Runtime instance with no
 agent), and prints both IDs. Nothing is deployed to them; the assistant runs in `kredibel-web`.
 
-`create_processors.py` uses the Document AI client with endpoint `us-documentai.googleapis.com`,
+`infra/create_processors.py` (built 16 Oct 2026; `kredibel-ocr` in `cloud-hack2skill`) uses the Document AI client with endpoint `us-documentai.googleapis.com`,
 creates processors of type `OCR_PROCESSOR` (Enterprise Document OCR) and, with `--form --invoice`,
 `FORM_PARSER_PROCESSOR` and `INVOICE_PROCESSOR` (confirm with `fetch_processor_types`), and prints the
 processor IDs and the stable version names to use.

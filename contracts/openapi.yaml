@@ -414,6 +414,30 @@ paths:
               schema: { type: string }
         "404": { $ref: "#/components/responses/Problem" }
 
+  /api/documents/{docId}/reread:
+    parameters:
+      - $ref: "#/components/parameters/DocId"
+    post:
+      tags: [documents]
+      operationId: rereadDocument
+      description: |
+        Spec 022, AC-022-5: read the document again in a new run (for instance with the OCR witness
+        of a photo); the reader's and the OCR's caches mean no page is billed twice, and people's
+        decisions and labels stay. Owner or accountant.
+      responses:
+        "202":
+          description: Queued
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [runId, status]
+                properties:
+                  runId: { type: string }
+                  status: { $ref: "#/components/schemas/RunStatus" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "404": { $ref: "#/components/responses/Problem" }
+
   /api/documents/{docId}/extraction.md:
     parameters:
       - $ref: "#/components/parameters/DocId"

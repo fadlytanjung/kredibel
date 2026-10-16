@@ -11,8 +11,9 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, File, Form, Query, Response, UploadFile, status
 
-from app.api.deps import ServiceProvider
+from app.api.deps import ServiceProvider, org_of
 from app.core.auth import Principal, PrincipalDependency
+from app.domain.errors import ForbiddenError
 from app.domain.extraction_store import StoredChunk
 from app.domain.models.document import DocStatus, DocType, Document, TextLayerStatus
 
@@ -224,6 +225,19 @@ def create_documents_router(
         this first request for a page read before the extraction store."""
         text = await provider.extraction_service.page_markdown(principal, doc_id, page_no)
         return Response(content=text, media_type="text/markdown; charset=utf-8")
+
+    @router.post("/{doc_id}/reread", status_code=status.HTTP_202_ACCEPTED)
+    async def reread_document(
+        doc_id: str,
+        principal: Principal = Depends(workspace_dep),
+    ) -> dict[str, Any]:
+        """AC-022-5: read the document again (for instance with the OCR witness). Owner or
+        accountant."""
+        if principal.role not in ("owner", "accountant"):
+            raise ForbiddenError("Only the owner or an accountant can read a document again.")
+        doc = await provider.document_service.get_document(principal, doc_id)
+        run = await provider.run_service.reread_document(org_of(principal), doc.doc_id)
+        return {"runId": run.run_id, "status": run.status}
 
     @router.get("/{doc_id}/extraction.md")
     async def get_document_extraction(

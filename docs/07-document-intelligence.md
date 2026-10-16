@@ -285,7 +285,7 @@ The witness produces **words with boxes** for a page, normalized to the page (0.
 | Source | How | Cost | Cache key |
 |---|---|---|---|
 | `TEXT_LAYER` | `pdfplumber.extract_words(keep_blank_chars=False, use_text_flow=False)` plus `fontname`/`size` per word | free (CPU) | none needed |
-| `OCR` | Document AI **Enterprise Document OCR** processor (`DOCAI_OCR_PROCESSOR_ID`), one request per ≤ 15 pages, tokens with bounding polygons | USD 1.50 / 1,000 pages | `cache/extraction/{sha256}/p{n}/ocr-{version}.json` |
+| `OCR` | Document AI **Enterprise Document OCR** processor (`DOCAI_OCR_PROCESSOR_ID`, `DOCAI_OCR_VERSION`), one request per page image, tokens with bounding polygons (`adapters/docai_ocr.py`, built 16 Oct 2026, spec 022 phase B) for every page without a usable text layer | USD 1.50 / 1,000 pages | `cache/extraction/{pageImageSha256}/ocr-{version}.json` |
 
 The witness never interprets the page: it does not decide what is a row or a total. It only says
 "these strings are printed here".

@@ -41,6 +41,9 @@ TASKS_INVOKER_SA=kredibel-tasks-invoker@cloud-hack2skill.iam.gserviceaccount.com
 
 # Reading (docs/07)
 DOCAI_LOCATION=us
+# Spec 022 phase B: the OCR witness (printed by infra/create_processors.py).
+DOCAI_OCR_PROCESSOR_ID=
+DOCAI_OCR_VERSION=
 EXTRACTION_MODE=adaptive
 EXTRACTION_ESCALATION=off
 ESCALATION_MAX_PAGES_PER_MONTH=30

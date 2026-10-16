@@ -9,6 +9,7 @@ from decimal import Decimal
 from pathlib import PurePosixPath
 from typing import Any
 
+import structlog
 from google.adk import Context
 from pydantic import BaseModel
 
@@ -72,9 +73,10 @@ from app.domain.models.document import (
     DuplicateDecision,
     DuplicateInfo,
     DuplicateKind,
+    PageRecord,
     PageStatus,
 )
-from app.domain.page_triage import TextLayerStatus
+from app.domain.page_triage import TextLayerStatus, WitnessType
 from app.domain.profile_suggestions import StatementFacts, build_profile_suggestions
 from app.domain.profit_loss import LedgerRow
 from app.domain.reading import (
@@ -88,7 +90,10 @@ from app.domain.reading import (
 from app.domain.review_items import confirm_mapping_item, confirm_type_item
 from app.domain.risk import assess_document_risk
 from app.domain.verdict import integrity_verdict
+from app.domain.verify import Word
 from app.services.extraction_service import ExtractionPorts, build_extraction
+
+log = structlog.get_logger()
 
 
 def pages_to_read(doc: dict[str, Any]) -> list[int]:
@@ -604,34 +609,87 @@ def parse_ledger(deps: PipelineDeps):
 
 
 def parse_pages(deps: PipelineDeps):
-    """Parse: the text layer into layout chunks per page, cached by the file's SHA-256 (ADR-023)."""
+    # Parse: each page into layout chunks, cached by the file's SHA-256 (ADR-023): from the PDF's
+    # own text layer, else from Document AI OCR of the page image (spec 022 phase B), the witness
+    # of scans and photos.
 
     @stage(deps, "parse_pages")
     async def _node(ctx: Context, node_input: dict[str, Any]) -> dict[str, Any]:
         org_id, doc_id = _ids(node_input)
         doc = await deps.doc_repo.get_document(org_id, doc_id)
-        if doc is None or deps.storage is None or deps.page_text is None:
+        if doc is None or deps.storage is None:
             return {**node_input, "summary": "Parsing skipped"}
         extension = PurePosixPath(doc.gcs_path).suffix
         original = await deps.storage.get_original(org_id, doc_id, extension)
-        if not original or not original.startswith(b"%PDF"):
-            return {**node_input, "summary": "No text layer (OCR witness comes with spike S3)"}
         usable = {p.page_no for p in doc.pages if p.text_layer == TextLayerStatus.USABLE}
         counts: dict[str, int] = {}
-        for page_no, words in deps.page_text.words(original).items():
-            if page_no not in usable:
-                continue
-            chunks = chunk_page(words, page=page_no)
-            key = _chunks_key(doc.sha256, page_no)
-            await deps.storage.put_cached(org_id, key, json.dumps(chunks_to_json(chunks)).encode())
-            counts[str(page_no)] = len(chunks)
-        return {
-            **node_input,
-            "parsed": counts,
-            "summary": f"{sum(counts.values())} chunks on {len(counts)} pages",
-        }
+        if original and original.startswith(b"%PDF") and deps.page_text is not None:
+            for page_no, words in deps.page_text.words(original).items():
+                if page_no not in usable:
+                    continue
+                await _cache_chunks(deps, org_id, doc.sha256, page_no, words, counts)
+        ocr_pages: list[int] = []
+        if deps.ocr is not None:
+            for page in doc.pages:
+                if page.blank or str(page.page_no) in counts:
+                    continue
+                words = await _ocr_words(deps, org_id, doc_id, page)
+                if words is None:
+                    continue
+                await _cache_chunks(deps, org_id, doc.sha256, page.page_no, words, counts)
+                ocr_pages.append(page.page_no)
+        if ocr_pages:
+            pages = [
+                replace(p, witness=WitnessType.OCR) if p.page_no in ocr_pages else p
+                for p in doc.pages
+            ]
+            await deps.doc_repo.save_document(org_id, replace(doc, pages=pages))
+        summary = f"{sum(counts.values())} chunks on {len(counts)} pages"
+        if ocr_pages:
+            summary += f", {len(ocr_pages)} by OCR"
+        elif not counts:
+            summary = "No text layer and no OCR"
+        return {**node_input, "parsed": counts, "ocrPages": ocr_pages, "summary": summary}
 
     return _node
+
+
+async def _cache_chunks(
+    deps: PipelineDeps,
+    org_id: str,
+    sha256: str,
+    page_no: int,
+    words: list[Word],
+    counts: dict[str, int],
+) -> None:
+    assert deps.storage is not None
+    chunks = chunk_page(words, page=page_no)
+    key = _chunks_key(sha256, page_no)
+    await deps.storage.put_cached(org_id, key, json.dumps(chunks_to_json(chunks)).encode())
+    counts[str(page_no)] = len(chunks)
+
+
+async def _ocr_words(
+    deps: PipelineDeps, org_id: str, doc_id: str, page: PageRecord
+) -> list[Word] | None:
+    """A page image's OCR words, cached by the image's hash and the OCR version (docs/07 §8); a
+    failure leaves the page without a witness rather than failing the document."""
+    if deps.ocr is None or deps.storage is None:
+        return None
+    key = f"{page.sha256}/ocr-{deps.ocr.version}.json"
+    cached = await deps.storage.get_cached(org_id, key)
+    if cached is not None:
+        return [Word(*w) for w in json.loads(cached)]
+    image = await deps.storage.get_page_image(org_id, doc_id, page.page_no)
+    if not image:
+        return None
+    try:
+        words = await deps.ocr.words(image)
+    except Exception:  # noqa: BLE001 - the reading goes on with one source (E01)
+        log.warning("ocr_failed", doc_id=doc_id, page=page.page_no)
+        return None
+    await deps.storage.put_cached(org_id, key, json.dumps([list(w) for w in words]).encode())
+    return words
 
 
 # What each document type is read with: the reader task (prompt) and its response schema.
@@ -793,7 +851,7 @@ def verify_pages(deps: PipelineDeps):
             pages=pages,
             statement_meta=outcome.statement_meta or doc.statement_meta,
             reading={
-                "method": "AI_TEXT_LAYER" if any(chunks.values()) else "AI_ONLY",
+                "method": _reading_method(doc, chunks),
                 "agreement": round(outcome.agreement, 4),
                 "fieldsCompared": outcome.compared,
                 "fieldsAgreed": outcome.agreed,
@@ -883,6 +941,15 @@ async def _value_labels(
         policy=deps.learning,
     )
     await write_labels(deps, org_id, labels)
+
+
+def _reading_method(doc: Document, chunks: dict[int, list[Chunk]]) -> str:
+    """docs/07 §8: which witness the readings were checked against."""
+    witnessed = [p for p in doc.pages if chunks.get(p.page_no)]
+    if not witnessed:
+        return "AI_ONLY"
+    ocr = sum(1 for p in witnessed if p.witness == WitnessType.OCR)
+    return "AI_OCR" if ocr == len(witnessed) else "AI_MIXED" if ocr else "AI_TEXT_LAYER"
 
 
 def extraction_ports(deps: PipelineDeps) -> ExtractionPorts | None:

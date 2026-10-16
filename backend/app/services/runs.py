@@ -67,6 +67,12 @@ class RunService:
         await self._task_queue.enqueue_document_task(org_id, doc_id, run_id, attempt=attempt)
         return run
 
+    async def reread_document(self, org_id: str, doc_id: str) -> Run:
+        """Spec 022, AC-022-5: the document's workflow again, in a new run (the reader's and the
+        OCR's caches mean no page is billed twice); people's decisions and labels stay."""
+        attempt = len(await self._run_repo.list_by_target(org_id, doc_id)) + 1
+        return await self.start_document_run(org_id, doc_id, attempt=attempt)
+
     async def start_month_run(
         self, org_id: str, month: str, *, is_user_request: bool = False
     ) -> Run:

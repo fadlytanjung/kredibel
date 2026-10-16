@@ -9,8 +9,8 @@
 
 ## Phase B — the OCR witness
 
-- [ ] **T022-05** Spike S3 (T005-05) and `DocAiPageText`; the processor in the project; scans and photos read twice. (AC-022-4)
-- [ ] **T022-06** `POST /api/documents/{docId}/reread`; re-read the demo template's photos. (AC-022-5)
+- [x] **T022-05** Spike S3 (T005-05) and `DocAiPageText`; the processor in the project; scans and photos read twice. (AC-022-4) Built 16 Oct 2026: `infra/create_processors.py` created `kredibel-ocr` (`pretrained-ocr-v2.1-2024-08-07`) in `us`; `adapters/docai_ocr.py`; `parse_pages` reads every page without a usable text layer by OCR into the same chunk cache, so the reader cites and the verifier checks against OCR words; the method is `AI_OCR` or `AI_MIXED` (`test_ocr_witness.py`).
+- [x] **T022-06** `POST /api/documents/{docId}/reread`; re-read the demo template's photos. (AC-022-5) Built 16 Oct 2026: `POST /api/documents/{docId}/reread`; `make reread-photos ORG=…` reads a workspace's photos and scans again and reconciles its months.
 
 ## Phase C — embeddings and retrieval (P1)
 

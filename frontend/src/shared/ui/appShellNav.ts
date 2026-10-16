@@ -31,6 +31,8 @@ export interface NavItem {
   bottomNav?: boolean
   /** The floating Upload button shows on this page (hidden where it would cover the work). */
   fab?: boolean
+  /** Kept as a page (its chrome and links) but not listed in the menus. */
+  hidden?: boolean
 }
 
 export const NAV_ITEMS: readonly NavItem[] = [
@@ -62,7 +64,8 @@ export const NAV_ITEMS: readonly NavItem[] = [
     bottomNav: true,
     fab: true,
   },
-  { key: 'counterparties', path: '/counterparties', icon: 'users', group: 'insight', fab: true },
+  // Hidden from the menus (16 Oct 2026, docs/11 §4.1); the pages stay for links from the books.
+  { key: 'counterparties', path: '/counterparties', icon: 'users', group: 'insight', fab: true, hidden: true },
   { key: 'assistant', path: '/assistant', icon: 'sparkles', group: 'insight' },
   {
     key: 'labels',

@@ -45,8 +45,8 @@ a short explanation and Next, Back and Skip.
 - **AC-021-4** After a workspace is created (a demo or my own), the dashboard starts a guided tour: a
   highlighted part of the page and a card with the step's title, one or two sentences, "Step n of m",
   **Back**, **Next** and **Skip the tour**. The steps follow the menu: the dashboard's period and
-  figures, where the money went, the upload tray, reconciliation, the review queue, risk, clients and
-  suppliers, labels, runs (owners only), the assistant, and an ending card. Each step opens its page
+  figures, where the money went, the upload tray, reconciliation, the review queue, risk, labels, runs
+  (owners only), the assistant, and an ending card. Each step opens its page
   first; a step whose part is not on the page shows its card without a highlight.
 - **AC-021-5** **Skip the tour**, Esc or **Done** ends it; the tour starts by itself once per person
   in this browser and can be started again with **Take the tour** in the top bar. On the demo

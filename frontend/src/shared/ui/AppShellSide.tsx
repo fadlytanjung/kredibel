@@ -52,7 +52,7 @@ export function NavLink({
 }
 
 function group(name: NavGroup) {
-  return NAV_ITEMS.filter((item) => item.group === name)
+  return NAV_ITEMS.filter((item) => item.group === name && !item.hidden)
 }
 
 /** Two short lines at the sidebar foot; the whole row opens Plan and usage (docs/11 §4.1). */

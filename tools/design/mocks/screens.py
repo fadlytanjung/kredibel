@@ -366,7 +366,7 @@ def dashboard(extra: str = "") -> str:
 
 
 TOUR_WORDS = json.loads((LOCALES / "tour.json").read_text(encoding="utf-8"))
-TOUR_IDS = ["welcome", "period", "figures", "flow", "upload", "months", "review", "risk", "clients", "labels", "runs", "assistant", "done"]
+TOUR_IDS = ["welcome", "period", "figures", "flow", "upload", "months", "review", "risk", "labels", "runs", "assistant", "done"]
 
 # The same placement as features/tour/position.ts, measured in the browser like the app.
 TOUR_SCRIPT = """<script>

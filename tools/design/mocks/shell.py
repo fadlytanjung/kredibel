@@ -14,8 +14,8 @@ NAV_BOOKS = [
     ("review", "inbox", "Review", "Review", "review.html", ("10", False)),
     ("risk", "shield-alert", "Risk", "Risk", "risk.html", ("2", False)),
 ]
+# Clients and suppliers are not in the menus (16 Oct 2026); clients.html stays as a page.
 NAV_INSIGHT = [
-    ("clients", "users", "Clients and suppliers", "Clients", "clients.html", None),
     ("assistant", "sparkles", "Assistant", "Assistant", "assistant.html", None),
 ]
 NAV_AI = [
@@ -75,7 +75,7 @@ def bottom_nav(active: str) -> str:
 
 def more_sheet() -> str:
     links = [
-        ("reconcile", "Reconciliation", "month.html"), ("users", "Clients and suppliers", "clients.html"),
+        ("reconcile", "Reconciliation", "month.html"),
         ("sparkles", "Assistant", "assistant.html"), ("tag", "Labels", "labels.html"),
         ("flow", "Runs", "runs.html"), ("sliders", "Settings", "plan-usage.html"),
         ("book", "Logo and brand", "brand.html"), ("dashboard", "All screens", "index.html"),

@@ -104,7 +104,7 @@ they never set colours, font sizes or shadows ([`12`](12-design-system.md) §0).
 | Books | Reconciliation (Reconcile) | `/months` | — |
 | Books | Review | `/review` | open items, alert colour |
 | Books | Risk | `/risk` | months at High or Critical with open findings, alert colour |
-| Insight | Clients and suppliers (Clients) | `/counterparties` | — |
+| Insight | Clients and suppliers: not in the menus since 16 Oct 2026; the pages stay for links | `/counterparties` | — |
 | Insight | Assistant (P1) | `/assistant` | — |
 | AI quality | Labels (P1) | `/labels` | labels that need a check, neutral |
 | AI quality | Runs (P1, owner only) | `/runs` | — |
@@ -114,7 +114,7 @@ The logo, the workspace switcher (one workspace in P0; its subtitle shows the ty
 accounting framework), the trial status and a global **Upload** action are always reachable: in the
 sidebar and top bar from 600 px, as the floating **Upload** button and the bottom navigation
 (Dashboard, Documents, Review, Risk, More) below 600 px. **More** opens a sheet with Reconciliation,
-Clients and suppliers, Assistant, Labels, Runs and Settings; `Esc` or a tap outside closes it.
+Assistant, Labels, Runs and Settings; `Esc` or a tap outside closes it.
 
 The sidebar foot has two rows and nothing else, so the labelled sidebar shows every item without
 scrolling in a window 768 px tall (below that only the navigation scrolls; the logo and the foot stay
@@ -373,9 +373,9 @@ wins; on looks, the mock and [`12`](12-design-system.md) win.
 **Guided tour** (spec 021; mock `tour.html`). After a workspace is created the dashboard starts it,
 once per person in this browser; **Take the tour** (the lightbulb in the top bar) starts it again.
 Each step opens its page and lights one part, the page dimmed around it, with a card: "Step n of
-13", a title, one or two sentences, **Skip the tour**, **Back** and **Next** (**Done** on the last).
+12", a title, one or two sentences, **Skip the tour**, **Back** and **Next** (**Done** on the last).
 The steps: welcome, the period, the figures, where the money went, the upload tray, reconciliation,
-the review queue, risk, clients and suppliers, labels, runs (owners), the assistant, the end. The
+the review queue, risk, labels, runs (owners), the assistant, the end. The
 dashboard steps show the months that have books. The card sits beside the part, or at the bottom on
 phones with the part scrolled to the top; it is a labelled dialog that keeps the focus, the arrows
 move and Esc ends; no motion when motion is reduced.

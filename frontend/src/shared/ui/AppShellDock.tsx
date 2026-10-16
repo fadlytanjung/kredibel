@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom'
 import { Icon } from './Icon'
 import { NAV_ITEMS, isActivePath, type AppShellCounts } from './appShellNav'
 
-const IN_MORE = NAV_ITEMS.filter((item) => !item.bottomNav)
+const IN_MORE = NAV_ITEMS.filter((item) => !item.bottomNav && !item.hidden)
 
 function MoreSheet({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation()

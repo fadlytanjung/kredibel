@@ -1733,7 +1733,7 @@ components:
       type: string
       enum: [BANK_SALES_INVOICE, BANK_PURCHASE_INVOICE, BANK_RECEIPT, BANK_LEDGER, DOCUMENT_LEDGER]
     MatchStatus: { type: string, enum: [CONFIRMED, PROPOSED, REJECTED] }
-    MatchReason: { type: string, enum: [AMOUNT_EXACT, NET_OF_TAX, PARTY_MATCH, REFERENCE_IN_TEXT, DATE_NEAR, SPLIT, GROUPED] }
+    MatchReason: { type: string, enum: [AMOUNT_EXACT, NET_OF_TAX, WITHHOLDING_RATE, FEE_DEDUCTED, PARTY_MATCH, REFERENCE_IN_TEXT, DATE_NEAR, SPLIT, GROUPED] }
     PaymentEvidence:
       type: string
       description: ADR-025; never the same thing as integrity or a person's approval.

@@ -420,13 +420,21 @@ output: uploading S1 in reverse order (scenario S5) ends in the same matches.
 
 | Pair | Left | Right | Notes |
 |---|---|---|---|
-| Sales | Bank credit | Sales invoice(s) | exact, net of withholding tax, split (2–3 credits), several invoices in one credit |
-| Purchases | Bank debit | Purchase invoice(s) or receipt | receipts paid by card or transfer only |
-| Ledger cash | Bank line | Ledger entry on a mapped bank account | same date ±3 days and same amount |
+| Sales | Bank credit | Sales invoice(s) | from 5 days before the invoice date; exact; net of withholding tax (up to 2%, or a known rate above it, `WITHHOLDING_RATE`); less a bank transfer fee up to the currency's `feeAllowance` (`FEE_DEDUCTED`); split (2–3 credits); several invoices of one party in one credit (up to 8) |
+| Purchases | Bank debit | Purchase invoice(s) or receipt(s) | receipts paid by card or transfer only, up to 5 days apart (card and QR settlements); several receipts of one party in one charge (up to 8, e.g. a subscription batch) |
+| Ledger cash | Bank line | Ledger entry on a mapped bank account | same date ±3 days and same amount (±5 made monthly bookings of the same amount rivals) |
 | Ledger documents | Invoice or receipt | Ledger entry (receivable, payable or expense) | invoice number in the reference, or party + amount + date |
 
 A bank line is matched when its amount is fully explained by documents or ledger entries; a document
-is paid when its total is fully covered by bank lines (net-of-tax counts as fully covered).
+is paid when its total is fully covered by bank lines (a confirmed net-of-tax, withholding or fee
+adjustment counts as fully covered).
+
+**Spec 023 (16 Oct 2026).** Every adjustment (`NET_OF_TAX`, `WITHHOLDING_RATE`, `FEE_DEDUCTED`) is a
+proposal a person confirms, never automatic. A group of several documents for one bank line is found
+by a subset sum over the line's party in its date window (at most `maxGroupParts`, the 24 nearest
+candidates); a group of more than `maxAutoGroupParts` is never automatic. The party score is the
+best of the line's cleaned counterparty name, its printed description and the spellings its
+counterparty is known by (spec 014), against the document's party.
 
 ### 6.3 Scoring and assignment
 

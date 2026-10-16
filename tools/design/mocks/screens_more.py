@@ -24,6 +24,7 @@ from screens import (
     sev_badge,
     words,
 )
+from markdown_view import markdown_tabs
 from shell import shell, topbar
 
 # ------------------------------------------------------------------------------------------------
@@ -384,7 +385,7 @@ def label_drawer(label: dict) -> str:
     page = label["subject"].get("pageNo") or 1
     md = (LABELS_FIX.get("extractions") or {}).get(label.get("extractionUrl") or "")
     extraction_head = lw("panel.extractionOf", page=page) if label.get("extractionUrl") else lw("panel.extraction")
-    extraction_body = (f'<pre tabindex="0" aria-label="{extraction_head}">{escape(md)}</pre>'
+    extraction_body = (markdown_tabs(md, extraction_head, lambda key, **p: words(COMMON_WORDS, key, **p))
                        if md else f'<p class="muted small">{lw("panel.noExtraction")}</p>')
     download = f'<button type="button" class="button button-quiet button-sm">{icon("download", "icon icon-sm")}{lw("panel.downloadExtraction", page=page)}</button>' if md else ""
     return f"""

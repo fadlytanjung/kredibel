@@ -41,6 +41,9 @@ class MatchRecord:
     held: bool = False
     has_conflict: bool = False
     currency_override_confirmed: bool = False
+    # The spellings the line's counterparty is known by (spec 014): a terse bank description can
+    # still name the invoice's party.
+    aliases: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -145,19 +148,30 @@ def score_pair(
     date_score = _date_score(left, right, policy)
     if tolerance is None or date_score is None:
         return None
-    net_of_tax = False
+    adjusted = True  # an adjustment a person confirms: never automatic
+    invoice = left.kind == "BANK" and right.kind in INVOICES and paid < total
+    fee = policy.fee_allowance.get(workspace_currency)
     if abs(paid - total) <= tolerance:
-        amount, reason = Decimal(1), "AMOUNT_EXACT"
+        amount, reason, adjusted = Decimal(1), "AMOUNT_EXACT", False
     elif (
-        left.kind == "BANK"
-        and right.kind in INVOICES
-        and total * (1 - policy.max_withholding) <= paid < total
+        invoice
+        and right.kind == "SALES_INVOICE"
+        and left.amount > 0
+        and fee is not None
+        and total - paid <= fee
     ):
+        # A customer's payment short by a transfer fee the paying bank took (checked first: on
+        # money in a fee is far more common than a withholding of the same size).
+        amount, reason = policy.net_of_tax_amount_score, "FEE_DEDUCTED"
+    elif invoice and total * (1 - policy.max_withholding) <= paid:
         amount, reason = policy.net_of_tax_amount_score, "NET_OF_TAX"
-        net_of_tax = True
+    elif invoice and any(
+        abs(paid - total * (1 - rate)) <= tolerance for rate in policy.withholding_rates
+    ):
+        amount, reason = policy.net_of_tax_amount_score, "WITHHOLDING_RATE"
     else:
         return None
-    return _score(left, right, policy, amount, reason, date_score, net_of_tax)
+    return _score(left, right, policy, amount, reason, date_score, adjusted)
 
 
 def _score(
@@ -167,17 +181,11 @@ def _score(
     amount: Decimal,
     amount_reason: str,
     date_score: Decimal,
-    net_of_tax: bool,
+    adjusted: bool,
 ) -> CandidateScore:
     # For document-to-ledger, the document owns the reference and the ledger describes the booking.
     document, payment = (right, left) if left.kind == "BANK" else (left, right)
-    party_text = _fold(document.party or "")
-    payment_text = _fold(payment.party or payment.description)
-    party = (
-        Decimal(str(token_set_ratio(party_text, payment_text))) / 100
-        if party_text and payment_text
-        else Decimal(0)
-    )
+    party = _party(document, payment)
     reference = _reference_in(document.reference, payment.description)
     w = policy.weights
     score = w.amount * amount + w.party * party + w.reference * reference + w.date * date_score
@@ -199,16 +207,33 @@ def _score(
         score,
         abs(left.amount) - abs(right.amount),
         tuple(reasons),
-        left.has_conflict or right.has_conflict or net_of_tax,
+        left.has_conflict or right.has_conflict or adjusted,
     )
 
 
 def _party(document: MatchRecord, payment: MatchRecord) -> Decimal:
+    """The best of the payment's cleaned party, its printed description and its counterparty's
+    known spellings against the document's party (AC-023-5)."""
     document_text = _fold(document.party or "")
-    payment_text = _fold(payment.party or payment.description)
-    if not document_text or not payment_text:
+    names = [payment.party, payment.description, *payment.aliases]
+    texts = [_fold(n) for n in names if n and n.strip()]
+    if not document_text or not texts:
         return Decimal(0)
-    return Decimal(str(token_set_ratio(document_text, payment_text))) / 100
+    return max(Decimal(str(token_set_ratio(document_text, t))) / 100 for t in texts)
+
+
+def part_of(
+    payment: MatchRecord, document: MatchRecord, policy: ReconciliationPolicy, currency: str
+) -> bool:
+    """Can this pair be one part of a group: both valid, the pair allowed, inside its date window
+    and the same party (partyMinScoreForSplit)."""
+    return (
+        _valid(payment, currency)
+        and _valid(document, currency)
+        and _pair_allowed(payment, document)
+        and _date_score(payment, document, policy) is not None
+        and _party(document, payment) >= policy.thresholds.party_min_score_for_split
+    )
 
 
 def score_group(
@@ -218,14 +243,17 @@ def score_group(
     *,
     workspace_currency: str,
 ) -> CandidateScore | None:
-    """One bank row for several invoices (GROUPED) or several bank rows for one invoice (SPLIT),
-    2 to maxSplitParts parts. Every part must be eligible with its counterpart, show the same party
-    (partyMinScoreForSplit) and fall in its date window; the totals must agree within tolerance.
+    """One bank row for several documents (GROUPED, 2 to maxGroupParts, more than maxAutoGroupParts
+    never automatic) or several bank rows for one invoice (SPLIT, 2 to maxSplitParts). Every part
+    must be eligible with its counterpart, show the same party (partyMinScoreForSplit) and fall in
+    its date window; the totals must agree within tolerance.
     Groups get no net-of-tax allowance: an approximate group is not evidence (ADR-025)."""
     if (len(payments) == 1) == (len(documents) == 1):
         return None
     parts = max(len(payments), len(documents))
-    if parts > policy.thresholds.max_split_parts:
+    grouped = len(payments) == 1
+    limits = policy.thresholds
+    if parts > (limits.max_group_parts if grouped else limits.max_split_parts):
         return None
     pairs = [(p, d) for p in payments for d in documents]
     if not all(_valid(r, workspace_currency) for r in (*payments, *documents)):
@@ -269,5 +297,6 @@ def score_group(
         score,
         paid - total,
         tuple(reasons),
-        any(r.has_conflict for r in (*payments, *documents)),
+        any(r.has_conflict for r in (*payments, *documents))
+        or (grouped and parts > limits.max_auto_group_parts),
     )

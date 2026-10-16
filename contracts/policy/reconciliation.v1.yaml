@@ -14,6 +14,13 @@ amountTolerance:
     USD: "0.01"
   share: "0.005"                    # 0.5% of the amount, whichever is larger
 maxWithholding: "0.02"              # net-of-tax payments up to 2% below the total
+withholdingRates: ["0.10"]          # known rates above maxWithholding (PPh 4(2) on rent, construction): proposal
+feeAllowance:                       # money in short by at most this: a fee the paying bank took (proposal)
+  IDR: "10000"
+  MYR: "2"
+  SGD: "2"
+  JPY: "500"
+  USD: "1"
 netOfTaxAmountScore: "0.8"          # proposal only until a person confirms the adjustment
 
 reasonThresholds:
@@ -21,11 +28,11 @@ reasonThresholds:
   date: "0.90"
 
 windows:
-  invoiceBeforeIssueDays: 3         # a payment may arrive up to 3 days before the invoice date
+  invoiceBeforeIssueDays: 5         # a payment may arrive up to 5 days before the invoice date (H-5)
   defaultTermsDays: 30              # due date when the invoice has none
   graceDays: 30                     # after the due date
-  receiptDays: 3
-  ledgerDays: 3
+  receiptDays: 5                    # card and QR settlements arrive up to H+5 (weekends, holidays)
+  ledgerDays: 3                     # exact amount on a mapped account; ±5 made monthly bookings of the same amount rivals
   neighbourMonths: 1                # reconcile_month also looks at ±1 month for cross-month payments
 
 weights:
@@ -39,7 +46,9 @@ thresholds:
   ambiguityMargin: "0.10"
   proposeScore: "0.60"
   partyMinScoreForSplit: "0.80"
-  maxSplitParts: 3
+  maxSplitParts: 3                  # several bank rows for one document
+  maxGroupParts: 8                  # one bank row for several documents of one party (subset sum)
+  maxAutoGroupParts: 3              # a larger group is always a proposal
 
 ledger:
   bankAccountMapping: user          # the user maps each bank account to a ledger account code once

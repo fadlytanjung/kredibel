@@ -1,0 +1,18 @@
+# Tasks 023 — Reading and matching quality
+
+## Phase A — matching rules and the Markdown tabs (P0)
+
+- [x] **T023-01** **TDD** `shared/lib/markdown.ts` parser and `MarkdownTabs` (Preview, Markdown) in the
+  Labels drawer and the label mock; per-viewer tab memory; visual baselines. (AC-023-1) Built 16 Oct 2026: `shared/lib/markdown.ts`, `shared/ui/MarkdownTabs.tsx`, `tools/design/mocks/markdown_view.py`; the Labels drawer opens on Preview.
+- [x] **T023-02** **TDD** Receipt and ledger windows ±5 days. (AC-023-2) Built 16 Oct 2026: `receiptDays` 5 and `invoiceBeforeIssueDays` 5 (H±5 between bank lines and documents); `ledgerDays` stays 3: ±5 made monthly ledger bookings of the same amount rivals in the synthetic books.
+- [x] **T023-03** **TDD** Fee allowance and known withholding rates, proposals only. (AC-023-3) Built 16 Oct 2026: `feeAllowance` per currency (money in, sales), `withholdingRates` above the 2% band (PPh 4(2) 10%); the 2% band stays `NET_OF_TAX`. Contract `MatchReason` gains `WITHHOLDING_RATE`, `FEE_DEDUCTED`.
+- [x] **T023-04** **TDD** Grouped matches by subset sum, up to 8 parts, more than 3 never automatic.
+  (AC-023-4) Built 16 Oct 2026: `reconcile.subsets_summing` over `part_of` candidates; the backend suite went from about 195 s to 70 s with it.
+- [x] **T023-05** **TDD** Party score from description, cleaned name and confirmed aliases. (AC-023-5) Built 16 Oct 2026: `MatchRecord.aliases` from the month's counterparties.
+
+## Phase B — prompts and ranking (P1)
+
+- [ ] **T023-06** Statement reader v4, categorizer v4, classifier v3; synthetic *rekening koran*
+  scenario; measured by the eval suite before shipping. (AC-023-6)
+- [ ] **T023-07** **TDD** The model ranks a proposal's candidates; shown on the review item. (AC-023-7)
+- [ ] **T023-08** Update `docs/07`, `docs/08`, `docs/20`.

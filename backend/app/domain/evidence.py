@@ -103,7 +103,8 @@ def _bank_paid(
     for a in allocations:
         if a.status != "CONFIRMED" or doc.record_id not in a.right_ids:
             continue
-        if "NET_OF_TAX" in a.reasons or len(a.right_ids) > 1:
+        adjusted = {"NET_OF_TAX", "WITHHOLDING_RATE", "FEE_DEDUCTED"} & set(a.reasons)
+        if adjusted or len(a.right_ids) > 1:
             paid += (
                 doc.total
             )  # a confirmed adjustment, or this invoice's share of a grouped payment

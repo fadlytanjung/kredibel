@@ -31,6 +31,7 @@ documents sit under `docs/`. Paths to other docs are relative (`../01-…`, `../
 | 020 | [Public site](020-public-site/spec.md) | P0 (submission) | C (+D) | 001, 013 | D7 |
 | 021 | [Demo company and guided tour](021-demo-and-guided-tour/spec.md) | P0 (submission demo) | B, C | 002, 013, 016, 017 | D8 |
 | 022 | [Extraction store and knowledge base](022-extraction-store/spec.md) | P0 (A, B), P1 (C) | A, B, C | 005, 016, 011 | D8 |
+| 023 | [Reading and matching quality](023-reading-and-matching-quality/spec.md) | P0 (A), P1 (B) | A, B, C | 005, 007, 016, 022 | D9 |
 
 Spec numbers are identifiers, not the build order: 013 is built right after 001, because 003 and 004
 call its entitlement checks.

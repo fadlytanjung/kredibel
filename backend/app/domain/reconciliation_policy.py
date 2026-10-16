@@ -58,6 +58,8 @@ class Thresholds(_Part):
     propose_score: Share
     party_min_score_for_split: Share
     max_split_parts: int = Field(ge=2, strict=True)
+    max_group_parts: int = Field(ge=2, strict=True)
+    max_auto_group_parts: int = Field(ge=2, strict=True)
 
     @model_validator(mode="after")
     def ordered(self) -> Self:
@@ -76,6 +78,8 @@ class ReconciliationPolicy(_Part):
     id: str
     amount_tolerance: AmountTolerance
     max_withholding: Share
+    withholding_rates: list[Share]
+    fee_allowance: dict[str, Nonnegative]
     net_of_tax_amount_score: Share
     windows: Windows
     weights: Weights

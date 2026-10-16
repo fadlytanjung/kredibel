@@ -11,12 +11,11 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
-from itertools import combinations
 from typing import Literal
 
 from app.core.ids import content_id
 
-from .reconcile_scoring import CandidateScore, MatchRecord, score_group, score_pair
+from .reconcile_scoring import CandidateScore, MatchRecord, part_of, score_group, score_pair
 from .reconciliation_policy import ReconciliationPolicy
 
 
@@ -90,22 +89,61 @@ def _candidates(
             if scored := score_pair(lo, ro, policy, workspace_currency=currency):
                 singles[(lo.record_id, ro.record_id)] = scored
                 out.append(_candidate((lo,), (ro,), scored))
-    largest = policy.thresholds.max_split_parts
-    # One payment, several documents: only documents smaller than the payment can be parts.
+    limits = policy.thresholds
+    # One payment, several documents of its party in its window (a card charge for several
+    # receipts): the subsets whose sum agrees with the payment.
     for lo in left:
-        parts = sorted((ro for ro in right if _abs(ro) < _abs(lo)), key=lambda r: r.record_id)
-        for size in range(2, largest + 1):
-            for group in combinations(parts, size):
-                if scored := score_group((lo,), group, policy, workspace_currency=currency):
-                    out.append(_candidate((lo,), group, scored))
-    # Several payments, one document.
+        parts = [ro for ro in right if _abs(ro) < _abs(lo) and part_of(lo, ro, policy, currency)]
+        tolerance = policy.tolerance(_abs(lo), currency)
+        for group in subsets_summing(_abs(lo), parts, tolerance, limits.max_group_parts):
+            if scored := score_group((lo,), group, policy, workspace_currency=currency):
+                out.append(_candidate((lo,), group, scored))
+    # Several payments, one document (instalments).
     for ro in right:
-        parts = sorted((lo for lo in left if _abs(lo) < _abs(ro)), key=lambda r: r.record_id)
-        for size in range(2, largest + 1):
-            for group in combinations(parts, size):
-                if scored := score_group(group, (ro,), policy, workspace_currency=currency):
-                    out.append(_candidate(group, (ro,), scored))
+        parts = [lo for lo in left if _abs(lo) < _abs(ro) and part_of(lo, ro, policy, currency)]
+        tolerance = policy.tolerance(_abs(ro), currency)
+        for group in subsets_summing(_abs(ro), parts, tolerance, limits.max_split_parts):
+            if scored := score_group(group, (ro,), policy, workspace_currency=currency):
+                out.append(_candidate(group, (ro,), scored))
     return out
+
+
+MAX_PARTS_CONSIDERED = 24  # the nearest candidates of one party; keeps the subset search small
+MAX_GROUPS = 6  # subsets kept per anchor: enough to see a rival, few enough to stay fast
+
+
+def subsets_summing(
+    target: Decimal,
+    items: Sequence[MatchRecord],
+    tolerance: Decimal | None,
+    max_parts: int,
+) -> list[tuple[MatchRecord, ...]]:
+    """Subsets of 2 to `max_parts` items whose amounts sum to the target within the tolerance,
+    largest amounts first, in a stable order (same data, same result)."""
+    if tolerance is None or len(items) < 2:
+        return []
+    ordered = sorted(items, key=lambda r: (-_abs(r), r.record_id))[:MAX_PARTS_CONSIDERED]
+    left_after = [sum((_abs(r) for r in ordered[i:]), Decimal(0)) for i in range(len(ordered) + 1)]
+    found: list[tuple[MatchRecord, ...]] = []
+
+    def walk(start: int, chosen: list[MatchRecord], total: Decimal) -> None:
+        if len(found) >= MAX_GROUPS:
+            return
+        if len(chosen) >= 2 and abs(total - target) <= tolerance:
+            found.append(tuple(sorted(chosen, key=lambda r: r.record_id)))
+            return
+        if len(chosen) == max_parts or total + left_after[start] < target - tolerance:
+            return
+        for i in range(start, len(ordered)):
+            amount = _abs(ordered[i])
+            if total + amount > target + tolerance:
+                continue
+            chosen.append(ordered[i])
+            walk(i + 1, chosen, total + amount)
+            chosen.pop()
+
+    walk(0, [], Decimal(0))
+    return found
 
 
 def assign_matches(

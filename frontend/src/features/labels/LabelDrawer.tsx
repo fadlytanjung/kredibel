@@ -10,7 +10,7 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { type Label, useDecideLabel, useExtraction } from '../../entities/label'
 import { formatDate, formatMonth } from '../../shared/lib/formatDate'
-import { Icon } from '../../shared/ui'
+import { Icon, MarkdownTabs } from '../../shared/ui'
 import { confidenceLevel, DOC_TYPES, PAGE_TYPES, ROLES, shortModel, statusKey, valueWord } from './words'
 
 export function Confidence({ value }: { value: number | null | undefined }) {
@@ -178,12 +178,7 @@ export function LabelDrawer({ label, onClose }: { label: Label; onClose: () => v
               {extraction.isLoading ? (
                 <p className="muted small">{t('labels:panel.extractionLoading')}</p>
               ) : extraction.data ? (
-                <>
-                  {/* A scrolling region a keyboard can reach (axe scrollable-region-focusable). */}
-                  <pre tabIndex={0} aria-label={t('labels:panel.extractionOf', { page })}>
-                    {extraction.data}
-                  </pre>
-                </>
+                <MarkdownTabs text={extraction.data} name={t('labels:panel.extractionOf', { page })} />
               ) : (
                 <p className="muted small">{t('labels:panel.noExtraction')}</p>
               )}

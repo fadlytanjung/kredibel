@@ -169,6 +169,11 @@
     "riskDesc": "Forensic checks and tamper findings",
     "assistantDesc": "Grounded AI answers from your books"
   },
+  "markdown": {
+    "tabsAria": "{{name}}: preview or Markdown",
+    "preview": "Preview",
+    "source": "Markdown"
+  },
   "table": {
     "searchPlaceholder": "Search...",
     "searchAria": "Search items",

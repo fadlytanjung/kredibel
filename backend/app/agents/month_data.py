@@ -54,6 +54,8 @@ class MonthData:
     not_required: set[str] = field(default_factory=set)
     ledger_rows: list[LedgerRow] = field(default_factory=list)
     bank_account_mappings: dict[str, str] = field(default_factory=dict)
+    # counterpartyId → the names it is known by (spec 014), for the party score (AC-023-5)
+    spellings: dict[str, tuple[str, ...]] = field(default_factory=dict)
 
     @property
     def computable(self) -> bool:
@@ -149,6 +151,16 @@ async def read_month(deps: PipelineDeps, org_id: str, month: str) -> MonthData |
     ledger_rows: list[LedgerRow] = []
     if deps.ledger is not None:
         ledger_rows = await deps.ledger.list_rows(org_id)
+    spellings: dict[str, tuple[str, ...]] = {}
+    if deps.counterparties is not None:
+        cursor: str | None = None
+        while True:
+            parties, cursor = await deps.counterparties.list_counterparties(
+                org_id, limit=200, cursor=cursor
+            )
+            spellings |= {p.counterparty_id: (p.name, *p.aliases) for p in parties}
+            if not cursor:
+                break
 
     return MonthData(
         month=month,
@@ -166,6 +178,7 @@ async def read_month(deps: PipelineDeps, org_id: str, month: str) -> MonthData |
         not_required={d.tx_id for d in decisions if d.kind == "SUPPORT_NOT_REQUIRED" and d.tx_id},
         ledger_rows=ledger_rows,
         bank_account_mappings=bank_account_mappings,
+        spellings=spellings,
     )
 
 
@@ -190,6 +203,7 @@ def bank_record(line: BankLine, data: MonthData) -> MatchRecord:
         account_id=data.account_of.get(line.doc_id),
         has_conflict=_conflict(line.consensus, "amount", "date"),
         currency_override_confirmed=line.doc_id in data.accepted_docs,
+        aliases=data.spellings.get(line.counterparty_id or "", ()),
     )
 
 

@@ -152,6 +152,8 @@
     "matchReasons": {
       "AMOUNT_EXACT": "Same amount",
       "NET_OF_TAX": "Amount net of tax",
+      "WITHHOLDING_RATE": "Amount net of withholding at a known rate",
+      "FEE_DEDUCTED": "Amount less a bank transfer fee",
       "PARTY_MATCH": "Same party",
       "REFERENCE_IN_TEXT": "Reference in the description",
       "DATE_NEAR": "Close date",

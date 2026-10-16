@@ -69,7 +69,7 @@ def test_ac007_17_amount_and_date_without_identity_cannot_auto_confirm(policy, b
 
 
 @pytest.mark.parametrize(
-    "delta,expected", [(-4, None), (-3, "1"), (14, "1"), (29, "0.5"), (44, "0"), (45, None)]
+    "delta,expected", [(-6, None), (-5, "1"), (14, "1"), (29, "0.5"), (44, "0"), (45, None)]
 )
 def test_ac007_5_invoice_window_boundaries(policy, bank, invoice, delta, expected):
     result = score_pair(
@@ -220,18 +220,19 @@ def test_ac007_5_conflict_retains_candidate_but_prevents_automation(policy, bank
         assert result is not None and result.score == 1 and result.requires_review
 
 
-@pytest.mark.parametrize(
-    "days,eligible", [(-4, False), (-3, True), (0, True), (3, True), (4, False)]
-)
-def test_ac007_5_receipt_and_ledger_windows(policy, bank, invoice, days, eligible):
-    debit = replace(bank, amount=-bank.amount, date=DAY + timedelta(days=days))
+@pytest.mark.parametrize("beyond", [-1, 0, 1])
+def test_ac007_5_receipt_and_ledger_windows(policy, bank, invoice, beyond):
+    """Receipts up to receiptDays apart (card settlements, spec 023); ledger cash ledgerDays."""
     receipt = replace(invoice, kind="RECEIPT", payment_method="CARD", due_date=None)
     cash = replace(bank, record_id="ledger-1", kind="LEDGER_CASH", amount=-bank.amount)
-    for target in [receipt, cash]:
-        result = score_pair(debit, target, policy, workspace_currency="MYR")
-        assert (result is not None) is eligible
-        if result is not None:
-            assert result.date == 1 - D(abs(days)) / 3
+    windows = policy.windows
+    for target, window in ((receipt, windows.receipt_days), (cash, windows.ledger_days)):
+        for days in (-(window + beyond), window + beyond):
+            debit = replace(bank, amount=-bank.amount, date=DAY + timedelta(days=days))
+            result = score_pair(debit, target, policy, workspace_currency="MYR")
+            assert (result is not None) is (beyond <= 0)
+            if result is not None:
+                assert result.date == 1 - D(abs(days)) / window
 
 
 @pytest.mark.parametrize(
@@ -280,7 +281,7 @@ def test_ac007_5_document_ledger_uses_booking_role_and_ledger_window(policy, inv
     assert (
         score_pair(
             document,
-            replace(ledger, date=DAY + timedelta(days=4)),
+            replace(ledger, date=DAY + timedelta(days=policy.windows.ledger_days + 1)),
             policy,
             workspace_currency="MYR",
         )

@@ -1735,6 +1735,19 @@ button.tab { border: 0; background: transparent; cursor: pointer; font-family: i
 .check-row input { width: 18px; height: 18px; accent-color: var(--k-color-brand-default); }
 .lp-actions { gap: var(--k-space-2); }
 .lp-md summary, .ev-inspector summary { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 640; cursor: pointer; padding: 4px 0; }
+.md-tabs .tabs { margin-top: var(--k-space-1); }
+.md-preview { margin: 6px 0; padding: var(--k-space-3); border: 1px solid var(--k-color-border-default); border-radius: var(--k-radius-sm); background: var(--k-color-bg-surface); color: var(--k-color-text-default); font-size: 13px; line-height: 1.45; overflow-x: auto; }
+.md-preview h3, .md-preview h4, .md-preview h5, .md-preview h6 { margin: var(--k-space-3) 0 var(--k-space-1); font-size: 13px; font-weight: 700; }
+.md-preview .md-h1 { margin-top: 0; font-size: 15px; }
+.md-preview p { margin: 0 0 var(--k-space-2); }
+.md-preview .md-line { display: block; }
+.md-preview ul { margin: 0 0 var(--k-space-2); padding-left: var(--k-space-4); }
+.md-preview hr { margin: var(--k-space-3) 0; border: 0; border-top: 1px solid var(--k-color-border-default); }
+.md-preview code { font-family: var(--k-font-family-mono); font-size: 12px; }
+.md-table { margin: 0 0 var(--k-space-2); overflow-x: auto; }
+.md-table table { min-width: 100%; border-collapse: collapse; font-size: 12px; }
+.md-table th, .md-table td { padding: 4px 6px; border: 1px solid var(--k-color-border-default); text-align: left; vertical-align: top; }
+.md-table th { background: var(--k-color-bg-sunken); font-weight: 640; white-space: nowrap; }
 .lp-md pre, .ev-inspector pre { margin: 6px 0; padding: var(--k-space-3); border-radius: var(--k-radius-sm); background: var(--k-color-bg-inverse); color: var(--k-color-text-on-inverse); font-family: var(--k-font-family-sans); font-stretch: 80%; font-size: 11.5px; line-height: 16px; overflow-x: auto; white-space: pre; }
 .lp-prov { display: grid; grid-template-columns: auto 1fr; gap: 4px var(--k-space-3); font-size: 13px; padding-top: var(--k-space-2); border-top: 1px solid var(--k-color-border-default); }
 .lp-prov > div { display: contents; }

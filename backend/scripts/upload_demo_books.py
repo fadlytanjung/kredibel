@@ -187,7 +187,6 @@ async def seed_demo_ledger(
     return len(rows)
 
 
-
 async def _run(
     email: str,
     demo_dir: Path,
@@ -196,6 +195,7 @@ async def _run(
     clean: bool = False,
     scenarios: tuple[str, ...] = SCENARIOS,
     seed_ledger_only: bool = False,
+    retry_failed: bool = False,
 ) -> int:
     import firebase_admin
     from firebase_admin import auth
@@ -267,6 +267,20 @@ async def _run(
             await deps.run_service.process_document_task(org_id, doc.doc_id, stuck.run_id, 2)
     if unfinished:
         _log(f"{len(unfinished)} half-read document(s) finished")
+    if retry_failed:
+        # A reading that timed out (Gemini) is read again in a new run; the months follow below.
+        failed = [d for d in held if d.status == DocStatus.FAILED]
+        for doc in failed:
+            attempt = len(await deps.run_repo.list_by_target(org_id, doc.doc_id)) + 1
+            try:
+                await deps.run_service.process_document_task(
+                    org_id, doc.doc_id, f"doc-{doc.doc_id}-{attempt}", attempt
+                )
+            except Exception as error:  # noqa: BLE001 - report it and go on with the others
+                _log(f"  {doc.file_name}: {type(error).__name__}")
+        if isinstance(deps.task_queue, InlineTaskQueue):
+            await deps.task_queue.drain()
+        _log(f"{len(failed)} failed document(s) read again")
 
     # The books belong to the synthetic business: its legal name and its declared bank account.
     truth_file = (
@@ -370,6 +384,11 @@ def main() -> int:
         help="Comma-separated scenarios (default: S1,S2,S3,S4)",
     )
     parser.add_argument(
+        "--retry-failed",
+        action="store_true",
+        help="Read documents that failed (a model timeout) again, then reconcile every month",
+    )
+    parser.add_argument(
         "--seed-ledger-only",
         action="store_true",
         help="Seed ledger rows and account classifications without uploading documents",
@@ -386,10 +405,10 @@ def main() -> int:
             clean=args.clean,
             scenarios=scenarios_tuple,
             seed_ledger_only=args.seed_ledger_only,
+            retry_failed=args.retry_failed,
         )
     )
 
 
 if __name__ == "__main__":
     sys.exit(main())
-

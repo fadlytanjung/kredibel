@@ -15,7 +15,7 @@ from google.cloud.firestore import AsyncClient
 from app.domain.demo import SKIPPED_COLLECTIONS, rewrite, workspace_extras
 
 BATCH = 400
-PARALLEL_COPIES = 16
+PARALLEL_COPIES = 32
 
 
 class FirestoreWorkspaceCopier:
@@ -31,18 +31,21 @@ class FirestoreWorkspaceCopier:
         return self._bucket
 
     async def copy_records(self, source_org: str, target_org: str, replace: dict[str, str]) -> int:
-        written = 0
+        """Collections and files are copied side by side: the request has a time limit."""
+        jobs = []
         for root in ("orgs", "orgPrivate"):
             source = self._db.collection(root).document(source_org)
             target = self._db.collection(root).document(target_org)
             async for collection in source.collections():
                 if collection.id in SKIPPED_COLLECTIONS:
                     continue
-                written += await self._copy_collection(
-                    collection, target.collection(collection.id), replace
+                jobs.append(
+                    self._copy_collection(collection, target.collection(collection.id), replace)
                 )
-        await self._copy_files(source_org, target_org)
-        return written
+        files = asyncio.create_task(self._copy_files(source_org, target_org))
+        written: list[int] = await asyncio.gather(*jobs)
+        await files
+        return sum(written)
 
     async def _copy_collection(self, source: Any, target: Any, replace: dict[str, str]) -> int:
         batch = self._db.batch()
@@ -82,13 +85,27 @@ class FirestoreWorkspaceCopier:
             await self._db.collection("orgs").document(target_org).set(extras, merge=True)
 
     async def discard(self, org_id: str) -> None:
+        async def clear(collection: Any) -> None:
+            batch, pending = self._db.batch(), 0
+            async for snap in collection.stream():
+                batch.delete(snap.reference)
+                pending += 1
+                if pending == BATCH:
+                    await batch.commit()
+                    batch, pending = self._db.batch(), 0
+            if pending:
+                await batch.commit()
+
         for root in ("orgs", "orgPrivate"):
             ref = self._db.collection(root).document(org_id)
-            async for collection in ref.collections():
-                async for snap in collection.stream():
-                    await snap.reference.delete()
+            await asyncio.gather(*[clear(c) async for c in ref.collections()])
             await ref.delete()
         bucket = self._get_bucket()
         blobs = await asyncio.to_thread(lambda: list(bucket.list_blobs(prefix=f"orgs/{org_id}/")))
-        for blob in blobs:
-            await asyncio.to_thread(blob.delete)
+        gate = asyncio.Semaphore(PARALLEL_COPIES)
+
+        async def remove(blob: storage.Blob) -> None:
+            async with gate:
+                await asyncio.to_thread(blob.delete)
+
+        await asyncio.gather(*(remove(b) for b in blobs))

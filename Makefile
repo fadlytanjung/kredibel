@@ -186,12 +186,15 @@ dev-langfuse: ## Run the local API/inline worker traced in Langfuse (CONTENT=1: 
 gemini-usage: ## Gemini requests and tokens of the project from Cloud Monitoring (DAYS=7)
 	cd backend && PYTHONPATH=. uv run python scripts/gemini_usage.py --days $(or $(DAYS),7)
 
-.PHONY: demo-books demo-template clean-workspace
+.PHONY: demo-books demo-template extractions-rebuild clean-workspace
 clean-workspace: ## Clean up workspace documents, bank lines and runs (EMAIL=... or ORG=...)
 	cd backend && uv run python -m scripts.clean_workspace $(if $(EMAIL),--email "$(EMAIL)",) $(if $(ORG),--org "$(ORG)",)
 
 demo-books: ## Upload synthetic demo books into EMAIL's workspace (docs/18 §5; DRY=1, MONTHS=..., CLEAN=1, SCENARIOS=...)
 	$(if $(filter 1,$(NO_LANGFUSE)),,$(WITH_LANGFUSE) && export DATA_CLASS=synthetic AI_CONTENT_CAPTURE=$(if $(NO_CONTENT),off,synthetic) &&) cd backend && $(shell command -v caffeinate >/dev/null && echo caffeinate -i) uv run python -m scripts.upload_demo_books --email "$(EMAIL)" $(if $(DRY),--dry-run,) $(if $(MONTHS),--months "$(MONTHS)",) $(if $(SCENARIOS),--scenarios "$(SCENARIOS)",) $(if $(filter 1,$(CLEAN)),--clean,)
+
+extractions-rebuild: ## Rebuild a workspace's chunks and page Markdown from what is stored, no model call (spec 022; ORG=... or EMAIL=...)
+	cd backend && uv run python -m scripts.rebuild_extractions $(if $(ORG),--org "$(ORG)",--email "$(EMAIL)")
 
 demo-template: ## Build the demo template workspace (spec 021): seed it, then read the demo books ending last month (TEMPLATE_EMAIL=..., RETRY=1 reads failed documents again)
 	cd tools/synthetic && uv run kredibel-synth demo --shift-months 3 --out out/demo-recent

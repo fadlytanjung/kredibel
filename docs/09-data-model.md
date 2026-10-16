@@ -360,7 +360,7 @@ before the keyword rules ([`08`](08-risk-engine.md) §4.1).
 ### 3.21 `orgs/{orgId}/chunks/{chunkId}` (spec 022)
 
 One layout chunk of a read page (ADR-023): `docId`, `docType`, `pageNo`, `ordinal` (reading order),
-`kind` (`HEADING`, `PARAGRAPH`, `TABLE_ROW`, `KEY_VALUE`, `FOOTER`, `OTHER`), `text` (≤ 2,000
+`kind` (the layout kinds: `TABLE_HEADER`, `TABLE_ROW`, `TOTALS`, `TEXT`), `text` (≤ 2,000
 characters, account and ID numbers masked), `box` {`x0`, `y0`, `x1`, `y1`} normalised to the page,
 `source` (`TEXT_LAYER`, `OCR`, `LEDGER`), `months`, `links` {`fields`, `txIds`, `invoiceIds`,
 `receiptIds`, `ledgerEntryIds`}, `embedding_v1?` (vector, 768, `MODEL_EMBEDDING`, of the masked text;

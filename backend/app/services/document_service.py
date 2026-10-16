@@ -38,6 +38,7 @@ from app.domain.models.events import AuditEvent
 from app.domain.models.invoice import Invoice, Receipt
 from app.domain.plans import UploadRequest
 from app.ports.bank_line_repository import BankLineRepository
+from app.ports.chunk_repository import ChunkRepository
 from app.ports.document_repository import DocumentRepository
 from app.ports.document_storage import DocumentStorage
 from app.ports.page_renderer import PageRenderer
@@ -67,6 +68,7 @@ class DocumentService:
         invoices: DocumentRecords[Invoice] | None = None,
         receipts: DocumentRecords[Receipt] | None = None,
         runs_enabled: bool = True,
+        chunks: ChunkRepository | None = None,
         sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
     ) -> None:
         self._doc_repo = doc_repo
@@ -79,6 +81,7 @@ class DocumentService:
         self._bank_lines = bank_lines
         self._records: list[DocumentRecords[Any]] = [r for r in (invoices, receipts) if r]
         self._runs_enabled = runs_enabled
+        self._chunks = chunks
         self._sleep = sleep
 
     async def upload(
@@ -431,6 +434,8 @@ class DocumentService:
             await self._bank_lines.replace_document_lines(org_id, doc_id, [])
         for records in self._records:
             await records.replace_for_document(org_id, doc_id, [])
+        if self._chunks is not None:  # spec 022: its extraction goes with it
+            await self._chunks.delete_document(org_id, doc_id)
         await self._doc_repo.delete_document(org_id, doc_id, months=doc.months, event=event)
 
         # Documents held as content duplicates of this one are read again, which releases them

@@ -43,7 +43,7 @@ get embeddings so the assistant can search the books with citations.
 
 - **AC-022-1** After a page is read, each of its layout chunks is stored as a record
   `orgs/{orgId}/chunks/{chunkId}` with: `docId`, `docType`, `pageNo`, `ordinal` (reading order),
-  `kind` (`HEADING`, `PARAGRAPH`, `TABLE_ROW`, `KEY_VALUE`, `FOOTER`, `OTHER`), `text` (account and ID
+  `kind` (the layout kinds: `TABLE_HEADER`, `TABLE_ROW`, `TOTALS`, `TEXT`), `text` (account and ID
   numbers masked), `box` (normalised to the page), `source` (`TEXT_LAYER`, `OCR`), the `months` of
   the document, and its **links**: the fields read from it and the bank lines, invoices, receipts or
   ledger entries those values became. IDs are deterministic (`chk_` + document, page, ordinal), so a

@@ -486,7 +486,7 @@ The whole reading path, page by page:
 | `bankLines/{txId}` | one per verified statement row, including witness-only rows ([`09`](09-data-model.md) §3.6) |
 | `invoices/{invoiceId}`, `receipts/{receiptId}` | one per invoice or receipt document ([`09`](09-data-model.md) §3.7) |
 | `ledgerEntries/{entryId}` | one per parsed ledger row ([`09`](09-data-model.md) §3.8) |
-| `retrievalChunks/{chunkId}` (P1) | page text (or 50-row ledger blocks) with an embedding, for the assistant ([ADR-014](adr/ADR-014-finance-assistant-tools-rag-memory.md)) |
+| `chunks/{chunkId}` (spec 022) | every layout chunk of a read page with its order, kind, box, source, masked text and links to the fields and records read from it; the page and document Markdown are rebuilt from them; with an embedding (phase C) they serve the assistant's retrieval ([ADR-014](adr/ADR-014-finance-assistant-tools-rag-memory.md)) |
 | `labels/{labelId}` (P1) | `DOC_TYPE` per document, `PAGE_TYPE` per page, `FIELD_VALUE` per value the readings did not agree on ([`09`](09-data-model.md) §3.19) |
 | GCS `extractions/{docId}/p{n}.md` (P1) | the page as read, in Markdown (below) |
 
@@ -494,8 +494,10 @@ Account numbers are stored **masked** (last 4 digits); matching against the work
 suppliers' earlier accounts uses keyed hashes kept in server-only storage ([`09`](09-data-model.md)
 §3.18); full numbers exist only in the raw reader JSON in GCS.
 
-**The page extraction file.** One Markdown file per read page, written by `read_pages` from the
-verified page (pure function `domain/extraction_markdown.py`) and linked from the Labels page. It is
+**The page extraction file.** One Markdown file per read page, written after verifying from the
+stored chunks and records (`services/extraction_service.py`, pure `domain/extraction_markdown.py`)
+and linked from the Labels page; a page read before the store is built on its first request, and
+`GET /api/documents/{docId}/extraction.md` merges a document's pages (spec 022). It is
 the text form of a page for people, retrieval chunks and, with consent, datasets:
 
 ```markdown

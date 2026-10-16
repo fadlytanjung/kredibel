@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, File, Form, Query, Response, UploadFile,
 
 from app.api.deps import ServiceProvider
 from app.core.auth import Principal, PrincipalDependency
+from app.domain.extraction_store import StoredChunk
 from app.domain.models.document import DocStatus, DocType, Document, TextLayerStatus
 
 
@@ -96,6 +97,30 @@ def _reading_body(reading: dict[str, Any] | None) -> dict[str, Any] | None:
         return None
     agreement = reading.get("agreement")
     return {**reading, "agreement": None if agreement is None else f"{Decimal(str(agreement)):.3f}"}
+
+
+def chunk_body(c: StoredChunk) -> dict[str, Any]:
+    """contracts/openapi.yaml Chunk (spec 022)."""
+    links = {
+        "fields": list(c.links.fields),
+        "txIds": list(c.links.tx_ids),
+        "invoiceIds": list(c.links.invoice_ids),
+        "receiptIds": list(c.links.receipt_ids),
+        "ledgerEntryIds": list(c.links.ledger_entry_ids),
+    }
+    return {
+        "chunkId": c.chunk_id,
+        "docId": c.doc_id,
+        "pageNo": c.page_no,
+        "ordinal": c.ordinal,
+        "layoutId": c.layout_id,
+        "kind": c.kind,
+        "text": c.text,
+        "box": dict(zip(("x0", "y0", "x1", "y1"), c.box, strict=True)) if c.box else None,
+        "source": c.source,
+        "months": list(c.months),
+        "links": {k: val for k, val in links.items() if val},
+    }
 
 
 def create_documents_router(
@@ -195,9 +220,29 @@ def create_documents_router(
         page_no: int,
         principal: Principal = Depends(workspace_dep),
     ) -> Response:
-        """AC-016-4: the page as Kredibel read it, in Markdown (docs/10 §2.3)."""
-        text = await provider.document_service.get_extraction(principal, doc_id, page_no)
+        """AC-016-4, AC-022-2: the page as Kredibel read it, in Markdown (docs/10 §2.3); built on
+        this first request for a page read before the extraction store."""
+        text = await provider.extraction_service.page_markdown(principal, doc_id, page_no)
         return Response(content=text, media_type="text/markdown; charset=utf-8")
+
+    @router.get("/{doc_id}/extraction.md")
+    async def get_document_extraction(
+        doc_id: str,
+        principal: Principal = Depends(workspace_dep),
+    ) -> Response:
+        """AC-022-2: the whole document as read, its pages merged in order."""
+        text = await provider.extraction_service.document_markdown(principal, doc_id)
+        return Response(content=text, media_type="text/markdown; charset=utf-8")
+
+    @router.get("/{doc_id}/chunks")
+    async def get_document_chunks(
+        doc_id: str,
+        page: int | None = Query(default=None, ge=1),
+        principal: Principal = Depends(workspace_dep),
+    ) -> dict[str, Any]:
+        """AC-022-2: the stored chunks of the document, in page and reading order."""
+        chunks = await provider.extraction_service.chunks(principal, doc_id, page)
+        return {"items": [chunk_body(c) for c in chunks]}
 
     @router.delete("/{doc_id}", status_code=status.HTTP_204_NO_CONTENT)
     async def delete_document(

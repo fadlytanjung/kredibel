@@ -11,6 +11,7 @@ from app.domain.models.invoice import Invoice, Receipt
 from app.domain.reconciliation_policy import ReconciliationPolicy
 from app.domain.risk import RiskPolicy
 from app.ports.bank_line_repository import BankLineRepository
+from app.ports.chunk_repository import ChunkRepository
 from app.ports.counterparty_repository import CounterpartyRepository
 from app.ports.decision_repository import DecisionRepository
 from app.ports.document_reader import DocumentReader
@@ -73,3 +74,5 @@ class PipelineDeps:
     labels: LabelRepository | None = None
     learning: LearningPolicy | None = None
     embedder: Embedder | None = None  # verified examples in prompts (AC-016-9)
+    # The extraction store (spec 022): each read page's chunks.
+    chunks: ChunkRepository | None = None

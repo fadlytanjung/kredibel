@@ -44,19 +44,12 @@ from app.domain.duplicates import (
     receipt_duplicate,
     statement_duplicate,
 )
-from app.domain.extraction_markdown import (
-    PageExtraction,
-    RecordReading,
-    ValueReading,
-    page_markdown,
-)
 from app.domain.findings import Evidence, Finding, finding_id
 from app.domain.invoice_records import build_invoices, build_receipts, document_type_of
 from app.domain.label_sync import (
     ReadRecord,
     document_records,
     line_records,
-    model_reading,
     value_labels,
 )
 from app.domain.labels import LabelSubject, propose
@@ -95,6 +88,7 @@ from app.domain.reading import (
 from app.domain.review_items import confirm_mapping_item, confirm_type_item
 from app.domain.risk import assess_document_risk
 from app.domain.verdict import integrity_verdict
+from app.services.extraction_service import ExtractionPorts, build_extraction
 
 
 def pages_to_read(doc: dict[str, Any]) -> list[int]:
@@ -818,17 +812,16 @@ def verify_pages(deps: PipelineDeps):
             for r in readings
             if getattr(r, "page_type", None)
         }
-        await _write_extractions(
-            deps,
-            org_id,
-            updated,
-            records,
-            str(updated.reading["method"]) if updated.reading else "AI_ONLY",
-            outcome.page_agreement,
-            model,
-            prompt_version,
-            page_types,
-        )
+        # Spec 022: the page's chunks and Markdown, from what was just stored.
+        ports = extraction_ports(deps)
+        if ports is not None:
+            await build_extraction(
+                ports,
+                org_id,
+                updated,
+                page_types=page_types,
+                page_agreement=outcome.page_agreement,
+            )
         await _value_labels(deps, org_id, updated, records, model, prompt_version, node_input)
         return {
             **doc_data,
@@ -892,65 +885,20 @@ async def _value_labels(
     await write_labels(deps, org_id, labels)
 
 
-async def _write_extractions(
-    deps: PipelineDeps,
-    org_id: str,
-    doc: Document,
-    records: list[ReadRecord],
-    method: str,
-    page_agreement: dict[int, float],
-    model: str,
-    prompt_version: str,
-    page_types: dict[int, tuple[str, float | None]] | None = None,
-) -> int:
-    """AC-016-4: one Markdown file per read page, beside the document in storage."""
-    if deps.storage is None:
-        return 0
-    written = 0
-    pages = sorted({p.page_no for p in doc.pages if not p.blank} | set(page_agreement))
-    for page_no in pages:
-        chunks = await _load_chunks(deps, org_id, doc.sha256, page_no)
-        values = [
-            RecordReading(
-                title=r.title,
-                values=[
-                    ValueReading(
-                        name,
-                        str(info.get("status") or "MISSING"),
-                        model_reading(info),
-                        _reading(info, "TEXT_LAYER"),
-                    )
-                    for name, info in r.consensus.items()
-                    if isinstance(info, dict)
-                ],
-            )
-            for r in records
-            if r.page == page_no
-        ]
-        agreement = page_agreement.get(page_no)
-        kind = (page_types or {}).get(page_no)
-        markdown = page_markdown(
-            PageExtraction(
-                file_name=doc.file_name,
-                page_no=page_no,
-                page_count=doc.page_count,
-                doc_type=doc.doc_type.value,
-                type_confidence=doc.type_confidence,
-                method=method,
-                agreement=Decimal(str(round(agreement, 4))) if agreement is not None else None,
-                model=model or None,
-                prompt_version=prompt_version or None,
-                records=values,
-                witness_text="\n\n".join(c.text for c in chunks),
-                page_type=kind[0] if kind else None,
-                page_type_confidence=(
-                    Decimal(str(round(kind[1], 4))) if kind and kind[1] is not None else None
-                ),
-            )
+def extraction_ports(deps: PipelineDeps) -> ExtractionPorts | None:
+    return (
+        None
+        if deps.storage is None
+        else ExtractionPorts(
+            storage=deps.storage,
+            page_text=deps.page_text,
+            chunks=deps.chunks,
+            bank_lines=deps.bank_lines,
+            invoices=deps.invoices,
+            receipts=deps.receipts,
+            labels=deps.labels,
         )
-        await deps.storage.put_extraction(org_id, doc.doc_id, page_no, markdown)
-        written += 1
-    return written
+    )
 
 
 @dataclass

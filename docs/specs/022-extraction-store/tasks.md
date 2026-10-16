@@ -2,10 +2,10 @@
 
 ## Phase A — the store and the Markdown
 
-- [ ] **T022-01** **TDD** `domain/extraction_store.py`: chunk records with deterministic IDs, masked text, links; document Markdown from pages. (AC-022-1, AC-022-2)
-- [ ] **T022-02** `ChunkRepository` (Firestore, fake), `ExtractionService.build`; `verify_pages` writes through it; delete with the document. (AC-022-1, AC-022-2)
-- [ ] **T022-03** Routes: page Markdown built on first request, document Markdown, chunks. (AC-022-2)
-- [ ] **T022-04** Rebuild for documents read before this spec: from the cache, else the PDF text layer; `POST /api/extractions/rebuild`, `make extractions-rebuild`. (AC-022-3)
+- [x] **T022-01** **TDD** `domain/extraction_store.py`: chunk records with deterministic IDs, masked text, links; document Markdown from pages. (AC-022-1, AC-022-2) Built 16 Oct 2026 (`test_extraction_store.py`).
+- [x] **T022-02** `ChunkRepository` (Firestore, fake), `ExtractionService.build`; `verify_pages` writes through it; delete with the document. (AC-022-1, AC-022-2) Built 16 Oct 2026 (`chunks` in Firestore, `verify_pages` through `build_extraction`, deleted with the document).
+- [x] **T022-03** Routes: page Markdown built on first request, document Markdown, chunks. (AC-022-2) Built 16 Oct 2026 (`test_extraction_store_api.py`).
+- [x] **T022-04** Rebuild for documents read before this spec: from the cache, else the PDF text layer; `POST /api/extractions/rebuild`, `make extractions-rebuild`. (AC-022-3) Built 16 Oct 2026; the demo template rebuilt: 78 documents, 87 pages, 20 photos and scans waiting for the OCR witness.
 
 ## Phase B — the OCR witness
 

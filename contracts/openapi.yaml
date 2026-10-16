@@ -403,8 +403,9 @@ paths:
       description: |
         The page as Kredibel read it, in Markdown: the page type with its confidence, the reading
         method, the witness text, tables for line items, and every extracted value with both readings.
-        Written by the document workflow (docs/07 §3.6). Used by the Labels page, the assistant's
-        retrieval chunks and, with consent, tuning datasets (ADR-016).
+        Written by the document workflow (docs/07 §3.6) from the stored chunks and records (spec
+        022); a page read before the store is built on its first request. Used by the Labels page,
+        the assistant's retrieval and, with consent, tuning datasets (ADR-016).
       responses:
         "200":
           description: Markdown
@@ -412,6 +413,62 @@ paths:
             text/markdown:
               schema: { type: string }
         "404": { $ref: "#/components/responses/Problem" }
+
+  /api/documents/{docId}/extraction.md:
+    parameters:
+      - $ref: "#/components/parameters/DocId"
+    get:
+      tags: [documents]
+      operationId: getDocumentExtraction
+      description: Spec 022, the whole document as read, its pages' Markdown merged in page order.
+      responses:
+        "200":
+          description: Markdown
+          content:
+            text/markdown:
+              schema: { type: string }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/documents/{docId}/chunks:
+    parameters:
+      - $ref: "#/components/parameters/DocId"
+      - { name: page, in: query, required: false, schema: { type: integer, minimum: 1 } }
+    get:
+      tags: [documents]
+      operationId: listDocumentChunks
+      description: Spec 022, the stored layout chunks of the document's read pages, in page and reading order.
+      responses:
+        "200":
+          description: Chunks
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/Chunk" } }
+        "404": { $ref: "#/components/responses/Problem" }
+
+  /api/extractions/rebuild:
+    post:
+      tags: [documents]
+      operationId: rebuildExtractions
+      description: |
+        Spec 022: every read document's chunks and page Markdown rebuilt from what is stored, with
+        no model call. Owner or accountant.
+      responses:
+        "200":
+          description: What was rebuilt
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [documents, pages, withoutText]
+                properties:
+                  documents: { type: integer }
+                  pages: { type: integer }
+                  withoutText: { type: integer, description: "Documents with no text to chunk (photos and scans, until the OCR witness)" }
+        "403": { $ref: "#/components/responses/Problem" }
 
   /api/documents/{docId}/ledger-mapping:
     parameters:
@@ -1701,6 +1758,31 @@ components:
     CounterpartyKind: { type: string, enum: [PERSON, BUSINESS, GOVERNMENT, BANK, UNKNOWN] }
     Grounding: { type: string, enum: [VERIFIED, TEMPLATE] }
     RunKind: { type: string, enum: [DOCUMENT, MONTH] }
+    Chunk:
+      type: object
+      description: Spec 022, one layout chunk of a read page (docs/09 §3.21); account and ID numbers masked.
+      required: [chunkId, docId, pageNo, ordinal, layoutId, kind, text, source, months, links]
+      properties:
+        chunkId: { type: string }
+        docId: { type: string }
+        pageNo: { type: integer }
+        ordinal: { type: integer }
+        layoutId: { type: string }
+        kind: { type: string, enum: [TABLE_HEADER, TABLE_ROW, TOTALS, TEXT] }
+        text: { type: string }
+        box:
+          type: [object, "null"]
+          properties: { x0: { type: number }, y0: { type: number }, x1: { type: number }, y1: { type: number } }
+        source: { type: string, enum: [TEXT_LAYER, OCR, LEDGER] }
+        months: { type: array, items: { type: string } }
+        links:
+          type: object
+          properties:
+            fields: { type: array, items: { type: string } }
+            txIds: { type: array, items: { type: string } }
+            invoiceIds: { type: array, items: { type: string } }
+            receiptIds: { type: array, items: { type: string } }
+            ledgerEntryIds: { type: array, items: { type: string } }
     RunStatus: { type: string, enum: [QUEUED, RUNNING, DONE, FAILED, SUPERSEDED] }
     AccountingFramework:
       type: string

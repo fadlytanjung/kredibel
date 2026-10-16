@@ -13,6 +13,7 @@ from app.adapters.cloud_tasks import CloudTasksQueue, InlineTaskQueue
 from app.adapters.firebase_identity import FirebaseIdentityAdmin
 from app.adapters.firestore.assistant_repo import FirestoreAssistantRepository
 from app.adapters.firestore.bank_line_repo import FirestoreBankLineRepository
+from app.adapters.firestore.chunk_repo import FirestoreChunkRepository
 from app.adapters.firestore.counterparty_repo import FirestoreCounterpartyRepository
 from app.adapters.firestore.decision_repo import FirestoreDecisionRepository
 from app.adapters.firestore.document_repo import FirestoreDocumentRepository
@@ -55,6 +56,7 @@ from app.api.bank_lines import create_bank_lines_router
 from app.api.counterparties import create_counterparties_router
 from app.api.decisions import create_decisions_router
 from app.api.documents import create_documents_router
+from app.api.extractions import create_extractions_router
 from app.api.findings import create_findings_router
 from app.api.health import create_health_router
 from app.api.insights import create_insights_router
@@ -97,6 +99,7 @@ from app.domain.run_usage import ModelPrice
 from app.observability.tracing import setup_tracing
 from app.ports.assistant_repository import AssistantRepository
 from app.ports.bank_line_repository import BankLineRepository
+from app.ports.chunk_repository import ChunkRepository
 from app.ports.counterparty_repository import CounterpartyRepository
 from app.ports.decision_repository import DecisionRepository
 from app.ports.document_reader import DocumentReader
@@ -126,6 +129,7 @@ from app.services.counterparty_service import CounterpartyService
 from app.services.decision_service import DecisionService
 from app.services.document_service import DocumentService
 from app.services.entitlement_service import EntitlementService
+from app.services.extraction_service import ExtractionPorts, ExtractionService
 from app.services.finding_service import FindingService
 from app.services.insight_service import InsightService
 from app.services.label_service import LabelService
@@ -349,6 +353,29 @@ class AppDeps:
         )
 
     @property
+    def chunk_repo(self) -> ChunkRepository:
+        """Spec 022: the stored chunks of read pages."""
+        return self._once("chunk_repo", lambda: FirestoreChunkRepository(self.firestore))
+
+    @property
+    def extraction_service(self) -> ExtractionService:
+        return self._once(
+            "extraction_service",
+            lambda: ExtractionService(
+                ports=ExtractionPorts(
+                    storage=self.storage,
+                    page_text=self.page_text,
+                    chunks=self.chunk_repo,
+                    bank_lines=self.bank_lines,
+                    invoices=self.invoices,
+                    receipts=self.receipts,
+                    labels=self.label_repo,
+                ),
+                documents=self.doc_repo,
+            ),
+        )
+
+    @property
     def workspace_copier(self) -> WorkspaceCopier | None:
         """Spec 021: only built when a demo template is configured."""
         if not self.settings.demo_template_org:
@@ -391,6 +418,7 @@ class AppDeps:
                 receipts=self.receipts,
                 clock=self.clock,
                 runs_enabled=self.settings.runs_enabled,
+                chunks=self.chunk_repo,
             ),
         )
 
@@ -688,6 +716,7 @@ class AppDeps:
                 labels=self.label_repo,
                 learning=self.learning,
                 embedder=self.embedder,
+                chunks=self.chunk_repo,
             )
             await run_workflow(
                 build_document_workflow(pipeline_deps),
@@ -730,6 +759,7 @@ class AppDeps:
                 labels=self.label_repo,
                 learning=self.learning,
                 embedder=self.embedder,
+                chunks=self.chunk_repo,
                 reader=self.reader,  # explain_month words the month's risk (spec 008)
             )
             return await run_workflow(
@@ -926,6 +956,7 @@ def create_app(
         app.include_router(create_counterparties_router(deps, workspace_dep))
         app.include_router(create_suggestions_router(deps, workspace_dep))
         app.include_router(create_labels_router(deps, workspace_dep))
+        app.include_router(create_extractions_router(deps, workspace_dep))
         app.include_router(create_assistant_router(deps, workspace_dep))
 
     # 3. Worker role endpoints

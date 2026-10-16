@@ -14,6 +14,7 @@ from app.services.counterparty_service import CounterpartyService
 from app.services.decision_service import DecisionService
 from app.services.document_service import DocumentService
 from app.services.entitlement_service import EntitlementService
+from app.services.extraction_service import ExtractionService
 from app.services.finding_service import FindingService
 from app.services.insight_service import InsightService
 from app.services.label_service import LabelService
@@ -45,6 +46,9 @@ class ServiceProvider(Protocol):
 
     @property
     def document_service(self) -> DocumentService: ...
+
+    @property
+    def extraction_service(self) -> ExtractionService: ...
 
     @property
     def run_service(self) -> RunService: ...

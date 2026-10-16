@@ -89,6 +89,24 @@
     "file": "bank_line.py",
     "schemaVersion": null
   },
+  "ChunkDoc": {
+    "fields": {
+      "box": "dict[str, float] | None",
+      "chunk_id": "str",
+      "doc_id": "str",
+      "doc_type": "str",
+      "kind": "str",
+      "layout_id": "str",
+      "links": "dict[str, Any]",
+      "months": "list[str]",
+      "ordinal": "int",
+      "page_no": "int",
+      "source": "str",
+      "text": "str"
+    },
+    "file": "chunk.py",
+    "schemaVersion": null
+  },
   "CounterpartyDoc": {
     "fields": {
       "accounts_seen": "list[dict[str, Any]]",

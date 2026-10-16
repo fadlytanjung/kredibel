@@ -18,12 +18,14 @@ def _never_a_real_firestore(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.fixture(autouse=True)
 def _never_a_real_model_or_store(monkeypatch: pytest.MonkeyPatch) -> None:
-    """An AppDeps a test did not give a reader or bank line store gets fakes, never Gemini through
-    the developer's credentials or a Firestore the build machine does not run (docs/15 §2)."""
+    """An AppDeps a test did not give a reader, document or bank line store gets fakes, never
+    Gemini through the developer's credentials or a Firestore the build machine does not run
+    (docs/15 §2)."""
     from tests.fakes.bank_line_repository import FakeBankLineRepository
     from tests.fakes.counterparty_repository import FakeCounterpartyRepository
     from tests.fakes.decision_repository import FakeDecisionRepository
     from tests.fakes.document_reader import FakeDocumentReader
+    from tests.fakes.document_repository import FakeDocumentRepository
     from tests.fakes.embedder import FakeEmbedder
     from tests.fakes.finding_repository import FakeFindingRepository
     from tests.fakes.label_repository import FakeLabelRepository
@@ -35,6 +37,7 @@ def _never_a_real_model_or_store(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr("app.main.GeminiDocumentReader", lambda settings: FakeDocumentReader())
     monkeypatch.setattr("app.main.FirestoreBankLineRepository", lambda db: FakeBankLineRepository())
+    monkeypatch.setattr("app.main.FirestoreDocumentRepository", lambda db: FakeDocumentRepository())
     monkeypatch.setattr("app.main.firestore_invoices", lambda db: fake_invoices())
     monkeypatch.setattr("app.main.firestore_receipts", lambda db: fake_receipts())
     monkeypatch.setattr("app.main.FirestoreFindingRepository", lambda db: FakeFindingRepository())

@@ -1,13 +1,15 @@
 """OCR tokens into words (spec 022 phase B, docs/07 §5.3). Document AI returns punctuation as its
-own small token and a photo's line can tilt; joined and levelled, the words look to the verifier
-and the layout like a PDF text layer's."""
+own small token, and a photo of a page is often turned a little; straightened, joined and levelled,
+the words look to the verifier and the layout like a PDF text layer's."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from statistics import median
 
 from .verify import Word
 
 JOIN_GAP = 0.01  # of the page width: tokens with no break between them are also this close
+TILT_SPAN = 0.12  # of the page width: OCR lines at least this wide measure the page's tilt
+MIN_TILT = 0.002  # a smaller slope (about 0.1 degree) is left as printed
 
 
 @dataclass(frozen=True)
@@ -28,6 +30,9 @@ def ocr_words(tokens: list[OcrToken]) -> list[Word]:
     lines: dict[int, list[OcrToken]] = {}
     for token in tokens:
         lines.setdefault(token.line, []).append(token)
+    slope = _tilt(lines)
+    if abs(slope) >= MIN_TILT:
+        lines = {n: [_straightened(t, slope) for t in line] for n, line in lines.items()}
     out: list[Word] = []
     for line in lines.values():
         top = median(t.top for t in line)
@@ -48,3 +53,24 @@ def ocr_words(tokens: list[OcrToken]) -> list[Word]:
             previous = token
         out += [Word(text, x0, x1, top, bottom) for text, x0, x1 in joined]
     return out
+
+
+def _tilt(lines: dict[int, list[OcrToken]]) -> float:
+    """The page's slope (dy/dx), the median over its wide OCR lines: on a turned photo a row's
+    amounts on the right sit higher or lower than its date on the left, and the OCR often puts
+    the columns on separate lines, so they would pair with the wrong row."""
+    slopes: list[float] = []
+    for line in lines.values():
+        xs = [(t.x0 + t.x1) / 2 for t in line]
+        if len(line) < 2 or max(xs) - min(xs) < TILT_SPAN:
+            continue
+        ys = [(t.top + t.bottom) / 2 for t in line]
+        mx, my = sum(xs) / len(xs), sum(ys) / len(ys)
+        spread = sum((x - mx) ** 2 for x in xs)
+        slopes.append(sum((x - mx) * (y - my) for x, y in zip(xs, ys, strict=True)) / spread)
+    return median(slopes) if slopes else 0.0
+
+
+def _straightened(token: OcrToken, slope: float) -> OcrToken:
+    shift = slope * ((token.x0 + token.x1) / 2 - 0.5)
+    return replace(token, top=token.top - shift, bottom=token.bottom - shift)

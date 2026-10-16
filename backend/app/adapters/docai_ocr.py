@@ -12,7 +12,7 @@ from app.domain.ocr_words import OcrToken, ocr_words
 from app.domain.verify import Word
 
 # Bumped when the words built from the same OCR output change, so cached pages are read again.
-WORDS_REVISION = 2
+WORDS_REVISION = 3
 
 
 class DocAiOcr:

@@ -31,8 +31,8 @@ def test_a_tilted_line_takes_one_top_and_lines_stay_apart():
         OcrToken("TOTAL", 0.10, 0.25, 0.60, 0.63, line=9, space_after=True),
     ]
     words = ocr_words(tokens)
-    assert {w.top for w in words[:3]} == {0.463} and {w.bottom for w in words[:3]} == {0.49}
-    assert words[3].top == 0.60
+    assert len({w.top for w in words[:3]}) == 1 and len({w.bottom for w in words[:3]}) == 1
+    assert words[3].top > words[0].bottom, "the TOTAL line stays its own line"
 
 
 def test_tokens_far_apart_stay_two_words_even_without_a_break():
@@ -41,3 +41,32 @@ def test_tokens_far_apart_stay_two_words_even_without_a_break():
         OcrToken("255,000.00", 0.67, 0.86, 0.5, 0.52, line=1, space_after=True),
     ]
     assert [w.text for w in ocr_words(tokens)] == ["SUBTOTAL", "255,000.00"]
+
+
+def test_a_tilted_photo_is_straightened_so_a_rows_columns_meet_again():
+    # A page turned about half a degree: on each row the amounts on the right sit higher than the
+    # date on the left, and the OCR puts the columns on separate lines.
+    from app.domain.layout import lines_of
+
+    slope = -0.01
+
+    def at(x: float, y: float) -> tuple[float, float]:
+        return x, y + slope * (x - 0.5)
+
+    tokens = []
+    for n, y in enumerate((0.30, 0.32, 0.34)):
+        for text, x in (("05/03", 0.06), ("SETORAN", 0.16), ("TUNAI", 0.30)):
+            cx, cy = at(x, y)
+            tokens.append(
+                OcrToken(text, cx - 0.04, cx + 0.04, cy, cy + 0.008, line=10 * n, space_after=True)
+            )
+        for text, x in (("1,000.00", 0.72), ("5,000.00", 0.90)):
+            cx, cy = at(x, y)
+            tokens.append(
+                OcrToken(
+                    text, cx - 0.05, cx + 0.05, cy, cy + 0.008, line=10 * n + 1, space_after=True
+                )
+            )
+
+    rows = lines_of(ocr_words(tokens))
+    assert [len(row.words) for row in rows] == [5, 5, 5]

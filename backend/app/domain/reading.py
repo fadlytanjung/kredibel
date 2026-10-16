@@ -63,6 +63,17 @@ class LedgerMappingProposal(BaseModel):
     reasons: list[str] = Field(default_factory=list)
 
 
+PageType = Literal[
+    "STATEMENT_SUMMARY",
+    "STATEMENT_TRANSACTIONS",
+    "TERMS_OR_COVER",
+    "INVOICE",
+    "RECEIPT",
+    "LEDGER",
+    "OTHER",
+]
+
+
 class StatementHeader(BaseModel):
     bank_name: str | None = None
     account_holder: str | None = None
@@ -97,6 +108,9 @@ class StatementPageReading(BaseModel):
     header: StatementHeader | None = None
     rows: list[StatementRowReading] = Field(default_factory=list)
     totals: StatementTotals | None = None
+    # What the page is (spec 016, PAGE_TYPE labels); absent from readings cached before it.
+    page_type: PageType | None = None
+    page_type_confidence: float | None = Field(default=None, ge=0, le=1)
 
 
 # ---------------------------------------------------------------------------- statements
@@ -146,6 +160,9 @@ class InvoicePageReading(BaseModel):
     tax_text: str | None = None
     total_text: str | None = None
     supply_kind: Literal["GOODS", "SERVICES", "MIXED"] | None = None
+    # What the page is (spec 016, PAGE_TYPE labels); absent from readings cached before it.
+    page_type: PageType | None = None
+    page_type_confidence: float | None = Field(default=None, ge=0, le=1)
     differs_from_text: list[str] = Field(default_factory=list)
 
 
@@ -167,6 +184,9 @@ class ReceiptPageReading(BaseModel):
     tax_text: str | None = None
     total_text: str | None = None
     payment_method_text: str | None = None
+    # What the page is (spec 016, PAGE_TYPE labels); absent from readings cached before it.
+    page_type: PageType | None = None
+    page_type_confidence: float | None = Field(default=None, ge=0, le=1)
     differs_from_text: list[str] = Field(default_factory=list)
 
 

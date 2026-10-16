@@ -9,6 +9,7 @@ from typing import Any, cast
 
 import structlog
 from google.adk import Runner, Workflow
+from google.adk.apps import App
 from google.adk.sessions import InMemorySessionService
 from opentelemetry import context as otel_context
 from opentelemetry import trace
@@ -82,12 +83,13 @@ async def run_workflow(
         try:
             # Sessions live only for the run: domain state is in Firestore, not ADK (docs/06 §8).
             sessions = InMemorySessionService()
-            runner = Runner(
-                agent=cast(Any, workflow),
-                app_name=APP_NAME,
-                session_service=sessions,
-                plugins=agent_analytics_plugins(settings),  # spec 017, off unless enabled
+            # The app carries the plugins (spec 017): none unless agent analytics is on.
+            app = App(
+                name=APP_NAME,
+                root_agent=cast(Any, workflow),
+                plugins=agent_analytics_plugins(settings),
             )
+            runner = Runner(app=app, session_service=sessions)
             user_id = adk_user_id(org_id)
             await sessions.create_session(
                 app_name=APP_NAME,

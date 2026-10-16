@@ -1,6 +1,6 @@
 ---
 id: read_invoice_page
-version: 1
+version: 2
 model_env: MODEL_FAST
 output_schema: InvoicePageReading
 ---
@@ -30,3 +30,5 @@ Rules:
    invoice number printed on this page, and leave it empty when the page prints none.
 8. If the image shows a value different from the chunk text, return what the image shows and name
    the field in `differs_from_text`.
+9. `page_type`: INVOICE for a page of the invoice itself, TERMS_OR_COVER for terms, notices or a
+   cover, OTHER for anything else; and `page_type_confidence` from 0 to 1.

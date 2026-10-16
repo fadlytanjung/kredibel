@@ -701,6 +701,35 @@ def read_page(deps: PipelineDeps):
             await deps.storage.put_cached(org_id, cache_key, reading.model_dump_json().encode())
             tokens = (call.tokens_in, call.tokens_out)
         header = _header_context(reading) if isinstance(reading, StatementPageReading) else None
+        page_type = getattr(reading, "page_type", None)
+        if page_type and deps.learning is not None:
+            confidence = getattr(reading, "page_type_confidence", None)
+            await write_labels(
+                deps,
+                org_id,
+                [
+                    propose(
+                        "PAGE_TYPE",
+                        LabelSubject(
+                            display=f"{doc.file_name}, page {page_no}",
+                            doc_id=doc_id,
+                            page_no=page_no,
+                        ),
+                        decision(
+                            page_type,
+                            source="MODEL",
+                            at=deps.clock.now(),
+                            confidence=confidence,
+                            model=model,
+                            prompt_version=prompt_version,
+                            run_id=node_input.get("runId"),
+                        ),
+                        policy=deps.learning,
+                        page_image_url=page_image(doc_id, page_no),
+                        extraction_url=extraction_path(doc_id, page_no),
+                    )
+                ],
+            )
         return {
             **base,
             "reading": reading.model_dump(mode="json"),
@@ -774,6 +803,11 @@ def verify_pages(deps: PipelineDeps):
         if outcome.statement_meta and outcome.account_hash:
             await _suggest_account(deps, org_id, updated.doc_id, outcome)
         records = await _read_records(deps, org_id, updated, task)
+        page_types = {
+            r.page: (r.page_type, getattr(r, "page_type_confidence", None))
+            for r in readings
+            if getattr(r, "page_type", None)
+        }
         await _write_extractions(
             deps,
             org_id,
@@ -783,6 +817,7 @@ def verify_pages(deps: PipelineDeps):
             outcome.page_agreement,
             model,
             prompt_version,
+            page_types,
         )
         await _value_labels(deps, org_id, updated, records, model, prompt_version, node_input)
         return {
@@ -922,6 +957,7 @@ async def _write_extractions(
     page_agreement: dict[int, float],
     model: str,
     prompt_version: str,
+    page_types: dict[int, tuple[str, float | None]] | None = None,
 ) -> int:
     """AC-016-4: one Markdown file per read page, beside the document in storage."""
     if deps.storage is None:
@@ -948,6 +984,7 @@ async def _write_extractions(
             if r.page == page_no
         ]
         agreement = page_agreement.get(page_no)
+        kind = (page_types or {}).get(page_no)
         markdown = page_markdown(
             PageExtraction(
                 file_name=doc.file_name,
@@ -961,6 +998,10 @@ async def _write_extractions(
                 prompt_version=prompt_version or None,
                 records=values,
                 witness_text="\n\n".join(c.text for c in chunks),
+                page_type=kind[0] if kind else None,
+                page_type_confidence=(
+                    Decimal(str(round(kind[1], 4))) if kind and kind[1] is not None else None
+                ),
             )
         )
         await deps.storage.put_extraction(org_id, doc.doc_id, page_no, markdown)

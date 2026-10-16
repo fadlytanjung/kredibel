@@ -46,6 +46,8 @@ class PageExtraction:
     prompt_version: str | None
     records: list[RecordReading]
     witness_text: str
+    page_type: str | None = None
+    page_type_confidence: Decimal | None = None
 
 
 def _cell(value: str | None) -> str:
@@ -62,7 +64,13 @@ def page_markdown(page: PageExtraction) -> str:
         f" ({page.type_confidence:.2f})" if page.type_confidence is not None else ""
     )
     head.append(f"Document type: {kind}")
-    head.append("Page type: not classified yet")
+    if page.page_type:
+        page_kind = page.page_type + (
+            f" ({page.page_type_confidence:.2f})" if page.page_type_confidence is not None else ""
+        )
+        head.append(f"Page type: {page_kind}")
+    else:
+        head.append("Page type: not classified yet")
     reading = [page.method]
     if page.agreement is not None:
         reading.append(f"agreement {page.agreement:.2f}")

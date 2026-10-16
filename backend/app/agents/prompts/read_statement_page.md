@@ -1,6 +1,6 @@
 ---
 id: read_statement_page
-version: 1
+version: 2
 model_env: MODEL_FAST
 output_schema: StatementPageReading
 ---
@@ -28,3 +28,6 @@ Rules:
 6. On the page with the account header, fill `header`: bank, holder, account number, holder address,
    currency, period start and end, opening balance, and the column order. Fill `totals` when the page
    prints total debits, total credits or the closing balance.
+7. `page_type`: what this page is: STATEMENT_SUMMARY (the account header and totals, few or no
+   transactions), STATEMENT_TRANSACTIONS (mostly transaction rows), TERMS_OR_COVER (terms, notices,
+   advertising or a cover) or OTHER; and `page_type_confidence` from 0 to 1.

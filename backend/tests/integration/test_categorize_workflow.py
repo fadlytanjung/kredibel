@@ -27,7 +27,14 @@ async def test_lines_are_categorized_by_rules_then_the_model():
 
     lines = FakeBankLineRepository()
     deps = _deps(lines, FakeDocumentRepository())
-    reader = FakeDocumentReader(pages=_recorded_page, categories=_model)
+
+    def typed_page(page: int):
+        kind = "STATEMENT_SUMMARY" if page == 1 else "STATEMENT_TRANSACTIONS"
+        return _recorded_page(page).model_copy(
+            update={"page_type": kind, "page_type_confidence": 0.62 if page == 1 else 0.98}
+        )
+
+    reader = FakeDocumentReader(pages=typed_page, categories=_model)
     deps._reader = reader
     app = create_app(deps.settings, deps=deps)
     pdf = (FIXTURES / "acb-2026-03.pdf").read_bytes()
@@ -86,6 +93,15 @@ async def test_lines_are_categorized_by_rules_then_the_model():
     assert "| Record | Field | Readings | Model | Text layer |" in md and "## Witness text" in md
     assert not re.search(r"\d{8,}", md), "no account or ID number in clear"
     assert missing.status_code == 404
+    assert "Page type: STATEMENT_SUMMARY (0.62)" in md.splitlines()
+    # Every read page is a PAGE_TYPE label; the low one asks a person (learning.v1: below 0.80).
+    pages = await deps.label_repo.list_labels("org_1", task="PAGE_TYPE", limit=None)
+    by_page = {lb.subject.page_no: lb for lb in pages}
+    assert by_page[1].final_value == "STATEMENT_SUMMARY" and by_page[1].needs_check
+    assert all(
+        lb.final_value == "STATEMENT_TRANSACTIONS" for n, lb in by_page.items() if (n or 0) > 1
+    )
+    assert by_page[1].ai.prompt_version == "statement_page@test" and by_page[1].extraction_url
     # AC-016-1: every category the run decided is a label, with its source and confidence.
     labels = await deps.label_repo.list_labels("org_1", task="CATEGORY", limit=None)
     by_tx = {lb.subject.tx_id: lb for lb in labels}

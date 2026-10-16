@@ -1,6 +1,6 @@
 ---
 id: read_receipt
-version: 1
+version: 2
 model_env: MODEL_FAST
 output_schema: ReceiptPageReading
 ---
@@ -25,3 +25,5 @@ Rules:
 5. `payment_method_text` as printed (for example "VISA ••1234", "CASH", "DuitNow QR").
 6. If the image shows a value different from the chunk text, return what the image shows and name
    the field in `differs_from_text`.
+7. `page_type`: RECEIPT for the receipt itself, OTHER for anything else; and
+   `page_type_confidence` from 0 to 1.

@@ -101,3 +101,9 @@ def test_ac016_4_a_page_without_values_or_text_layer_says_so():
     assert "Reading: AI_ONLY" in md.splitlines()
     assert "No values were read on this page." in md
     assert "No text layer or OCR words on this page; it was read from its image only." in md
+
+
+def test_ac016_4_the_page_type_is_stated_when_the_reader_gave_one():
+    md = page_markdown(page(page_type="STATEMENT_TRANSACTIONS", page_type_confidence=D("0.98")))
+    assert "Page type: STATEMENT_TRANSACTIONS (0.98)" in md.splitlines()
+    assert "Page type: not classified yet" not in md

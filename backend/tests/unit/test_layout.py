@@ -122,3 +122,19 @@ def test_a_tall_stray_ocr_token_does_not_join_the_line_above_it():
     stray = Word("FOES", 0.30, 0.40, 0.3438, 0.5603)
     lines = lines_of([*date, stray])
     assert [[w.text for w in line.words] for line in lines] == [["Date", "21/04/2026"], ["FOES"]]
+
+
+def test_words_of_a_photo_stay_one_cell_and_its_columns_split():
+    # On a narrow receipt photo a space between words is wider than CELL_GAP; only a gap of more
+    # than one and a half characters starts a new cell.
+    from app.domain.layout import Line
+
+    line = Line(
+        [
+            Word("Pastry", 0.08, 0.20, 0.39, 0.42),
+            Word("box", 0.22, 0.27, 0.39, 0.42),
+            Word("tasting", 0.29, 0.42, 0.39, 0.42),
+            Word("255,000.00", 0.67, 0.86, 0.39, 0.42),
+        ]
+    )
+    assert line.text() == "Pastry box tasting | 255,000.00"

@@ -45,9 +45,12 @@ class Line:
 
     def cells(self) -> list[list[Word]]:
         ordered = sorted(self.words, key=lambda w: w.x0)
+        # Wider than CELL_GAP and than one and a half of the line's characters: on a narrow
+        # photo the space between two words is wider than CELL_GAP.
+        gap = max(CELL_GAP, 1.5 * median((w.x1 - w.x0) / max(1, len(w.text)) for w in ordered))
         out: list[list[Word]] = [[ordered[0]]]
         for prev, w in zip(ordered, ordered[1:], strict=False):
-            if w.x0 - prev.x1 > CELL_GAP:
+            if w.x0 - prev.x1 > gap:
                 out.append([w])
             else:
                 out[-1].append(w)

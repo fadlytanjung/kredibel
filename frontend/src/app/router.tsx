@@ -99,7 +99,7 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
   const navigate = useNavigate()
   const workspaceQuery = useWorkspace(Boolean(user && me?.orgId))
   const reviewQuery = useReviewItems(Boolean(user && me?.orgId))
-  const labelsQuery = useLabels({ needsCheck: true, limit: 1 })
+  const labelsQuery = useLabels({ needsCheck: true, limit: 1 }, Boolean(user && me?.orgId))
 
   if (loading) return <FullPageLoading />
   if (!user) return <Navigate to="/login" replace />

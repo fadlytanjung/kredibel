@@ -103,7 +103,7 @@ export function LabelsPreview() {
 export function RunsPreview() {
   return (
     <AppShell {...PREVIEW_PROPS} activePath="/runs" onUpload={() => undefined}>
-      <RunsContent role={new URLSearchParams(window.location.search).get('role') ?? 'owner'} />
+      <RunsContent role={new URLSearchParams(window.location.search).get('role') ?? 'owner'} basePath="/preview/runs" />
     </AppShell>
   )
 }

@@ -1,20 +1,21 @@
 /**
  * The span waterfall of one run (spec 017, AC-017-6; docs/11 §6.12): the workflow, its nodes and
- * calls on one time axis, model calls in evidence violet, code in slate, each with its duration
- * and one line of detail.
+ * calls on one time axis, model calls in evidence violet, code steps in slate (class `tool`, as
+ * `.code` is the kit's condensed text), each with its duration
+ * and one line of detail. The axis has about five ticks whatever the run's length.
  */
 
 import { useTranslation } from 'react-i18next'
-import type { Run } from '../../entities/run'
-import { seconds } from './format'
-import { spanRows } from './spans'
+import { seconds, tickStep } from './format'
+import type { SpanRow } from './spans'
 
-export function Waterfall({ run, selected, onSelect }: { run: Run; selected: string | null; onSelect: (key: string) => void }) {
+export function Waterfall({ rows, selected, onSelect }: { rows: SpanRow[]; selected: string | null; onSelect: (key: string) => void }) {
   const { t } = useTranslation('runs')
-  const rows = spanRows(run, t)
-  const total = Math.max(rows[0].end, 1)
+  const total = Math.max(rows[0]?.end ?? 0, 1)
+  const step = tickStep(total)
   const ticks: number[] = []
-  for (let s = 0; s * 1000 < total; s += 10) ticks.push(s)
+  for (let s = 0; s * 1000 < total; s += step) ticks.push(s)
+  const tick = (s: number) => (step >= 60 ? t('detail.minutes', { minutes: s / 60 }) : t('detail.seconds', { seconds: s }))
   return (
     <div className="panel waterfall-panel">
       <div className="span-axis" aria-hidden="true">
@@ -22,7 +23,7 @@ export function Waterfall({ run, selected, onSelect }: { run: Run; selected: str
         <span className="span-track">
           {ticks.map((s) => (
             <span key={s} style={{ left: `${((s * 1000) / total) * 100}%` }} /* allow-raw-style: the tick's position on the time axis */>
-              {t('detail.seconds', { seconds: s })}
+              {tick(s)}
             </span>
           ))}
         </span>
@@ -32,7 +33,7 @@ export function Waterfall({ run, selected, onSelect }: { run: Run; selected: str
           const left = (row.start / total) * 100
           const width = Math.max(((row.end - row.start) / total) * 100, 0.6)
           return (
-            <li key={row.key} className={`span-row d${row.depth} ${row.kind}${selected === row.key ? ' sel' : ''}`}>
+            <li key={row.key} className={`span-row d${row.depth} ${row.kind === 'code' ? 'tool' : row.kind}${selected === row.key ? ' sel' : ''}`}>
               <button type="button" className="span-name" onClick={() => onSelect(row.key)} aria-pressed={selected === row.key}>
                 {row.name}
               </button>
@@ -50,7 +51,7 @@ export function Waterfall({ run, selected, onSelect }: { run: Run; selected: str
           <i />
           {t('detail.legend.llm')}
         </span>
-        <span className="code">
+        <span className="tool">
           <i />
           {t('detail.legend.code')}
         </span>

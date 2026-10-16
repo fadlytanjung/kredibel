@@ -15,6 +15,7 @@ from app.domain.plans import PlanCatalog, parse_plans
 from app.domain.profit_loss import ProfitLossPolicy
 from app.domain.reconciliation_policy import ReconciliationPolicy
 from app.domain.risk import RiskPolicy, parse_risk_policy
+from app.domain.run_usage import ModelPrice, parse_prices
 
 
 def load_plans(path: Path) -> PlanCatalog:
@@ -78,3 +79,12 @@ def load_learning_policy(policy_dir: Path) -> LearningPolicy:
         )
         or LearningPolicy.calibration_buckets,
     )
+
+
+def load_model_prices(policy_dir: Path) -> dict[str, ModelPrice]:
+    """contracts/policy/pricing.v1.yaml (spec 017): USD per 1M tokens per model."""
+    path = policy_dir / "pricing.v1.yaml"
+    if not path.exists():
+        return {}
+    with path.open(encoding="utf-8") as handle:
+        return parse_prices(yaml.safe_load(handle) or {})

@@ -289,7 +289,7 @@ or `DECISION_WITHDRAWN` event in the same batch; never deleted.
 | `kind` | `DOCUMENT` \| `MONTH` |
 | `target` | `docId` or `month` |
 | `status` | `QUEUED`, `RUNNING`, `DONE`, `FAILED`, `SUPERSEDED` (a newer month run started) |
-| `stages[]` | `{node, parent?, status, startedAt, endedAt, model?, tokensIn?, tokensOut?, summary?, traceSpanId?}`; feeds the run graph (P1, [`17`](17-observability.md) §5) |
+| `stages[]` | `{node, parent?, status, startedAt, endedAt, model?, promptVersion?, tokensIn?, tokensOut?, summary?, traceSpanId?}`; feeds the run graph (P1, [`17`](17-observability.md) §5); `promptVersion` is `promptId@version` of the stage's model call |
 | `traceId` | Cloud Trace ID ([`17`](17-observability.md)) |
 | `models[]`, `promptVersions` | Models used and prompt file → version, for the Runs page and BigQuery joins |
 | `labels` | `{proposed, verified, corrected}` counts, updated when a person decides one of this run's labels (P1) |

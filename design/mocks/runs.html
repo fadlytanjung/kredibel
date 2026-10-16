@@ -39,168 +39,86 @@
     <div class="spread"><h1 class="type-title">Runs</h1><span class="badge badge-outline">Owner only</span></div>
     <p>Every document, month and assistant run, call by call: what ran, how long it took, what it cost, and what people corrected afterwards. Traces live in Cloud Trace.</p>
   </div>
-  <div class="stack gap-5">
-    <div class="chips" role="group" aria-label="Filter runs"><a class="chip" href="runs.html" aria-pressed="true">All <span class="n">7</span></a><a class="chip" href="runs.html" aria-pressed="false">Document <span class="n">4</span></a><a class="chip" href="runs.html" aria-pressed="false">Month <span class="n">2</span></a><a class="chip" href="runs.html" aria-pressed="false">Assistant <span class="n">1</span></a><a class="chip" href="runs.html" aria-pressed="false">Failed <span class="n">0</span></a><a class="chip" href="runs.html" aria-pressed="false">Corrected by a person <span class="n">1</span></a></div>
-    <div class="table-panel rt-wrap"><table class="data-table rt runs-table">
-      <thead><tr><th>Run</th><th>Status</th><th class="hide-rt">Started</th><th class="r">Duration</th><th class="r hide-rt">LLM calls</th><th class="r hide-rt">Tokens in / out</th><th class="r hide-rt">USD</th><th class="hide-rt">Models</th><th class="hide-rt">Labels</th></tr></thead>
-      <tbody><tr class="is-clickable is-selected">
+  
+<div class="stack gap-3">
+  <div class="table-toolbar">
+    <div class="chips" role="group" aria-label="Filter runs"><a class="chip" aria-pressed="true" href="runs.html">All <span class="n">7</span></a><a class="chip" aria-pressed="false" href="runs.html">Document <span class="n">4</span></a><a class="chip" aria-pressed="false" href="runs.html">Month <span class="n">2</span></a><a class="chip" aria-pressed="false" href="runs.html">Assistant <span class="n">1</span></a><a class="chip" aria-pressed="false" href="runs.html">Failed <span class="n">0</span></a><a class="chip" aria-pressed="false" href="runs.html">Corrected by a person <span class="n">1</span></a></div>
+    <div class="row ml-auto"><div class="table-search"><svg class="icon icon-sm table-search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg><input type="text" class="input input-sm table-search-input" placeholder="Search runs" aria-label="Search runs"/></div></div>
+  </div>
+  <div class="table-panel rt-wrap"><table class="data-table rt runs-table"><thead><tr><th data-cell="wide">Run</th><th>Status</th><th class="hide-rt" data-cell="hide">Started</th><th class="r">Duration</th><th class="r hide-rt" data-cell="hide">LLM calls</th><th class="r hide-rt" data-cell="hide">Tokens in / out</th><th class="r hide-rt" data-cell="hide">USD</th><th class="hide-rt small" data-cell="hide">Models</th><th class="hide-rt small" data-cell="hide">Labels</th></tr></thead><tbody><tr class="is-clickable" tabindex="0">
   <td data-cell="wide"><span class="doc-cell"><span class="thumb"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 3H8.5A1.5 1.5 0 0 0 7 4.5v12A1.5 1.5 0 0 0 8.5 18h9a1.5 1.5 0 0 0 1.5-1.5V7z"/><path d="M15 3v4h4"/><path d="M4 7.5v12A1.5 1.5 0 0 0 5.5 21H14"/></svg></span><span><strong>ACB_Mar_2026.pdf</strong><span class="sub">Document run</span></span></span></td>
   <td><span class="status-line ok">Done</span></td>
-  <td class="hide-rt">2 Jul, 09:14</td>
+  <td class="hide-rt" data-cell="hide">2 Jul, 09:14</td>
   <td class="r">41.2 s</td>
-  <td class="r hide-rt">5</td>
-  <td class="r hide-rt">18.4k / 3.1k</td>
-  <td class="r hide-rt">0.021</td>
-  <td class="hide-rt small">Flash, Flash-Lite</td>
-  <td class="hide-rt small">4 proposed, 2 verified</td>
-</tr><tr class="is-clickable">
+  <td class="r hide-rt" data-cell="hide">5</td>
+  <td class="r hide-rt" data-cell="hide">18.4k / 3.1k</td>
+  <td class="r hide-rt" data-cell="hide">0.021</td>
+  <td class="hide-rt small" data-cell="hide">Flash, Flash-Lite</td>
+  <td class="hide-rt small" data-cell="hide">4 proposed, 2 verified</td>
+</tr><tr class="is-clickable" tabindex="0">
   <td data-cell="wide"><span class="doc-cell"><span class="thumb"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h11.5M12 3.5 15.5 7 12 10.5"/><path d="M20 17H8.5M12 13.5 8.5 17l3.5 3.5"/></svg></span><span><strong>2026-03, generation 7</strong><span class="sub">Month run</span></span></span></td>
   <td><span class="status-line ok">Done</span></td>
-  <td class="hide-rt">12 Jul, 10:02</td>
+  <td class="hide-rt" data-cell="hide">12 Jul, 10:02</td>
   <td class="r">7.0 s</td>
-  <td class="r hide-rt">0</td>
-  <td class="r hide-rt">4.2k / 0.6k</td>
-  <td class="r hide-rt">0.004</td>
-  <td class="hide-rt small">Flash</td>
-  <td class="hide-rt small">45 proposed, 1 corrected</td>
-</tr><tr class="is-clickable">
+  <td class="r hide-rt" data-cell="hide">1</td>
+  <td class="r hide-rt" data-cell="hide">4.2k / 0.6k</td>
+  <td class="r hide-rt" data-cell="hide">0.004</td>
+  <td class="hide-rt small" data-cell="hide">Flash</td>
+  <td class="hide-rt small" data-cell="hide">45 proposed, 1 corrected</td>
+</tr><tr class="is-clickable" tabindex="0">
   <td data-cell="wide"><span class="doc-cell"><span class="thumb"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h11.5M12 3.5 15.5 7 12 10.5"/><path d="M20 17H8.5M12 13.5 8.5 17l3.5 3.5"/></svg></span><span><strong>2026-03, generation 6</strong><span class="sub">Month run</span></span></span></td>
   <td><span class="status-line wait">Superseded</span></td>
-  <td class="hide-rt">12 Jul, 10:01</td>
+  <td class="hide-rt" data-cell="hide">12 Jul, 10:01</td>
   <td class="r">2.0 s</td>
-  <td class="r hide-rt">0</td>
-  <td class="r hide-rt">none</td>
-  <td class="r hide-rt">0.000</td>
-  <td class="hide-rt small">none</td>
-  <td class="hide-rt small">none</td>
-</tr><tr class="is-clickable">
+  <td class="r hide-rt" data-cell="hide">0</td>
+  <td class="r hide-rt" data-cell="hide">none</td>
+  <td class="r hide-rt" data-cell="hide">0.000</td>
+  <td class="hide-rt small" data-cell="hide">none</td>
+  <td class="hide-rt small" data-cell="hide">none</td>
+</tr><tr class="is-clickable" tabindex="0">
   <td data-cell="wide"><span class="doc-cell"><span class="thumb"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 13.7 8.3 18.5 10l-4.8 1.7L12 16.5l-1.7-4.8L5.5 10l4.8-1.7z"/><path d="M18.5 15.5 19.3 17.7 21.5 18.5l-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></svg></span><span><strong>Why is March critical?</strong><span class="sub">Assistant run</span></span></span></td>
   <td><span class="status-line ok">Done</span></td>
-  <td class="hide-rt">12 Jul, 10:20</td>
+  <td class="hide-rt" data-cell="hide">12 Jul, 10:20</td>
   <td class="r">4.0 s</td>
-  <td class="r hide-rt">0</td>
-  <td class="r hide-rt">6.1k / 0.4k</td>
-  <td class="r hide-rt">0.003</td>
-  <td class="hide-rt small">Flash</td>
-  <td class="hide-rt small">none</td>
-</tr><tr class="is-clickable">
+  <td class="r hide-rt" data-cell="hide">2</td>
+  <td class="r hide-rt" data-cell="hide">6.1k / 0.4k</td>
+  <td class="r hide-rt" data-cell="hide">0.003</td>
+  <td class="hide-rt small" data-cell="hide">Flash</td>
+  <td class="hide-rt small" data-cell="hide">none</td>
+</tr><tr class="is-clickable" tabindex="0">
   <td data-cell="wide"><span class="doc-cell"><span class="thumb"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 3H8.5A1.5 1.5 0 0 0 7 4.5v12A1.5 1.5 0 0 0 8.5 18h9a1.5 1.5 0 0 0 1.5-1.5V7z"/><path d="M15 3v4h4"/><path d="M4 7.5v12A1.5 1.5 0 0 0 5.5 21H14"/></svg></span><span><strong>ledger-2026-H1.csv</strong><span class="sub">Document run</span></span></span></td>
   <td><span class="status-line ok">Done</span></td>
-  <td class="hide-rt">2 Jul, 09:11</td>
+  <td class="hide-rt" data-cell="hide">2 Jul, 09:11</td>
   <td class="r">4.0 s</td>
-  <td class="r hide-rt">0</td>
-  <td class="r hide-rt">1.9k / 0.3k</td>
-  <td class="r hide-rt">0.001</td>
-  <td class="hide-rt small">Flash-Lite</td>
-  <td class="hide-rt small">1 proposed, 1 verified</td>
-</tr><tr class="is-clickable">
+  <td class="r hide-rt" data-cell="hide">2</td>
+  <td class="r hide-rt" data-cell="hide">1.9k / 0.3k</td>
+  <td class="r hide-rt" data-cell="hide">0.001</td>
+  <td class="hide-rt small" data-cell="hide">Flash-Lite</td>
+  <td class="hide-rt small" data-cell="hide">1 proposed, 1 verified</td>
+</tr><tr class="is-clickable" tabindex="0">
   <td data-cell="wide"><span class="doc-cell"><span class="thumb"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 3H8.5A1.5 1.5 0 0 0 7 4.5v12A1.5 1.5 0 0 0 8.5 18h9a1.5 1.5 0 0 0 1.5-1.5V7z"/><path d="M15 3v4h4"/><path d="M4 7.5v12A1.5 1.5 0 0 0 5.5 21H14"/></svg></span><span><strong>ACB_Jun_2026.pdf</strong><span class="sub">Document run</span></span></span></td>
   <td><span class="status-line busy">Running</span></td>
-  <td class="hide-rt">16 Jul, 10:31</td>
+  <td class="hide-rt" data-cell="hide">16 Jul, 10:31</td>
   <td class="r">—</td>
-  <td class="r hide-rt">0</td>
-  <td class="r hide-rt">7.0k / 1.2k</td>
-  <td class="r hide-rt">0.008</td>
-  <td class="hide-rt small">Flash</td>
-  <td class="hide-rt small">2 proposed</td>
-</tr><tr class="is-clickable">
+  <td class="r hide-rt" data-cell="hide">2</td>
+  <td class="r hide-rt" data-cell="hide">7.0k / 1.2k</td>
+  <td class="r hide-rt" data-cell="hide">0.008</td>
+  <td class="hide-rt small" data-cell="hide">Flash</td>
+  <td class="hide-rt small" data-cell="hide">2 proposed</td>
+</tr><tr class="is-clickable" tabindex="0">
   <td data-cell="wide"><span class="doc-cell"><span class="thumb"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 3H8.5A1.5 1.5 0 0 0 7 4.5v12A1.5 1.5 0 0 0 8.5 18h9a1.5 1.5 0 0 0 1.5-1.5V7z"/><path d="M15 3v4h4"/><path d="M4 7.5v12A1.5 1.5 0 0 0 5.5 21H14"/></svg></span><span><strong>Receipt 0617 (2).jpg</strong><span class="sub">Document run</span></span></span></td>
   <td><span class="status-line ok">Done</span></td>
-  <td class="hide-rt">10 Jul, 16:40</td>
+  <td class="hide-rt" data-cell="hide">10 Jul, 16:40</td>
   <td class="r">7.0 s</td>
-  <td class="r hide-rt">0</td>
-  <td class="r hide-rt">3.3k / 0.4k</td>
-  <td class="r hide-rt">0.003</td>
-  <td class="hide-rt small">Flash</td>
-  <td class="hide-rt small">2 proposed</td>
+  <td class="r hide-rt" data-cell="hide">2</td>
+  <td class="r hide-rt" data-cell="hide">3.3k / 0.4k</td>
+  <td class="r hide-rt" data-cell="hide">0.003</td>
+  <td class="hide-rt small" data-cell="hide">Flash</td>
+  <td class="hide-rt small" data-cell="hide">2 proposed</td>
 </tr></tbody></table></div>
-    <section class="run-detail" aria-labelledby="rd-h">
-      <div class="spread"><div><h2 class="type-h2" id="rd-h">document_workflow on ACB_Mar_2026.pdf</h2><p class="muted small">2 Jul, 09:14. 41.2 s, 5 LLM calls, 18.4k tokens in, 3.1k out, about USD 0.021. Prompts: classify v2, read_page v3, categorize v4.</p></div></div>
-      <div class="run-layout">
-        <div class="panel waterfall-panel">
-          <div class="span-axis" aria-hidden="true"><span class="span-name"></span><span class="span-track"><span style="left:0.0%">0 s</span><span style="left:24.271844632102628%">10 s</span><span style="left:48.543689264205256%">20 s</span><span style="left:72.81553389630788%">30 s</span><span style="left:97.08737852841051%">40 s</span></span></div>
-          <ol class="spans"><li class="span-row d0 wf">
-  <button type="button" class="span-name" aria-pressed="false">workflow:document_workflow</button>
-  <span class="span-track"><i style="left:0.00%;width:100.00%"></i></span>
-  <span class="span-dur">41.2 s</span>
-  <span class="span-detail">ACB_Mar_2026.pdf</span>
-</li><li class="span-row d1 code">
-  <button type="button" class="span-name" aria-pressed="false">node:inspect_file</button>
-  <span class="span-track"><i style="left:0.49%;width:2.18%"></i></span>
-  <span class="span-dur">0.9 s</span>
-  <span class="span-detail">pikepdf, 2 revisions</span>
-</li><li class="span-row d1 llm sel">
-  <button type="button" class="span-name" aria-pressed="true">node:classify_document</button>
-  <span class="span-track"><i style="left:2.67%;width:4.61%"></i></span>
-  <span class="span-dur">1.9 s</span>
-  <span class="span-detail">Flash-Lite, 2.1k in, 0.1k out: BANK_STATEMENT (0.99)</span>
-</li><li class="span-row d1 node">
-  <button type="button" class="span-name" aria-pressed="false">node:read_pages</button>
-  <span class="span-track"><i style="left:7.28%;width:82.04%"></i></span>
-  <span class="span-dur">33.8 s</span>
-  <span class="span-detail">page 1 first, then 2 and 3 in parallel</span>
-</li><li class="span-row d2 llm">
-  <button type="button" class="span-name" aria-pressed="false">node:read_page</button>
-  <span class="span-track"><i style="left:7.28%;width:22.82%"></i></span>
-  <span class="span-dur">9.4 s</span>
-  <span class="span-detail">Flash, 3.4k in, 0.9k out: page 1: STATEMENT_SUMMARY 0.99</span>
-</li><li class="span-row d2 code">
-  <button type="button" class="span-name" aria-pressed="false">node:witness_pages</button>
-  <span class="span-track"><i style="left:7.28%;width:1.46%"></i></span>
-  <span class="span-dur">0.6 s</span>
-  <span class="span-detail">1,204 words with boxes</span>
-</li><li class="span-row d2 llm">
-  <button type="button" class="span-name" aria-pressed="false">node:read_page</button>
-  <span class="span-track"><i style="left:30.34%;width:30.10%"></i></span>
-  <span class="span-dur">12.4 s</span>
-  <span class="span-detail">Flash, 3.6k in, 1.4k out: page 2: STATEMENT_TRANSACTIONS 0.98</span>
-</li><li class="span-row d2 llm">
-  <button type="button" class="span-name" aria-pressed="false">node:read_page</button>
-  <span class="span-track"><i style="left:30.34%;width:16.02%"></i></span>
-  <span class="span-dur">6.6 s</span>
-  <span class="span-detail">Flash, 3.3k in, 0.3k out: page 3: TERMS_OR_COVER 0.62</span>
-</li><li class="span-row d1 code">
-  <button type="button" class="span-name" aria-pressed="false">node:verify_pages</button>
-  <span class="span-track"><i style="left:89.32%;width:2.67%"></i></span>
-  <span class="span-dur">1.1 s</span>
-  <span class="span-detail">agreement 0.97, 0 conflicts</span>
-</li><li class="span-row d1 code">
-  <button type="button" class="span-name" aria-pressed="false">node:detect_content_duplicates</button>
-  <span class="span-track"><i style="left:91.99%;width:0.73%"></i></span>
-  <span class="span-dur">0.3 s</span>
-  <span class="span-detail">no copy</span>
-</li><li class="span-row d1 code">
-  <button type="button" class="span-name" aria-pressed="false">node:check_document</button>
-  <span class="span-track"><i style="left:92.72%;width:3.40%"></i></span>
-  <span class="span-dur">1.4 s</span>
-  <span class="span-detail">A01, M03, M04</span>
-</li><li class="span-row d1 llm">
-  <button type="button" class="span-name" aria-pressed="false">node:categorize_bank_lines</button>
-  <span class="span-track"><i style="left:96.12%;width:3.40%"></i></span>
-  <span class="span-dur">1.4 s</span>
-  <span class="span-detail">Flash-Lite, 4.6k in, 0.4k out: 31 by rule, 14 by model</span>
-</li></ol>
-          <p class="span-legend"><span class="llm"><i></i>Model call</span><span class="code"><i></i>Code</span><span class="node"><i></i>Workflow and nodes</span></p>
-        </div>
-        
-<aside class="ev-inspector panel" aria-labelledby="ev-h">
-  <div class="lp-main">
-  <div class="lp-head"><span class="task">LLM call</span></div>
-  <h2 id="ev-h" class="type-h3">node:classify_document</h2>
-  <dl class="lp-prov">
-    <div><dt>Model</dt><dd>Flash-Lite</dd></div>
-    <div><dt>Prompt</dt><dd>classify v2</dd></div>
-    <div><dt>Latency</dt><dd>1.9 s</dd></div>
-    <div><dt>Tokens</dt><dd>2,100 in, 100 out</dd></div>
-    <div><dt>Span</dt><dd>b2d1 in trace 4be0…</dd></div>
-  </dl>
-  <div class="row"><a class="button button-secondary button-sm" href="labels.html"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7a1 1 0 0 1 .7.3l7.8 7.8a1 1 0 0 1 0 1.4l-7.7 7.7a1 1 0 0 1-1.4 0l-7.8-7.8a1 1 0 0 1-.3-.7z"/><circle cx="8" cy="8" r="1.5"/></svg>Open the label</a><a class="button button-quiet button-sm" href="https://console.cloud.google.com/traces/list?tid=4be04be04be04be04be04be04be04be0" target="_blank" rel="noreferrer"><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>Cloud Trace</a></div>
-  </div>
-  <div class="lp-side"><p class="muted small">Content is not captured in this deployment.</p></div>
-</aside>
-      </div>
-    </section>
-  </div>
+  <div class="pager-line"><span>1 to 7 of 7</span></div>
+  
+</div>
 </div></main><div class="dock"><nav class="bottom-nav" aria-label="Main"><a class="nav-item" href="dashboard.html"><span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="8" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="5" rx="1.5"/><rect x="13.5" y="11.5" width="7" height="9" rx="1.5"/><rect x="3.5" y="14.5" width="7" height="6" rx="1.5"/></svg></span>Dashboard</a><a class="nav-item" href="documents.html"><span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 3H8.5A1.5 1.5 0 0 0 7 4.5v12A1.5 1.5 0 0 0 8.5 18h9a1.5 1.5 0 0 0 1.5-1.5V7z"/><path d="M15 3v4h4"/><path d="M4 7.5v12A1.5 1.5 0 0 0 5.5 21H14"/></svg></span>Documents</a><a class="nav-item" href="review.html"><span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 13.5 6 5.5A1.5 1.5 0 0 1 7.4 4.5h9.2A1.5 1.5 0 0 1 18 5.5l2.5 8"/><path d="M3.5 13.5V18A1.5 1.5 0 0 0 5 19.5h14a1.5 1.5 0 0 0 1.5-1.5v-4.5h-5a3.5 3.5 0 0 1-7 0z"/></svg><span class="nav-count" aria-label="10 open">10</span></span>Review</a><a class="nav-item" href="risk.html"><span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4.5 6v5.5c0 4.6 3.1 8 7.5 9.5 4.4-1.5 7.5-4.9 7.5-9.5V6z"/><path d="M12 8.5v4M12 15.5h.01"/></svg><span class="nav-count" aria-label="2 open">2</span></span>Risk</a><a class="nav-item" href="#more" aria-current="page"><span class="nav-icon"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></span>More</a></nav></div></div></div><div class="more-sheet" id="more" role="dialog" aria-label="More"><a class="scrim" href="#" aria-label="Close"></a><div class="sheet"><span class="handle" aria-hidden="true"></span><p class="sheet-title">More</p><nav class="sheet-links"><a href="month.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h11.5M12 3.5 15.5 7 12 10.5"/><path d="M20 17H8.5M12 13.5 8.5 17l3.5 3.5"/></svg><span>Reconciliation</span><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg></a><a href="clients.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 19.5c.8-3.2 3.4-5 6.5-5s5.7 1.8 6.5 5"/><path d="M15.5 4.8a3.5 3.5 0 0 1 0 6.4"/><path d="M18 14.8c1.8.7 3.1 2.3 3.5 4.7"/></svg><span>Clients and suppliers</span><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg></a><a href="assistant.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 13.7 8.3 18.5 10l-4.8 1.7L12 16.5l-1.7-4.8L5.5 10l4.8-1.7z"/><path d="M18.5 15.5 19.3 17.7 21.5 18.5l-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></svg><span>Assistant</span><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg></a><a href="labels.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7a1 1 0 0 1 .7.3l7.8 7.8a1 1 0 0 1 0 1.4l-7.7 7.7a1 1 0 0 1-1.4 0l-7.8-7.8a1 1 0 0 1-.3-.7z"/><circle cx="8" cy="8" r="1.5"/></svg><span>Labels</span><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg></a><a href="runs.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h4c4 0 6 12 10 12h4"/><path d="M3 18h4c4 0 6-12 10-12h4"/></svg><span>Runs</span><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg></a><a href="plan-usage.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg><span>Settings</span><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg></a><a href="brand.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5z"/><path d="M13 4h5.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H13z"/></svg><span>Logo and brand</span><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg></a><a href="index.html"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="8" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="5" rx="1.5"/><rect x="13.5" y="11.5" width="7" height="9" rx="1.5"/><rect x="3.5" y="14.5" width="7" height="6" rx="1.5"/></svg><span>All screens</span><svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 6 6 6-6 6"/></svg></a></nav></div></div></div>
 </body>
 </html>

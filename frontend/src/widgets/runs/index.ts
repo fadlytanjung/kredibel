@@ -1,4 +1,5 @@
 export * from './format'
+export * from './RunDrawer'
 export * from './RunInspector'
 export * from './spans'
 export * from './Waterfall'

@@ -31,6 +31,7 @@ def _stage_to_firestore(stage: RunStage) -> dict[str, Any]:
         "tokensOut": stage.tokens_out,
         "summary": stage.summary,
         "traceSpanId": stage.trace_span_id,
+        "promptVersion": stage.prompt_version,
     }
 
 
@@ -46,6 +47,7 @@ def _stage_to_domain(data: dict[str, Any]) -> RunStage:
         tokens_out=data.get("tokensOut"),
         summary=data.get("summary"),
         trace_span_id=data.get("traceSpanId"),
+        prompt_version=data.get("promptVersion"),
     )
 
 

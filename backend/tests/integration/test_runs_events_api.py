@@ -40,7 +40,8 @@ async def _seed(deps) -> str:
             status=StageStatus.DONE,
             started_at=T0 + timedelta(seconds=1),
             ended_at=T0 + timedelta(seconds=3),
-            model="fake-model",
+            model="gemini-3.5-flash-lite",
+            prompt_version="classify_document@2",
             tokens_in=2100,
             tokens_out=100,
             summary="BANK_STATEMENT (0.99)",
@@ -52,7 +53,8 @@ async def _seed(deps) -> str:
             status=StageStatus.DONE,
             started_at=T0 + timedelta(seconds=3),
             ended_at=T0 + timedelta(seconds=12),
-            model="fake-model",
+            model="gemini-3.8-flash",
+            prompt_version="read_statement_page@2",
             tokens_in=3400,
             tokens_out=900,
             summary="page 1",
@@ -86,6 +88,12 @@ async def test_ac017_5_6_7_a_run_lists_its_labels_and_its_events_in_time_order()
         run = (await client.get(f"/api/runs/{run_id}", headers=AUTH)).json()
         assert run["labels"] == {"proposed": 1, "verified": 0, "corrected": 0}
         assert run["traceUrl"].endswith(run["traceId"]) and run["models"] == ["fake-model"]
+        # Usage and cost from the stages when the run stored none (spec 017, pricing.v1.yaml):
+        # 2,100 x 0.30 + 100 x 2.50 + 3,400 x 0.75 + 900 x 3.75 USD per 1M tokens.
+        assert run["usage"]["tokensIn"] == 5500 and run["usage"]["tokensOut"] == 1000
+        assert run["usage"]["llmCalls"] == 2 and run["usage"]["estimatedUsd"] == "0.007"
+        assert run["stages"][1]["promptVersion"] == "classify_document@2"
+        assert run["targetName"] is None, "no document doc_mar in this workspace"
         listed = (await client.get("/api/runs", headers=AUTH)).json()["items"]
         assert [r["runId"] for r in listed] == [run_id] and listed[0]["labels"]["proposed"] == 1
 
@@ -100,7 +108,8 @@ async def test_ac017_5_6_7_a_run_lists_its_labels_and_its_events_in_time_order()
             ("read_page", "LLM_RESPONSE"),
         ]
         llm = events["items"][2]
-        assert llm["model"] == "fake-model" and (llm["tokensIn"], llm["tokensOut"]) == (2100, 100)
+        assert llm["model"] == "gemini-3.5-flash-lite"
+        assert (llm["tokensIn"], llm["tokensOut"]) == (2100, 100)
         assert llm["latencyMs"] == 2000 and llm["spanId"] == "b2" and llm["content"] is None
         assert len(llm["labelIds"]) == 1 and events["items"][0]["labelIds"] == []
         assert events["items"][3]["parentSpanId"] == "read_pages"

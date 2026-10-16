@@ -36,6 +36,7 @@ from app.adapters.policy_files import (
     load_category_policy,
     load_forensics,
     load_learning_policy,
+    load_model_prices,
     load_plans,
     load_profit_loss_policy,
     load_reconciliation_policy,
@@ -91,6 +92,7 @@ from app.domain.models.invoice import Invoice, Receipt
 from app.domain.plans import PlanCatalog
 from app.domain.reconciliation_policy import ReconciliationPolicy
 from app.domain.risk import RiskPolicy
+from app.domain.run_usage import ModelPrice
 from app.observability.tracing import setup_tracing
 from app.ports.assistant_repository import AssistantRepository
 from app.ports.bank_line_repository import BankLineRepository
@@ -589,6 +591,13 @@ class AppDeps:
     @property
     def embedder(self) -> Embedder:
         return self._once("embedder", lambda: self._embedder or GeminiEmbedder(self.settings))
+
+    @property
+    def model_prices(self) -> dict[str, ModelPrice]:
+        return self._once(
+            "model_prices",
+            lambda: load_model_prices(self.settings.contract_path(self.settings.policy_dir)),
+        )
 
     @property
     def learning(self) -> LearningPolicy:

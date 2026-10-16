@@ -2666,6 +2666,7 @@ components:
         traceSpanId: { type: string }
         parent: { type: [string, "null"], description: "Parent node for fan-out (per page)" }
         summary: { type: string, description: "One line written by the node, e.g. 'agreement 0.97'" }
+        promptVersion: { type: [string, "null"], description: "promptId@version of the stage's model call" }
     Run:
       type: object
       required: [runId, kind, target, status]
@@ -2673,6 +2674,8 @@ components:
         runId: { type: string }
         kind: { $ref: "#/components/schemas/RunKind" }
         target: { type: string }
+        targetName: { type: [string, "null"], description: "A document run's file name" }
+        generation: { type: [integer, "null"], description: "A month run's generation" }
         status: { $ref: "#/components/schemas/RunStatus" }
         stages: { type: array, items: { $ref: "#/components/schemas/RunStage" } }
         traceId: { type: string }
@@ -2694,7 +2697,8 @@ components:
             ocrPages: { type: integer }
             tokensIn: { type: integer }
             tokensOut: { type: integer }
-            estimatedUsd: { type: string }
+            llmCalls: { type: integer }
+            estimatedUsd: { type: [string, "null"], description: "From the stages' tokens and pricing.v1.yaml; null when a model has no price" }
         createdAt: { type: string, format: date-time }
         endedAt: { type: [string, "null"], format: date-time }
     RunPage:

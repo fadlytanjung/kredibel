@@ -649,6 +649,7 @@ def explain_month(deps: PipelineDeps, pending: PendingMonths | None = None):
             **(
                 {
                     "model": calls[-1].model,
+                    "prompt_version": calls[-1].prompt_version,
                     "tokens_in": sum(c.tokens_in for c in calls),
                     "tokens_out": sum(c.tokens_out for c in calls),
                 }

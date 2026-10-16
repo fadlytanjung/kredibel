@@ -43,6 +43,7 @@ class RunStage:
     tokens_out: int | None = None
     summary: str | None = None
     trace_span_id: str | None = None
+    prompt_version: str | None = None  # promptId@version of this stage's model call (spec 017)
 
 
 @dataclass

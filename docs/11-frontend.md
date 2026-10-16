@@ -151,7 +151,7 @@ put):
 | `/counterparties`, `/counterparties/:id` | Clients and suppliers | List and detail with totals by month and accounts seen |
 | `/assistant`, `/assistant/:threadId` | Assistant (P1) | |
 | `/labels`, `/labels/:labelId` | Labels (P1) | Filters `task`, `status` (lowest confidence first); the ID opens the label in a drawer over the list |
-| `/runs`, `/runs/:runId` | Runs (P1) | Owner only. Filters `kind`, `status`, `hasCorrections`; the ID opens the span waterfall; `?span=` selects a call |
+| `/runs`, `/runs/:runId` | Runs (P1) | Owner only. Chips by kind, failed and corrected; the ID opens the run in a drawer with its span waterfall and the inspector |
 | `/settings/:section` | Settings | `profile`, `bank-accounts`, `language`, `plan`, `members` (P1). Compact: `/settings` is a list of sections |
 | `*` | NotFound | |
 
@@ -328,7 +328,7 @@ express (drawer versus full page).
 | App frame | Top bar (mark or back, title, bell); bottom nav; floating **Upload** | Rail with short labels and the avatar (opens Settings); top bar with breadcrumbs, search and **Upload** | Labelled sidebar with workspace, trial status and profile (opens Settings) |
 | Dashboard | Sentence, figures in 2 columns, **Needs you**, risk, then the charts one under the other (money flow as ranked bars), months scroll with snap | Figures in 2 columns; Needs you and Risk stacked; charts full width, medium drawings (Sankey from 640 px of panel) | Figures in 6 columns; Needs you beside Risk; charts full width, one per row, wide drawings from 960 px of panel; months in one row |
 | Labels (P1) | Rows as cards (subject, value, confidence, status); the label drawer fills the screen, the form above the extraction | Shared table; the drawer with the form beside the extraction and provenance | Shared table with source, extraction, run and dataset columns; the same drawer |
-| Runs (P1) | Runs as cards; span waterfall with the bar under each name; inspector below | Table; waterfall beside names | Table; waterfall; inspector below with the call beside its request and response |
+| Runs (P1) | Runs as cards; the run drawer fills the screen, the waterfall with the bar under each name, the inspector below | Shared table; the drawer with the waterfall beside the inspector | Shared table; the same drawer |
 | Documents | **Choose files** and **Photo of a receipt**; rows as cards (risk, status) | Drop area; table from 760 px of container | Drop area and full table |
 | Month | Figures in 2 columns; explanation; bank lines as cards with the match chip and reason | Figures in 2 columns; table | Figures in 6 columns; table |
 | Review | Queue as a list; an item opens full page with a sticky primary action | Same; split view from 980 px of container | Queue beside the fix panel, `j`/`k` to move |
@@ -777,21 +777,27 @@ role and read values ([ADR-016](adr/ADR-016-human-verified-labels-and-learning-l
 
 ### 6.12 Runs (P1, owner only)
 
-<p><img src="assets/mocks/runs-desktop.png" alt="Runs at 1440 px: a table of runs with status, duration, calls, tokens, cost, models and labels; the selected run's span waterfall; and the inspector for one model call with its request and response" width="66%"> <img src="assets/mocks/runs-mobile.png" alt="Runs on a phone: runs as cards and the waterfall with each bar under its name" width="26%"></p>
+<p><img src="assets/mocks/runs-desktop.png" alt="Runs at 1440 px: the shared table of runs with status, duration, calls, tokens, cost, models and labels" width="66%"> <img src="assets/mocks/runs-mobile.png" alt="Runs on a phone: runs as cards and the waterfall with each bar under its name" width="26%"></p>
 
 The in-app view of [ADR-017](adr/ADR-017-agent-observability-on-google-cloud.md): what a tracing tool
 shows, for the owner, without leaving Kredibel ([`17`](17-observability.md) §8).
 
-- **Runs table** from `GET /api/runs`: run (document, month or assistant question), status, started,
-  duration, LLM calls, tokens in and out, cost in USD, models, labels it produced. Chips by kind,
-  **Failed** and **Corrected by a person**.
-- **Span waterfall** for the selected run (`GET /api/runs/{id}/events`): workflow, nodes and calls
-  on one time axis, model calls in evidence violet, code in slate; each bar shows its duration and one
-  line of detail (model, tokens, output).
+- **Runs table** from `GET /api/runs` in the shared table (docs/12 §7): run (the document's file
+  name, or the month with its generation), status, started, duration, LLM calls, tokens in and out,
+  estimated cost in USD (from `contracts/policy/pricing.v1.yaml` when the run stored none), models,
+  labels it produced. Chips by kind, **Failed** and **Corrected by a person**; search by file name,
+  month or run ID.
+- **Run drawer** (the kit's drawer; Esc closes): the run's kind, start, duration, calls, tokens,
+  cost and prompt versions; then the **span waterfall** (`GET /api/runs/{id}/events`): workflow,
+  nodes and calls on one time axis from the first step's start to the last step's end, about five
+  ticks whatever the length, model calls in evidence violet, code in slate; each bar shows its
+  duration and one line of detail (model and prompt version, tokens, output).
 - **Inspector** for the selected call: model, prompt version, latency, tokens, span and trace;
   **Open the label**, **Cloud Trace** and **BigQuery rows**; the request and response when content
   was captured (synthetic data only, `AI_CONTENT_CAPTURE=synthetic`), otherwise "Content not
   captured for real data".
+
+<p><img src="assets/mocks/run-desktop.png" alt="One run in the drawer at 1440 px: the run's summary, its span waterfall on a time axis and, beside it, the inspector for the selected model call" width="66%"> <img src="assets/mocks/run-mobile.png" alt="The run drawer on a phone: the waterfall with each bar under its name, the inspector below" width="26%"></p>
 
 ---
 

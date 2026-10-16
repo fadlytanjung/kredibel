@@ -1739,23 +1739,28 @@ button.tab { border: 0; background: transparent; cursor: pointer; font-family: i
 .runs-table tr.is-selected td:first-child { box-shadow: inset 3px 0 0 var(--k-color-brand-default); }
 .run-detail { display: flex; flex-direction: column; gap: var(--k-space-3); }
 .run-layout { display: flex; flex-direction: column; gap: var(--k-space-5); }
-.waterfall-panel { padding: var(--k-space-4) var(--k-space-5); overflow-x: auto; }
+.waterfall-panel { padding: var(--k-space-4) var(--k-space-5); min-width: 0; }
+.drawer-body > .waterfall-panel { border: 0; border-radius: 0; }
+@container app (width >= 680px) { .drawer-body > .waterfall-panel { border-right: 1px solid var(--k-color-border-default); } }
+@media (min-width: 680px) { .drawer-body > .waterfall-panel { border-right: 1px solid var(--k-color-border-default); } }
 .span-axis, .span-row { display: grid; grid-template-columns: minmax(150px, 220px) minmax(240px, 1fr) 56px; gap: 4px var(--k-space-3); align-items: center; }
 .span-axis { padding-bottom: 6px; border-bottom: 1px solid var(--k-color-border-default); }
 .span-axis .span-track { position: relative; height: 16px; }
-.span-axis .span-track span { position: absolute; transform: translateX(-50%); font-size: 11.5px; color: var(--k-color-text-subtle); font-variant-numeric: tabular-nums; }
+.span-axis .span-track span { position: absolute; transform: translateX(-50%); font-size: 11.5px; color: var(--k-color-text-subtle); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .span-axis .span-track span:first-child { transform: none; }
 .span-axis .span-track span:last-child { transform: translateX(-100%); }
 .spans { display: flex; flex-direction: column; }
 .span-row { padding: 6px 0; border-bottom: 1px solid color-mix(in srgb, var(--k-color-border-default) 60%, transparent); }
 .span-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+button.span-name { padding: 0; border: 0; background: none; color: inherit; font-family: inherit; text-align: left; cursor: pointer; min-width: 0; }
+button.span-name:focus-visible { outline: 2px solid var(--k-color-focus-ring); outline-offset: 2px; border-radius: var(--k-radius-xs); }
 .span-row.d1 .span-name { padding-left: 14px; }
 .span-row.d2 .span-name { padding-left: 28px; font-weight: 520; }
 .span-track { position: relative; height: 14px; border-radius: 3px; background: var(--k-color-bg-sunken); }
 .span-track i { position: absolute; top: 0; bottom: 0; border-radius: 3px; background: var(--k-color-chart-operating); }
 .span-row.wf .span-track i, .span-row.node .span-track i { background: var(--k-color-chart-node-account); opacity: 0.55; }
 .span-row.llm .span-track i { background: var(--k-color-evidence-line); }
-.span-row.code .span-track i { background: var(--k-color-chart-operating); }
+.span-row.tool .span-track i { background: var(--k-color-chart-operating); }
 .span-row.sel { background: var(--k-color-evidence-soft); border-radius: var(--k-radius-xs); }
 .span-row.sel .span-track i { box-shadow: 0 0 0 2px var(--k-color-evidence-text); }
 .span-dur { font-size: 12.5px; text-align: right; font-variant-numeric: tabular-nums; color: var(--k-color-text-muted); }
@@ -1776,7 +1781,7 @@ button.tab { border: 0; background: transparent; cursor: pointer; font-family: i
 .span-legend span { display: inline-flex; align-items: center; gap: 6px; }
 .span-legend i { width: 14px; height: 10px; border-radius: 3px; }
 .span-legend .llm i { background: var(--k-color-evidence-line); }
-.span-legend .code i { background: var(--k-color-chart-operating); }
+.span-legend .tool i { background: var(--k-color-chart-operating); }
 .span-legend .node i { background: var(--k-color-chart-node-account); opacity: 0.55; }
 
 .page-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }

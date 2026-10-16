@@ -1,0 +1,13 @@
+# Kredibel model prices — version 1
+# USD per 1M tokens, used by code to estimate what a run cost (spec 017, the Runs page). Models never
+# compute money. A model missing here makes the estimate unavailable, not zero.
+# ⚠️ From docs/21 §3.1 (a third-party price tracker, introductory prices): check the Google Cloud
+# pricing page before relying on them, and add a model here before configuring it.
+
+version: 1
+id: pricing.v1
+currency: USD
+perMillionTokens:
+  gemini-3.8-flash: { input: "0.75", output: "3.75" }
+  gemini-3.5-flash-lite: { input: "0.30", output: "2.50" }
+  gemini-embedding-001: { input: "0.15", output: "0" }

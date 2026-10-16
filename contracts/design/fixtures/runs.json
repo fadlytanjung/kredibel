@@ -4,7 +4,7 @@
     {
       "runId": "doc-doc_mar-1",
       "kind": "DOCUMENT",
-      "target": "ACB_Mar_2026.pdf",
+      "target": "doc_mar",
       "status": "DONE",
       "stages": [
         {
@@ -17,7 +17,8 @@
           "tokensIn": null,
           "tokensOut": null,
           "summary": "pikepdf, 2 revisions",
-          "traceSpanId": "a1c0"
+          "traceSpanId": "a1c0",
+          "promptVersion": null
         },
         {
           "node": "classify_document",
@@ -29,7 +30,8 @@
           "tokensIn": 2100,
           "tokensOut": 100,
           "summary": "BANK_STATEMENT (0.99)",
-          "traceSpanId": "b2d1"
+          "traceSpanId": "b2d1",
+          "promptVersion": "classify_document@2"
         },
         {
           "node": "read_pages",
@@ -41,7 +43,8 @@
           "tokensIn": null,
           "tokensOut": null,
           "summary": "page 1 first, then 2 and 3 in parallel",
-          "traceSpanId": "c3e2"
+          "traceSpanId": "c3e2",
+          "promptVersion": null
         },
         {
           "node": "read_page",
@@ -53,7 +56,8 @@
           "tokensIn": 3400,
           "tokensOut": 900,
           "summary": "page 1: STATEMENT_SUMMARY 0.99",
-          "traceSpanId": "c3e3"
+          "traceSpanId": "c3e3",
+          "promptVersion": "read_statement_page@2"
         },
         {
           "node": "witness_pages",
@@ -65,7 +69,8 @@
           "tokensIn": null,
           "tokensOut": null,
           "summary": "1,204 words with boxes",
-          "traceSpanId": "c3e4"
+          "traceSpanId": "c3e4",
+          "promptVersion": null
         },
         {
           "node": "read_page",
@@ -77,7 +82,8 @@
           "tokensIn": 3600,
           "tokensOut": 1400,
           "summary": "page 2: STATEMENT_TRANSACTIONS 0.98",
-          "traceSpanId": "c3e5"
+          "traceSpanId": "c3e5",
+          "promptVersion": "read_statement_page@2"
         },
         {
           "node": "read_page",
@@ -89,7 +95,8 @@
           "tokensIn": 3300,
           "tokensOut": 300,
           "summary": "page 3: TERMS_OR_COVER 0.62",
-          "traceSpanId": "9f41"
+          "traceSpanId": "9f41",
+          "promptVersion": "read_statement_page@2"
         },
         {
           "node": "verify_pages",
@@ -101,7 +108,8 @@
           "tokensIn": null,
           "tokensOut": null,
           "summary": "agreement 0.97, 0 conflicts",
-          "traceSpanId": "d4f5"
+          "traceSpanId": "d4f5",
+          "promptVersion": null
         },
         {
           "node": "detect_content_duplicates",
@@ -113,7 +121,8 @@
           "tokensIn": null,
           "tokensOut": null,
           "summary": "no copy",
-          "traceSpanId": "e5a6"
+          "traceSpanId": "e5a6",
+          "promptVersion": null
         },
         {
           "node": "check_document",
@@ -125,7 +134,8 @@
           "tokensIn": null,
           "tokensOut": null,
           "summary": "A01, M03, M04",
-          "traceSpanId": "f6b7"
+          "traceSpanId": "f6b7",
+          "promptVersion": null
         },
         {
           "node": "categorize_bank_lines",
@@ -137,7 +147,8 @@
           "tokensIn": 4600,
           "tokensOut": 400,
           "summary": "31 by rule, 14 by model",
-          "traceSpanId": "a7c8"
+          "traceSpanId": "a7c8",
+          "promptVersion": "categorize_transactions@3"
         }
       ],
       "traceId": "4be04be04be04be04be04be04be04be0",
@@ -147,9 +158,9 @@
         "gemini-2.5-flash-lite"
       ],
       "promptVersions": {
-        "classify": "classify v2",
-        "read_page": "read_page v3",
-        "categorize": "categorize v4"
+        "classify_document": "2",
+        "read_statement_page": "2",
+        "categorize_transactions": "3"
       },
       "labels": {
         "proposed": 4,
@@ -162,15 +173,18 @@
         "ocrPages": 0,
         "tokensIn": 18400,
         "tokensOut": 3100,
-        "estimatedUsd": "0.021"
+        "estimatedUsd": "0.021",
+        "llmCalls": 5
       },
       "createdAt": "2026-07-02T09:14:00Z",
-      "endedAt": "2026-07-02T09:14:41.200000Z"
+      "endedAt": "2026-07-02T09:14:41.200000Z",
+      "targetName": "ACB_Mar_2026.pdf",
+      "generation": null
     },
     {
       "runId": "month-2026-03-7",
       "kind": "MONTH",
-      "target": "2026-03, generation 7",
+      "target": "2026-03",
       "status": "DONE",
       "stages": [],
       "traceId": "5cf15cf15cf15cf15cf15cf15cf15cf1",
@@ -192,15 +206,18 @@
         "ocrPages": 0,
         "tokensIn": 4200,
         "tokensOut": 600,
-        "estimatedUsd": "0.004"
+        "estimatedUsd": "0.004",
+        "llmCalls": 1
       },
       "createdAt": "2026-07-12T10:02:00Z",
-      "endedAt": "2026-07-12T10:02:07Z"
+      "endedAt": "2026-07-12T10:02:07Z",
+      "targetName": null,
+      "generation": 7
     },
     {
       "runId": "month-2026-03-6",
       "kind": "MONTH",
-      "target": "2026-03, generation 6",
+      "target": "2026-03",
       "status": "SUPERSEDED",
       "stages": [],
       "traceId": "5cf05cf05cf05cf05cf05cf05cf05cf0",
@@ -218,10 +235,13 @@
         "ocrPages": 0,
         "tokensIn": 0,
         "tokensOut": 0,
-        "estimatedUsd": "0.000"
+        "estimatedUsd": "0.000",
+        "llmCalls": 0
       },
       "createdAt": "2026-07-12T10:01:00Z",
-      "endedAt": "2026-07-12T10:01:02Z"
+      "endedAt": "2026-07-12T10:01:02Z",
+      "targetName": null,
+      "generation": 6
     },
     {
       "runId": "asst-thr_01-3",
@@ -248,15 +268,18 @@
         "ocrPages": 0,
         "tokensIn": 6100,
         "tokensOut": 400,
-        "estimatedUsd": "0.003"
+        "estimatedUsd": "0.003",
+        "llmCalls": 2
       },
       "createdAt": "2026-07-12T10:20:00Z",
-      "endedAt": "2026-07-12T10:20:04Z"
+      "endedAt": "2026-07-12T10:20:04Z",
+      "targetName": null,
+      "generation": null
     },
     {
       "runId": "doc-doc_ledger_h1-1",
       "kind": "DOCUMENT",
-      "target": "ledger-2026-H1.csv",
+      "target": "doc_ledger_h1",
       "status": "DONE",
       "stages": [],
       "traceId": "7e137e137e137e137e137e137e137e13",
@@ -279,15 +302,18 @@
         "ocrPages": 0,
         "tokensIn": 1900,
         "tokensOut": 300,
-        "estimatedUsd": "0.001"
+        "estimatedUsd": "0.001",
+        "llmCalls": 2
       },
       "createdAt": "2026-07-02T09:11:00Z",
-      "endedAt": "2026-07-02T09:11:04Z"
+      "endedAt": "2026-07-02T09:11:04Z",
+      "targetName": "ledger-2026-H1.csv",
+      "generation": null
     },
     {
       "runId": "doc-doc_jun-1",
       "kind": "DOCUMENT",
-      "target": "ACB_Jun_2026.pdf",
+      "target": "doc_jun",
       "status": "RUNNING",
       "stages": [],
       "traceId": "8f248f248f248f248f248f248f248f24",
@@ -309,15 +335,18 @@
         "ocrPages": 0,
         "tokensIn": 7000,
         "tokensOut": 1200,
-        "estimatedUsd": "0.008"
+        "estimatedUsd": "0.008",
+        "llmCalls": 2
       },
       "createdAt": "2026-07-16T10:31:00Z",
-      "endedAt": null
+      "endedAt": null,
+      "targetName": "ACB_Jun_2026.pdf",
+      "generation": null
     },
     {
       "runId": "doc-doc_rcp_0617_2-1",
       "kind": "DOCUMENT",
-      "target": "Receipt 0617 (2).jpg",
+      "target": "doc_rcp_0617_2",
       "status": "DONE",
       "stages": [],
       "traceId": "9a359a359a359a359a359a359a359a35",
@@ -339,10 +368,13 @@
         "ocrPages": 0,
         "tokensIn": 3300,
         "tokensOut": 400,
-        "estimatedUsd": "0.003"
+        "estimatedUsd": "0.003",
+        "llmCalls": 2
       },
       "createdAt": "2026-07-10T16:40:00Z",
-      "endedAt": "2026-07-10T16:40:07Z"
+      "endedAt": "2026-07-10T16:40:07Z",
+      "targetName": "Receipt 0617 (2).jpg",
+      "generation": null
     }
   ],
   "nextCursor": null,

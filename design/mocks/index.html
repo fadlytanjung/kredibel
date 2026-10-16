@@ -395,10 +395,24 @@
           <span class="badge badge-clean">Implemented</span>
         </div>
         <p class="index-route"><strong>Route:</strong> <code>/runs</code> <span class="muted">(Spec 017)</span></p>
-        <p>Run history like a tracing tool: runs with calls, tokens, cost and labels, the selected run's span waterfall from its stages, and the inspector for one call; drawn from contracts/design/fixtures/runs.json.</p>
+        <p>Every document and month run in the shared table with calls, tokens, estimated cost, models and labels; drawn from contracts/design/fixtures/runs.json. Parity: runs.spec.ts.</p>
         <p class="index-sizes"><a href="../../docs/assets/mocks/runs-mobile.png">Phone</a>
         <a href="../../docs/assets/mocks/runs-tablet.png">Tablet</a>
         <a href="../../docs/assets/mocks/runs-desktop.png">Desktop</a></p>
+      </div>
+    </li>
+    <li class="index-card" data-design-only="true">
+      <a class="index-shot" href="run.html"><img src="../../docs/assets/mocks/run-desktop.png" alt="" loading="lazy"/></a>
+      <div class="index-text">
+        <div class="index-card-head">
+          <h2 class="type-h3"><a href="run.html">Run</a></h2>
+          <span class="badge badge-low">Implemented drawer</span>
+        </div>
+        <p class="index-route"><strong>Route:</strong> <code>/runs/:runId</code> <span class="muted">(Spec 017)</span></p>
+        <p>One run in a drawer over the list: its span waterfall on a time axis from the stages, and the inspector for one call with prompt version, tokens, span and label. Parity: runs.spec.ts.</p>
+        <p class="index-sizes"><a href="../../docs/assets/mocks/run-mobile.png">Phone</a>
+        <a href="../../docs/assets/mocks/run-tablet.png">Tablet</a>
+        <a href="../../docs/assets/mocks/run-desktop.png">Desktop</a></p>
       </div>
     </li>
     <li class="index-card">

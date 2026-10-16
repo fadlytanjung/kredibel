@@ -80,10 +80,16 @@
     "openLabel": "Open the label",
     "cloudTrace": "Cloud Trace",
     "notCaptured": "Content is not captured in this deployment.",
-    "selectHint": "Select a row of the waterfall to inspect its call."
+    "selectHint": "Select a row of the waterfall to inspect its call.",
+    "kindLine": "{{kind}} run · {{started}}",
+    "minutes": "{{minutes}} min",
+    "close": "Close run",
+    "noStages": "This run recorded no steps yet."
   },
   "empty": "No runs yet. Upload a document to start one.",
   "loading": "Loading runs…",
   "error": "Runs could not be loaded.",
-  "retry": "Try again"
+  "retry": "Try again",
+  "search": "Search runs",
+  "monthTarget": "{{month}}, generation {{generation}}"
 }

@@ -579,109 +579,167 @@ def duration_ms(run: dict) -> float:
     return max(0.0, (_ts(run.get("endedAt")) - _ts(run.get("createdAt"))) * 1000) if run.get("endedAt") else 0.0
 
 
+def prompt_label(ref: str | None) -> str:
+    return ref.replace("@", " v") if ref else ""
+
+
+TICK_STEPS = [1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 1800, 3600]
+
+
+def tick_step(total_ms: float) -> int:
+    return next((s for s in TICK_STEPS if total_ms / 1000 / s <= 5), TICK_STEPS[-1])
+
+
+def run_title(run: dict) -> str:
+    if run["kind"] == "MONTH" and run.get("generation"):
+        return rnw("monthTarget", month=run["target"], generation=run["generation"])
+    return run.get("targetName") or run["target"]
+
+
 def span_rows(run: dict) -> list[dict]:
-    t0 = _ts(run["createdAt"])
-    total = duration_ms(run)
-    stages = run.get("stages") or []
+    """As widgets/runs/spans.ts: the axis runs from the first stage's start to the last one's end."""
+    stages = sorted(run.get("stages") or [], key=lambda s: _ts(s.get("startedAt")))
+    starts = [_ts(s["startedAt"]) for s in stages if s.get("startedAt")]
+    ends = [_ts(s.get("endedAt") or s.get("startedAt")) for s in stages if s.get("endedAt") or s.get("startedAt")]
+    t0 = min(starts) if starts else _ts(run.get("createdAt"))
+    t_end = max(ends) if ends else t0
     parents = {s["parent"] for s in stages if s.get("parent")}
-    rows = [{"name": rnw("detail.root", workflow=rnw(f"detail.workflow.{run['kind']}")), "depth": 0, "kind": "wf", "start": 0.0, "end": total, "detail": escape(run["target"]), "stage": None}]
-    for s in sorted(stages, key=lambda s: _ts(s.get("startedAt"))):
+    rows = [{"name": rnw("detail.root", workflow=rnw(f"detail.workflow.{run['kind']}")), "depth": 0, "kind": "wf", "start": 0.0,
+             "end": max((t_end - t0) * 1000, 0.0), "detail": escape(run.get("targetName") or run["target"]), "stage": None}]
+    for s in stages:
         start = (_ts(s.get("startedAt")) - t0) * 1000 if s.get("startedAt") else 0.0
         end = (_ts(s.get("endedAt")) - t0) * 1000 if s.get("endedAt") else start
         kind = "llm" if s.get("model") else "node" if s["node"] in parents else "code"
-        detail = ": ".join(x for x in [f'{short_model(s["model"])}, {k_tokens(s.get("tokensIn"))} in, {k_tokens(s.get("tokensOut"))} out' if s.get("model") else None, s.get("summary")] if x)
+        call = None
+        if s.get("model"):
+            prompt = f' {prompt_label(s.get("promptVersion"))}' if s.get("promptVersion") else ""
+            call = f'{short_model(s["model"])}{prompt}, {k_tokens(s.get("tokensIn"))} in, {k_tokens(s.get("tokensOut"))} out'
+        detail = ": ".join(x for x in [call, s.get("summary")] if x)
         rows.append({"name": f'node:{s["node"]}', "depth": 2 if s.get("parent") else 1, "kind": kind, "start": start, "end": end, "detail": escape(detail), "stage": s})
     return rows
 
 
-def runs() -> str:
+def runs_list(selected: str | None = None) -> str:
+    """The Runs list in the shared DataTable, as pages/RunsPage.tsx."""
     items = RUNS_FIX["items"]
-    run = items[0]
+
     def llm_calls(r: dict) -> int:
-        return sum(1 for s in (r.get("stages") or []) if s.get("model"))
+        return (r.get("usage") or {}).get("llmCalls") if (r.get("usage") or {}).get("llmCalls") is not None else sum(1 for s in (r.get("stages") or []) if s.get("model"))
+
     def labels_cell(r: dict) -> str:
         lb = r.get("labels") or {}
         parts = [rnw(f"labelsCell.{k}", count=lb[k]) for k in ("proposed", "verified", "corrected") if lb.get(k)]
         return ", ".join(parts) if parts else rnw("none")
+
     trs = []
     for r in items:
         usage = r.get("usage") or {}
         tokens = f'{k_tokens(usage.get("tokensIn"))} / {k_tokens(usage.get("tokensOut"))}' if usage.get("tokensIn") else rnw("none")
         models = ", ".join(short_model(m) for m in r.get("models") or []) or rnw("none")
-        trs.append(f"""<tr class="is-clickable{" is-selected" if r is run else ""}">
-  <td data-cell="wide"><span class="doc-cell"><span class="thumb">{icon(RUN_ICON.get(r["kind"], "files"))}</span><span><strong>{escape(r["target"])}</strong><span class="sub">{rnw("kindRun", kind=rnw(f"kinds.{r['kind']}"))}</span></span></span></td>
+        sel = r["runId"] == selected
+        trs.append(f"""<tr class="is-clickable{" is-selected" if sel else ""}"{' aria-selected="true"' if sel else ""} tabindex="0">
+  <td data-cell="wide"><span class="doc-cell"><span class="thumb">{icon(RUN_ICON.get(r["kind"], "files"))}</span><span><strong>{escape(run_title(r))}</strong><span class="sub">{rnw("kindRun", kind=rnw(f"kinds.{r['kind']}"))}</span></span></span></td>
   <td><span class="status-line {RUN_TONE.get(r["status"], "")}">{rnw(f"status.{r['status']}")}</span></td>
-  <td class="hide-rt">{started_at(r.get("createdAt"))}</td>
+  <td class="hide-rt" data-cell="hide">{started_at(r.get("createdAt"))}</td>
   <td class="r">{seconds(duration_ms(r)) if r.get("endedAt") else "—"}</td>
-  <td class="r hide-rt">{llm_calls(r)}</td>
-  <td class="r hide-rt">{tokens}</td>
-  <td class="r hide-rt">{usage.get("estimatedUsd") or "0.000"}</td>
-  <td class="hide-rt small">{models}</td>
-  <td class="hide-rt small">{labels_cell(r)}</td>
+  <td class="r hide-rt" data-cell="hide">{llm_calls(r)}</td>
+  <td class="r hide-rt" data-cell="hide">{tokens}</td>
+  <td class="r hide-rt" data-cell="hide">{usage.get("estimatedUsd") or "—"}</td>
+  <td class="hide-rt small" data-cell="hide">{models}</td>
+  <td class="hide-rt small" data-cell="hide">{labels_cell(r)}</td>
 </tr>""")
     counts = [("all", len(items))] + [(k, sum(1 for r in items if r["kind"] == k)) for k in ("DOCUMENT", "MONTH", "ASSISTANT")]
     counts += [("failed", sum(1 for r in items if r["status"] == "FAILED")), ("corrected", sum(1 for r in items if (r.get("labels") or {}).get("corrected")))]
-    chips = "".join(f'<a class="chip" href="runs.html" aria-pressed="{str(k == "all").lower()}">{rnw(f"chips.{k}")} <span class="n">{n}</span></a>' for k, n in counts)
-    rows = span_rows(run)
-    total = max(rows[0]["end"], 1)
-    chosen = next((r for r in rows if r["kind"] == "llm"), rows[0])
-    lis = []
-    for r in rows:
-        left, width = r["start"] / total * 100, max((r["end"] - r["start"]) / total * 100, 0.6)
-        lis.append(f"""<li class="span-row d{r["depth"]} {r["kind"]}{" sel" if r is chosen else ""}">
-  <button type="button" class="span-name" aria-pressed="{str(r is chosen).lower()}">{r["name"]}</button>
-  <span class="span-track"><i style="left:{left:.2f}%;width:{width:.2f}%"></i></span>
-  <span class="span-dur">{seconds(r["end"] - r["start"])}</span>
-  <span class="span-detail">{r["detail"]}</span>
-</li>""")
-    ticks = "".join(f'<span style="left:{s * 1000 / total * 100}%">{s} s</span>' for s in range(0, int(total // 1000) + 1, 10) if s * 1000 < total)
-    stage = chosen["stage"]
-    events = (RUNS_FIX.get("events") or {}).get(run["runId"], {}).get("items", [])
-    label_ids = next((e["labelIds"] for e in events if stage and e["node"] == stage["node"] and e.get("spanId") == stage.get("traceSpanId") and e["eventType"] == ("LLM_RESPONSE" if stage.get("model") else "NODE_OUTPUT")), [])
-    prompt = (run.get("promptVersions") or {}).get(PROMPT_OF.get(stage["node"], stage["node"])) if stage else None
-    kind_word = rnw(f"detail.kind.{'node' if chosen['kind'] == 'wf' else chosen['kind']}")
-    inspector = f"""
-<aside class="ev-inspector panel" aria-labelledby="ev-h">
-  <div class="lp-main">
-  <div class="lp-head"><span class="task">{kind_word}</span></div>
-  <h2 id="ev-h" class="type-h3">{chosen["name"]}</h2>
-  <dl class="lp-prov">
-    <div><dt>{rnw("detail.model")}</dt><dd>{short_model(stage.get("model")) if stage and stage.get("model") else "—"}</dd></div>
-    <div><dt>{rnw("detail.prompt")}</dt><dd>{escape(prompt) if prompt else "—"}</dd></div>
-    <div><dt>{rnw("detail.latency")}</dt><dd>{seconds(chosen["end"] - chosen["start"])}</dd></div>
-    <div><dt>{rnw("detail.tokens")}</dt><dd>{rnw("detail.tokensValue", tokensIn=f"{stage.get('tokensIn') or 0:,}", tokensOut=f"{stage.get('tokensOut') or 0:,}") if stage and stage.get("model") else "—"}</dd></div>
-    <div><dt>{rnw("detail.span")}</dt><dd>{rnw("detail.spanValue", span=stage["traceSpanId"], trace=(run.get("traceId") or "")[:4] + "…") if stage and stage.get("traceSpanId") else "—"}</dd></div>
-  </dl>
-  <div class="row">{f'<a class="button button-secondary button-sm" href="labels.html">{icon("tag", "icon icon-sm")}{rnw("detail.openLabel")}</a>' if label_ids else ""}{f'<a class="button button-quiet button-sm" href="{run["traceUrl"]}" target="_blank" rel="noreferrer">{icon("external", "icon icon-sm")}{rnw("detail.cloudTrace")}</a>' if run.get("traceUrl") else ""}</div>
-  </div>
-  <div class="lp-side"><p class="muted small">{rnw("detail.notCaptured")}</p></div>
-</aside>"""
-    usage = run.get("usage") or {}
-    summary = rnw("detail.summary", started=started_at(run.get("createdAt")), duration=seconds(duration_ms(run)), calls=llm_calls(run), tokensIn=k_tokens(usage.get("tokensIn")), tokensOut=k_tokens(usage.get("tokensOut")), usd=usage.get("estimatedUsd") or "0.000", prompts=", ".join((run.get("promptVersions") or {}).values()) or rnw("detail.noPrompts"))
-    content = f"""
+    columns = [(rnw("columns.run"), "wide"), (rnw("columns.status"), ""), (rnw("columns.started"), "hide"), (rnw("columns.duration"), "r"),
+               (rnw("columns.calls"), "r hide"), (rnw("columns.tokens"), "r hide"), (rnw("columns.usd"), "r hide"),
+               (rnw("columns.models"), "hide small"), (rnw("columns.labels"), "hide small")]
+    table = data_table([(rnw(f"chips.{k}"), n) for k, n in counts], 0, rnw("filter"), rnw("search"), columns, "".join(trs),
+                       pager=words(COMMON_WORDS, "table.showingRange", **{"from": 1, "to": len(items), "total": len(items)}), table_class="runs-table")
+    return f"""
 <div class="page">
   <div class="page-head">
     <div class="spread"><h1 class="type-title">{rnw("title")}</h1><span class="badge badge-outline">{rnw("ownerOnly")}</span></div>
     <p>{rnw("intro")}</p>
   </div>
-  <div class="stack gap-5">
-    <div class="chips" role="group" aria-label="{rnw("filter")}">{chips}</div>
-    <div class="table-panel rt-wrap"><table class="data-table rt runs-table">
-      <thead><tr><th>{rnw("columns.run")}</th><th>{rnw("columns.status")}</th><th class="hide-rt">{rnw("columns.started")}</th><th class="r">{rnw("columns.duration")}</th><th class="r hide-rt">{rnw("columns.calls")}</th><th class="r hide-rt">{rnw("columns.tokens")}</th><th class="r hide-rt">{rnw("columns.usd")}</th><th class="hide-rt">{rnw("columns.models")}</th><th class="hide-rt">{rnw("columns.labels")}</th></tr></thead>
-      <tbody>{''.join(trs)}</tbody></table></div>
-    <section class="run-detail" aria-labelledby="rd-h">
-      <div class="spread"><div><h2 class="type-h2" id="rd-h">{rnw("detail.title", workflow=rnw(f"detail.workflow.{run['kind']}"), target=run["target"])}</h2><p class="muted small">{summary}</p></div></div>
-      <div class="run-layout">
-        <div class="panel waterfall-panel">
-          <div class="span-axis" aria-hidden="true"><span class="span-name"></span><span class="span-track">{ticks}</span></div>
-          <ol class="spans">{''.join(lis)}</ol>
-          <p class="span-legend"><span class="llm"><i></i>{rnw("detail.legend.llm")}</span><span class="code"><i></i>{rnw("detail.legend.code")}</span><span class="node"><i></i>{rnw("detail.legend.node")}</span></p>
-        </div>
-        {inspector}
+  {table}
+</div>"""
+
+
+def run_drawer(run: dict) -> str:
+    """One run in the kit's drawer, as widgets/runs/RunDrawer.tsx."""
+    rows = span_rows(run)
+    total = max(rows[0]["end"], 1)
+    step = tick_step(total)
+    chosen = next((r for r in rows if r["kind"] == "llm"), rows[0])
+    lis = []
+    for r in rows:
+        left, width = r["start"] / total * 100, max((r["end"] - r["start"]) / total * 100, 0.6)
+        lis.append(f"""<li class="span-row d{r["depth"]} {"tool" if r["kind"] == "code" else r["kind"]}{" sel" if r is chosen else ""}">
+  <button type="button" class="span-name" aria-pressed="{str(r is chosen).lower()}">{r["name"]}</button>
+  <span class="span-track"><i style="left:{left:.2f}%;width:{width:.2f}%"></i></span>
+  <span class="span-dur">{seconds(r["end"] - r["start"])}</span>
+  <span class="span-detail">{r["detail"]}</span>
+</li>""")
+    tick_word = (lambda s: rnw("detail.minutes", minutes=s // 60)) if step >= 60 else (lambda s: rnw("detail.seconds", seconds=s))
+    ticks = "".join(f'<span style="left:{s * 1000 / total * 100}%">{tick_word(s)}</span>' for s in range(0, int(total // 1000) + 1, step) if s * 1000 < total)
+    stage = chosen["stage"]
+    events = (RUNS_FIX.get("events") or {}).get(run["runId"], {}).get("items", [])
+    label_ids = next((e["labelIds"] for e in events if stage and e["node"] == stage["node"] and e.get("spanId") == stage.get("traceSpanId") and e["eventType"] == ("LLM_RESPONSE" if stage.get("model") else "NODE_OUTPUT")), [])
+    kind_word = rnw(f"detail.kind.{'node' if chosen['kind'] == 'wf' else chosen['kind']}")
+    usage = run.get("usage") or {}
+    prompts = ", ".join(prompt_label(f"{k}@{v}") for k, v in (run.get("promptVersions") or {}).items()) or rnw("detail.noPrompts")
+    duration = seconds(duration_ms(run)) if run.get("endedAt") else seconds(rows[0]["end"])
+    summary = rnw("detail.summary", started=started_at(run.get("createdAt")), duration=duration, calls=usage.get("llmCalls") or 0,
+                  tokensIn=k_tokens(usage.get("tokensIn")), tokensOut=k_tokens(usage.get("tokensOut")), usd=usage.get("estimatedUsd") or "—", prompts=prompts)
+    tokens = rnw("detail.tokensValue", tokensIn=f"{stage.get('tokensIn') or 0:,}", tokensOut=f"{stage.get('tokensOut') or 0:,}") if stage and stage.get("model") else "—"
+    span = rnw("detail.spanValue", span=stage["traceSpanId"], trace=(run.get("traceId") or "")[:4] + "…") if stage and stage.get("traceSpanId") else "—"
+    label_link = f'<a class="button button-secondary button-sm" href="label.html">{icon("tag", "icon icon-sm")}{rnw("detail.openLabel")}</a>' if label_ids else ""
+    trace_link = f'<a class="button button-quiet button-sm" href="{run["traceUrl"]}" target="_blank" rel="noreferrer">{icon("external", "icon icon-sm")}{rnw("detail.cloudTrace")}</a>' if run.get("traceUrl") else ""
+    return f"""
+<div class="drawer-frame">
+  <a class="drawer-behind" href="runs.html" aria-hidden="true" tabindex="-1"></a>
+  <div class="drawer" role="dialog" aria-modal="true" aria-labelledby="rd-h">
+    <div class="drawer-head">
+      <div class="stack gap-2 flex-1 min-w-0">
+        <span class="muted small">{rnw("detail.kindLine", kind=rnw(f"kinds.{run['kind']}"), started=started_at(run.get("createdAt")))}</span>
+        <h1 id="rd-h">{rnw("detail.title", workflow=rnw(f"detail.workflow.{run['kind']}"), target=escape(run_title(run)))}</h1>
+        <p class="muted small">{summary}</p>
       </div>
-    </section>
+      <a class="icon-button" href="runs.html" aria-label="{rnw("detail.close")}">{icon("x")}</a>
+    </div>
+    <div class="drawer-body">
+      <div class="panel waterfall-panel">
+        <div class="span-axis" aria-hidden="true"><span class="span-name"></span><span class="span-track">{ticks}</span></div>
+        <ol class="spans">{''.join(lis)}</ol>
+        <p class="span-legend"><span class="llm"><i></i>{rnw("detail.legend.llm")}</span><span class="tool"><i></i>{rnw("detail.legend.code")}</span><span class="node"><i></i>{rnw("detail.legend.node")}</span></p>
+      </div>
+      <aside class="ev-inspector" aria-labelledby="ev-h">
+        <div class="lp-main">
+          <div class="lp-head"><span class="task">{kind_word}</span></div>
+          <h2 id="ev-h" class="type-h3">{chosen["name"]}</h2>
+          <dl class="lp-prov">
+            <div><dt>{rnw("detail.model")}</dt><dd>{short_model(stage.get("model")) if stage and stage.get("model") else "—"}</dd></div>
+            <div><dt>{rnw("detail.prompt")}</dt><dd>{prompt_label(stage.get("promptVersion")) if stage and stage.get("promptVersion") else "—"}</dd></div>
+            <div><dt>{rnw("detail.latency")}</dt><dd>{seconds(chosen["end"] - chosen["start"])}</dd></div>
+            <div><dt>{rnw("detail.tokens")}</dt><dd>{tokens}</dd></div>
+            <div><dt>{rnw("detail.span")}</dt><dd>{span}</dd></div>
+          </dl>
+          <div class="row">{label_link}{trace_link}</div>
+        </div>
+        <div class="lp-side"><p class="muted small">{rnw("detail.notCaptured")}</p></div>
+      </aside>
+    </div>
   </div>
 </div>"""
+
+
+def runs() -> str:
+    return shell("runs", topbar(rnw("title"), (rnw("title"),)), runs_list(), fab=False)
+
+
+def run() -> str:
+    selected = RUNS_FIX["items"][0]
+    content = runs_list(selected["runId"]) + run_drawer(selected)
     return shell("runs", topbar(rnw("title"), (rnw("title"),)), content, fab=False)
 
 
@@ -692,6 +750,7 @@ SCREENS_MORE = {
     "labels": ("Labels", labels),
     "label": ("Label", label),
     "runs": ("Runs", runs),
+    "run": ("Run", run),
 }
 NOTES_MORE = {
     "risk": "Findings grouped by month with their severity and status; each opens the evidence viewer.",
@@ -699,5 +758,6 @@ NOTES_MORE = {
     "counterparty": "One client or supplier: totals by month, accounts seen with first and last use, its bank lines and documents.",
     "labels": "Every AI decision a person can check, lowest confidence first, in the shared table under the task switch, with bulk confirmation and labels created from the books.",
     "label": "One label in a drawer over the list: the AI's proposal and the correction beside the page's extraction and provenance.",
-    "runs": "Run history like a tracing tool: runs, a span waterfall, and the selected model call with its request, response and label.",
+    "runs": "Every document and month run in the shared table: calls, tokens, estimated cost, models and labels.",
+    "run": "One run in a drawer over the list: its span waterfall from the stages and the inspector for one call.",
 }

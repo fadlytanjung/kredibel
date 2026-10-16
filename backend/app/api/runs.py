@@ -8,6 +8,7 @@ Normative references:
 - docs/17-observability.md §5
 """
 
+import asyncio
 from typing import Any
 
 from fastapi import APIRouter, Depends, Query
@@ -17,6 +18,7 @@ from app.core.auth import Principal
 from app.domain.errors import ForbiddenError, NotFoundError
 from app.domain.labels import Label
 from app.domain.models.run import Run, RunKind, RunStage, RunStatus
+from app.domain.run_usage import ModelPrice, run_usage
 
 
 def _stage_body(stage: RunStage) -> dict[str, Any]:
@@ -31,6 +33,7 @@ def _stage_body(stage: RunStage) -> dict[str, Any]:
         "traceSpanId": stage.trace_span_id,
         "parent": stage.parent,
         "summary": stage.summary,
+        "promptVersion": stage.prompt_version,
     }
 
 
@@ -112,27 +115,63 @@ def _events(run: Run, labels: list[Label]) -> list[dict[str, Any]]:
     return out
 
 
-def _run_body(run: Run, labels: list[Label] | None = None) -> dict[str, Any]:
+def _run_body(
+    run: Run,
+    labels: list[Label] | None = None,
+    *,
+    prices: dict[str, ModelPrice] | None = None,
+    target_name: str | None = None,
+) -> dict[str, Any]:
     trace_url = (
         f"https://console.cloud.google.com/traces/list?tid={run.trace_id}" if run.trace_id else None
     )
+    # What the run used and cost comes from its stages (spec 017), priced by pricing.v1.yaml.
+    used = run_usage(run.stages, prices or {})
+    usage = {
+        **(run.usage or {}),
+        "tokensIn": (run.usage or {}).get("tokensIn") or used.tokens_in,
+        "tokensOut": (run.usage or {}).get("tokensOut") or used.tokens_out,
+        "llmCalls": used.llm_calls,
+        "estimatedUsd": (run.usage or {}).get("estimatedUsd")
+        or (f"{used.estimated_usd}" if used.estimated_usd is not None else None),
+    }
     return {
         "runId": run.run_id,
         "kind": run.kind.value if hasattr(run.kind, "value") else str(run.kind),
         "target": run.target,
+        "targetName": target_name,
+        "generation": run.generation,
         "status": run.status.value if hasattr(run.status, "value") else str(run.status),
         "stages": [_stage_body(s) for s in run.stages],
         "traceId": run.trace_id,
         "traceUrl": trace_url,
-        "models": run.models,
-        "promptVersions": run.prompt_versions,
+        "models": run.models or used.models,
+        "promptVersions": run.prompt_versions or used.prompt_versions,
         "labels": _label_counts(labels)
         if labels is not None
         else (run.labels or {"proposed": 0, "verified": 0, "corrected": 0}),
-        "usage": run.usage,
+        "usage": usage,
         "createdAt": run.created_at.isoformat() if run.created_at else None,
         "endedAt": run.ended_at.isoformat() if run.ended_at else None,
     }
+
+
+async def _target_names(
+    provider: ServiceProvider, principal: Principal, runs: list[Run]
+) -> dict[str, str]:
+    """A document run's target is a document ID; people read its file name (spec 017)."""
+    ids = sorted({r.target for r in runs if r.kind == RunKind.DOCUMENT})
+
+    async def name(doc_id: str) -> tuple[str, str | None]:
+        try:
+            return doc_id, (
+                await provider.document_service.get_document(principal, doc_id)
+            ).file_name
+        except NotFoundError:
+            return doc_id, None
+
+    found = await asyncio.gather(*(name(d) for d in ids))
+    return {doc_id: file for doc_id, file in found if file}
 
 
 def create_runs_router(
@@ -158,7 +197,16 @@ def create_runs_router(
             status=run_status,
             limit=limit,
         )
-        items = [_run_body(r, await provider.label_service.for_run(org_id, r.run_id)) for r in runs]
+        names = await _target_names(provider, principal, runs)
+        items = [
+            _run_body(
+                r,
+                await provider.label_service.for_run(org_id, r.run_id),
+                prices=provider.model_prices,
+                target_name=names.get(r.target),
+            )
+            for r in runs
+        ]
         return {"items": items, "nextCursor": None}
 
     @router.get("/{run_id}")
@@ -170,7 +218,13 @@ def create_runs_router(
         run = await provider.run_service.get_run(org_id, run_id)
         if run is None:
             raise NotFoundError(f"Run '{run_id}' not found")
-        return _run_body(run, await provider.label_service.for_run(org_id, run_id))
+        names = await _target_names(provider, principal, [run])
+        return _run_body(
+            run,
+            await provider.label_service.for_run(org_id, run_id),
+            prices=provider.model_prices,
+            target_name=names.get(run.target),
+        )
 
     @router.get("/{run_id}/events")
     async def list_run_events(

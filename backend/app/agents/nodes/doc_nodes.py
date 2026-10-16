@@ -234,6 +234,7 @@ def classify_document(deps: PipelineDeps):
             "currency": result.currency,
             "status": updated.status.value,
             "model": call.model,
+            "prompt_version": call.prompt_version,
             "tokens_in": call.tokens_in,
             "tokens_out": call.tokens_out,
             "summary": f"{result.doc_type} ({result.confidence:.2f})",
@@ -369,6 +370,7 @@ def propose_ledger_mapping(deps: PipelineDeps):
                 proposal = merge_model_proposal(proposal, call.value, headers)
                 model_call = {
                     "model": call.model,
+                    "prompt_version": call.prompt_version,
                     "tokens_in": call.tokens_in,
                     "tokens_out": call.tokens_out,
                 }
@@ -742,6 +744,7 @@ def read_page(deps: PipelineDeps):
             "reading": reading.model_dump(mode="json"),
             "header_context": header,
             "model": model,
+            "prompt_version": prompt_version,
             "tokens_in": tokens[0],
             "tokens_out": tokens[1],
             "cached": cached is not None,
@@ -1480,7 +1483,14 @@ def categorize_bank_lines(deps: PipelineDeps):
         asked = deps.reader is not None and tokens[0] > 0  # cache hits call no model
         return {
             **node_input,
-            **({"model": deps.reader.version("categorize")[0]} if asked and deps.reader else {}),
+            **(
+                {
+                    "model": deps.reader.version("categorize")[0],
+                    "prompt_version": deps.reader.version("categorize")[1],
+                }
+                if asked and deps.reader
+                else {}
+            ),
             "tokens_in": tokens[0],
             "tokens_out": tokens[1],
             "summary": ", ".join(f"{n} by {k.lower()}" for k, n in sorted(by.items())),

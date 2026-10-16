@@ -5,6 +5,7 @@ from typing import Protocol
 from app.core.auth import Principal
 from app.core.clock import Clock
 from app.domain.plans import PlanCatalog
+from app.domain.run_usage import ModelPrice
 from app.ports.finding_repository import FindingRepository
 from app.ports.match_repository import MatchRepository
 from app.services.assistant_service import AssistantService
@@ -89,6 +90,9 @@ class ServiceProvider(Protocol):
 
     @property
     def label_service(self) -> LabelService: ...
+
+    @property
+    def model_prices(self) -> dict[str, ModelPrice]: ...
 
 
 def org_of(principal: Principal) -> str:

@@ -1,5 +1,7 @@
 /** Numbers and times the way the Runs page prints them (and the mock, from the same rules). */
 
+import type { Run } from '../../entities/run'
+
 export const kTokens = (n: number | null | undefined) => (n ? `${(n / 1000).toFixed(1)}k` : '0')
 
 export const seconds = (ms: number) => `${(ms / 1000).toFixed(1)} s`
@@ -31,12 +33,19 @@ export function shortModel(model: string | null | undefined): string {
   return model
 }
 
-/** The prompt file a node runs with, for the run's promptVersions map. */
-export const PROMPT_OF: Record<string, string> = {
-  classify_document: 'classify',
-  read_page: 'read_page',
-  categorize_bank_lines: 'categorize',
-  propose_ledger_mapping: 'map_ledger_columns',
-  explain_month: 'explain',
-  assistant: 'assistant',
+/** A prompt reference as people read it: "classify_document@2" → "classify_document v2". */
+export const promptLabel = (ref: string | null | undefined) => (ref ? ref.replace('@', ' v') : '')
+
+/** Tick steps in seconds: about five ticks whatever the run's length. */
+const STEPS = [1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 1800, 3600]
+
+export function tickStep(totalMs: number): number {
+  const total = totalMs / 1000
+  return STEPS.find((step) => total / step <= 5) ?? STEPS[STEPS.length - 1]
+}
+
+/** A run as people name it: the document's file name, or the month with its generation. */
+export function runTitle(run: Run, t: (key: string, opts?: Record<string, unknown>) => string): string {
+  if (run.kind === 'MONTH' && run.generation) return t('runs:monthTarget', { month: run.target, generation: run.generation })
+  return run.targetName ?? run.target
 }

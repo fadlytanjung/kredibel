@@ -135,6 +135,7 @@ def stage(
                     model = out.get("model") if spent or named else None
                     tokens_in = out.get("tokens_in") if spent else None
                     tokens_out = out.get("tokens_out") if spent else None
+                    prompt_version = out.get("prompt_version") if spent or named else None
                     summary = result.get("summary") if isinstance(result, dict) else None
 
                     stage_record = RunStage(
@@ -148,6 +149,7 @@ def stage(
                         tokens_out=tokens_out,
                         summary=summary,
                         trace_span_id=span_id,
+                        prompt_version=prompt_version if model else None,
                     )
 
                     if org_id and run_id:

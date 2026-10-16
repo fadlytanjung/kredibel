@@ -94,8 +94,18 @@ def fixtures(out: Path, seed: int) -> None:
 
 @main.command()
 @click.option("--out", type=click.Path(path_type=Path), default=Path("out/demo"), show_default=True)
-def demo(out: Path) -> None:
+@click.option(
+    "--shift-months",
+    type=int,
+    default=0,
+    show_default=True,
+    help="Move every date by this many months (3: April to September 2026).",
+)
+def demo(out: Path, shift_months: int) -> None:
     """S1–S4, seed 1: the files of the demo workspace and the video (docs/18 §5)."""
+    from .shift import set_shift
+
+    set_shift(shift_months)
     for name in DEMO_SCENARIOS:
         folder = write_scenario(build(name, 1), out)
         click.echo(f"wrote {folder}")

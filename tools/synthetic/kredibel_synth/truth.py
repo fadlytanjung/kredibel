@@ -11,9 +11,10 @@ from typing import Any
 
 from . import world
 from .model import BankRow, InvoiceData, LedgerRow, ReceiptData, StatementData
-from .output import LEDGER_FILE
 from .render_statement import bank_reference, statement_file
 from .scenarios import Scenario
+from .shift import ledger_file, months
+from .shift import month as shifted
 
 GENERATOR = {"name": "kredibel-synth", "version": "0.1.0"}
 CLEAN: dict[str, Any] = {
@@ -122,7 +123,7 @@ def _t1_fields(details: dict[str, Any]) -> dict[str, Any]:
 def _invoice(sc: Scenario, inv: InvoiceData, paid: set[str]) -> dict[str, Any]:
     if inv.key in paid:
         payment = "PAID"
-    elif inv.due_date > sc.books.statements[world.MONTHS[-1]].period_end:
+    elif inv.due_date > sc.books.statements[months()[-1]].period_end:
         payment = "NOT_DUE"
     else:
         payment = "UNPAID"
@@ -215,8 +216,8 @@ def _entry(e: LedgerRow) -> dict[str, Any]:
 def _ledger(sc: Scenario) -> dict[str, Any]:
     missing = [r.key for r in sc.books.bank_rows if not r.in_ledger]
     return {
-        "file": LEDGER_FILE,
-        "key": "ledger-2026-H1",
+        "file": ledger_file(),
+        "key": ledger_file().rsplit(".", 1)[0],
         "docType": "LEDGER_EXPORT",
         "format": "CSV",
         "columns": [
@@ -272,24 +273,24 @@ def _months(sc: Scenario) -> dict[str, Any]:
     items: dict[str, Counter[str]] = defaultdict(Counter)
     findings: dict[str, list[str]] = defaultdict(list)
     risk: dict[str, str] = {}
-    items["2026-02"]["PROPOSED_MATCH"] += 1
-    items["2026-06"]["UNMATCHED_BANK_LINE"] += 1
-    findings["2026-06"].append("X09_LEDGER_BANK_MISMATCH")
-    risk["2026-06"] = "MEDIUM"
+    items[shifted("2026-02")]["PROPOSED_MATCH"] += 1
+    items[shifted("2026-06")]["UNMATCHED_BANK_LINE"] += 1
+    findings[shifted("2026-06")].append("X09_LEDGER_BANK_MISMATCH")
+    risk[shifted("2026-06")] = "MEDIUM"
     if sc.name == "S2":
-        items["2026-03"]["LEDGER_DIFFERENCE"] += 1
-        findings["2026-03"].append("X09_LEDGER_BANK_MISMATCH")
-        risk["2026-03"] = "CRITICAL"
+        items[shifted("2026-03")]["LEDGER_DIFFERENCE"] += 1
+        findings[shifted("2026-03")].append("X09_LEDGER_BANK_MISMATCH")
+        risk[shifted("2026-03")] = "CRITICAL"
     if sc.name == "S3":
-        for month in ("2026-02", "2026-03", "2026-05", "2026-06"):
-            items[month]["POSSIBLE_DUPLICATE"] += 1
-            risk[month] = "MEDIUM"
+        for base in ("2026-02", "2026-03", "2026-05", "2026-06"):
+            items[shifted(base)]["POSSIBLE_DUPLICATE"] += 1
+            risk[shifted(base)] = "MEDIUM"
     if sc.name == "S4":
-        items["2026-04"]["UNMATCHED_DOCUMENT"] += 2
-        findings["2026-04"] += ["R02_SUPPLIER_INVOICE_UNKNOWN_PARTY"] * 2
-        risk["2026-04"] = "MEDIUM"
-        findings["2026-05"].append("X08_SUPPLIER_ACCOUNT_CHANGED")
-        risk["2026-05"] = "HIGH"
+        items[shifted("2026-04")]["UNMATCHED_DOCUMENT"] += 2
+        findings[shifted("2026-04")] += ["R02_SUPPLIER_INVOICE_UNKNOWN_PARTY"] * 2
+        risk[shifted("2026-04")] = "MEDIUM"
+        findings[shifted("2026-05")].append("X08_SUPPLIER_ACCOUNT_CHANGED")
+        risk[shifted("2026-05")] = "HIGH"
     out: dict[str, Any] = {}
     for month, st in sc.books.statements.items():
         credits, debits = _shown_totals(sc, st)
@@ -369,7 +370,7 @@ def _flows(sc: Scenario) -> dict[str, Any]:
         elif row.debit is not None:
             uses[_USES[row.flow]] += int(row.debit)
     return {
-        "period": f"{world.MONTHS[0]}..{world.MONTHS[-1]}",
+        "period": f"{months()[0]}..{months()[-1]}",
         "topSources": [name for name, _ in sources.most_common(2)],
         "topUses": [name for name, _ in uses.most_common(2)],
     }

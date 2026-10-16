@@ -9,6 +9,7 @@ from .render_ledger import render_ledger_csv
 from .render_receipt import render_receipt_jpeg, render_receipt_pdf
 from .render_statement import Rendered, render_statement, statement_file
 from .rng import Rng
+from .shift import ledger_file
 
 LEDGER_FILE = "ledger-2026-H1.csv"
 
@@ -33,5 +34,5 @@ def render_books(books: Books) -> Bundle:
             bundle.files[rec.file] = render_receipt_jpeg(rec, rng)
         else:
             bundle.files[rec.file] = render_receipt_pdf(rec)
-    bundle.files[LEDGER_FILE] = render_ledger_csv(books.ledger)
+    bundle.files[ledger_file()] = render_ledger_csv(books.ledger)
     return bundle

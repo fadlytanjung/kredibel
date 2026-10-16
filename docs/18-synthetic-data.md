@@ -180,7 +180,13 @@ Seeds vary amounts (±15%), dates (±3 days) and counts. Built-in matching cases
 The video follows S1 → S3 → S2 → S4; S5 is shown as a test result, not live.
 
 The **demo workspace** (`backend/scripts/seed_demo_workspace.py`) holds S1 to S4 together, uploaded
-in that order, so one workspace shows every story at once. `make demo-books EMAIL=…`
+in that order, so one workspace shows every story at once.
+`kredibel-synth demo --shift-months 3 --out out/demo-recent` writes the same four stories three
+months later, April to September 2026, so a demo in October has books up to last month: every
+date, month key, file name and printed month moves together (the edited statement is June, the
+copies are of May, the diverted Roastline invoice is August, the unpaid Bluewater bills are July,
+the ledger is `ledger-2026-04_2026-09.csv`). Without the option the output is byte for byte the
+same (`kredibel_synth/shift.py`). `make demo-books EMAIL=…`
 (`backend/scripts/upload_demo_books.py`) uploads S1 in full and then only what S2 to S4 change: 81
 files, the half-year once plus ten scenario files (the edited March statement; the February copy, its
 re-export, the scanned invoice, the second receipt photo and the ledger keyed twice; the diverted

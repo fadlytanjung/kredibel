@@ -8,12 +8,13 @@ from . import world
 from .books import generate_books
 from .matching_cases import intended_matches
 from .model import Books
-from .output import LEDGER_FILE, render_books
+from .output import render_books
 from .render_ledger import render_ledger_csv
 from .render_receipt import photo_variant
 from .render_statement import render_statement, statement_file
 from .rng import Rng
 from .scan import scan_pdf
+from .shift import day, ledger_file, month, months, shift_books, text
 from .tamper import (
     TamperRecord,
     change_supplier_account,
@@ -86,12 +87,12 @@ class Scenario:
 def upload_order(books: Books, extra: dict[str, str] | None = None) -> list[str]:
     """The ledger first, then month by month: invoices, receipts, the statement (docs/18 §6).
     `extra` places added files right after an existing one."""
-    order = [LEDGER_FILE]
-    for month in world.MONTHS:
-        order += [inv.file for inv in books.sales if inv.issue_date.strftime("%Y-%m") == month]
-        order += [inv.file for inv in books.purchases if inv.issue_date.strftime("%Y-%m") == month]
-        order += [rec.file for rec in books.receipts if rec.date.strftime("%Y-%m") == month]
-        order.append(statement_file(month))
+    order = [ledger_file()]
+    for key in months():
+        order += [inv.file for inv in books.sales if inv.issue_date.strftime("%Y-%m") == key]
+        order += [inv.file for inv in books.purchases if inv.issue_date.strftime("%Y-%m") == key]
+        order += [rec.file for rec in books.receipts if rec.date.strftime("%Y-%m") == key]
+        order.append(statement_file(key))
     for added, after in (extra or {}).items():
         order.insert(order.index(after) + 1, added)
     return order
@@ -99,11 +100,11 @@ def upload_order(books: Books, extra: dict[str, str] | None = None) -> list[str]
 
 def reverse_order(books: Books) -> list[str]:
     """S5: statements first, then the ledger, then invoices and receipts, all newest first."""
-    statements = [statement_file(m) for m in reversed(world.MONTHS)]
+    statements = [statement_file(m) for m in reversed(months())]
     documents = [
-        f for f in reversed(upload_order(books)) if f not in statements and f != LEDGER_FILE
+        f for f in reversed(upload_order(books)) if f not in statements and f != ledger_file()
     ]
-    return [*statements, LEDGER_FILE, *documents]
+    return [*statements, ledger_file(), *documents]
 
 
 def build(name: str, seed: int, *, scan: bool = False) -> Scenario:
@@ -111,6 +112,7 @@ def build(name: str, seed: int, *, scan: bool = False) -> Scenario:
     rng = Rng(seed, "scenario", name)
     if name == "S4":
         _s4_books(books, rng)
+    shift_books(books)  # the demo's books end last month (docs/18 §5); no-op otherwise
     bundle = render_books(books)
     sc = Scenario(name, seed, books, dict(bundle.files), upload_order(books))
     sc.row_pages = {k: p for r in bundle.statements.values() for k, p in r.row_pages.items()}
@@ -120,13 +122,13 @@ def build(name: str, seed: int, *, scan: bool = False) -> Scenario:
         _s3(sc, rng)
     elif name == "S4":
         sc.changed = {
-            "T12": "inv-purchase-2026-05-03",
-            "T13": ["inv-purchase-2026-04-03", "inv-purchase-2026-04-04"],
+            "T12": text("inv-purchase-2026-05-03"),
+            "T13": [text("inv-purchase-2026-04-03"), text("inv-purchase-2026-04-04")],
         }
         sc.tampering += [
             TamperRecord(
                 "T12",
-                "inv-purchase-2026-05-03.pdf",
+                text("inv-purchase-2026-05-03.pdf"),
                 {
                     "supplier": world.ROASTLINE.party.name,
                     "before": world.ROASTLINE.pay_to.account_number,
@@ -135,10 +137,10 @@ def build(name: str, seed: int, *, scan: bool = False) -> Scenario:
                 },
             ),
             TamperRecord(
-                "T13", "inv-purchase-2026-04-03.pdf", {"supplier": world.BLUEWATER.party.name}
+                "T13", text("inv-purchase-2026-04-03.pdf"), {"supplier": world.BLUEWATER.party.name}
             ),
             TamperRecord(
-                "T13", "inv-purchase-2026-04-04.pdf", {"supplier": world.BLUEWATER.party.name}
+                "T13", text("inv-purchase-2026-04-04.pdf"), {"supplier": world.BLUEWATER.party.name}
             ),
         ]
     elif name == "S5":
@@ -149,14 +151,16 @@ def build(name: str, seed: int, *, scan: bool = False) -> Scenario:
 
 
 def _s2(sc: Scenario, statements: dict) -> None:
-    march = sc.books.statements["2026-03"]
+    march = sc.books.statements[month("2026-03")]
     anchor = next(
         r
         for r in march.rows
-        if r.date == world.T1_ANCHOR_DATE and r.credit == world.T1_ANCHOR_AMOUNT
+        if r.date == day(world.T1_ANCHOR_DATE) and r.credit == world.T1_ANCHOR_AMOUNT
     )
-    placed = next(p for p in statements["2026-03"].amounts[anchor.key] if p.field == "credit")
-    file = statement_file("2026-03")
+    placed = next(
+        p for p in statements[month("2026-03")].amounts[anchor.key] if p.field == "credit"
+    )
+    file = statement_file(month("2026-03"))
     sc.files[file] = edit_amount(
         sc.files[file],
         placed,
@@ -184,13 +188,13 @@ def _s2(sc: Scenario, statements: dict) -> None:
 
 def _s3(sc: Scenario, rng: Rng) -> None:
     books = sc.books
-    feb = statement_file("2026-02")
+    feb = statement_file(month("2026-02"))
     # T7: the same file again under the name a browser gives a second download.
-    copy_name = "statement-2026-02 (1).pdf"
+    copy_name = f"statement-{month('2026-02')} (1).pdf"
     sc.files[copy_name] = sc.files[feb]
     # T8: the same month exported again nine days later: identical rows, new bytes.
-    reexport = "statement-2026-02-reexport.pdf"
-    st = books.statements["2026-02"]
+    reexport = f"statement-{month('2026-02')}-reexport.pdf"
+    st = books.statements[month("2026-02")]
     sc.files[reexport] = render_statement(
         st, created=st.created_at + timedelta(days=9, hours=7, minutes=41)
     ).pdf
@@ -198,7 +202,7 @@ def _s3(sc: Scenario, rng: Rng) -> None:
     gvf = next(
         i
         for i in books.purchases
-        if i.issuer == world.GREEN_VALLEY.party and i.key[13:20] == "2026-03"
+        if i.issuer == world.GREEN_VALLEY.party and i.key[13:20] == month("2026-03")
     )
     scanned = f"{gvf.key}-scan.pdf"
     sc.files[scanned] = scan_pdf(
@@ -206,13 +210,15 @@ def _s3(sc: Scenario, rng: Rng) -> None:
     )
     # T10: a June receipt photographed again at another angle.
     receipt = next(
-        r for r in books.receipts if r.key.startswith("receipt-2026-06") and r.form == "jpeg"
+        r
+        for r in books.receipts
+        if r.key.startswith(f"receipt-{month('2026-06')}") and r.form == "jpeg"
     )
     again = f"{receipt.key}-photo2.jpg"
     sc.files[again] = photo_variant(receipt, Rng(sc.seed, "render"))
     # T11: one ledger journal keyed in twice.
-    books.ledger, copied = duplicate_ledger_journal(books.ledger, world.T11_FROM)
-    sc.files[LEDGER_FILE] = render_ledger_csv(books.ledger)
+    books.ledger, copied = duplicate_ledger_journal(books.ledger, day(world.T11_FROM))
+    sc.files[ledger_file()] = render_ledger_csv(books.ledger)
     books.matches = intended_matches(books)
     sc.ledger_duplicates = copied
     sc.duplicates = {
@@ -225,8 +231,8 @@ def _s3(sc: Scenario, rng: Rng) -> None:
         books,
         {
             copy_name: feb,
-            reexport: statement_file("2026-03"),
-            scanned: statement_file("2026-05"),
+            reexport: statement_file(month("2026-03")),
+            scanned: statement_file(month("2026-05")),
             again: receipt.file,
         },
     )
@@ -235,7 +241,7 @@ def _s3(sc: Scenario, rng: Rng) -> None:
         TamperRecord("T8", reexport, {"of": feb}),
         TamperRecord("T9", scanned, {"of": gvf.file}),
         TamperRecord("T10", again, {"of": receipt.file}),
-        TamperRecord("T11", LEDGER_FILE, {"entries": copied}),
+        TamperRecord("T11", ledger_file(), {"entries": copied}),
     ]
 
 
@@ -250,7 +256,7 @@ def _scan_all(sc: Scenario, rng: Rng) -> None:
     for name in sorted(sc.files):
         if name.endswith(".pdf"):
             sc.files[name] = scan_pdf(
-                sc.files[name], rng.stream("scan", name), scanned_at=_noon(world.T11_FROM, 0)
+                sc.files[name], rng.stream("scan", name), scanned_at=_noon(day(world.T11_FROM), 0)
             )
 
 

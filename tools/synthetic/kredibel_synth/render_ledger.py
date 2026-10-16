@@ -13,6 +13,7 @@ from datetime import datetime
 from openpyxl import Workbook
 
 from .model import LedgerRow
+from .shift import moment
 from .world import BUSINESS, WATERMARK
 
 CSV_HEADER = [
@@ -67,8 +68,9 @@ def render_ledger_xlsx(rows: list[LedgerRow]) -> bytes:
         ws.cell(row=ws.max_row, column=1).number_format = "dd/mm/yyyy"
         ws.cell(row=ws.max_row, column=6).number_format = "#,##0.00"
     wb.properties.creator = "LedgerLite 3"
-    wb.properties.created = FIXED_TIME
-    wb.properties.modified = FIXED_TIME
+    stamp_time = moment(FIXED_TIME)
+    wb.properties.created = stamp_time
+    wb.properties.modified = stamp_time
     wb.properties.lastModifiedBy = "LedgerLite 3"
     raw = io.BytesIO()
     wb.save(raw)
@@ -81,12 +83,12 @@ def _fixed_zip(data: bytes) -> bytes:
     out = io.BytesIO()
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as target:
         for info in source.infolist():
-            fixed = zipfile.ZipInfo(info.filename, date_time=FIXED_TIME.timetuple()[:6])
+            fixed = zipfile.ZipInfo(info.filename, date_time=moment(FIXED_TIME).timetuple()[:6])
             fixed.compress_type = zipfile.ZIP_DEFLATED
             fixed.external_attr = info.external_attr
             content = source.read(info.filename)
             if info.filename == "docProps/core.xml":
-                stamp = FIXED_TIME.strftime("%Y-%m-%dT%H:%M:%SZ").encode()
+                stamp = moment(FIXED_TIME).strftime("%Y-%m-%dT%H:%M:%SZ").encode()
                 content = re.sub(
                     rb"(<dcterms:(?:created|modified)[^>]*>)[^<]*", rb"\g<1>" + stamp, content
                 )

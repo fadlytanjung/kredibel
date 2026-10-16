@@ -106,13 +106,15 @@ class WorkspaceRule:
 
 
 def subject_key(subject: LabelSubject) -> str:
+    """A label about a bank line is that line's, whatever counterparty the line has today: the
+    counterparty can be assigned after the category, and must not fork the label (16 Oct 2026)."""
     return "|".join(
         [
             subject.doc_id or "",
             str(subject.page_no or ""),
             subject.field or "",
             subject.tx_id or "",
-            subject.counterparty_id or "",
+            "" if subject.tx_id else subject.counterparty_id or "",
         ]
     )
 
@@ -269,3 +271,28 @@ def rule_for(
 
 def _unused() -> None:  # keeps `field` importable for dataclass defaults in adapters
     _ = field
+
+
+@dataclass(frozen=True)
+class RelabelPlan:
+    rekey: list[tuple[str, str]]  # (stored ID, identity): the label kept, moved to its identity
+    delete: list[str]  # other copies of the same subject
+
+
+def relabel_plan(labels: list[Label]) -> RelabelPlan:
+    """Labels stored under an older identity fold into one per subject: a person's decision wins
+    over the model's, the latest of each wins; nothing a person decided is dropped while another
+    person's decision on the same subject is kept newer."""
+    groups: dict[str, list[Label]] = {}
+    for label in labels:
+        groups.setdefault(label_id(label.task, label.subject), []).append(label)
+    rekey: list[tuple[str, str]] = []
+    delete: list[str] = []
+    for identity, group in groups.items():
+        if len(group) == 1 and group[0].label_id == identity:
+            continue
+        keeper = max(group, key=lambda lb: (lb.status != "AI_PROPOSED", lb.decided_at or lb.ai.at))
+        if keeper.label_id != identity:
+            rekey.append((keeper.label_id, identity))
+        delete += [lb.label_id for lb in group if lb is not keeper and lb.label_id != identity]
+    return RelabelPlan(rekey, delete)

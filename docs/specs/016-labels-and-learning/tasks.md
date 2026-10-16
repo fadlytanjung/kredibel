@@ -11,3 +11,8 @@
 - [ ] **T016-09** E-LBL eval suite. (AC-016-10) The measurement is built (16 Oct 2026): `domain/label_metrics.py` reports agreement per task, calibration per bucket of `learning.v1.yaml` with the worst gap, disagreements after re-runs and person labels overwritten (`test_label_metrics.py`). Open: running it over `org_eval` with `truth.json` as the person, which comes with the eval runner of spec 012 (T012-01).
 - [x] **T016-10** Update `docs/20-implementation-status.md`. (16 Oct 2026)
 - [ ] **T016-11** (later) Dataset export with consent, masking and minimums. (AC-016-11)
+- [x] **T016-12** **TDD** One label per subject (16 Oct 2026): a bank line's label is identified by the
+  line, not by the counterparty the line has today, and `scripts/relabel.py` folds the forks the
+  old identity made (a person's decision always kept); a value label nobody decided retires when
+  the readings come to agree. A tester's workspace went from 140 labels to 40, one per line. (AC-016-1,
+  AC-016-2)

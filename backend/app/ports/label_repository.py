@@ -14,6 +14,10 @@ class LabelRepository(Protocol):
 
     async def get(self, org_id: str, label_id: str) -> Label | None: ...
 
+    async def delete(self, org_id: str, label_ids: list[str]) -> None:
+        """Labels that no longer ask anything (spec 016); never one a person decided."""
+        ...
+
     async def list_labels(
         self,
         org_id: str,

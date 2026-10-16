@@ -332,6 +332,11 @@ catalog and help pages, `source` (file path), `text`, `embedding_v1`. Rebuilt at
 
 ### 3.19 `orgs/{orgId}/labels/{labelId}` (P1, [ADR-016](adr/ADR-016-human-verified-labels-and-learning-loop.md))
 
+`labelId` is `lbl_` + 16 hex of the task and the subject: document, page, field and bank line; the
+counterparty only for a label about a counterparty itself, so a line's counterparty assigned after
+its category never forks the line's label (16 Oct 2026, `scripts/relabel.py` folded the forks). A
+value label the model proposed and nobody decided is retired when the readings come to agree.
+
 One per AI decision a person can check.
 
 | Field | Type | Notes |

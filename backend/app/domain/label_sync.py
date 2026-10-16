@@ -261,3 +261,17 @@ def changed(fresh: list[Label], existing: dict[str, Label], *, at: datetime) -> 
         if stored.ai.value != label.ai.value:
             out.append(label)
     return out
+
+
+def retired_value_labels(existing: list[Label], current: list[Label]) -> list[str]:
+    """A value label the model proposed and no person decided, whose value the readings now agree
+    on (it is not among the current proposals): it no longer asks anyone anything. A label a person
+    confirmed or corrected always stays."""
+    keep = {label.label_id for label in current}
+    return [
+        label.label_id
+        for label in existing
+        if label.task == "FIELD_VALUE"
+        and label.status == "AI_PROPOSED"
+        and label.label_id not in keep
+    ]

@@ -17,6 +17,10 @@ class FakeLabelRepository(LabelRepository):
         self.events: list[AuditEvent] = []
         self.vectors: dict[tuple[str, str], tuple[str, list[float]]] = {}
 
+    async def delete(self, org_id: str, label_ids: list[str]) -> None:
+        for label_id in label_ids:
+            self.labels.pop((org_id, label_id), None)
+
     async def upsert(self, org_id: str, labels: list[Label]) -> list[Label]:
         out = []
         for fresh in labels:

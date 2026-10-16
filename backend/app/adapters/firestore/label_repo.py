@@ -123,6 +123,27 @@ class FirestoreLabelRepository(LabelRepository):
     def _rules(self, org_id: str):
         return self._db.collection("orgs").document(org_id).collection("workspaceRules")
 
+    async def relabel(self, org_id: str, rekey: list[tuple[str, str]], delete: list[str]) -> None:
+        """Applies a `relabel_plan`: each kept label moves to its identity with every stored field
+        (a person's decision, an example's embedding); the other copies go. Not part of the port:
+        a one-off repair (`scripts/relabel.py`)."""
+        await self.delete(org_id, delete)
+        for old, new in rekey:
+            snap = await self._col(org_id).document(old).get()
+            if not snap.exists:
+                continue
+            batch = self._db.batch()
+            batch.set(self._col(org_id).document(new), {**(snap.to_dict() or {}), "labelId": new})
+            batch.delete(self._col(org_id).document(old))
+            await batch.commit()
+
+    async def delete(self, org_id: str, label_ids: list[str]) -> None:
+        for start in range(0, len(label_ids), 400):
+            batch = self._db.batch()
+            for label_id in label_ids[start : start + 400]:
+                batch.delete(self._col(org_id).document(label_id))
+            await batch.commit()
+
     async def upsert(self, org_id: str, labels: list[Label]) -> list[Label]:
         out: list[Label] = []
         batch = self._db.batch()

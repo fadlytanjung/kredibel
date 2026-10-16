@@ -51,6 +51,7 @@ from app.domain.label_sync import (
     ReadRecord,
     document_records,
     line_records,
+    retired_value_labels,
     value_labels,
 )
 from app.domain.labels import LabelSubject, propose
@@ -950,6 +951,12 @@ async def _value_labels(
         policy=deps.learning,
     )
     await write_labels(deps, org_id, labels)
+    existing = await deps.labels.list_labels(
+        org_id, task="FIELD_VALUE", doc_id=doc.doc_id, limit=None
+    )
+    retired = retired_value_labels(existing, labels)
+    if retired:
+        await deps.labels.delete(org_id, retired)
 
 
 def _reading_method(doc: Document, chunks: dict[int, list[Chunk]]) -> str:

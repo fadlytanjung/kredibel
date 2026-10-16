@@ -73,4 +73,8 @@ def load_learning_policy(policy_dir: Path) -> LearningPolicy:
         min_similarity=Decimal(str(examples.get("minSimilarity", "0.80"))),
         remembered_corrections=bool((raw.get("rememberedCorrections") or {}).get("enabled", True)),
         examples_enabled=bool(examples.get("enabled", True)),
+        calibration_buckets=tuple(
+            Decimal(str(b)) for b in ((raw.get("calibration") or {}).get("buckets") or [])
+        )
+        or LearningPolicy.calibration_buckets,
     )

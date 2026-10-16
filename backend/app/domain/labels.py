@@ -31,6 +31,14 @@ class LearningPolicy:
     examples_per_call: int = 5
     min_similarity: Decimal = Decimal("0.80")
     examples_enabled: bool = True
+    calibration_buckets: tuple[Decimal, ...] = (
+        Decimal("0.5"),
+        Decimal("0.7"),
+        Decimal("0.8"),
+        Decimal("0.9"),
+        Decimal("0.95"),
+        Decimal("1.0"),
+    )
     remembered_corrections: bool = True
 
 

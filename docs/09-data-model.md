@@ -312,9 +312,8 @@ or `DECISION_WITHDRAWN` event in the same batch; never deleted.
 `assistantThreads`: `title`, `scope` (`WORKSPACE` or a month), `createdBy`, `createdAt`,
 `lastMessageAt`, `agentSessionId` (Agent Platform Sessions). Messages live in the managed session;
 the API reads them from there ([ADR-014](adr/ADR-014-finance-assistant-tools-rag-memory.md)).
-`retrievalChunks`: `docId`, `docType`, `page` (or ledger row range), `months`, `text` (≤ 2,000
-characters), `embedding_v1` (vector, 768 dimensions, `gemini-embedding-001`), `schemaVersion`.
-Written by the `document_workflow` after reading; deleted with the document.
+`retrievalChunks`: replaced by `chunks` (§3.21, spec 022), which carry the same fields and the
+embedding, so retrieval and the extraction files read one store.
 `knowledgeChunks/{chunkId}` (top level, server only): passages from the policy files, the check
 catalog and help pages, `source` (file path), `text`, `embedding_v1`. Rebuilt at deploy by
 `tools/knowledge/build.py`. Both are searched with `find_nearest` (cosine, top 8).
@@ -357,6 +356,18 @@ One per AI decision a person can check.
 Rules a person created with "Apply to similar lines": `match` {`counterpartyId`, `direction`},
 `category`, `sourceLabelId`, `createdBy`, `createdAt`, `active`. Applied by code after matches and
 before the keyword rules ([`08`](08-risk-engine.md) §4.1).
+
+### 3.21 `orgs/{orgId}/chunks/{chunkId}` (spec 022)
+
+One layout chunk of a read page (ADR-023): `docId`, `docType`, `pageNo`, `ordinal` (reading order),
+`kind` (`HEADING`, `PARAGRAPH`, `TABLE_ROW`, `KEY_VALUE`, `FOOTER`, `OTHER`), `text` (≤ 2,000
+characters, account and ID numbers masked), `box` {`x0`, `y0`, `x1`, `y1`} normalised to the page,
+`source` (`TEXT_LAYER`, `OCR`, `LEDGER`), `months`, `links` {`fields`, `txIds`, `invoiceIds`,
+`receiptIds`, `ledgerEntryIds`}, `embedding_v1?` (vector, 768, `MODEL_EMBEDDING`, of the masked text;
+phase C), `runId`, `schemaVersion`. ID `chk_` + sha1(docId|pageNo|ordinal). Written after reading and
+by the rebuild; replaced as a whole per document; deleted with the document. The page and document
+Markdown (§7) are rebuilt from these and the records. They also serve the assistant's retrieval
+(§3.17), replacing the planned `retrievalChunks`.
 
 ---
 

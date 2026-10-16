@@ -86,10 +86,16 @@ class Chunk:
         )
 
 
+def _height(w: Word, line: Line) -> float:
+    return min(w.bottom - w.top, *(o.bottom - o.top for o in line.words))
+
+
 def lines_of(words: list[Word]) -> list[Line]:
     out: list[Line] = []
     for w in sorted(words, key=lambda w: (w.top, w.x0)):
-        if out and abs(w.top - out[-1].top) < max(0.004, (w.bottom - w.top) * 0.5):
+        # The shorter of the word and the line sets the tolerance, so one tall stray OCR token
+        # does not join the line above it (spec 022 phase B).
+        if out and abs(w.top - out[-1].top) < max(0.004, _height(w, out[-1]) * 0.5):
             out[-1].words.append(w)
         else:
             out.append(Line([w]))

@@ -135,7 +135,10 @@ def _box(words: list[Word]) -> BBox | None:
 
 
 def _same_line(a: Word, b: Word) -> bool:
-    return abs(a.top - b.top) < max(0.004, (a.bottom - a.top) * 0.5)
+    # The shorter word sets the tolerance: one tall stray token in a photo's OCR must not pull
+    # the lines beside it into one.
+    height = min(a.bottom - a.top, b.bottom - b.top)
+    return abs(a.top - b.top) < max(0.004, height * 0.5)
 
 
 def _phrases(words: list[Word]) -> list[list[Word]]:

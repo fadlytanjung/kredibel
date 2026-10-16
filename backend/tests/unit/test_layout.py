@@ -113,3 +113,12 @@ def test_chunks_survive_the_cache():
     chunks = chunk_page(PAGE, page=2)
     again = chunks_from_json(chunks_to_json(chunks))
     assert [(c.id, c.kind, c.text) for c in again] == [(c.id, c.kind, c.text) for c in chunks]
+
+
+def test_a_tall_stray_ocr_token_does_not_join_the_line_above_it():
+    from app.domain.layout import lines_of
+
+    date = [Word("Date", 0.08, 0.16, 0.317, 0.344), Word("21/04/2026", 0.56, 0.74, 0.317, 0.344)]
+    stray = Word("FOES", 0.30, 0.40, 0.3438, 0.5603)
+    lines = lines_of([*date, stray])
+    assert [[w.text for w in line.words] for line in lines] == [["Date", "21/04/2026"], ["FOES"]]

@@ -87,3 +87,27 @@ def test_amounts_without_separators_and_bare_integers_are_found():
     assert [i.amount.status for i in items if i.amount] == ["AGREED"] * 3
     total = check_value("Rp. 15.000", "amount", [*_line(0.2, ("Rp.", 0.6), ("15.000", 0.7))])
     assert total is not None and total.status == "AGREED"
+
+
+def test_a_tall_stray_ocr_token_does_not_merge_the_lines_around_it():
+    # OCR of a photo can return one tall noise token beside the header; the item lines below it
+    # stay separate lines, so the description is still found in order (spec 022 phase B).
+    stray = Word("FOES", 0.10, 0.16, 0.3438, 0.5603)
+    item = [
+        Word("Pastry", 0.08, 0.20, 0.3912, 0.4213),
+        Word("box", 0.21, 0.27, 0.3922, 0.4213),
+        Word("for", 0.28, 0.33, 0.3933, 0.4213),
+        Word("tasting", 0.34, 0.46, 0.3933, 0.4235),
+    ]
+    qty = [
+        Word("3", 0.08, 0.10, 0.431, 0.458),
+        Word("x", 0.11, 0.13, 0.431, 0.458),
+        Word("85,000.00", 0.14, 0.30, 0.431, 0.458),
+    ]
+    amount = Word("255,000.00", 0.67, 0.86, 0.4375, 0.4644)
+    words = [stray, *item, *qty, amount]
+
+    [check] = check_items([("Pastry box for tasting\n3 x 85,000.00", "255,000.00")], words)
+
+    assert check.description.status == "AGREED"
+    assert check.amount is not None and check.amount.status == "AGREED"

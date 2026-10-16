@@ -12,9 +12,15 @@ Usage (from backend/, with DOCAI_OCR_PROCESSOR_ID and DOCAI_OCR_VERSION set):
 import argparse
 import asyncio
 import sys
+from typing import Any
 
 
-async def _run(org: str) -> int:
+def _disagreed(reading: dict[str, Any] | None) -> bool:
+    reading = reading or {}
+    return reading.get("method") in ("AI_OCR", "AI_MIXED") and (reading.get("agreement") or 0) < 1
+
+
+async def _run(org: str, disagreed: bool) -> int:
     from app.adapters.cloud_tasks import InlineTaskQueue, month_task_id
     from app.adapters.policy_files import load_plans
     from app.core.settings import Settings
@@ -32,7 +38,10 @@ async def _run(org: str) -> int:
         for d in docs
         if d.status.value in ("DONE", "NEEDS_INPUT")
         and d.doc_type.value != "LEDGER_EXPORT"
-        and not await deps.chunk_repo.list_chunks(org, d.doc_id)
+        and (
+            (disagreed and _disagreed(d.reading))
+            or not await deps.chunk_repo.list_chunks(org, d.doc_id)
+        )
     ]
     for doc in without:
         run = await deps.run_service.reread_document(org, doc.doc_id)
@@ -68,7 +77,13 @@ async def _run(org: str) -> int:
 def main() -> int:
     parser = argparse.ArgumentParser(description=(__doc__ or "").splitlines()[0])
     parser.add_argument("--org", required=True)
-    return asyncio.run(_run(parser.parse_args().org))
+    parser.add_argument(
+        "--disagreed",
+        action="store_true",
+        help="also documents read by OCR whose fields did not all agree with it",
+    )
+    args = parser.parse_args()
+    return asyncio.run(_run(args.org, args.disagreed))
 
 
 if __name__ == "__main__":

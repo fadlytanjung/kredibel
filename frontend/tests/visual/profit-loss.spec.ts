@@ -2,7 +2,7 @@ import { expect, type Page, test } from '@playwright/test'
 import { createRequire } from 'node:module'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { EMPTY_PNL, PNL, PNL_ACCOUNTS, PNL_CASH, PNL_CASH_ACCOUNTS } from '../../src/widgets/profit-loss/fixture'
+import { EMPTY_PNL, PNL, PNL_ACCOUNTS, PNL_CASH, PNL_CASH_ACCOUNTS, PNL_LOSS } from '../../src/widgets/profit-loss/fixture'
 
 const require = createRequire(import.meta.url)
 async function serve(page: Page, empty = false) {
@@ -116,3 +116,27 @@ test('AC-018-8: without a ledger export the page reports a cash basis from bank 
   await page.goto(pathToFileURL(resolve('../design/mocks/profit-loss-cash.html')).href)
   expect(await read()).toEqual(implementation)
 })
+
+test('AC-018-5: a net loss is drawn as a source that funds the expenses, like the mock', async ({ page }, info) => {
+  // Below 760 px of panel the flow is shown as signed rows by design (kit.css); the drawing is wide only.
+  test.skip(info.project.name !== 'desktop-1440', 'the flow drawing shows from 760 px of panel')
+  await page.route((url) => url.pathname.startsWith('/api/'), (route) => {
+    const path = new URL(route.request().url()).pathname
+    if (path === '/api/profit-loss/accounts') return route.fulfill({ json: PNL_ACCOUNTS })
+    if (path === '/api/profit-loss') return route.fulfill({ json: PNL_LOSS })
+    if (path === '/api/months') return route.fulfill({ json: { items: [{ month: '2026-10' }] } })
+    return route.fulfill({ json: { items: [] } })
+  })
+  await page.goto('/preview/profit-loss?period=2026-10')
+  const flow = page.locator('.pnl-flow-wrapper')
+  await expect(flow.getByText('Net loss', { exact: true }).filter({ visible: true })).toBeVisible()
+  await expect(flow.locator('.node.loss')).toHaveCount(1)
+  const outline = async () => ({
+    note: await page.locator('.pnl-flow-wrapper .chart-head p').first().textContent(),
+    labels: await page.locator('.pnl-flow-wide svg text:visible').evaluateAll((els) => els.map((el) => el.textContent?.replace(/\s+/g, ' ').trim())),
+  })
+  const implementation = await outline()
+  await page.goto(pathToFileURL(resolve('../design/mocks/profit-loss-loss.html')).href)
+  expect(await outline()).toEqual(implementation)
+})
+

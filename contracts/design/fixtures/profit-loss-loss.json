@@ -1,0 +1,151 @@
+{
+  "_comment": "Synthetic half month of Sunrise Coffee Roasters (IDR) with a net loss: the profit and loss flow draws the loss as a source that funds the expenses (docs/11 §6.2, spec 018).",
+  "period": "2026-10",
+  "months": [
+    "2026-03"
+  ],
+  "currency": "IDR",
+  "basis": "ACCRUAL",
+  "coverage": "IMPORTED_ENTRIES_ONLY",
+  "status": "IMPORTED",
+  "inputCount": 10,
+  "classifiedCount": 10,
+  "lines": [
+    {
+      "id": "REVENUE",
+      "amount": "40000000",
+      "factId": "fact:pnl_synthetic:REVENUE",
+      "entryIds": [
+        "entry_sales"
+      ]
+    },
+    {
+      "id": "COST_OF_SALES",
+      "amount": "36000000",
+      "factId": "fact:pnl_synthetic:COST_OF_SALES",
+      "entryIds": [
+        "entry_cogs"
+      ]
+    },
+    {
+      "id": "GROSS_PROFIT",
+      "amount": "4000000",
+      "factId": "fact:pnl_synthetic:GROSS_PROFIT",
+      "entryIds": [
+        "entry_sales",
+        "entry_cogs"
+      ]
+    },
+    {
+      "id": "OPERATING_EXPENSES",
+      "amount": "18000000",
+      "factId": "fact:pnl_synthetic:OPERATING_EXPENSES",
+      "entryIds": [
+        "entry_payroll"
+      ]
+    },
+    {
+      "id": "OPERATING_PROFIT",
+      "amount": "-14000000",
+      "factId": "fact:pnl_synthetic:OPERATING_PROFIT",
+      "entryIds": [
+        "entry_sales",
+        "entry_cogs",
+        "entry_payroll"
+      ]
+    },
+    {
+      "id": "OTHER_INCOME",
+      "amount": "1000000",
+      "factId": "fact:pnl_synthetic:OTHER_INCOME",
+      "entryIds": [
+        "entry_other"
+      ]
+    },
+    {
+      "id": "FINANCE_COSTS",
+      "amount": "2000000",
+      "factId": "fact:pnl_synthetic:FINANCE_COSTS",
+      "entryIds": [
+        "entry_finance"
+      ]
+    },
+    {
+      "id": "INCOME_TAX",
+      "amount": "0",
+      "factId": "fact:pnl_synthetic:INCOME_TAX",
+      "entryIds": []
+    },
+    {
+      "id": "NET_PROFIT",
+      "amount": "-15000000",
+      "factId": "fact:pnl_synthetic:NET_PROFIT",
+      "entryIds": [
+        "entry_sales",
+        "entry_cogs",
+        "entry_payroll",
+        "entry_other",
+        "entry_finance"
+      ]
+    }
+  ],
+  "exclusions": {},
+  "gaps": [],
+  "entries": [
+    {
+      "entryId": "entry_sales",
+      "docId": "doc_synthetic",
+      "rowNumber": 1,
+      "date": "2026-10-02",
+      "accountCode": "4000",
+      "accountName": "Sales",
+      "pnlLine": "REVENUE",
+      "subledger": "RECEIVABLES",
+      "amount": "40000000"
+    },
+    {
+      "entryId": "entry_cogs",
+      "docId": "doc_synthetic",
+      "rowNumber": 2,
+      "date": "2026-10-02",
+      "accountCode": "5100",
+      "accountName": "Cost of goods sold",
+      "pnlLine": "COST_OF_SALES",
+      "subledger": "INVENTORY",
+      "amount": "36000000"
+    },
+    {
+      "entryId": "entry_payroll",
+      "docId": "doc_synthetic",
+      "rowNumber": 3,
+      "date": "2026-10-02",
+      "accountCode": "6000",
+      "accountName": "Salaries and wages",
+      "pnlLine": "OPERATING_EXPENSES",
+      "subledger": "PAYROLL",
+      "amount": "18000000"
+    },
+    {
+      "entryId": "entry_other",
+      "docId": "doc_synthetic",
+      "rowNumber": 4,
+      "date": "2026-10-02",
+      "accountCode": "4200",
+      "accountName": "Other income",
+      "pnlLine": "OTHER_INCOME",
+      "subledger": "GENERAL",
+      "amount": "1000000"
+    },
+    {
+      "entryId": "entry_finance",
+      "docId": "doc_synthetic",
+      "rowNumber": 5,
+      "date": "2026-10-02",
+      "accountCode": "7100",
+      "accountName": "Interest expense",
+      "pnlLine": "FINANCE_COSTS",
+      "subledger": "CASH",
+      "amount": "2000000"
+    }
+  ]
+}

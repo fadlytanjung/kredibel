@@ -400,7 +400,12 @@ visible headings, segmented controls and panel links at 390, 834 and 1440 px. To
   taken from the accounts), matched by Kredibel (share, with the previous period and a small meter),
   waiting for you (documents to decide on) and to review (open items), the last two in the alert
   colour when above zero and linking to the documents and the queue.
-- **Profit and loss:** the company P&L panel of spec 018 (§6.2a) with **Accounts and sources**.
+- **Profit and loss:** the company P&L panel of spec 018 (§6.2a) with **Accounts and sources**. Its
+  **Flow** draws income meeting in the middle and splitting into expenses and the profit kept; a
+  period with a net loss draws the loss as a source that funds the expenses, the middle being the
+  total expenses (mock `profit-loss-loss.html`). Only a reversal (a negative revenue or expense), or a
+  panel under 760 px, shows signed rows instead. The tab follows the report shown: a report without
+  entries opens on **Bars**.
 - **Where the money went:** a section with a **Framework** switch (IFRS or US GAAP, default the
   workspace's `profile.accountingFramework`; switching it here does not change the setting) and three
   chart panels. **Charts never share a row:** each panel takes the full content width beside the

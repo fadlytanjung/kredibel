@@ -13,7 +13,9 @@
 - [x] **T018-07** **TDD** Correct flow/table drift: preserve signed amounts and cents in the report and assistant chart, separate
   revenue from other income, show losses/reversals with a signed alternative, and make flow nodes
   open their exact contributing entries. Refresh populated/empty/partial mocks, shared synthetic
-  fixture, source drawer and responsive visual baselines. (AC-018-3…7)
+  fixture, source drawer and responsive visual baselines. (AC-018-3…7) 16 Oct 2026: a net loss is drawn in the flow as a source
+  that funds the expenses (the middle is the total expenses, mock `profit-loss-loss.html`,
+  `flowData.test.ts`); only reversals keep the signed rows; the panel's tab follows the report shown.
 - [x] **T018-08** **TDD** Cash basis from categorized bank lines while no ledger export exists:
   category P&L line and subledger labels in `categories.v1.yaml`, `build_cash_profit_loss`, the
   service's fallback and precedence, the accounts catalog read-only, the assistant's wording.

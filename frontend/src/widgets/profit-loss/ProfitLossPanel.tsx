@@ -10,7 +10,9 @@ export function ProfitLossView({ report, detail = false }: { report: ProfitLoss;
   const { t } = useTranslation('profitLoss')
   const cash = report.basis === 'CASH'
   const hasEntries = (report.entries?.length ?? 0) > 0
-  const [view, setView] = useState(hasEntries ? 'flow' : 'chart')
+  // The flow needs entries; the tab follows the report shown, not the first one loaded.
+  const [chosen, setView] = useState<string | null>(null)
+  const view = chosen === 'flow' && !hasEntries ? 'chart' : (chosen ?? (hasEntries ? 'flow' : 'chart'))
   const titleId = useId()
   // Floating point is used only for bar geometry; displayed amounts remain decimal strings.
   const max = Math.max(1, ...report.lines.map((line) => Math.abs(Number(line.amount ?? 0))))

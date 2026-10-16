@@ -6,7 +6,7 @@ export interface ProfitNode {
   id: string
   label: string
   amount: string
-  role: 'src' | 'acc' | 'use' | 'operating' | 'kept'
+  role: 'src' | 'acc' | 'use' | 'operating' | 'kept' | 'loss'
   entries: ProfitLoss['entries']
 }
 
@@ -32,18 +32,29 @@ export function profitFlow(report: ProfitLoss, label: (key: string) => string) {
   }
   add('FINANCE_COSTS', 'operating')
   add('INCOME_TAX', 'operating')
-  add('NET_PROFIT', 'kept')
-  const amount = sumAmounts([value('REVENUE'), value('OTHER_INCOME')])
+  // A net loss is what paid for the expenses the income did not: it joins the sources, so every
+  // band stays positive and the totals still meet in the middle.
+  const net = value('NET_PROFIT')
+  const loss = net.startsWith('-')
+  if (loss) {
+    sources.push({ id: 'NET_LOSS', label: label('netLoss'), amount: net.slice(1), role: 'loss', entries: entriesFor('NET_PROFIT') })
+  } else {
+    add('NET_PROFIT', 'kept')
+  }
+  const income = sumAmounts([value('REVENUE'), value('OTHER_INCOME')])
+  const amount = loss ? sumAmounts([income, net.slice(1)]) : income
   const matches = (a: string[], b: string) => sumAmounts(a) === sumAmounts([b])
-  // Sankey bands cannot represent negative weights. Signed rows preserve loss/reversal values.
+  // Sankey bands cannot draw a negative weight: a reversal (negative revenue or expense) keeps
+  // the signed rows.
   if ([...sources, ...uses].some((node) => node.amount.startsWith('-')) ||
       amount === '0.00' ||
       !matches(revenue.map((entry) => entry.amount), value('REVENUE')) ||
       !matches(operating.map((entry) => entry.amount), value('OPERATING_EXPENSES')) ||
       !matches(uses.map((node) => node.amount), amount)) return null
   return {
+    loss,
     sources: sources.filter((node) => sumAmounts([node.amount]) !== '0.00'),
     uses: uses.filter((node) => sumAmounts([node.amount]) !== '0.00'),
-    income: { id: 'income', label: label('totalIncome'), amount, role: 'acc' as const, entries: report.entries.filter((entry) => ['REVENUE', 'OTHER_INCOME'].includes(entry.pnlLine)) },
+    income: { id: 'income', label: label(loss ? 'totalCosts' : 'totalIncome'), amount, role: 'acc' as const, entries: report.entries.filter((entry) => ['REVENUE', 'OTHER_INCOME'].includes(entry.pnlLine)) },
   }
 }

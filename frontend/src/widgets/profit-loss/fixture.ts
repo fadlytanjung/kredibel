@@ -3,11 +3,14 @@ import type { Accounts, ProfitLoss } from '../../entities/profit-loss'
 import report from '../../../../contracts/design/fixtures/profit-loss.json' with { type: 'json' }
 import cashAccounts from '../../../../contracts/design/fixtures/profit-loss-cash-accounts.json' with { type: 'json' }
 import cashReport from '../../../../contracts/design/fixtures/profit-loss-cash.json' with { type: 'json' }
+import lossReport from '../../../../contracts/design/fixtures/profit-loss-loss.json' with { type: 'json' }
 
 export const PNL = report as ProfitLoss
 /** The same workspace before any ledger export: a cash basis from its bank lines (AC-018-8). */
 export const PNL_CASH = cashReport as ProfitLoss
 export const PNL_CASH_ACCOUNTS = cashAccounts as Accounts
+/** A half month with a net loss: the flow draws the loss as a source (docs/11 §6.2). */
+export const PNL_LOSS = lossReport as unknown as ProfitLoss
 
 export const EMPTY_PNL: ProfitLoss = {
   ...PNL,

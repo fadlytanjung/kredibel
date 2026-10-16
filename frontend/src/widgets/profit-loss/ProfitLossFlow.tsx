@@ -58,15 +58,15 @@ export function ProfitLossFlow({ report }: { report: ProfitLoss }) {
     }
     parts.push(node(graph.income, 513, centerY, available, 'center'))
     return <svg className="chart sankey" viewBox={`0 0 1040 ${height}`} role="group" aria-label={t('title')}>
-      <text className="col" x={240} y={22} textAnchor="end">{t('flowColumns.sources')}</text>
-      <text className="col" x={520} y={22} textAnchor="middle">{t('totalIncome')}</text>
-      <text className="col" x={794} y={22}>{t('flowColumns.breakdown')}</text>
+      <text className="col" x={240} y={22} textAnchor="end">{t(graph.loss ? 'flowColumns.sourcesLoss' : 'flowColumns.sources')}</text>
+      <text className="col" x={520} y={22} textAnchor="middle">{graph.income.label}</text>
+      <text className="col" x={794} y={22}>{t(graph.loss ? 'flowColumns.breakdownLoss' : 'flowColumns.breakdown')}</text>
       {parts}
     </svg>
   }
 
   return <div className="pnl-flow-wrapper stack gap-3">
-    <div className="chart-head"><p className="muted small">{t('flowSubtitle')}</p>{graph && <SegmentedControl ariaLabel={t('unitLabel')} value={exact ? 'exact' : 'compact'} onChange={(value) => setExact(value === 'exact')} options={[{ key: 'compact', label: t('unitCompact') }, { key: 'exact', label: t('unitExact') }]} />}</div>
+    <div className="chart-head"><p className="muted small">{t(graph?.loss ? 'flowSubtitleLoss' : 'flowSubtitle')}</p>{graph && <SegmentedControl ariaLabel={t('unitLabel')} value={exact ? 'exact' : 'compact'} onChange={(value) => setExact(value === 'exact')} options={[{ key: 'compact', label: t('unitCompact') }, { key: 'exact', label: t('unitExact') }]} />}</div>
     {graph ? <><div className="pnl-flow-wide">{draw()}</div><div className="pnl-flow-compact">{signedRows}</div></> : <><p className="muted small">{t('signedFlow')}</p>{signedRows}</>}
     {graph && <p className="chart-note">{t(exact ? 'exactAmounts' : 'compactAmounts')}</p>}
     {selected && <ProfitLossEntriesSheet title={selected.label} subtitle={money(selected.amount)} currency={report.currency} basis={report.basis} entries={selected.entries} onClose={() => setSelected(null)} />}

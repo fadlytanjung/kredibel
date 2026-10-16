@@ -74,6 +74,16 @@ SCREEN_INVENTORY: dict[str, ScreenInfo] = {
         spec="018",
         notes="While the workspace has no ledger export: a cash-basis report from its categorized bank lines by subledger label, the category labels read-only (ADR-027 amendment).",
     ),
+    "profit-loss-loss": ScreenInfo(
+        slug="profit-loss-loss",
+        title="Profit and loss: a net loss",
+        route="/profit-loss",
+        status="IMPLEMENTED_STATE",
+        badge_label="Implemented state",
+        badge_class="badge-low",
+        spec="018",
+        notes="A period with a net loss: the flow draws the loss as a source that funds the expenses, the middle is the total expenses. Parity: profit-loss.spec.ts.",
+    ),
     "profit-loss-partial": ScreenInfo(
         slug="profit-loss-partial",
         title="Profit and loss: partial",

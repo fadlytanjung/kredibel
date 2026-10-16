@@ -17,7 +17,9 @@
     "sources": "Income sources",
     "turnover": "Revenue",
     "costs": "Costs & Margin",
-    "breakdown": "Expenses and profit"
+    "breakdown": "Expenses and profit",
+    "sourcesLoss": "Income and the loss",
+    "breakdownLoss": "Expenses"
   },
   "unitLabel": "Amounts",
   "unitCompact": "Compact",
@@ -114,12 +116,15 @@
   },
   "totalIncome": "Total income",
   "bandLabel": "Inspect {{label}}: {{amount}}",
-  "signedFlow": "Signed report rows preserve losses and reversals. Select a row to inspect its sources.",
+  "signedFlow": "A reversal (a negative revenue or expense) cannot be drawn as a flow, so the report is shown as signed rows. Select a row to inspect its entries.",
   "basisCash": "Cash-basis report for {{period}}, from your bank lines",
   "coverageCash": "Categorized bank lines only, grouped by their subledger label. No ledger export has been imported, so this is not an accrual report.",
   "emptyCash": "Profit and loss needs categorized bank lines for this period, or a posted general ledger with confirmed account classifications.",
   "accountsCash": "Category labels",
   "accountHelpCash": "Each bank-line category stands for one P&L line and one subledger in the cash-basis report. Import a ledger export to classify your own accounts.",
   "fromPolicy": "From the category policy",
-  "pageHelpCash": "Your bank lines by subledger label, with the lines behind every total."
+  "pageHelpCash": "Your bank lines by subledger label, with the lines behind every total.",
+  "netLoss": "Net loss",
+  "totalCosts": "Total expenses",
+  "flowSubtitleLoss": "Revenue, other income and the net loss, with the expenses they paid. Select a band or row to inspect its ledger entries."
 }

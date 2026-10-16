@@ -203,9 +203,11 @@ function Waterfall({ cash, unit, width }: { cash: CashFlow; unit: Unit; width: n
   const activities = (['OPERATING', 'INVESTING', 'FINANCING', 'UNCLASSIFIED'] as const).filter(
     (a) => a !== 'UNCLASSIFIED' || Number(cash.byActivity.UNCLASSIFIED?.amount ?? 0) !== 0,
   )
-  let running = n(cash.opening.amount, unit)
+  const opening = cash.opening?.amount ?? '0'
+  const closing = cash.closing?.amount ?? '0'
+  let running = n(opening, unit)
   const rows: { key: string; label: string; from: number; to: number; value: string; cls: string; signed: boolean }[] = [
-    { key: 'opening', label: t('charts.opening'), from: 0, to: running, value: cash.opening.amount, cls: 'total', signed: false },
+    { key: 'opening', label: t('charts.opening'), from: 0, to: running, value: opening, cls: 'total', signed: false },
   ]
   for (const a of activities) {
     const amount = cash.byActivity[a]?.amount ?? '0'
@@ -213,7 +215,7 @@ function Waterfall({ cash, unit, width }: { cash: CashFlow; unit: Unit; width: n
     rows.push({ key: a, label: t(`charts.activities.${a.toLowerCase()}`), from: running, to: next, value: amount, cls: a.toLowerCase(), signed: true })
     running = next
   }
-  rows.push({ key: 'closing', label: t('charts.closing'), from: 0, to: n(cash.closing.amount, unit), value: cash.closing.amount, cls: 'total', signed: false })
+  rows.push({ key: 'closing', label: t('charts.closing'), from: 0, to: n(closing, unit), value: closing, cls: 'total', signed: false })
   const lo = Math.min(0, ...rows.flatMap((r) => [r.from, r.to]))
   const hi = Math.max(...rows.flatMap((r) => [r.from, r.to]), 1)
   const x = (v: number) => labelW + ((v - lo) / (hi - lo)) * (width - labelW - valueW)
@@ -252,7 +254,9 @@ export function WaterfallPanel({ period, framework }: { period: string; framewor
   const { t } = useTranslation('dashboard')
   const { data: cash } = useCashFlow(period, framework)
   if (!cash || cash.months.length === 0) return null
-  const unit = unitFor([cash.opening.amount, cash.closing.amount, ...Object.values(cash.byActivity).map((m) => m?.amount ?? '0')])
+  // No statement in the period printed a balance (gap NO_BALANCES): opening and closing are null.
+  const anchored = cash.opening !== null && cash.closing !== null
+  const unit = unitFor([cash.opening?.amount ?? '0', cash.closing?.amount ?? '0', ...Object.values(cash.byActivity).map((m) => m?.amount ?? '0')])
   return (
     <section className="chart-panel" aria-labelledby="waterfall-h">
       <div className="chart-head">
@@ -264,7 +268,7 @@ export function WaterfallPanel({ period, framework }: { period: string; framewor
           {t('charts.byMonth')}
         </Link>
       </div>
-      {cash.balanced === false ? (
+      {cash.balanced === false || !anchored ? (
         <div className="p-5 stack gap-2">
           <p>{t('charts.notBalanced')}</p>
           <ul className="muted small stack gap-1">

@@ -93,3 +93,20 @@ describe('ChartsSection (T010-05)', () => {
     expect(within(statement).queryByRole('img')).not.toBeInTheDocument()
   })
 })
+
+describe('ChartsSection without printed balances', () => {
+  it('explains instead of crashing when no statement in the period prints balances', async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    serve({ ...CASH, opening: null, closing: null, balanced: false, gaps: [{ kind: 'NO_BALANCES', account: 'ACB ••4821' }] })
+    render(
+      <MemoryRouter>
+        <QueryClientProvider client={client}>
+          <ChartsSection period="all" range="February to April 2026" framework="IFRS" />
+        </QueryClientProvider>
+      </MemoryRouter>,
+    )
+    const panel = await screen.findByRole('region', { name: /cash-flow statement/i })
+    expect(within(panel).queryByRole('img')).toBeNull()
+    expect(within(panel).getByText(/ACB ••4821/)).toBeInTheDocument()
+  })
+})

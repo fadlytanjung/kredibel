@@ -2703,8 +2703,8 @@ components:
       properties:
         period: { type: string }
         framework: { $ref: "#/components/schemas/AccountingFramework" }
-        opening: { $ref: "#/components/schemas/Money" }
-        closing: { $ref: "#/components/schemas/Money" }
+        opening: { oneOf: [{ $ref: "#/components/schemas/Money" }, { type: "null" }], description: "null when no statement in the period prints balances (gap NO_BALANCES)" }
+        closing: { oneOf: [{ $ref: "#/components/schemas/Money" }, { type: "null" }], description: "null when no statement in the period prints balances (gap NO_BALANCES)" }
         balanced: { type: boolean, description: "opening + Σ byActivity = closing for every account; false means a statement or month is missing (see gaps)" }
         gapReason: { type: [string, "null"], deprecated: true, description: "Superseded by gaps; always null" }
         gaps:

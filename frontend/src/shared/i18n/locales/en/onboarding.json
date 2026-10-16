@@ -71,7 +71,7 @@
   },
   "welcome": {
     "title": "What would you like Kredibel to do first?",
-    "subtitle": "You can change this later. Either way, every document is read twice and every number keeps its source.",
+    "subtitle": "You can change this later in Settings. Either way, every document is read twice and every number keeps its source.",
     "books": {
       "title": "Keep my books",
       "body": "Reconcile bank statements, invoices, receipts and your ledger month by month, with one short review queue.",

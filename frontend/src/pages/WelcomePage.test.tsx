@@ -58,6 +58,13 @@ describe('WelcomePage (AC-024-4)', () => {
     expect(patched).toEqual({ goal: 'BOOKKEEPING' })
   })
 
+  it('skipping keeps the books, so the question is not asked again', async () => {
+    const user = renderWelcome()
+    await user.click(await screen.findByRole('button', { name: 'Skip for now' }))
+    expect(await screen.findByText('dashboard')).toBeInTheDocument()
+    expect(patched).toEqual({ goal: 'BOOKKEEPING' })
+  })
+
   it('expectations are written per month and saved as decimal strings', async () => {
     const user = renderWelcome()
     const expect_ = await screen.findByRole('button', { name: /Check what I expect/ })

@@ -44,7 +44,9 @@ money went out in October?").
 ## Reset the demo
 
 - In the app's API: `POST /api/workspaces/demo/reset` while signed in as the demo account (any other
-  account gets 403); sign out and in again afterwards.
+  account gets 403; it takes about 20 seconds); sign out and in again afterwards. The fresh copy has
+  no goal yet, so the first page asks what you want first: keep the books, or write the money in and
+  out you expect per month to compare with what Kredibel finds.
 - From the repository: `make demo-account DEMO_ACCOUNT_EMAIL=demo@kredibel.app DEMO_ACCOUNT_PASSWORD=…`
   creates the account if needed, sets its password and replaces its workspace with a fresh copy of the
   demo company. It takes a few seconds: the copy is made from the demo company, nothing is read again.

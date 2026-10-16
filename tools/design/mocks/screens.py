@@ -788,8 +788,10 @@ def column_attrs(kind: str) -> str:
 
 
 def data_table(filters: list[tuple[str, int]], active: int, filter_label: str, search: str, columns: list[tuple[str, str]],
-               rows: str, actions: str = "", pager: str = "", footer: str = "", table_class: str = "") -> str:
-    """The shared DataTable (docs/12 §7): chips, search, header actions, the responsive table, the pager."""
+               rows: str, actions: str = "", pager: str = "", footer: str = "", table_class: str = "",
+               pages: tuple[int, int] | None = None) -> str:
+    """The shared DataTable (docs/12 §7): chips, search, header actions, the responsive table, the pager
+    (with Previous, the page and Next when `pages` is (current, total) and there is more than one)."""
     chips = "".join(f'<a class="chip" aria-pressed="{str(i == active).lower()}" href="#">{label} <span class="n">{n}</span></a>'
                     for i, (label, n) in enumerate(filters))
     search_html = (f'<div class="table-search">{icon("search", "icon icon-sm table-search-icon")}'
@@ -803,9 +805,18 @@ def data_table(filters: list[tuple[str, int]], active: int, filter_label: str, s
     <div class="row ml-auto">{search_html}{actions_html}</div>
   </div>
   <div class="table-panel rt-wrap"><table class="{f"data-table rt {table_class}".strip()}"><thead><tr>{ths}</tr></thead><tbody>{rows}</tbody></table></div>
-  {f'<div class="pager-line"><span>{pager}</span></div>' if pager else ''}
+  {f'<div class="pager-line"><span>{pager}</span>{page_buttons(*pages) if pages and pages[1] > 1 else ""}</div>' if pager else ''}
   {footer}
 </div>"""
+
+
+def page_buttons(current: int, total: int) -> str:
+    """DataTable.tsx's page control: Previous, "Page n of m", Next."""
+    prev = " disabled" if current <= 1 else ""
+    nxt = " disabled" if current >= total else ""
+    return (f'<span class="row items-center gap-2"><button type="button" class="button button-secondary button-sm"{prev}>{words(COMMON_WORDS, "table.previous")}</button>'
+            f'<span class="muted small">{words(COMMON_WORDS, "table.page", current=current, total=total)}</span>'
+            f'<button type="button" class="button button-secondary button-sm"{nxt}>{words(COMMON_WORDS, "table.next")}</button></span>')
 
 
 def reading_legend(table: dict, prefix: str) -> str:
@@ -1990,6 +2001,7 @@ def settings_profile() -> str:
       <div class="field"><span class="label">{sw("profile.type")}</span><span>{sw("entityTypes.COMPANY")}</span><span class="hint">{sw("profile.typeFixed")}</span></div>
       <div class="field"><span class="label">{sw("language.currency")}</span><span class="row gap-2 font-medium">Indonesian Rupiah (IDR)<span class="badge badge-outline">{sw("plan.comingSoon")}</span></span><span class="hint">{sw("language.currencyFixed")}</span></div>
       <div class="field span-2"><span class="label" id="framework-l">{sw("profile.framework")}</span>{frameworks}<span class="hint">{sw("profile.frameworkHint")}</span></div>
+      <div class="field span-2"><span class="label">{sw("profile.goal")}</span><span class="row gap-2">{sw("profile.goals.BOOKKEEPING")}<a class="link" href="welcome.html">{sw("profile.changeGoal")}</a></span><span class="hint">{sw("profile.goalHint")}</span></div>
       <div class="field span-2"><label for="name">{sw("profile.legalName")}</label><input class="input" id="name" value="Sunrise Coffee Roasters"/></div>
       <div class="field"><label for="tradingName">{sw("profile.tradingName")} {opt}</label><input class="input" id="tradingName"/></div>
       <div class="field"><label for="legalForm">{sw("profile.legalForm")} {opt}</label><select class="select" id="legalForm"><option value="">{sw("profile.chooseLegalForm")}</option>{legal_forms}</select></div>
@@ -2129,8 +2141,9 @@ def tx_chip(tx: dict) -> str:
 def transactions(selected: str | None = None) -> str:
     """The Transactions table (spec 024), as pages/TransactionsPage.tsx, from the shared fixture."""
     items = TX_FIX["items"]
+    page = items[:10]  # TransactionsPage: ten rows a page, as every table
     trs = []
-    for tx in items:
+    for tx in page:
         first = tx["description"].split("\n")[0]
         party = tx.get("counterpartyName")
         desc = f'<strong>{escape(party or first)}</strong>' + (f'<span class="reason">{escape(first)}</span>' if party else "")
@@ -2154,7 +2167,8 @@ def transactions(selected: str | None = None) -> str:
                (txw("columns.reading"), "hide small"), (txw("columns.match"), "")]
     picker = f'<select class="select select-sm" aria-label="{txw("month")}"><option selected>{month_name(TX_FIX["month"])}</option></select>'
     table = data_table(filters, 0, txw("filters.label"), txw("search"), columns, "".join(trs), actions=picker,
-                       pager=words(COMMON_WORDS, "table.showingRange", **{"from": 1, "to": len(items), "total": len(items)}), table_class="tx-table")
+                       pager=words(COMMON_WORDS, "table.showingRange", **{"from": 1, "to": len(page), "total": len(items)}), table_class="tx-table",
+                       pages=(1, -(-len(items) // 10)))
     drawer = transaction_drawer(next(tx for tx in items if tx["txId"] == selected)) if selected else ""
     content = f"""
 <div class="page">

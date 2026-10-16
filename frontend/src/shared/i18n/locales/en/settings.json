@@ -79,7 +79,15 @@
       "US_GAAP": "US GAAP"
     },
     "frameworkHint": "Sets how the statement of cash flows classifies each line: interest paid is financing under IFRS and operating under US GAAP. Changing it reclassifies every month; categories stay as they are.",
-    "frameworkSaved": "Saved. Every month is being reclassified under {{framework}}."
+    "frameworkSaved": "Saved. Every month is being reclassified under {{framework}}.",
+    "goal": "What you want first",
+    "goals": {
+      "BOOKKEEPING": "Keep my books",
+      "CHECK_EXPECTATIONS": "Check what I expect",
+      "NONE": "Not chosen yet"
+    },
+    "changeGoal": "Change",
+    "goalHint": "Asked once after onboarding. Checking what you expect compares the money in and out you expect per month with the reconciled months, on the dashboard."
   },
   "bank": {
     "intro": "Accounts of this workspace. Numbers are kept only as the last 4 digits.",

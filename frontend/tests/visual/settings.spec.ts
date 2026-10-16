@@ -10,6 +10,7 @@ import { mockUrl, texts, WORKSPACE } from './fixtures'
 const require = createRequire(import.meta.url)
 const PROFILE_WORKSPACE = {
   ...WORKSPACE,
+  goal: 'BOOKKEEPING',
   timezone: 'Asia/Jakarta',
   entityType: 'COMPANY',
   defaultLanguage: 'en',

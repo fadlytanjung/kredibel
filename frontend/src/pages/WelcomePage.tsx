@@ -72,6 +72,8 @@ export function WelcomePage() {
     ? saved.map((e) => ({ month: e.month, moneyIn: whole(e.moneyIn), moneyOut: whole(e.moneyOut) }))
     : [{ month: previousMonth(currentMonth()), moneyIn: '', moneyOut: '' }]
   const toDashboard = () => navigate('/dashboard', { replace: true })
+  // Skipping keeps the books, the default, so the question is not asked again (Settings changes it).
+  const skip = () => submit({ goal: 'BOOKKEEPING' })
   const submit = (patch: WorkspaceUpdate) => update.mutate(patch, { onSuccess: toDashboard })
 
   return (
@@ -104,7 +106,7 @@ export function WelcomePage() {
           {choice === 'expect' && (
             <ExpectForm key={saved.length ? 'saved' : 'new'} initial={initial} currency={workspace.data?.currency ?? 'IDR'} pending={update.isPending} failed={update.isError} onSave={submit} />
           )}
-          <button type="button" className="button button-quiet welcome-skip" onClick={toDashboard}>
+          <button type="button" className="button button-quiet welcome-skip" disabled={update.isPending} onClick={skip}>
             {t('welcome.skip')}
           </button>
         </section>

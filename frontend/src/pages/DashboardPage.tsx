@@ -201,7 +201,7 @@ export function DashboardPage() {
           </button>
         </p>
       )}
-      <Body data={data} name={workspace?.name ?? ''} period={period} framework={workspace?.profile?.accountingFramework as Framework | undefined} currency={workspace?.currency} expectations={Boolean(workspace?.expectations?.length)} />
+      <Body data={data} name={workspace?.name ?? ''} period={period} framework={workspace?.profile?.accountingFramework as Framework | undefined} currency={workspace?.currency} expectations={workspace?.goal === 'CHECK_EXPECTATIONS' && Boolean(workspace?.expectations?.length)} />
     </div>
   )
 }

@@ -150,7 +150,6 @@ export function TransactionsContent({ basePath = '/transactions' }: { basePath?:
         onRowClick={(tx) => navigate(`${basePath}/${encodeURIComponent(tx.txId)}${query}`)}
         selectedRowKey={txId}
         tableClassName="tx-table"
-        pageSize={50}
       />
       {open && <TransactionDrawer tx={open} onClose={() => navigate(`${basePath}${query}`)} />}
     </div>

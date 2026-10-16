@@ -109,6 +109,9 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
   if (!user) return <Navigate to="/login" replace />
   if (meError) return <SessionError />
   if (needsWorkspace) return <Navigate to="/onboarding" replace />
+  // Spec 024: an owner whose workspace has no goal yet (a new workspace, a fresh demo copy) is
+  // asked it first; choosing, or skipping, records one.
+  if (me?.role === 'owner' && workspaceQuery.data && !workspaceQuery.data.goal) return <Navigate to="/welcome" replace />
 
   const name = me?.displayName || user.displayName || user.email || ''
   const shell = workspaceQuery.data

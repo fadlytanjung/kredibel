@@ -33,3 +33,7 @@
   Transactions menu and tour step, the row drawer, mocks transactions and transaction, parity in
   transactions.spec.ts; every shell baseline refreshed for the new menu item.
 - [x] **T024-07** Update `docs/20`, `docs/24`, README.
+- [x] **T024-08** After the first demo (17 Oct 2026): an owner whose workspace has no goal (a new
+  workspace, a fresh demo copy after a reset) is asked it before any page; Skip records Keep my
+  books; Settings › Profile shows the goal and changes it; the expectations panel shows while the
+  goal is Check what I expect; Transactions shows ten rows a page. (AC-024-4, AC-024-6)

@@ -16,6 +16,7 @@ from structlog.contextvars import bind_contextvars, unbind_contextvars
 
 from app.core.logging import TRACE_FIELD
 from app.core.settings import Settings
+from app.observability.agent_analytics import agent_analytics_plugins
 from app.ports.run_repository import RunRepository
 
 _tracer = trace.get_tracer("kredibel")
@@ -81,7 +82,12 @@ async def run_workflow(
         try:
             # Sessions live only for the run: domain state is in Firestore, not ADK (docs/06 §8).
             sessions = InMemorySessionService()
-            runner = Runner(agent=cast(Any, workflow), app_name=APP_NAME, session_service=sessions)
+            runner = Runner(
+                agent=cast(Any, workflow),
+                app_name=APP_NAME,
+                session_service=sessions,
+                plugins=agent_analytics_plugins(settings),  # spec 017, off unless enabled
+            )
             user_id = adk_user_id(org_id)
             await sessions.create_session(
                 app_name=APP_NAME,

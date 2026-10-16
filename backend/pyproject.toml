@@ -16,7 +16,9 @@ dependencies = [
     "google-cloud-documentai>=2.29.0",
     "google-cloud-modelarmor>=0.7.0",
     "google-genai>=0.1.1",
-    "google-adk>=2.9.0",
+    # bigquery-analytics: the agent events plugin (spec 017, ADR-017); attached only with
+    # FEATURE_AGENT_ANALYTICS, so the dataset must exist first (docs/16 §4, step 11).
+    "google-adk[bigquery-analytics]>=2.9.0",
     "pikepdf>=8.15.0",
     "pdfplumber>=0.11.0",
     "pypdfium2>=4.30.0",

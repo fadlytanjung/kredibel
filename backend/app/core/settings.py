@@ -132,6 +132,7 @@ class Settings(BaseSettings):
     ai_content_capture: Literal["off", "synthetic"] = "off"
     adk_capture_message_content_in_spans: bool = False
     analytics_dataset: str = "kredibel_agent_analytics"
+    analytics_location: str = "asia-southeast1"
 
     # Migrations
     migration_max_ops_per_sec: int = 500

@@ -27,3 +27,6 @@
   see while the copy is held. Decided 13 Oct 2026 after the synthetic run (S1 then S4), where the
   diverted Roastline invoice was held as a plain `MEDIUM` copy. (AC-006-5)
 - [x] **T006-10** Update `docs/20-implementation-status.md`. (kept current with every change; the duplicate and integrity rows record what is built and the deviations)
+- [x] **T006-12** **TDD** A running-balance break right after a statement row that could not be kept
+  (`ROW_DROPPED_ABOVE`) is `E01`, not a CRITICAL `A01`: the gap is our reading, not the page (16 Oct
+  2026, a real scanned statement; docs/08 §2.3).

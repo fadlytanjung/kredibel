@@ -104,3 +104,12 @@ def test_a_break_among_agreed_values_is_critical_otherwise_uncertain():
     )
     assert [(f.code, f.severity) for f in unsure] == [("E01_LOW_EXTRACTION_AGREEMENT", "MEDIUM")]
     assert running_balance(_ctx([_line(1, "50.00", "150.00"), _line(2, "10.00", "160.00")])) == []
+
+
+def test_a_break_right_after_a_dropped_row_is_uncertain_not_critical():
+    from app.domain.checks.arithmetic import running_balance
+
+    after_drop = _line(2, "10.00", "999.00")
+    after_drop.notes = ["ROW_DROPPED_ABOVE"]
+    found = running_balance(_ctx([_line(1, "50.00", "150.00"), after_drop]))
+    assert [(f.code, f.severity) for f in found] == [("E01_LOW_EXTRACTION_AGREEMENT", "MEDIUM")]

@@ -93,7 +93,7 @@ figures and matching until the user confirms ("it is a duplicate", values stay e
 
 | Code | Rule | Severity | P |
 |---|---|---|---|
-| `A01_RUNNING_BALANCE_BREAK` | For consecutive rows: `abs(balance[i-1] + credit[i] − debit[i] − balance[i]) > tol` (tol = 1 unit); the first row uses the opening balance; witness-only rows are included | CRITICAL if agreed and no witness-only row sits between, else `E01` | P0 |
+| `A01_RUNNING_BALANCE_BREAK` | For consecutive rows: `abs(balance[i-1] + credit[i] − debit[i] − balance[i]) > tol` (tol = 1 unit); the first row uses the opening balance; witness-only rows are included | CRITICAL if agreed and no witness-only row, and no row that could not be kept (`ROW_DROPPED_ABOVE`), sits between, else `E01` | P0 |
 | `A02_OPENING_CLOSING_MISMATCH` | `opening + Σcredits − Σdebits ≠ closing` | CRITICAL if agreed, else `E01` | P0 |
 | `A03_PRINTED_TOTALS_MISMATCH` | Printed total credits/debits ≠ sum of rows | HIGH | P1 |
 | `A04_INVOICE_TOTAL_MISMATCH` | `Σ lines ≠ subtotal`, `subtotal + tax ≠ total`, or `qty × unit price ≠ line` (tol = 1 unit per line); receipts: neither `Σ items + tax` nor `Σ items` equals the total (prices in our markets often include SST or PPN); checked only when every line or item has an amount | HIGH | P0 |

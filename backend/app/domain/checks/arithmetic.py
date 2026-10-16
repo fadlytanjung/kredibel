@@ -70,7 +70,9 @@ def running_balance(ctx: CheckContext) -> list[Finding]:
     prev_line: BankLine | None = None
     witness_between = False
     for i, line in enumerate(lines):
-        witness_between |= line.source == "WITNESS"
+        # A row read by the witness only, or a row above that could not be kept, sits between this
+        # balance and the last: a break here is reading uncertainty, not evidence.
+        witness_between |= line.source == "WITNESS" or "ROW_DROPPED_ABOVE" in line.notes
         if line.balance is None:
             prev = None if prev is None else prev + line.amount
             continue

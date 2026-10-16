@@ -7,6 +7,7 @@ import re
 import uuid
 from collections.abc import AsyncIterator, Awaitable, Callable
 from datetime import UTC, datetime
+from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from app.domain.extraction_store import StoredChunk
@@ -63,6 +64,17 @@ GREETING_TEXT = (
     '• **"What is our profit for 2026-03?"** — Accrual P&L and posted ledger lines\n\n'
     "What would you like to check today?"
 )
+
+
+def _figure(figs: dict[str, Any], key: str) -> Decimal:
+    """A month figure as stored ({value, factId, inputs}; money in major units, rates as a
+    fraction); 0 when the month has none."""
+    raw = figs.get(key)
+    value = raw.get("value") if isinstance(raw, dict) else raw
+    try:
+        return Decimal(str(value)) if value is not None else Decimal(0)
+    except (InvalidOperation, ValueError):
+        return Decimal(0)
 
 
 def _extract_fig(figs: dict[str, Any], key: str, alt_key: str) -> float:
@@ -222,10 +234,10 @@ class AssistantService:
         context_lines: list[str] = ["WORKSPACE MONTHS:"]
         for m in sorted(months, key=lambda x: x.month):
             figs = m.figures or {}
-            in_val = figs.get("inflow_minor", 0) / 100
-            out_val = figs.get("outflow_minor", 0) / 100
+            in_val = _figure(figs, "moneyIn")
+            out_val = abs(_figure(figs, "moneyOut"))
             net_val = in_val - out_val
-            rate = figs.get("match_rate_pct", 0)
+            rate = (_figure(figs, "autoMatchRate") * 100).quantize(Decimal("0.01"))
 
             in_fid = f"fact:{m.month}:money_in"
             out_fid = f"fact:{m.month}:money_out"

@@ -91,3 +91,42 @@ async def test_ac022_7_the_assistant_gets_the_nearest_passages_as_data_and_cites
     assert message.answer is not None and message.answer.grounding is not None
     assert message.answer.grounding.verdict == "AGREED"
     assert "doc:doc_aug#p1" in message.answer.grounding.citations
+
+
+async def test_the_month_facts_are_read_from_the_stored_figures():
+    # Figures are stored as {value, factId, inputs}; reading old field names gave the assistant 0.
+    from datetime import UTC, datetime
+
+    from app.domain.models.month import Month, MonthState
+
+    months = FakeMonthRepository()
+    month = Month(
+        month="2026-05",
+        state=MonthState.RECONCILED,
+        dirty=False,
+        generation=1,
+        updated_at=datetime(2026, 6, 1, tzinfo=UTC),
+        figures={
+            "moneyIn": {"value": "160423200.00", "factId": "fact:2026-05:money_in", "inputs": []},
+            "moneyOut": {"value": "152306418.00", "factId": "fact:2026-05:money_out", "inputs": []},
+            "autoMatchRate": {
+                "value": "0.8750",
+                "factId": "fact:2026-05:auto_match_rate",
+                "inputs": [],
+            },
+        },
+    )
+    await months.save("org_1", month)
+    service = AssistantService(
+        assistant_repo=FakeAssistantRepository(),
+        month_repo=months,
+        finding_repo=FakeFindingRepository(),
+        bank_line_repo=FakeBankLineRepository(),
+        doc_repo=FakeDocumentRepository(),
+        review_item_repo=FakeReviewItemRepository(),
+        reader=FakeDocumentReader(),
+    )
+    context, grounding = await service._gather_context("org_1")
+    assert "Money Out=152306418.00 [[fact:2026-05:money_out]]" in context
+    assert "Match Rate=87.50%" in context
+    assert str(grounding.facts["fact:2026-05:money_out"]) == "152306418.00"

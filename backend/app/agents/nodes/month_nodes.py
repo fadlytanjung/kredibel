@@ -53,6 +53,7 @@ from app.domain.review_items import (
     month_items,
 )
 from app.domain.risk import RiskAssessment, assess_document_risk, assess_month_risk
+from app.services.month_labels import sync_month_labels
 
 _log = structlog.get_logger()
 
@@ -908,6 +909,43 @@ def _months_paid_elsewhere(result: MonthResult, month: str) -> set[str]:
             if (record.evidence or {}).get("payment") != body.get("payment"):
                 out.add(record.month)
     return out
+
+
+def sync_labels(deps: PipelineDeps):
+    """Spec 016: the month's labels from its finalized books (a category a match or a person
+    changed, documents and values read before labels existed); people's decisions win."""
+
+    @stage(deps, "sync_labels")
+    async def _node(ctx: Context, node_input: dict[str, Any]) -> dict[str, Any]:
+        org_id = str(node_input.get("orgId") or node_input.get("org_id") or "")
+        month = str(node_input.get("month") or "")
+        if node_input.get("skipped"):
+            return {**node_input, "summary": "Skipped: the month run did not finish"}
+        if (
+            deps.labels is None
+            or deps.learning is None
+            or deps.categories is None
+            or deps.bank_lines is None
+        ):
+            return {**node_input, "summary": "Skipped: labels are not configured"}
+        workspace = await deps.workspaces.get_workspace(org_id) if deps.workspaces else None
+        framework = workspace.profile.accounting_framework if workspace else "IFRS"
+        written = await sync_month_labels(
+            org_id=org_id,
+            month=month,
+            labels=deps.labels,
+            lines=deps.bank_lines,
+            documents=deps.doc_repo,
+            invoices=deps.invoices,
+            receipts=deps.receipts,
+            policy=deps.learning,
+            categories=deps.categories,
+            framework=framework,
+            at=deps.clock.now(),
+        )
+        return {**node_input, "summary": f"{written} labels written"}
+
+    return _node
 
 
 def finalize_month(deps: PipelineDeps, pending: PendingMonths):

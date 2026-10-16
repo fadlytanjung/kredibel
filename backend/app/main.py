@@ -612,6 +612,9 @@ class AppDeps:
                 months=self.month_service,
                 task_queue=self.task_queue,
                 embedder=self.embedder,
+                invoices=self.invoices,
+                receipts=self.receipts,
+                workspaces=self.workspace_repo,
             ),
         )
 
@@ -783,6 +786,9 @@ class AppDeps:
                 categories=self.categories,
                 clock=self.clock,
                 months=self.month_service,
+                on_category_set=lambda principal, before, after: (
+                    self.label_service.record_person_category(principal, before, after)
+                ),
             ),
         )
 

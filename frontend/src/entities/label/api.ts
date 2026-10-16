@@ -92,3 +92,12 @@ export function useBulkConfirm() {
     onSuccess: () => invalidate(queryClient),
   })
 }
+
+/** Create the labels the stored books imply (a workspace read before labels existed). */
+export function useSyncLabels() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => apiClient<{ created: number }>('/api/labels/sync', { method: 'POST' }),
+    onSuccess: () => invalidate(queryClient),
+  })
+}

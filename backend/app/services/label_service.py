@@ -18,15 +18,21 @@ from app.domain.errors import (
     ValidationProblem,
     WorkspaceRequiredError,
 )
+from app.domain.label_sync import category_label
 from app.domain.labels import Label, LearningPolicy, decide, rule_for, summarize
+from app.domain.models.bank_line import BankLine
 from app.domain.models.document import DocStatus, DocType
 from app.domain.models.events import AuditEvent
+from app.domain.models.invoice import Invoice, Receipt
 from app.ports.bank_line_repository import BankLineRepository
 from app.ports.document_repository import DocumentRepository
 from app.ports.embedder import Embedder
 from app.ports.label_repository import LabelRepository
+from app.ports.record_repository import DocumentRecords
 from app.ports.task_queue import TaskQueue
+from app.ports.workspace_repository import WorkspaceRepository
 from app.services.bank_line_service import BankLineService
+from app.services.month_labels import sync_month_labels
 from app.services.month_service import MonthService
 
 Action = Literal["CONFIRM", "CORRECT"]
@@ -56,6 +62,9 @@ class LabelService:
         months: MonthService | None = None,
         task_queue: TaskQueue | None = None,
         embedder: Embedder | None = None,
+        invoices: DocumentRecords[Invoice] | None = None,
+        receipts: DocumentRecords[Receipt] | None = None,
+        workspaces: WorkspaceRepository | None = None,
     ) -> None:
         self._labels = labels
         self._policy = policy
@@ -67,6 +76,9 @@ class LabelService:
         self._months = months
         self._task_queue = task_queue
         self._embedder = embedder
+        self._invoices = invoices
+        self._receipts = receipts
+        self._workspaces = workspaces
 
     async def list_labels(self, org_id: str, **filters: Any) -> tuple[list[Label], dict[str, Any]]:
         """The filtered page and the summary over every label of the workspace (AC-016-5)."""
@@ -155,6 +167,86 @@ class LabelService:
         except Exception:  # noqa: BLE001 - the decision stands without its example
             log.warning("labels.example_not_saved", label_id=label.label_id, task=label.task)
 
+    async def record_person_category(
+        self, principal: Principal, before: BankLine, after: BankLine
+    ) -> Label | None:
+        """A category a person set on the month page is their decision on the line's label: the
+        automatic value it replaced stays as the AI's, so agreement is measured honestly."""
+        org_id = _org(principal)
+        framework = await self._framework(org_id)
+        at = self._clock.now()
+        fresh = category_label(
+            before, at=at, policy=self._policy, categories=self._categories, framework=framework
+        ) or category_label(
+            after, at=at, policy=self._policy, categories=self._categories, framework=framework
+        )
+        if fresh is None:
+            return None
+        [stored] = await self._labels.upsert(org_id, [fresh])
+        if stored.status != "AI_PROPOSED" and stored.final_value == after.category:
+            return stored
+        decided = decide(
+            stored,
+            action="CONFIRM" if after.category == stored.ai.value else "CORRECT",
+            by=principal.uid,
+            at=at,
+            policy=self._policy,
+            value=after.category,
+        )
+        await self._labels.decide(org_id, decided, self._event(principal, stored, decided))
+        await self._remember_example(org_id, decided)
+        return decided
+
+    async def sync_all(self, principal: Principal) -> int:
+        """Create the labels the stored books imply for every month (a workspace read before labels
+        existed); safe to repeat: nothing a person decided changes."""
+        if principal.role not in _CAN_DECIDE:
+            raise ForbiddenError("Viewers cannot create labels.")
+        org_id = _org(principal)
+        if self._lines is None or self._documents is None:
+            return 0
+        lines = await self._lines.list_lines(org_id, limit=100_000)
+        docs, _ = await self._documents.list_documents(org_id, limit=500)
+        months = sorted({ln.month for ln in lines} | {m for d in docs for m in d.months})
+        existing = {lb.label_id: lb for lb in await self._labels.list_labels(org_id, limit=None)}
+        framework = await self._framework(org_id)
+        written = 0
+        for month in months:
+            written += await sync_month_labels(
+                org_id=org_id,
+                month=month,
+                labels=self._labels,
+                lines=self._lines,
+                documents=self._documents,
+                invoices=self._invoices,
+                receipts=self._receipts,
+                policy=self._policy,
+                categories=self._categories,
+                framework=framework,
+                at=self._clock.now(),
+                existing=existing,
+            )
+        return written
+
+    async def _framework(self, org_id: str) -> str:
+        workspace = await self._workspaces.get_workspace(org_id) if self._workspaces else None
+        return workspace.profile.accounting_framework if workspace else "IFRS"
+
+    def _event(self, principal: Principal, label: Label, decided: Label) -> AuditEvent:
+        return AuditEvent(
+            event_id=new_id("evt"),
+            type="LABEL_VERIFIED" if decided.status == "VERIFIED" else "LABEL_CORRECTED",
+            actor_uid=principal.uid,
+            actor_role=principal.role or "owner",
+            at=decided.decided_at or self._clock.now(),
+            subject={
+                "labelId": label.label_id,
+                "task": label.task,
+                **({"txId": label.subject.tx_id} if label.subject.tx_id else {}),
+            },
+            details={"aiValue": label.ai.value, "value": decided.final_value},
+        )
+
     async def bulk_confirm(self, principal: Principal, label_ids: list[str]) -> int:
         """Confirm up to 200 labels as the AI proposed them; decided ones are left as they are."""
         if len(label_ids) > BULK_LIMIT:
@@ -189,7 +281,7 @@ class LabelService:
                 # The line may be gone; the label keeps the person's decision either way.
                 with contextlib.suppress(NotFoundError):
                     await self._bank_lines.set_category(
-                        principal, label.subject.tx_id, label.final_value
+                        principal, label.subject.tx_id, label.final_value, notify=False
                     )
             if apply_to_similar and self._lines is not None:
                 line = await self._lines.get_line(org_id, label.subject.tx_id)

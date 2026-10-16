@@ -1,5 +1,6 @@
 """Reading bank lines for the API (docs/10 §2.4): money in the workspace's currency (ADR-020)."""
 
+from collections.abc import Awaitable, Callable
 from dataclasses import replace
 
 from app.core.auth import Principal
@@ -23,18 +24,22 @@ class BankLineService:
         categories: CategoryPolicy,
         clock: Clock,
         months: MonthService,
+        on_category_set: Callable[[Principal, BankLine, BankLine], Awaitable[object]] | None = None,
     ) -> None:
         self._lines = bank_lines
         self._workspaces = workspaces
         self._categories = categories
         self._clock = clock
         self._months = months
+        self._on_category_set = on_category_set
 
     async def set_category(
         self,
         principal: Principal,
         tx_id: str,
         category: str,
+        *,
+        notify: bool = True,
     ) -> tuple[BankLine, str]:
         org_id = principal.org_id
         if org_id is None:
@@ -42,6 +47,7 @@ class BankLineService:
         line = await self._lines.get_line(org_id, tx_id)
         if line is None:
             raise NotFoundError("Bank line not found")
+        before = replace(line)  # as it was: a store may update the line in place
         workspace = await self._workspaces.get_workspace(org_id)
         if workspace is None:
             raise WorkspaceRequiredError()
@@ -67,6 +73,9 @@ class BankLineService:
         )
         await self._lines.set_category(org_id, changed, event)
         await self._months.mark_dirty(org_id, [line.month])
+        if notify and self._on_category_set is not None:
+            # Spec 016: the person's category is a decision on the line's CATEGORY label.
+            await self._on_category_set(principal, before, changed)
         return changed, workspace.currency
 
     async def rederive_cashflow(self, org_id: str, framework: str) -> list[str]:

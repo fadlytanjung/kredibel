@@ -133,12 +133,17 @@ def dataset_split(the_label_id: str, eval_share: Decimal) -> DatasetUse:
     return "EVAL" if share < eval_share else "TRAIN"
 
 
-def needs_check(task: Task, confidence: Decimal | None, policy: LearningPolicy) -> bool:
-    """Below the task's threshold, or with no score at all, a person is asked (AC-016-3)."""
+def needs_check(
+    task: Task, confidence: Decimal | None, policy: LearningPolicy, source: Source = "MODEL"
+) -> bool:
+    """Below the task's threshold a person is asked (AC-016-3). A model's decision without a score
+    is asked too; a keyword rule or a match decides by code and has no score to doubt."""
     threshold = policy.needs_check_below.get(task)
     if threshold is None:
         return False
-    return confidence is None or confidence < threshold
+    if confidence is None:
+        return source == "MODEL"
+    return confidence < threshold
 
 
 def propose(
@@ -163,7 +168,7 @@ def propose(
         final_value=ai.value,
         final_source=ai.source,
         status="AI_PROPOSED",
-        needs_check=needs_check(task, ai.confidence, policy),
+        needs_check=needs_check(task, ai.confidence, policy, ai.source),
         month=month,
         framework=framework,
         cashflow_class=cashflow_class,

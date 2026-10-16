@@ -570,7 +570,7 @@ a:hover { color: var(--k-color-brand-hover); }
 .table-search input { padding-left: 32px; padding-right: 30px; min-height: 34px; height: 34px; font-size: 13.5px; }
 .table-search-clear { position: absolute; right: 6px; background: transparent; border: none; cursor: pointer; color: var(--k-color-text-muted); display: flex; align-items: center; justify-content: center; padding: 4px; border-radius: var(--k-radius-xs); }
 .table-search-clear:hover { color: var(--k-color-text-default); }
-.table-actions { display: flex; align-items: center; gap: var(--k-space-2); margin-left: auto; }
+.table-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--k-space-2); margin-left: auto; }
 @container app (width < 600px) { .table-search { max-width: 100%; width: 100%; } }
 
 /* ------------------------------------------------------------------------------------------ */
@@ -753,6 +753,12 @@ a:hover { color: var(--k-color-brand-hover); }
   }
 }
 
+.drawer-head { display: flex; align-items: flex-start; gap: var(--k-space-3); padding: var(--k-space-3) var(--k-space-3) var(--k-space-3) var(--k-space-4); border-bottom: 1px solid var(--k-color-border-default); }
+@container app (width >= 600px) { .drawer-head { padding: var(--k-space-4) var(--k-space-4) var(--k-space-4) var(--k-space-6); } }
+.drawer-head h1 { font-size: 18px; line-height: 24px; font-weight: 680; }
+/* Base before the wide-screen rules below, which give the body its two columns; on a phone the
+   body scrolls as one column. */
+.drawer-body { display: grid; grid-template-columns: 1fr; align-content: start; flex: 1; min-height: 0; overflow-y: auto; }
 .drawer-frame {
   position: fixed;
   inset: 0;
@@ -807,10 +813,6 @@ a:hover { color: var(--k-color-brand-hover); }
     grid-template-columns: minmax(0, 1fr) min(var(--k-layout-drawer-xl), calc(100% - 160px));
   }
 }
-.drawer-head { display: flex; align-items: flex-start; gap: var(--k-space-3); padding: var(--k-space-3) var(--k-space-3) var(--k-space-3) var(--k-space-4); border-bottom: 1px solid var(--k-color-border-default); }
-@container app (width >= 600px) { .drawer-head { padding: var(--k-space-4) var(--k-space-4) var(--k-space-4) var(--k-space-6); } }
-.drawer-head h1 { font-size: 18px; line-height: 24px; font-weight: 680; }
-.drawer-body { display: grid; grid-template-columns: 1fr; flex: 1; min-height: 0; }
 .viewer { background: var(--k-color-bg-sunken); padding: var(--k-space-4); display: flex; flex-direction: column; gap: var(--k-space-3); min-width: 0; }
 .viewer-bar { display: flex; align-items: center; gap: var(--k-space-2); font-size: 13px; color: var(--k-color-text-muted); flex-wrap: wrap; }
 .viewer-bar .file { font-weight: 620; color: var(--k-color-text-default); margin-right: auto; display: inline-flex; align-items: center; gap: 6px; }
@@ -1700,10 +1702,16 @@ button.tab { border: 0; background: transparent; cursor: pointer; font-family: i
 .ds.train { color: var(--k-color-brand-default); }
 .ds.eval { color: var(--k-color-severity-low-fg); }
 .ds.excluded { color: var(--k-color-text-muted); }
-.lbl-panel, .ev-inspector { container: lp / inline-size; display: grid; grid-template-columns: 1fr; gap: var(--k-space-5); padding: var(--k-space-5); }
+.lbl-panel, .ev-inspector { container: lp / inline-size; display: grid; grid-template-columns: 1fr; align-content: start; gap: var(--k-space-5); padding: var(--k-space-5); }
 .lp-main, .lp-side { display: flex; flex-direction: column; gap: var(--k-space-3); min-width: 0; }
 @container lp (width >= 860px) { .lp-main, .lp-side { grid-row: 1; } .lbl-panel, .ev-inspector { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); } }
 .lp-head { display: flex; align-items: center; justify-content: space-between; gap: var(--k-space-2); }
+/* The label in the kit's drawer: the decision beside the extraction and provenance. */
+.drawer-head .lp-head { justify-content: flex-start; }
+.lbl-drawer > .lp-main, .lbl-drawer > .lp-side { padding: var(--k-space-5); }
+.lbl-drawer > .lp-side { border-top: 1px solid var(--k-color-border-default); }
+@container app (width >= 680px) { .lbl-drawer > .lp-side { border-top: 0; border-left: 1px solid var(--k-color-border-default); } }
+@media (min-width: 680px) { .lbl-drawer > .lp-side { border-top: 0; border-left: 1px solid var(--k-color-border-default); } }
 .lp-ai { display: flex; align-items: center; justify-content: space-between; gap: var(--k-space-3); padding: var(--k-space-3); border-radius: var(--k-radius-sm); background: var(--k-color-bg-sunken); }
 .lp-ai .k { display: block; font-size: 12px; color: var(--k-color-text-muted); }
 .lp-ai strong { display: block; font-size: 15px; }

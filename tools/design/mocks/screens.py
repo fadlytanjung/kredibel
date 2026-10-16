@@ -547,23 +547,31 @@ def badge(variant: str, text: str, ic: str | None = None) -> str:
     return f'<span class="badge badge-{variant}">{icon(ic, "icon icon-sm") if ic else ""}{escape(text)}</span>'
 
 
+def column_attrs(kind: str) -> str:
+    """A column's classes as DataTable.tsx builds them: "r" right-aligned, "hide" hidden on phones,
+    "wide" full width on phones, any other word a class of its own ("small")."""
+    parts = kind.split()
+    classes = (["r"] if "r" in parts else []) + (["hide-rt"] if "hide" in parts else []) + [p for p in parts if p not in ("r", "hide", "wide")]
+    cell = "hide" if "hide" in parts else "wide" if "wide" in parts else ""
+    return (f' class="{" ".join(classes)}"' if classes else "") + (f' data-cell="{cell}"' if cell else "")
+
+
 def data_table(filters: list[tuple[str, int]], active: int, filter_label: str, search: str, columns: list[tuple[str, str]],
-               rows: str, actions: str = "", pager: str = "", footer: str = "") -> str:
+               rows: str, actions: str = "", pager: str = "", footer: str = "", table_class: str = "") -> str:
     """The shared DataTable (docs/12 §7): chips, search, header actions, the responsive table, the pager."""
     chips = "".join(f'<a class="chip" aria-pressed="{str(i == active).lower()}" href="#">{label} <span class="n">{n}</span></a>'
                     for i, (label, n) in enumerate(filters))
     search_html = (f'<div class="table-search">{icon("search", "icon icon-sm table-search-icon")}'
                    f'<input type="text" class="input input-sm table-search-input" placeholder="{search}" aria-label="{search}"/></div>')
     actions_html = f'<div class="table-actions">{actions}</div>' if actions else ""
-    attrs = {"": "", "r": ' class="r"', "wide": ' data-cell="wide"', "hide": ' class="hide-rt" data-cell="hide"'}
-    ths = "".join(f'<th{attrs[kind]}>{label}</th>' for label, kind in columns)
+    ths = "".join(f'<th{column_attrs(kind)}>{label}</th>' for label, kind in columns)
     return f"""
 <div class="stack gap-3">
   <div class="table-toolbar">
     <div class="chips" role="group" aria-label="{filter_label}">{chips}</div>
     <div class="row ml-auto">{search_html}{actions_html}</div>
   </div>
-  <div class="table-panel rt-wrap"><table class="data-table rt"><thead><tr>{ths}</tr></thead><tbody>{rows}</tbody></table></div>
+  <div class="table-panel rt-wrap"><table class="{f"data-table rt {table_class}".strip()}"><thead><tr>{ths}</tr></thead><tbody>{rows}</tbody></table></div>
   {f'<div class="pager-line"><span>{pager}</span></div>' if pager else ''}
   {footer}
 </div>"""

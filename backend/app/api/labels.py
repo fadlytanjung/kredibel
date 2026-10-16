@@ -98,6 +98,11 @@ def create_labels_router(provider: ServiceProvider, workspace_dep: Any) -> APIRo
         )
         return {"items": [label_body(lb) for lb in items], "nextCursor": None, "summary": summary}
 
+    @router.post("/sync")
+    async def sync_labels(principal: Principal = Depends(workspace_dep)) -> dict[str, Any]:
+        """Create the labels the stored books imply (spec 016); people's decisions stay."""
+        return {"created": await provider.label_service.sync_all(principal)}
+
     @router.post("/bulk-confirm")
     async def bulk_confirm(
         body: BulkConfirmBody, principal: Principal = Depends(workspace_dep)

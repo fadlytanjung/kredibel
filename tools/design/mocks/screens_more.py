@@ -8,7 +8,22 @@ from decimal import Decimal
 from html import escape
 
 from icons import icon
-from screens import DASH, LOCALES, RISK_WORDS, ROOT, fmt_date, money_code, month_name, month_tabs, seg, sev_badge, words
+from screens import (
+    COMMON_WORDS,
+    DASH,
+    LOCALES,
+    RISK_WORDS,
+    ROOT,
+    column_attrs,
+    data_table,
+    fmt_date,
+    money_code,
+    month_name,
+    month_tabs,
+    seg,
+    sev_badge,
+    words,
+)
 from shell import shell, topbar
 
 # ------------------------------------------------------------------------------------------------
@@ -349,7 +364,8 @@ def page_chips(label: dict, items: list[dict]) -> str:
     return f'<span class="page-chips" aria-label="{lw("pageChips")}">{"".join(chips)}</span>'
 
 
-def label_panel(label: dict) -> str:
+def label_drawer(label: dict) -> str:
+    """One label in the kit's drawer, as features/labels/LabelDrawer.tsx."""
     task, ai = label["task"], label["ai"]
     details = [lw("panel.month", month=MONTH_LONG[int(label["month"][5:7]) - 1]) if label.get("month") else None,
                f'p{label["subject"]["pageNo"]}' if label["subject"].get("pageNo") else None,
@@ -358,12 +374,12 @@ def label_panel(label: dict) -> str:
     options = {"CATEGORY": list(MONTHS_WORDS["categories"]), "DOC_TYPE": ["BANK_STATEMENT", "SALES_INVOICE", "PURCHASE_INVOICE", "RECEIPT", "LEDGER_EXPORT", "OTHER"],
                "PAGE_TYPE": list(LABEL_WORDS["pageTypes"]), "COUNTERPARTY_ROLE": list(LABEL_WORDS["roles"])}.get(task)
     if options:
-        field = f'<select class="select" id="lp-value">' + "".join(f'<option value="{o}"{" selected" if o == label["final"]["value"] else ""}>{value_word(task, o)}</option>' for o in options) + "</select>"
+        field = '<select class="select" id="lp-value">' + "".join(f'<option value="{o}"{" selected" if o == label["final"]["value"] else ""}>{value_word(task, o)}</option>' for o in options) + "</select>"
     else:
         field = f'<input class="input" id="lp-value" value="{escape(label["final"]["value"])}"/>'
     decided = f'<span class="sub">{lw("panel.decidedBy", status=lw(f"status.{label['status']}"), by=label.get("decidedBy") or "", when=fmt_day(label.get("decidedAt")))}</span>' if label["status"] != "AI_PROPOSED" else ""
     similar = f'<label class="check-row"><input type="checkbox" checked/> {lw("panel.applySimilar")}</label>' if task == "CATEGORY" and label["subject"].get("txId") else ""
-    run = f'<a href="runs.html">{label["ai"]["runId"]}</a>{", " + lw("panel.span", span=ai["spanId"]) if ai.get("spanId") else ""}' if ai.get("runId") else "—"
+    run = f'<a href="run.html">{label["ai"]["runId"]}</a>{", " + lw("panel.span", span=ai["spanId"]) if ai.get("spanId") else ""}' if ai.get("runId") else "—"
     dataset = lw("panel.datasetExcluded") if label["dataset"]["use"] == "EXCLUDED" else lw(f"dataset.{label['dataset']['use']}")
     page = label["subject"].get("pageNo") or 1
     md = (LABELS_FIX.get("extractions") or {}).get(label.get("extractionUrl") or "")
@@ -372,38 +388,48 @@ def label_panel(label: dict) -> str:
                        if md else f'<p class="muted small">{lw("panel.noExtraction")}</p>')
     download = f'<button type="button" class="button button-quiet button-sm">{icon("download", "icon icon-sm")}{lw("panel.downloadExtraction", page=page)}</button>' if md else ""
     return f"""
-<aside class="lbl-panel panel" aria-labelledby="lp-h">
-  <div class="lp-main">
-  <div class="lp-head"><span class="task">{lw(f"tasks.{task}")}</span>{status_pill(label)}<a class="icon-button icon-button-sm ml-auto" href="labels.html" aria-label="{lw("panel.close")}">{icon("x", "icon icon-sm")}</a></div>
-  <h2 id="lp-h" class="type-h3">{escape(label["subject"]["display"])}</h2>
-  {f'<p class="muted small">{" · ".join(details)}</p>' if details else ""}
-  <div class="lp-ai">
-    <div><span class="k">{lw("panel.aiProposed")}</span><strong>{value_word(task, ai["value"])}</strong>{decided}</div>
-    {conf(ai["confidence"])}
+<div class="drawer-frame">
+  <a class="drawer-behind" href="labels.html" aria-hidden="true" tabindex="-1"></a>
+  <div class="drawer" role="dialog" aria-modal="true" aria-labelledby="lp-h">
+    <div class="drawer-head">
+      <div class="stack gap-2 flex-1 min-w-0">
+        <div class="lp-head"><span class="task">{lw(f"tasks.{task}")}</span>{status_pill(label)}</div>
+        <h1 id="lp-h">{escape(label["subject"]["display"])}</h1>
+        {f'<p class="muted small">{" · ".join(details)}</p>' if details else ""}
+      </div>
+      <a class="icon-button" href="labels.html" aria-label="{lw("panel.closeLabel")}">{icon("x")}</a>
+    </div>
+    <div class="drawer-body lbl-drawer">
+      <section class="lp-main" aria-label="{lw("panel.decide")}">
+        <div class="lp-ai">
+          <div><span class="k">{lw("panel.aiProposed")}</span><strong>{value_word(task, ai["value"])}</strong>{decided}</div>
+          {conf(ai["confidence"])}
+        </div>
+        <div class="field"><label for="lp-value">{lw(f"panel.correctLabel.{task}")}</label>{field}</div>
+        {similar}
+        <div class="field"><label for="lp-note">{lw("panel.note")} <span class="muted">{lw("panel.noteOptional")}</span></label><input class="input" id="lp-note" placeholder="{lw("panel.notePlaceholder")}"/></div>
+        <div class="row lp-actions"><a class="button button-primary" href="labels.html">{icon("check", "icon icon-sm")}{lw("panel.confirm")}</a><a class="button button-secondary" href="labels.html">{lw("panel.saveCorrection")}</a></div>
+      </section>
+      <aside class="lp-side" aria-label="{lw("panel.evidence")}">
+        <details class="lp-md" open><summary>{icon("markdown", "icon icon-sm")}{extraction_head}</summary>{extraction_body}<div class="row gap-3 flex-wrap">{download}{f'<a class="link small" href="document.html">{lw("openPage")}</a>' if label["subject"].get("docId") else ""}</div></details>
+        <dl class="lp-prov">
+          <div><dt>{lw("panel.model")}</dt><dd>{short_model(ai.get("model")) or "—"}</dd></div>
+          <div><dt>{lw("panel.prompt")}</dt><dd>{escape(ai.get("promptVersion") or "—")}</dd></div>
+          <div><dt>{lw("panel.run")}</dt><dd>{run}</dd></div>
+          <div><dt>{lw("panel.datasetUse")}</dt><dd>{dataset}</dd></div>
+        </dl>
+      </aside>
+    </div>
   </div>
-  <div class="field"><label for="lp-value">{lw(f"panel.correctLabel.{task}")}</label>{field}</div>
-  {similar}
-  <div class="field"><label for="lp-note">{lw("panel.note")} <span class="muted">{lw("panel.noteOptional")}</span></label><input class="input" id="lp-note" placeholder="{lw("panel.notePlaceholder")}"/></div>
-  <div class="row lp-actions"><a class="button button-primary" href="labels.html">{icon("check", "icon icon-sm")}{lw("panel.confirm")}</a><a class="button button-secondary" href="labels.html">{lw("panel.saveCorrection")}</a></div>
-  </div>
-  <div class="lp-side">
-  <details class="lp-md" open><summary>{icon("markdown", "icon icon-sm")}{extraction_head}</summary>{extraction_body}<div class="row gap-3 flex-wrap">{download}{f'<a class="link small" href="document.html">{lw("openPage")}</a>' if label["subject"].get("docId") else ""}</div></details>
-  <dl class="lp-prov">
-    <div><dt>{lw("panel.model")}</dt><dd>{short_model(ai.get("model")) or "—"}</dd></div>
-    <div><dt>{lw("panel.prompt")}</dt><dd>{escape(ai.get("promptVersion") or "—")}</dd></div>
-    <div><dt>{lw("panel.run")}</dt><dd>{run}</dd></div>
-    <div><dt>{lw("panel.datasetUse")}</dt><dd>{dataset}</dd></div>
-  </dl>
-  </div>
-</aside>"""
+</div>"""
 
 
-def labels() -> str:
+def labels_list(selected: dict | None = None) -> str:
+    """The Labels list in the shared DataTable under the task switch, as pages/LabelsPage.tsx."""
     items = LABELS_FIX["items"]
     summary = LABELS_FIX["summary"]
-    selected = items[3]
     trs = []
-    for label in items:
+    for label in items[:10]:
         s = label["subject"]
         sub = " · ".join(x for x in [MONTH_LONG[int(label["month"][5:7]) - 1] if label.get("month") else None, f'p{s["pageNo"]}' if s.get("pageNo") else None, s.get("field")] if x)
         decided = ""
@@ -412,29 +438,45 @@ def labels() -> str:
             if label["status"] == "CORRECTED":
                 parts.append(lw("was", value=value_word(label["task"], label["ai"]["value"])))
             decided = f'<span class="sub">{". ".join(parts)}</span>'
-        ext = (f'<a class="md-link" href="labels.html" title="{lw("openExtraction", page=s.get("pageNo") or 1)}">{icon("markdown", "icon icon-sm")}{lw("extractionFile", page=s.get("pageNo") or 1)}</a>'
+        ext = (f'<a class="md-link" href="label.html" title="{lw("openExtraction", page=s.get("pageNo") or 1)}">{icon("markdown", "icon icon-sm")}{lw("extractionFile", page=s.get("pageNo") or 1)}</a>'
                if label.get("extractionUrl") else f'<span class="muted">{lw("noExtraction")}</span>')
-        run = f'<a class="run-link" href="runs.html">run …{label["ai"]["runId"][-4:]}</a>' if label["ai"].get("runId") else '<span class="muted">—</span>'
-        trs.append(f"""<tr class="is-clickable{" is-selected" if label is selected else ""}">
-  <td class="chk hide-rt"><input type="checkbox" aria-label="{lw("selectRow", subject=s["display"])}"{" disabled" if label["status"] != "AI_PROPOSED" else ""}/></td>
-  <td data-cell="wide"><span class="lbl-subj"><strong>{escape(s["display"])}</strong>{f'<span class="sub">{sub}</span>' if sub else ""}{page_chips(label, items)}</span></td>
-  <td data-cell="wide"><span class="task">{lw(f"tasks.{label['task']}")}</span><span class="lbl-val">{value_word(label["task"], label["final"]["value"])}</span>{decided}</td>
+        run = f'<a class="run-link" href="run.html">{lw("runShort", id=label["ai"]["runId"][-4:])}</a>' if label["ai"].get("runId") else '<span class="muted">—</span>'
+        sel = selected is not None and label["labelId"] == selected["labelId"]
+        trs.append(f"""<tr class="is-clickable{" is-selected" if sel else ""}"{' aria-selected="true"' if sel else ""} tabindex="0">
+  <td{column_attrs("hide chk")}><input type="checkbox" aria-label="{lw("selectRow", subject=s["display"])}"{" disabled" if label["status"] != "AI_PROPOSED" else ""}/></td>
+  <td{column_attrs("wide")}><span class="lbl-subj"><strong>{escape(s["display"])}</strong>{f'<span class="sub">{sub}</span>' if sub else ""}{page_chips(label, items)}</span></td>
+  <td{column_attrs("wide")}><span class="task">{lw(f"tasks.{label['task']}")}</span><span class="lbl-val">{value_word(label["task"], label["final"]["value"])}</span>{decided}</td>
   <td>{conf(label["ai"]["confidence"])}</td>
   <td>{status_pill(label)}</td>
-  <td class="hide-rt small muted">{source_word(label)}</td>
-  <td class="hide-rt">{ext}</td>
-  <td class="hide-rt">{run}</td>
-  <td class="hide-rt"><span class="ds {label['dataset']['use'].lower()}">{lw(f"dataset.{label['dataset']['use']}")}</span></td>
+  <td{column_attrs("hide small muted")}>{source_word(label)}</td>
+  <td{column_attrs("hide")}>{ext}</td>
+  <td{column_attrs("hide")}>{run}</td>
+  <td{column_attrs("hide")}><span class="ds {label['dataset']['use'].lower()}">{lw(f"dataset.{label['dataset']['use']}")}</span></td>
 </tr>""")
     total = summary["total"]
     n = lambda v: f"{v:,}"  # noqa: E731
     tasks = seg("task", [("all", f'{lw("tasks.all")} {n(total)}')] + [(k, f'{lw(f"tasks.{k}")} {n(summary["byTask"][k])}') for k in ("DOC_TYPE", "PAGE_TYPE", "CATEGORY", "COUNTERPARTY_ROLE", "FIELD_VALUE")], "all", lw("taskLabel"))
     needs = summary["needsCheck"]
-    counts = [("needs", needs), ("proposed", max(summary["byStatus"]["AI_PROPOSED"] - needs, 0)), ("verified", summary["byStatus"]["VERIFIED"]), ("corrected", summary["byStatus"]["CORRECTED"])]
-    chips = "".join(f'<a class="chip" href="labels.html" aria-pressed="false">{lw(f"statuses.{k}")} <span class="n">{n(v)}</span></a>' for k, v in counts)
+    counts = [("all", total), ("needs", needs), ("proposed", max(summary["byStatus"]["AI_PROPOSED"] - needs, 0)), ("verified", summary["byStatus"]["VERIFIED"]), ("corrected", summary["byStatus"]["CORRECTED"])]
     checked = summary["verified"] + summary["corrected"]
     lead = lw("lead", checked=n(checked), total=n(total), agreement=f'{summary["aiAgreementOnChecked"] * 100:.1f}%') if checked and summary.get("aiAgreementOnChecked") is not None else lw("leadNoneChecked")
-    content = f"""
+    actions = (f'<span class="muted small">{lw("selected", count=0)}</span>'
+               f'<button class="button button-secondary button-sm" type="button" disabled>{icon("check", "icon icon-sm")}{lw("confirmSelected")}</button>'
+               f'<button class="button button-secondary button-sm" type="button">{icon("sparkles", "icon icon-sm")}{lw("sync")}</button>')
+    foot = f"""<div class="spread lbl-foot"><p class="muted small">{lw("foot", shown=n(len(items)), total=n(total))}</p>
+      <button class="button button-secondary button-sm" type="button" disabled>{icon("download", "icon icon-sm")}{lw("exportLater")}</button></div>"""
+    columns = [(f'<span class="inline-flex items-center gap-1"><span class="sr-only">{lw("columns.select")}</span></span>', "hide chk"), (lw("columns.subject"), "wide"), (lw("columns.label"), "wide"),
+               (lw("columns.confidence"), ""), (lw("columns.status"), ""), (lw("columns.source"), "hide small muted"), (lw("columns.extraction"), "hide"),
+               (lw("columns.run"), "hide"), (lw("columns.dataset"), "hide")]
+    pager = words(COMMON_WORDS, "table.showingRange", **{"from": 1, "to": min(len(items), 10), "total": len(items)})
+    if len(items) > 10:
+        pages = -(-len(items) // 10)
+        pager += (f'</span><span class="row items-center gap-2"><button class="button button-secondary button-sm" type="button" disabled>{words(COMMON_WORDS, "table.previous")}</button>'
+                  f'<span class="muted small">{words(COMMON_WORDS, "table.page", current=1, total=pages)}</span>'
+                  f'<button class="button button-secondary button-sm" type="button">{words(COMMON_WORDS, "table.next")}</button>')
+    table = data_table([(lw(f"statuses.{k}"), n(v)) for k, v in counts], 0, lw("statusFilter"), lw("search"), columns, "".join(trs),
+                       actions=actions, pager=pager, footer=foot, table_class="lbl-table")
+    return f"""
 <div class="page">
   <div class="page-head">
     <h1 class="type-title">{lw("title")}</h1>
@@ -442,19 +484,18 @@ def labels() -> str:
   </div>
   <div class="stack gap-3">
     <div class="spread lbl-tools">{tasks}<span class="fw-pill">{icon("book", "icon icon-sm")}{lw("framework", framework="IFRS")} <a href="plan-usage.html">{lw("changeFramework")}</a></span></div>
-    <div class="chips" role="group" aria-label="{lw("statusFilter")}">{chips}</div>
-    <div class="bulk-bar"><span><strong>{lw("selected", count=0)}</strong></span><button class="button button-secondary button-sm" type="button" disabled>{icon("check", "icon icon-sm")}{lw("confirmSelected")}</button><span class="muted small">{lw("bulkHint")}</span></div>
-    <div class="lbl-layout">
-      <div class="table-panel rt-wrap"><table class="data-table rt lbl-table">
-        <thead><tr><th class="chk hide-rt"><span class="sr-only">{lw("columns.select")}</span></th><th>{lw("columns.subject")}</th><th>{lw("columns.label")}</th><th>{lw("columns.confidence")}</th><th>{lw("columns.status")}</th><th class="hide-rt">{lw("columns.source")}</th><th class="hide-rt">{lw("columns.extraction")}</th><th class="hide-rt">{lw("columns.run")}</th><th class="hide-rt">{lw("columns.dataset")}</th></tr></thead>
-        <tbody>{''.join(trs)}</tbody></table></div>
-      {label_panel(selected)}
-    </div>
-    <div class="spread lbl-foot"><p class="muted small">{lw("foot", shown=n(len(items)), total=n(total))}</p>
-      <button class="button button-secondary button-sm" type="button" disabled>{icon("download", "icon icon-sm")}{lw("exportLater")}</button></div>
+    {table}
   </div>
 </div>"""
-    return shell("labels", topbar(lw("title"), (lw("title"),)), content)
+
+
+def labels() -> str:
+    return shell("labels", topbar(lw("title"), (lw("title"),)), labels_list())
+
+
+def label() -> str:
+    selected = LABELS_FIX["items"][3]
+    return shell("labels", topbar(lw("title"), (lw("title"),)), labels_list(selected) + label_drawer(selected))
 
 
 # per-page classifier strip for the docs page of each document (used in the samples index)
@@ -649,12 +690,14 @@ SCREENS_MORE = {
     "clients": ("Clients and suppliers", clients),
     "counterparty": ("Client or supplier", counterparty),
     "labels": ("Labels", labels),
+    "label": ("Label", label),
     "runs": ("Runs", runs),
 }
 NOTES_MORE = {
     "risk": "Findings grouped by month with their severity and status; each opens the evidence viewer.",
     "clients": "Clients and suppliers built from the books; a supplier paid to a new account is flagged.",
     "counterparty": "One client or supplier: totals by month, accounts seen with first and last use, its bank lines and documents.",
-    "labels": "Every AI decision a person can check, lowest confidence first, with per-page types, extraction files, runs and dataset use.",
+    "labels": "Every AI decision a person can check, lowest confidence first, in the shared table under the task switch, with bulk confirmation and labels created from the books.",
+    "label": "One label in a drawer over the list: the AI's proposal and the correction beside the page's extraction and provenance.",
     "runs": "Run history like a tracing tool: runs, a span waterfall, and the selected model call with its request, response and label.",
 }

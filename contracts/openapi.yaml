@@ -1141,6 +1141,27 @@ paths:
         "404": { $ref: "#/components/responses/Problem" }
         "422": { $ref: "#/components/responses/Problem" }
 
+  /api/labels/sync:
+    post:
+      tags: [labels]
+      operationId: syncLabels
+      description: |
+        Create the labels the stored books imply (a workspace read before labels existed): a CATEGORY
+        label per categorized bank line, a DOC_TYPE label per document, a FIELD_VALUE label per value
+        the readings did not agree on. Safe to repeat; a person's decision never changes. Owner,
+        accountant or reviewer.
+      responses:
+        "200":
+          description: Labels written
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [created]
+                properties:
+                  created: { type: integer }
+        "403": { $ref: "#/components/responses/Problem" }
+
   /api/labels/bulk-confirm:
     post:
       tags: [labels]

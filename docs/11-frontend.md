@@ -150,7 +150,7 @@ put):
 | `/risk/:findingId` | Risk + EvidenceViewer | Deep link to a finding's evidence |
 | `/counterparties`, `/counterparties/:id` | Clients and suppliers | List and detail with totals by month and accounts seen |
 | `/assistant`, `/assistant/:threadId` | Assistant (P1) | |
-| `/labels`, `/labels/:labelId` | Labels (P1) | Filters `task`, `status`, `docId`, `needsCheck` (default: needs a check, lowest confidence first); the ID opens the label panel |
+| `/labels`, `/labels/:labelId` | Labels (P1) | Filters `task`, `status` (lowest confidence first); the ID opens the label in a drawer over the list |
 | `/runs`, `/runs/:runId` | Runs (P1) | Owner only. Filters `kind`, `status`, `hasCorrections`; the ID opens the span waterfall; `?span=` selects a call |
 | `/settings/:section` | Settings | `profile`, `bank-accounts`, `language`, `plan`, `members` (P1). Compact: `/settings` is a list of sections |
 | `*` | NotFound | |
@@ -327,7 +327,7 @@ express (drawer versus full page).
 |---|---|---|---|
 | App frame | Top bar (mark or back, title, bell); bottom nav; floating **Upload** | Rail with short labels and the avatar (opens Settings); top bar with breadcrumbs, search and **Upload** | Labelled sidebar with workspace, trial status and profile (opens Settings) |
 | Dashboard | Sentence, figures in 2 columns, **Needs you**, risk, then the charts one under the other (money flow as ranked bars), months scroll with snap | Figures in 2 columns; Needs you and Risk stacked; charts full width, medium drawings (Sankey from 640 px of panel) | Figures in 6 columns; Needs you beside Risk; charts full width, one per row, wide drawings from 960 px of panel; months in one row |
-| Labels (P1) | Rows as cards (subject, value, confidence, status); the label panel opens as a page | Table from 760 px of container; panel below the table | Table with source, extraction, run and dataset columns; panel below with the form beside the provenance |
+| Labels (P1) | Rows as cards (subject, value, confidence, status); the label drawer fills the screen, the form above the extraction | Shared table; the drawer with the form beside the extraction and provenance | Shared table with source, extraction, run and dataset columns; the same drawer |
 | Runs (P1) | Runs as cards; span waterfall with the bar under each name; inspector below | Table; waterfall beside names | Table; waterfall; inspector below with the call beside its request and response |
 | Documents | **Choose files** and **Photo of a receipt**; rows as cards (risk, status) | Drop area; table from 760 px of container | Drop area and full table |
 | Month | Figures in 2 columns; explanation; bank lines as cards with the match chip and reason | Figures in 2 columns; table | Figures in 6 columns; table |
@@ -741,7 +741,7 @@ The mark, its construction and where it is used are in [`12`](12-design-system.m
 
 ### 6.11 Labels (P1)
 
-<p><img src="assets/mocks/labels-desktop.png" alt="Labels at 1440 px: a sentence on how many labels people checked and how often the AI was right, task and status filters, the table of labels with per-page types, confidence, status, extraction file and run, and the panel for one label below" width="66%"> <img src="assets/mocks/labels-mobile.png" alt="Labels on a phone: labels as cards with confidence and status" width="26%"></p>
+<p><img src="assets/mocks/labels-desktop.png" alt="Labels at 1440 px: a sentence on how many labels people checked and how often the AI was right, the task switch, and the shared table of labels with status chips, search, bulk confirmation, per-page types, confidence, status, extraction file and run" width="66%"> <img src="assets/mocks/labels-mobile.png" alt="Labels on a phone: labels as cards with confidence and status" width="26%"></p>
 
 Every decision the AI made that a person can check: document type, page type, category, counterparty
 role and read values ([ADR-016](adr/ADR-016-human-verified-labels-and-learning-loop.md),
@@ -750,8 +750,9 @@ role and read values ([ADR-016](adr/ADR-016-human-verified-labels-and-learning-l
 - **Header sentence** from the `summary` returned with `GET /api/labels`: "212 of 1,284 labels checked by people; the
   AI was right on 94.8% of them. 37 need a check."
 - **Filters:** a segmented control by task (All, Document type, Page type, Category, Role, Value,
-  with counts); chips by status (Needs a check, AI proposed, Verified, Corrected). The framework in
-  use is stated with a link to change it in Settings. Default order: needs a check, lowest
+  with counts) above the shared table (docs/12 §7), whose chips filter by status (All, Needs a
+  check, AI proposed, Verified, Corrected) with the workspace's counts, and a search over the loaded
+  labels. The framework in use is stated with a link to change it in Settings. Order: lowest
   confidence first.
 - **Table:** subject (file and page, or the bank line) with its **per-page type chips** (`p1 Summary
   0.99`, `p3 Terms or cover 0.62`, low ones tinted); the value; confidence as a small meter; status
@@ -759,13 +760,20 @@ role and read values ([ADR-016](adr/ADR-016-human-verified-labels-and-learning-l
   match or person); the **extraction file** (`p2.md`, the page as Markdown); the run; dataset use
   (Eval, Train, Excluded). On phones each row is a card.
 - **Bulk:** select several and **Confirm as proposed**; corrections are one at a time.
-- **Label panel:** what the AI proposed with its confidence and reason, a field to correct it (the
+- **Create labels from your books** (`POST /api/labels/sync`): books read before labels existed
+  get theirs, a `CATEGORY` label for every categorized bank line (even one matched with 0.99), a
+  `DOC_TYPE` label for every document and a `FIELD_VALUE` label for every value the readings did
+  not agree on. Safe to repeat; a person's decision never changes. Every month run does the same
+  for its month, and a category set on the month page is recorded as the person's decision.
+- **Label drawer** (the kit's drawer, as the evidence viewer; Esc closes): what the AI proposed with its confidence and reason, a field to correct it (the
   category list shows each category's statement line under the workspace's framework), **Apply to
   similar lines from …** (creates a workspace rule), an optional note, **Confirm** or **Save
   correction**; beside it, the extraction preview with **Open p1.md** and the provenance (model,
   prompt version, run and span, dataset use).
 - The footer says that verified labels are used only as examples and evals inside this workspace
   while training consent is off; **Export dataset** stays disabled until P2.
+
+<p><img src="assets/mocks/label-desktop.png" alt="One label in the drawer at 1440 px: the AI's proposal with its confidence, the category field, apply to similar lines, a note and Confirm, beside the page's extraction file and the provenance" width="66%"> <img src="assets/mocks/label-mobile.png" alt="The label drawer on a phone: the form above the extraction" width="26%"></p>
 
 ### 6.12 Runs (P1, owner only)
 

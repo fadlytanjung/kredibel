@@ -13,7 +13,7 @@ import { DocumentPage } from '../pages/DocumentPage'
 import { MonthPage } from '../pages/MonthPage'
 import { MonthsPage } from '../pages/MonthsPage'
 import { ReviewPage } from '../pages/ReviewPage'
-import { LabelsPage } from '../pages/LabelsPage'
+import { LabelsContent } from '../pages/LabelsPage'
 import { RiskPage } from '../pages/RiskPage'
 import { RunsContent } from '../pages/RunsPage'
 import { SettingsPage } from '../pages/SettingsPage'
@@ -94,7 +94,7 @@ export function RiskPreview() {
 export function LabelsPreview() {
   return (
     <AppShell {...PREVIEW_PROPS} activePath="/labels" onUpload={() => undefined}>
-      <LabelsPage />
+      <LabelsContent canDecide basePath="/preview/labels" />
     </AppShell>
   )
 }

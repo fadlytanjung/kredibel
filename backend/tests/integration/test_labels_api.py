@@ -225,3 +225,63 @@ async def test_ac013_18_a_viewer_reads_labels_but_cannot_decide():
             json={"labelIds": [by_task["CATEGORY"].label_id]},
         )
         assert denied.status_code == 403
+
+
+async def test_ac016_1_labels_for_books_read_before_labels_existed_and_safe_to_repeat():
+    from app.domain.models.document import DocStatus, DocType, Document
+
+    deps, _ = _deps()
+    await deps.doc_repo.save_document(
+        ORG,
+        Document(
+            doc_id="doc_may",
+            file_name="ACB_May_2026.pdf",
+            content_type="application/pdf",
+            size_bytes=1,
+            page_count=1,
+            sha256="b" * 64,
+            gcs_path="gs://synthetic/doc_may.pdf",
+            uploaded_by="u-1",
+            uploaded_at=AT,
+            doc_type=DocType.BANK_STATEMENT,
+            type_confidence=D("0.99"),
+            status=DocStatus.DONE,
+            months=["2026-05"],
+        ),
+    )
+    await deps.bank_lines.replace_document_lines(
+        ORG,
+        "doc_may",
+        [
+            line("tx_1", "-24500000.00", "Roastline Equipment Service", 6),
+            line("tx_2", "-1200000.00", "Roastline Equipment Service", 20),
+        ],
+    )
+    async with _client(deps) as client:
+        assert (await client.get("/api/labels", headers=AUTH)).json()["summary"]["total"] == 0
+        res = await client.post("/api/labels/sync", headers=AUTH)
+        assert res.status_code == 200 and res.json() == {"created": 3}
+        page = (await client.get("/api/labels", headers=AUTH)).json()
+        assert (
+            page["summary"]["byTask"]["CATEGORY"] == 2
+            and page["summary"]["byTask"]["DOC_TYPE"] == 1
+        )
+        # Even a 0.99 decision is a label a person can still correct.
+        doc_label = next(i for i in page["items"] if i["task"] == "DOC_TYPE")
+        assert doc_label["ai"]["confidence"] == 0.99 and doc_label["status"] == "AI_PROPOSED"
+        again = await client.post("/api/labels/sync", headers=AUTH)
+        assert again.json() == {"created": 0}, "nothing new, nothing written"
+
+
+async def test_ac016_6_a_category_set_on_the_month_page_is_the_person_s_correction():
+    deps, _ = _deps()
+    repo, by_task = await _seed(deps)
+    async with _client(deps) as client:
+        res = await client.patch(
+            "/api/bank-lines/tx_1", headers=AUTH, json={"category": "INVENTORY_PURCHASE"}
+        )
+        assert res.status_code == 200, res.text
+    label = await repo.get(ORG, by_task["CATEGORY"].label_id)
+    assert label is not None and label.status == "CORRECTED"
+    assert label.final_value == "INVENTORY_PURCHASE" and label.ai.value == "SUPPLIER_PAYMENT"
+    assert label.decided_by == "u-1" and repo.events[-1].type == "LABEL_CORRECTED"

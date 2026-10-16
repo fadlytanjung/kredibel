@@ -20,6 +20,7 @@ def build_month_workflow(deps: PipelineDeps) -> Workflow:
     build_flows = m.build_flows(deps, pending)
     sync_review_items = m.sync_review_items(deps, pending)
     finalize_month = m.finalize_month(deps, pending)
+    sync_labels = m.sync_labels(deps)
 
     return Workflow(
         name="month_workflow",
@@ -34,5 +35,6 @@ def build_month_workflow(deps: PipelineDeps) -> Workflow:
             (explain_month, build_flows),
             (build_flows, sync_review_items),
             (sync_review_items, finalize_month),
+            (finalize_month, sync_labels),
         ],
     )

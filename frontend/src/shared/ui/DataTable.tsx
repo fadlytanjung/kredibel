@@ -17,6 +17,9 @@ import { useTranslation } from 'react-i18next'
 import { Button } from './Button'
 import { Icon } from './Icon'
 
+/** Chip counts with thousands separators, as the pages print other counts ("1,284"). */
+const countText = (n: number) => n.toLocaleString('en')
+
 export interface DataTableColumn<T> {
   key: string
   header: ReactNode
@@ -207,7 +210,7 @@ export function DataTable<T>({
                     aria-pressed={currentFilterKey === f.key}
                     onClick={() => handleFilterSelect(f.key)}
                   >
-                    {f.label} <span className="n">{count}</span>
+                    {f.label} <span className="n">{countText(count)}</span>
                   </button>
                 )
               })}

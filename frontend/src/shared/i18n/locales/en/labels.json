@@ -18,6 +18,7 @@
   "changeFramework": "Change",
   "statusFilter": "Filter by status",
   "statuses": {
+    "all": "All",
     "needs": "Needs a check",
     "proposed": "AI proposed",
     "verified": "Verified",
@@ -116,9 +117,12 @@
     "cashflow": "{{framework}}: {{cashflow}}",
     "extractionOf": "Extraction, page {{page}}",
     "downloadExtraction": "Download p{{page}}.md",
-    "extractionLoading": "Loading the extraction…"
+    "extractionLoading": "Loading the extraction…",
+    "closeLabel": "Close label",
+    "decide": "Your decision",
+    "evidence": "Extraction and provenance"
   },
-  "foot": "Showing {{shown}} of {{total}}, lowest confidence first. Training consent is off: verified labels are used only as examples and evals inside this workspace.",
+  "foot": "{{shown}} of {{total}} labels loaded, lowest confidence first. Training consent is off: verified labels are used only as examples and evals inside this workspace.",
   "exportLater": "Export dataset (later)",
   "empty": "No labels yet. Labels appear as documents are read and bank lines categorized.",
   "loading": "Loading labels…",
@@ -127,5 +131,12 @@
   "runShort": "run …{{id}}",
   "pageChipText": "p{{page}} {{type}}",
   "extractionFile": "p{{page}}.md",
-  "openExtraction": "Open the extraction of page {{page}}"
+  "openExtraction": "Open the extraction of page {{page}}",
+  "search": "Search labels",
+  "sync": "Create labels from your books",
+  "syncing": "Creating labels…",
+  "syncDone_one": "{{shown}} label created from your books.",
+  "syncDone_other": "{{shown}} labels created from your books.",
+  "syncNone": "Every categorized line, document and unsettled value already has its label.",
+  "emptyCanSync": "Books read before labels existed have none yet. Create them here; a month run also keeps them current."
 }

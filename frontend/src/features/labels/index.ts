@@ -1,2 +1,2 @@
-export * from './LabelPanel'
+export * from './LabelDrawer'
 export * from './words'

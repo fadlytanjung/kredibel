@@ -52,6 +52,13 @@ from app.domain.extraction_markdown import (
 )
 from app.domain.findings import Evidence, Finding, finding_id
 from app.domain.invoice_records import build_invoices, build_receipts, document_type_of
+from app.domain.label_sync import (
+    ReadRecord,
+    document_records,
+    line_records,
+    model_reading,
+    value_labels,
+)
 from app.domain.labels import LabelSubject, propose
 from app.domain.layout import Chunk, chunk_page, chunks_from_json, chunks_to_json, render_chunks
 from app.domain.ledger_parse import (
@@ -834,56 +841,20 @@ def _first_line(text: str | None) -> str:
     return text.splitlines()[0] if text else ""
 
 
-@dataclass(frozen=True)
-class _ReadRecord:
-    """One record a page produced, with what the extraction file and the value labels need."""
-
-    page: int
-    title: str
-    consensus: dict[str, Any]
-    month: str | None
-    tx_id: str | None = None
-
-
 async def _read_records(
     deps: PipelineDeps, org_id: str, doc: Document, task: str
-) -> list[_ReadRecord]:
-    out: list[_ReadRecord] = []
+) -> list[ReadRecord]:
     if task == "statement_page" and deps.bank_lines is not None:
-        for line in await deps.bank_lines.list_lines(org_id, doc_id=doc.doc_id, limit=5000):
-            out.append(
-                _ReadRecord(
-                    page=line.page,
-                    title=f"Row {line.row_index}",
-                    consensus=dict(line.consensus or {}),
-                    month=line.month,
-                    tx_id=line.tx_id,
-                )
-            )
-        return out
-    records: list[Any] = []
+        return line_records(await deps.bank_lines.list_lines(org_id, doc_id=doc.doc_id, limit=5000))
     if task == "invoice_page" and deps.invoices is not None:
-        records = list(await deps.invoices.list_records(org_id, doc_id=doc.doc_id))
-    elif task == "receipt_page" and deps.receipts is not None:
-        records = list(await deps.receipts.list_records(org_id, doc_id=doc.doc_id))
-    for record in records:
-        number = getattr(record, "number", None)
-        noun = "Receipt" if task == "receipt_page" else "Invoice"
-        title = f"{noun} {number}" if number else noun
-        by_page: dict[int, dict[str, Any]] = {}
-        for name, info in (getattr(record, "consensus", None) or {}).items():
-            if isinstance(info, dict):
-                by_page.setdefault(int(info.get("page") or 1), {})[name] = info
-        for page_no, consensus in sorted(by_page.items()):
-            out.append(
-                _ReadRecord(
-                    page=page_no,
-                    title=title,
-                    consensus=consensus,
-                    month=getattr(record, "month", None),
-                )
-            )
-    return out
+        return document_records(
+            "Invoice", await deps.invoices.list_records(org_id, doc_id=doc.doc_id)
+        )
+    if task == "receipt_page" and deps.receipts is not None:
+        return document_records(
+            "Receipt", await deps.receipts.list_records(org_id, doc_id=doc.doc_id)
+        )
+    return []
 
 
 def _reading(info: dict[str, Any], source: str) -> str | None:
@@ -893,58 +864,28 @@ def _reading(info: dict[str, Any], source: str) -> str | None:
     return str(value) if value is not None else None
 
 
-def _model_value(info: dict[str, Any]) -> str | None:
-    return _reading(info, "GEMINI")
-
-
 async def _value_labels(
     deps: PipelineDeps,
     org_id: str,
     doc: Document,
-    records: list[_ReadRecord],
+    records: list[ReadRecord],
     model: str,
     prompt_version: str,
     node_input: dict[str, Any],
 ) -> None:
-    # AC-016-1: a value the readings did not agree on (CONFLICT, SINGLE_SOURCE) is a label asking a
-    # person; agreed values are grounded already. The label holds the model's reading, masked.
     if deps.learning is None or deps.labels is None:
         return
     at = deps.clock.now()
     run_id = node_input.get("runId")
-    labels = []
-    for record in records:
-        for name, info in record.consensus.items():
-            if not isinstance(info, dict) or info.get("status") not in (
-                "CONFLICT",
-                "SINGLE_SOURCE",
-            ):
-                continue
-            value = mask_numbers_in_text(_model_value(info) or "")
-            labels.append(
-                propose(
-                    "FIELD_VALUE",
-                    LabelSubject(
-                        display=f"{doc.file_name}, {record.title.lower()} · {name}",
-                        doc_id=doc.doc_id,
-                        page_no=record.page,
-                        field=name,
-                        tx_id=record.tx_id,
-                    ),
-                    decision(
-                        value,
-                        source="MODEL",
-                        at=at,
-                        model=model,
-                        prompt_version=prompt_version,
-                        run_id=run_id,
-                    ),
-                    policy=deps.learning,
-                    month=record.month,
-                    page_image_url=page_image(doc.doc_id, record.page),
-                    extraction_url=extraction_path(doc.doc_id, record.page),
-                )
-            )
+    labels = value_labels(
+        doc.doc_id,
+        doc.file_name,
+        records,
+        decision=lambda value: decision(
+            value, source="MODEL", at=at, model=model, prompt_version=prompt_version, run_id=run_id
+        ),
+        policy=deps.learning,
+    )
     await write_labels(deps, org_id, labels)
 
 
@@ -952,7 +893,7 @@ async def _write_extractions(
     deps: PipelineDeps,
     org_id: str,
     doc: Document,
-    records: list[_ReadRecord],
+    records: list[ReadRecord],
     method: str,
     page_agreement: dict[int, float],
     model: str,
@@ -973,7 +914,7 @@ async def _write_extractions(
                     ValueReading(
                         name,
                         str(info.get("status") or "MISSING"),
-                        _model_value(info),
+                        model_reading(info),
                         _reading(info, "TEXT_LAYER"),
                     )
                     for name, info in r.consensus.items()

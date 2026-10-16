@@ -1,7 +1,7 @@
 /**
  * Labels page parity with its mock (spec 016, AC-016-5, AC-016-6; spec 019 AC-019-4): the same
- * synthetic fixture as design/mocks/labels.html, three widths, 360/1600 bounds, axe. The lead
- * sentence, the task switch, the status chips, every row and the open panel are compared.
+ * synthetic fixture as design/mocks/labels.html and label.html, three widths, 360/1600 bounds, axe.
+ * The lead sentence, the task switch, the shared table's chips and rows, and the open drawer are compared.
  */
 import { expect, type Page, test } from '@playwright/test'
 import { createRequire } from 'node:module'
@@ -38,14 +38,15 @@ async function noOverflow(page: Page) {
   expect(overflow).toBeLessThanOrEqual(0)
 }
 
-/** The page as a person sees it: lead, task switch, chips, each row's words and the panel. */
-async function outline(page: Page) {
+/** The list as a person sees it: lead, task switch, chips, each row's words and the pager. */
+async function listOutline(page: Page) {
   return {
-    headings: await texts(page, '#content :is(h1, h2):visible'),
+    headings: await texts(page, '#content .page-head h1'),
     lead: await texts(page, '#content .page-head p'),
     tasks: await texts(page, '#content .seg button'),
     chips: await texts(page, '#content .chips .chip'),
-    bulk: await texts(page, '#content .bulk-bar strong'),
+    search: await page.locator('#content .table-search-input').getAttribute('placeholder'),
+    actions: await texts(page, '#content .table-actions > *'),
     columns: await texts(page, '#content .lbl-table th:visible'),
     subjects: await texts(page, '#content .lbl-table .lbl-subj strong'),
     pageChips: (await texts(page, '#content .lbl-table .pchip')).map((s) => s.replace(/\s/g, '')),
@@ -55,29 +56,74 @@ async function outline(page: Page) {
     statuses: await texts(page, '#content .lbl-table .lbl-status'),
     sources: await texts(page, '#content .lbl-table td.small.muted:visible'),
     datasets: await texts(page, '#content .lbl-table .ds:visible'),
-    panelHead: await texts(page, '#content .lbl-panel .lp-head > span'),
-    panelAi: await texts(page, '#content .lbl-panel .lp-ai strong'),
-    panelFields: await texts(page, '#content .lbl-panel .field label'),
-    panelProvenance: await texts(page, '#content .lbl-panel .lp-prov dt'),
-    extraction: await texts(page, '#content .lbl-panel .lp-md summary, #content .lbl-panel .lp-md pre'),
     extractionLinks: await texts(page, '#content .lbl-table .md-link'),
-    panelActions: await texts(page, '#content .lbl-panel .lp-actions .button'),
+    pager: await texts(page, '#content .pager-line > span'),
     foot: await texts(page, '#content .lbl-foot p'),
+  }
+}
+
+/** The open label: its head, the decision, the extraction and the provenance. */
+async function drawerOutline(page: Page) {
+  return {
+    head: await texts(page, '.drawer-head :is(.lp-head > span, h1, p)'),
+    ai: await texts(page, '.drawer .lp-ai strong'),
+    fields: await texts(page, '.drawer .field label'),
+    provenance: await texts(page, '.drawer .lp-prov dt'),
+    extraction: await texts(page, '.drawer .lp-md summary, .drawer .lp-md pre'),
+    actions: await texts(page, '.drawer .lp-actions .button'),
+    selectedRow: await texts(page, '#content .lbl-table tr.is-selected .lbl-subj strong'),
   }
 }
 
 test('AC-016-5: the labels page lists every AI decision with its confidence and status like the mock', async ({ page }) => {
   await serve(page)
-  await page.goto(`/preview/labels/${OPEN}`)
+  await page.goto('/preview/labels')
   await expect(page.getByRole('heading', { name: 'Labels' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'TRANSFER OUT ROASTLINE EQUIPMENT' })).toBeVisible()
-  await expect(page.locator('.lp-md pre')).toContainText('MERIDIAN SAVINGS ••••7720')
+  await expect(page.locator('.lbl-table tbody tr')).toHaveCount(10)
   await noOverflow(page)
-  await expect(page).toHaveScreenshot('labels.png', { fullPage: true, mask: [page.locator('select')] })
+  await expect(page).toHaveScreenshot('labels.png', { fullPage: true })
   await axeClean(page)
-  const implementation = await outline(page)
+  const implementation = await listOutline(page)
   await page.goto(mockUrl('labels'))
-  expect(await outline(page)).toEqual(implementation)
+  expect(await listOutline(page)).toEqual(implementation)
+})
+
+test('AC-016-6: a label opens in a drawer with its extraction like the mock', async ({ page }) => {
+  await serve(page)
+  await page.goto('/preview/labels')
+  await page.getByRole('row', { name: /TRANSFER OUT ROASTLINE EQUIPMENT/ }).click()
+  const drawer = page.getByRole('dialog')
+  await expect(drawer.getByRole('heading', { name: 'TRANSFER OUT ROASTLINE EQUIPMENT' })).toBeVisible()
+  await expect(page).toHaveURL(new RegExp(`/labels/${OPEN}$`))
+  await expect(drawer.locator('.lp-md pre')).toContainText('MERIDIAN SAVINGS ••••7720')
+  await noOverflow(page)
+  await expect(page).toHaveScreenshot('label.png', { mask: [page.locator('select')] })
+  await axeClean(page)
+  const implementation = { ...(await listOutline(page)), ...(await drawerOutline(page)) }
+  await page.goto(mockUrl('label'))
+  expect({ ...(await listOutline(page)), ...(await drawerOutline(page)) }).toEqual(implementation)
+  await page.goto(`/preview/labels/${OPEN}`)
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+})
+
+test('AC-016-1: books read before labels existed get theirs from one button', async ({ page }) => {
+  let synced = false
+  await page.route((url) => url.pathname.startsWith('/api/'), (route) => {
+    const path = new URL(route.request().url()).pathname
+    if (path === '/api/labels/sync') {
+      synced = true
+      return route.fulfill({ json: { created: 1284 } })
+    }
+    if (path === '/api/labels') return route.fulfill({ json: synced ? LABELS : { items: [], nextCursor: null, summary: { ...LABELS.summary, total: 0, needsCheck: 0, verified: 0, corrected: 0, aiAgreementOnChecked: null, byTask: {}, byStatus: {} } } })
+    if (path === '/api/workspace') return route.fulfill({ json: WORKSPACE })
+    return route.fulfill({ json: { items: [] } })
+  })
+  await page.goto('/preview/labels')
+  await expect(page.getByText('Books read before labels existed have none yet.', { exact: false })).toBeVisible()
+  await page.getByRole('button', { name: 'Create labels from your books' }).first().click()
+  await expect(page.getByRole('status')).toHaveText('1,284 labels created from your books.')
+  await expect(page.locator('.lbl-table tbody tr')).toHaveCount(10)
 })
 
 test('AC-016-6: a correction is one at a time, with a note and the remembered rule', async ({ page }) => {
@@ -89,7 +135,7 @@ test('AC-016-6: a correction is one at a time, with a note and the remembered ru
     return route.fulfill({ json: decided })
   })
   await page.goto(`/preview/labels/${OPEN}`)
-  const panel = page.getByRole('complementary')
+  const panel = page.getByRole('dialog')
   await expect(panel.getByRole('button', { name: 'Save correction' })).toBeDisabled()
   await panel.getByLabel('Category').selectOption('INVENTORY_PURCHASE')
   await expect(panel.getByRole('button', { name: 'Confirm' })).toBeDisabled()

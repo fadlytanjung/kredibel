@@ -285,7 +285,7 @@ The witness produces **words with boxes** for a page, normalized to the page (0.
 | Source | How | Cost | Cache key |
 |---|---|---|---|
 | `TEXT_LAYER` | `pdfplumber.extract_words(keep_blank_chars=False, use_text_flow=False)` plus `fontname`/`size` per word | free (CPU) | none needed |
-| `OCR` | Document AI **Enterprise Document OCR** processor (`DOCAI_OCR_PROCESSOR_ID`, `DOCAI_OCR_VERSION`), one request per page image, tokens with bounding polygons (`adapters/docai_ocr.py`, built 16 Oct 2026, spec 022 phase B) for every page without a usable text layer; tokens with no break between them join into one word and every word takes its OCR line's median top and bottom (`domain/ocr_words.py`), so punctuation, tilted lines and stray marks read like a text layer | USD 1.50 / 1,000 pages | `cache/extraction/{pageImageSha256}/ocr-{version}.w{WORDS_REVISION}.json` |
+| `OCR` | Document AI **Enterprise Document OCR** processor (`DOCAI_OCR_PROCESSOR_ID`, `DOCAI_OCR_VERSION`), one request per page image, tokens with bounding polygons (`adapters/docai_ocr.py`, built 16 Oct 2026, spec 022 phase B) for every page without a usable text layer; tokens with no break between them join into one word and every word takes its OCR line's median top and bottom (`domain/ocr_words.py`), so punctuation, tilted lines and stray marks read like a text layer | USD 1.50 / 1,000 pages | `cache/extraction/{pageImageSha256}/ocr-{version}.w{WORDS_REVISION}.json`; the page reading is cached under a hash of the chunks the model saw, so new words or a new layout read the page again |
 
 The witness never interprets the page: it does not decide what is a row or a total. It only says
 "these strings are printed here".
@@ -381,11 +381,17 @@ belong to a row when a citation is missing), `CONFLICT` when the cited chunk hol
 8. **Continuations.** A reader row with no date and no amounts is the rest of a wrapped description:
    it joins the row above, or, at the top of a page, the previous page's last row.
 9. **Same-day rows.** Many statements (Indonesian *rekening koran* among them) print the date only
-   on the first transaction of each day. A line with its own amount in one of the row's amount
-   columns is its own row chunk even without a date (`layout._same_day_row`); the reader returns it
-   with an empty date; grounding takes the next undated row chunk for it and compares no date; the
-   bank line takes the date of the row above, with the note *date of the row above* (16 Oct 2026,
-   found on a real scanned statement whose same-day rows had been dropped).
+   on the first transaction of each day. A dated row block that prints a second running balance
+   holds a second transaction: each further balance starts a row chunk, with the lines without
+   amounts just above it as its description (`layout._same_day_rows`); the reader returns such a
+   row with an empty date (`read_statement_page` v3); grounding takes the next undated row chunk
+   for it and compares no date; the bank line takes the date of the row above, with the note *date
+   of the row above*. A side (debit or credit) only the witness saw, in a row the reader read with
+   the other side, is not added; a row that still cannot be kept marks the next line
+   `ROW_DROPPED_ABOVE`, and a balance break there is `E01`, never `A01`. Found 16 Oct 2026 on a
+   real scanned statement.
+10. **Tilted photos.** OCR words are straightened by the page's slope (the median over its wide OCR
+   lines, `domain/ocr_words.py`) before lines are formed, so a row's amounts meet its date again.
 
 On a real 13-page RHB statement (spike S1) these rules give 1.000 agreement on every page.
 

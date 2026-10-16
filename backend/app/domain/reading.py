@@ -317,6 +317,7 @@ def build_statement(
     notes: list[str] = []
     opening_row: Decimal | None = None
     closing_row: Decimal | None = None
+    dropped = False  # a transaction row above was not kept: the next line's break is no evidence
     for index, row in enumerate(verified):
         f = row.fields
         description = _chosen(f.get("description")) or ""
@@ -332,14 +333,24 @@ def build_statement(
                 notes.append(f"row {index}: no amount")
             continue
         if debit is not None and credit is not None:
-            notes.append(f"row {index}: both debit and credit")
-            continue
+            # The witness alone saw the other side (an amount of the next row in the same chunk):
+            # the side the reader read stands.
+            debit_check, credit_check = f.get("debit"), f.get("credit")
+            if debit_check and debit_check.ai is None and credit_check and credit_check.ai:
+                debit = None
+            elif credit_check and credit_check.ai is None and debit_check and debit_check.ai:
+                credit = None
+            else:
+                notes.append(f"row {index}: both debit and credit")
+                dropped = True
+                continue
         when = parse_date(_chosen(f.get("date")), period=period)
         if when.value is None and not _chosen(f.get("date")) and lines:
             # Printed without a date: statements that print the date once per day (docs/07 §7).
             when = Parsed(lines[-1].date, "date of the row above")
         if when.value is None:
             notes.append(f"row {index}: {when.note or 'no date'}")
+            dropped = True
             continue
         amount = credit if credit is not None else -abs(debit or Decimal(0))
         amount_check = f.get("credit") if credit is not None else f.get("debit")
@@ -367,10 +378,15 @@ def build_statement(
                 counterparty_name=extract_counterparty(description),
                 source=row.source,
                 consensus=consensus,
-                notes=[*row.notes, *([when.note] if when.note else [])],
+                notes=[
+                    *row.notes,
+                    *([when.note] if when.note else []),
+                    *(["ROW_DROPPED_ABOVE"] if dropped else []),
+                ],
                 chunk_ids=row.chunk_ids,
             )
         )
+        dropped = False
 
     digits = re.sub(r"\D", "", header.account_number or "")
     opening = parse_amount(header.opening_balance_text, style).value

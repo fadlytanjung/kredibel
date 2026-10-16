@@ -111,15 +111,38 @@ def _starts_with_date(line: Line) -> bool:
     return bool(_DATE_START.match(squash(first.text)))
 
 
-def _same_day_row(line: Line, row: "Chunk") -> bool:
-    """A line under a dated row with its own amount in one of that row's amount columns: another
-    transaction of the same day (statements that print the date once per day), not a wrapped
-    description."""
-    columns = [w.x1 for w in row.lines[0].words if is_amount(w.text)]
-    return any(
-        is_amount(w.text) and any(abs(w.x1 - x1) <= SAME_COLUMN for x1 in columns)
-        for w in line.words
-    )
+def _has_amount(line: Line) -> bool:
+    return any(is_amount(w.text) for w in line.words)
+
+
+def _balance_column(chunks: list["Chunk"]) -> float | None:
+    """The right edge of the page's rightmost amount column (the running balance on statements)."""
+    edges = [w.x1 for c in chunks if c.kind == "TABLE_ROW" for w in c.words if is_amount(w.text)]
+    return max(edges) if edges else None
+
+
+def _same_day_rows(lines: list[Line], balance_x: float) -> list[list[Line]]:
+    """A dated block that prints a second balance holds a second transaction of the same day
+    (statements that print the date once per day; a photo's OCR may put a row's amounts on the
+    line below its description). Each further balance starts a row, with the lines without
+    amounts just above it as its description."""
+    rows: list[list[Line]] = [[]]
+    seen_balance = False
+    for line in lines:
+        is_balance = any(
+            is_amount(w.text) and abs(w.x1 - balance_x) <= SAME_COLUMN for w in line.words
+        )
+        if is_balance and seen_balance:
+            current = rows[-1]
+            k = len(current)
+            while k > 0 and not _has_amount(current[k - 1]):
+                k -= 1
+            rows[-1], description = current[:k], current[k:]
+            rows.append([*description, line])
+        else:
+            rows[-1].append(line)
+            seen_balance |= is_balance
+    return [r for r in rows if r]
 
 
 def _is_header(line: Line) -> bool:
@@ -167,15 +190,6 @@ def chunk_page(words: list[Word], *, page: int) -> list[Chunk]:
             new("TOTALS", line)
         elif (
             current
-            and current.kind == "TABLE_ROW"
-            and column is not None
-            and line.x0 > column + 0.02
-            and gap < 2.0 * pitch
-            and _same_day_row(line, current)
-        ):
-            new("TABLE_ROW", line)  # another transaction of the same day
-        elif (
-            current
             and current.kind == "TOTALS"
             and gap < 1.6 * pitch
             and any(is_amount(w.text) for w in line.words)
@@ -194,7 +208,14 @@ def chunk_page(words: list[Word], *, page: int) -> list[Chunk]:
         else:
             new("TEXT", line)
         previous = line
-    return chunks
+    balance_x = _balance_column(chunks)
+    if balance_x is None:
+        return chunks
+    out: list[Chunk] = []
+    for c in chunks:
+        for rows in _same_day_rows(c.lines, balance_x) if c.kind == "TABLE_ROW" else [c.lines]:
+            out.append(Chunk(f"p{page}-c{len(out) + 1}", page, c.kind, rows))
+    return out
 
 
 def render_chunks(chunks: list[Chunk]) -> str:

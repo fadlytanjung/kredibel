@@ -34,4 +34,7 @@
   a blank date cell is a transaction of the day above, in the layout, the grounding, the bank lines
   and `read_statement_page` v3 (docs/07 §6 rule 9; `test_statement_undated_rows.py`). Found 16 Oct
   2026 in a tester's real scanned statement: the same-day rows were dropped, so balances, totals and
-  findings were wrong. (AC-005-4, AC-005-7)
+  findings were wrong. Same day: a row block splits at each further running balance (photos too), a
+  side only the witness saw is not added to a row the reader read, and the page reading is cached
+  under a hash of the chunks the model saw. On the tester's statement: 16 → 28 lines, 0 of 102 → 100
+  of 107 values agreed, no balance breaks. (AC-005-4, AC-005-7)

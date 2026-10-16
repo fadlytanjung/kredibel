@@ -54,7 +54,13 @@ from app.domain.label_sync import (
     value_labels,
 )
 from app.domain.labels import LabelSubject, propose
-from app.domain.layout import Chunk, chunk_page, chunks_from_json, chunks_to_json, render_chunks
+from app.domain.layout import (
+    Chunk,
+    chunk_page,
+    chunks_from_json,
+    chunks_to_json,
+    render_chunks,
+)
 from app.domain.ledger_parse import (
     LedgerMapping,
     compute_layout_signature,
@@ -737,7 +743,11 @@ def read_page(deps: PipelineDeps):
         if page is None or page.blank:
             return {**base, "summary": "Blank page"}
         model, prompt_version = deps.reader.version(task)
-        cache_key = f"{page.sha256}/{model}-{prompt_version}.json"
+        chunks = render_chunks(await _load_chunks(deps, org_id, doc.sha256, page_no))
+        # Keyed by what the model sees: a new layout or new OCR words read the page again, since a
+        # reading cites the chunk IDs it was given.
+        seen = hashlib.sha256(chunks.encode()).hexdigest()[:12]
+        cache_key = f"{page.sha256}/{model}-{prompt_version}-{seen}.json"
         cached = None
         if deps.settings.extraction_cache == "on":
             cached = await deps.storage.get_cached(org_id, cache_key)
@@ -749,7 +759,6 @@ def read_page(deps: PipelineDeps):
             image = await deps.storage.get_page_image(org_id, doc_id, page_no)
             if image is None:
                 return {**base, "summary": "Page image missing"}
-            chunks = render_chunks(await _load_chunks(deps, org_id, doc.sha256, page_no))
             if task == "statement_page":
                 call: Any = await deps.reader.read_statement_page(
                     image, chunks, page=page_no, context=node_input.get("context")

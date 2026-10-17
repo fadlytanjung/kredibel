@@ -38,10 +38,25 @@ def _thread_to_domain(d: ThreadDoc) -> Thread:
     )
 
 
+def _rows_to_doc(answer: dict[str, Any]) -> dict[str, Any]:
+    """Firestore holds no list in a list: a table's or chart's rows are kept as {"cells": [...]}."""
+    for part in answer.get("parts") or []:
+        if part.get("rows") is not None:
+            part["rows"] = [{"cells": list(row)} for row in part["rows"]]
+    return answer
+
+
+def _rows_from_doc(answer: dict[str, Any]) -> dict[str, Any]:
+    for part in answer.get("parts") or []:
+        if part.get("rows") is not None:
+            part["rows"] = [r["cells"] if isinstance(r, dict) else r for r in part["rows"]]
+    return answer
+
+
 def _msg_to_doc(m: AssistantMessage) -> AssistantMessageDoc:
     answer_dict: dict[str, Any] | None = None
     if m.answer is not None:
-        answer_dict = m.answer.model_dump(by_alias=True)
+        answer_dict = _rows_to_doc(m.answer.model_dump(by_alias=True))
     return AssistantMessageDoc(
         message_id=m.message_id,
         role=m.role,
@@ -54,7 +69,7 @@ def _msg_to_doc(m: AssistantMessage) -> AssistantMessageDoc:
 def _msg_to_domain(d: AssistantMessageDoc) -> AssistantMessage:
     answer_obj = None
     if d.answer:
-        answer_obj = MessageAnswer.model_validate(d.answer)
+        answer_obj = MessageAnswer.model_validate(_rows_from_doc(dict(d.answer)))
     return AssistantMessage(
         message_id=d.message_id,
         role=d.role,  # type: ignore[arg-type]

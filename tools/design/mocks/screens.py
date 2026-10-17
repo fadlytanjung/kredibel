@@ -1785,7 +1785,7 @@ def assistant_page_head() -> str:
 
 
 def assistant_composer() -> str:
-    starters = "".join(f'<a href="#">{aw(f"starters.{k}")}</a>' for k in ("unpaid", "q2", "clients"))
+    starters = "".join(f'<a href="#">{aw(f"starters.{k}")}</a>' for k in ("unpaid", "flow", "clients"))
     return f"""
       <div class="suggested" aria-label="{aw("suggestedQuestions")}">{starters}</div>
       <form class="composer" action="assistant.html" method="get"><input type="text" placeholder="{aw("composer.placeholder")}" aria-label="{aw("composer.placeholder")}" value=""/><button class="button button-primary" type="submit" aria-label="{aw("composer.send")}">{icon("send", "icon icon-sm")}</button></form>"""
@@ -1867,7 +1867,7 @@ def assistant() -> str:
 
 
 def assistant_welcome_markup() -> str:
-    prompts = [("bar-chart", "flow", "q2"), ("file-text", "unpaid", "unpaid"), ("shield-alert", "risk", "riskJune"), ("table", "pnl", "pnl")]
+    prompts = [("bar-chart", "flow", "flow"), ("file-text", "unpaid", "unpaid"), ("shield-alert", "risk", "risk"), ("table", "pnl", "pnl")]
     cards = "".join(
         f'<a class="assistant-prompt-card" href="assistant.html"><span class="assistant-prompt-card-icon">{icon(ic, "icon icon-sm")}</span>'
         f'<span class="assistant-prompt-card-text"><strong>{aw(f"welcome.prompts.{title}")}</strong><span>{aw(f"starters.{question}")}</span></span></a>'

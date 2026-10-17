@@ -58,10 +58,10 @@ GREETING_TEXT = (
     "Hello! I am your Kredibel AI Finance Assistant.\n\n"
     "I can help you review your finances, check invoice statuses, explore cash flow, "
     "and investigate fraud risk findings:\n\n"
-    '• **"Where did the money go in Q2?"** — Visual cash flow & Sankey diagram\n'
+    '• **"Where did the money go over the last three months?"** — Cash flow and Sankey\n'
     '• **"Which invoices are still unpaid?"** — Outstanding invoices and due dates\n'
-    '• **"Why is June risk Medium?"** — Forensic findings and evidence\n'
-    '• **"What is our profit for 2026-03?"** — Accrual P&L and posted ledger lines\n\n'
+    '• **"Which month is the riskiest, and why?"** — Forensic findings and evidence\n'
+    '• **"Show my profit and loss for the latest month"** — P&L and its ledger lines\n\n'
     "What would you like to check today?"
 )
 

@@ -238,6 +238,26 @@ def expectations_panel(currency: str = "IDR") -> str:
 </section>"""
 
 
+def suggestion_card(place: str) -> str:
+    """Profile suggestions (SuggestionCard, spec 014): what was found, where (a link to the document)
+    and a decision. On the dashboard a link to Profile settings, the card's home."""
+    items = "".join(
+        f'<li class="suggestion"><span class="kind doc">{icon("lightbulb", "icon icon-sm")}</span>'
+        f'<span><p class="a-t">{words(CP_WORDS, f"suggestions.fields.{s["field"]}")}: {escape(s["display"])}</p>'
+        f'<p class="a-s">{words(CP_WORDS, f"suggestions.confidence.{s["confidence"]}")}, '
+        f'<a href="document.html">{words(CP_WORDS, "suggestions.evidence", count=len(s["evidence"]))}</a></p></span>'
+        f'<span class="actions"><button type="button" class="button button-primary button-sm">{words(CP_WORDS, "suggestions.accept")}</button>'
+        f'<button type="button" class="button button-quiet button-sm">{words(CP_WORDS, "suggestions.reject")}</button></span></li>'
+        for s in CP_FIX["suggestions"])
+    home = f'<a class="link" href="settings-profile.html">{words(CP_WORDS, "suggestions.settings")}</a>' if place == "dashboard" else ""
+    return f"""
+  <section class="panel" aria-labelledby="dash-suggest-h">
+    <div class="panel-head"><h2 id="dash-suggest-h">{words(CP_WORDS, "suggestions.title")}</h2>{home}</div>
+    <p class="small muted panel-pad">{words(CP_WORDS, "suggestions.found", count=len(CP_FIX["suggestions"]))}</p>
+    <ul class="alert-list">{items}</ul>
+  </section>"""
+
+
 def dashboard(extra: str = "", expectations: bool = False) -> str:
     """The dashboard as the app draws it (DashboardPage, docs/11 §6.2): period, header, figures, the
     P&L panel, where the money went, reconciliation and findings, three panels, the months. The
@@ -340,13 +360,6 @@ def dashboard(extra: str = "", expectations: bool = False) -> str:
         f'<li><a href="review.html"><span class="kind {KIND_TILE.get(i["kind"], "doc")}">{icon(KIND_ICON.get(i["kind"], "inbox"), "icon icon-sm")}</span>'
         f'<span><p class="a-t">{escape(i["title"])}</p><p class="a-s">{words(REVIEW_WORDS, f"kinds.{i['kind']}")}, {month_name(i["month"])}</p></span></a></li>'
         for i in DASH["reviewPreview"])
-    suggestion_items = "".join(
-        f'<li class="suggestion"><span class="kind doc">{icon("lightbulb", "icon icon-sm")}</span>'
-        f'<span><p class="a-t">{words(CP_WORDS, f"suggestions.fields.{s["field"]}")}: {escape(s["display"])}</p>'
-        f'<p class="a-s">{words(CP_WORDS, f"suggestions.confidence.{s["confidence"]}")}, {words(CP_WORDS, "suggestions.evidence", count=len(s["evidence"]))}</p></span>'
-        f'<span class="actions"><button type="button" class="button button-primary button-sm">{words(CP_WORDS, "suggestions.accept")}</button>'
-        f'<button type="button" class="button button-quiet button-sm">{words(CP_WORDS, "suggestions.reject")}</button></span></li>'
-        for s in CP_FIX["suggestions"])
     summary = DASH["moneyFlowSummary"]
     maximum = max(Decimal(n["value"]["amount"]) for n in summary["topSources"] + summary["topUses"])
     lists = f"""
@@ -359,11 +372,7 @@ def dashboard(extra: str = "", expectations: bool = False) -> str:
     <div class="panel-head"><h2 id="dash-review-h">{words(DASH_WORDS, "review")}</h2><a class="link" href="review.html">{words(DASH_WORDS, "allReview")}</a></div>
     <ul class="alert-list">{review_items}</ul>
   </section>
-  <section class="panel" aria-labelledby="dash-suggest-h">
-    <div class="panel-head"><h2 id="dash-suggest-h">{words(CP_WORDS, "suggestions.title")}</h2></div>
-    <p class="small muted panel-pad" role="status">{words(CP_WORDS, "suggestions.found", count=len(CP_FIX["suggestions"]))}</p>
-    <ul class="alert-list">{suggestion_items}</ul>
-  </section>
+  {suggestion_card("dashboard")}
   <section class="panel" aria-labelledby="dash-flow-h">
     <div class="panel-head"><h2 id="dash-flow-h">{words(DASH_WORDS, "flowTitle")}</h2></div>
     <div class="stack gap-4 panel-pad">
@@ -2015,7 +2024,7 @@ def settings_profile() -> str:
   </div>
   <div class="row"><button type="submit" class="button button-primary">{sw("profile.save")}</button></div>
 </form>"""
-    return shell("settings", topbar(sw("sections.profile"), ((sw("title"), "plan-usage.html"), sw("sections.profile")), back=("Dashboard", "dashboard.html")), settings_frame("profile", form), fab=False)
+    return shell("settings", topbar(sw("sections.profile"), ((sw("title"), "plan-usage.html"), sw("sections.profile")), back=("Dashboard", "dashboard.html")), settings_frame("profile", f'<div class="stack gap-6">{suggestion_card("settings")}{form}</div>'), fab=False)
 
 
 # ------------------------------------------------------------------------------------------------

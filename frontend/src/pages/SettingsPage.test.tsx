@@ -116,6 +116,7 @@ const server = setupServer(
     return HttpResponse.json(mockWorkspace)
   }),
   http.get('/api/plans', () => HttpResponse.json(CATALOG)),
+  http.get('/api/suggestions', () => HttpResponse.json({ items: [] })),
   http.get('/api/bank-accounts', () => HttpResponse.json({ items: mockAccounts })),
   http.post('/api/bank-accounts', async ({ request }) => {
     lastAddedAccount = await request.json()

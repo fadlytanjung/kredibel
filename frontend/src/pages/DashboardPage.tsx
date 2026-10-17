@@ -122,7 +122,7 @@ function Body({ data, name, period, framework, currency, expectations }: { data:
       <div className="dash-lists">
         <AlertList alerts={alerts} />
         <ReviewPreview items={data.reviewPreview ?? []} />
-        <SuggestionCard />
+        <SuggestionCard place="dashboard" />
         <FlowSummary
           sources={data.moneyFlowSummary?.topSources ?? []}
           uses={data.moneyFlowSummary?.topUses ?? []}

@@ -1,155 +1,155 @@
 1
-00:00:00,000 --> 00:00:04,133
+00:00:00,000 --> 00:00:03,997
 Meet Sunrise Coffee Roasters, a small coffee roaster in Bandung.
 
 2
-00:00:04,433 --> 00:00:10,145
+00:00:04,297 --> 00:00:09,599
 About a hundred documents a month: statements, a ledger, invoices and receipts.
 
 3
-00:00:10,445 --> 00:00:13,092
+00:00:09,899 --> 00:00:12,250
 But October cost more than it should have.
 
 4
-00:00:13,392 --> 00:00:15,947
+00:00:12,550 --> 00:00:15,947
 A missing record? A mistake? Or fraud?
 
 5
-00:00:16,200 --> 00:00:25,349
+00:00:16,233 --> 00:00:24,775
 Organizations lose about 5% of revenue to fraud each year; for small businesses, the median case costs $141,000.
 
 6
-00:00:25,649 --> 00:00:27,971
+00:00:25,075 --> 00:00:28,393
 And checking every page by hand takes days.
 
 7
-00:00:28,233 --> 00:00:29,905
+00:00:28,633 --> 00:00:30,174
 That's where Kredibel comes in.
 
 8
-00:00:30,205 --> 00:00:34,988
+00:00:30,474 --> 00:00:35,986
 It reads every document, reconciles every month, and shows the evidence behind every number.
 
 9
-00:00:35,233 --> 00:00:38,112
+00:00:36,233 --> 00:00:39,838
 Anyone can try the demo account, no Google account needed.
 
 10
-00:00:38,412 --> 00:00:41,106
+00:00:40,138 --> 00:00:42,541
 Kredibel first asks what you want.
 
 11
-00:00:41,406 --> 00:00:43,681
+00:00:42,841 --> 00:00:44,461
 Our owner wants to check a hunch.
 
 12
-00:00:43,981 --> 00:00:50,947
+00:00:44,761 --> 00:00:53,303
 September: 820 million in, 840 million out. October: a billion in, 620 million out.
 
 13
-00:00:51,766 --> 00:00:55,342
+00:00:53,400 --> 00:00:56,404
 The dashboard checks the books against those expectations.
 
 14
-00:00:55,642 --> 00:01:00,936
+00:00:56,704 --> 00:01:01,432
 September is as expected; October's money out is 86 million over.
 
 15
-00:01:01,236 --> 00:01:04,347
+00:01:01,732 --> 00:01:04,658
 And 95 percent of bank lines were matched automatically.
 
 16
-00:01:04,599 --> 00:01:08,686
+00:01:04,933 --> 00:01:09,531
 So where did the money go? Here is every October bank line.
 
 17
-00:01:08,986 --> 00:01:14,605
+00:01:09,830 --> 00:01:16,204
 Its category, IFRS and US GAAP class, subledger and match.
 
 18
-00:01:14,905 --> 00:01:18,945
+00:01:16,505 --> 00:01:20,632
 Even a cash deposit is explained: the ledger books it to sales.
 
 19
-00:01:19,233 --> 00:01:22,902
+00:01:20,900 --> 00:01:24,818
 Each month reconciles itself, whatever order the files arrived in.
 
 20
-00:01:23,202 --> 00:01:27,149
+00:01:25,118 --> 00:01:28,776
 Every match has its reason; the risk is explained with citations.
 
 21
-00:01:27,399 --> 00:01:29,675
+00:01:29,033 --> 00:01:31,515
 The risk page finds what the owner feared.
 
 22
-00:01:29,975 --> 00:01:33,829
+00:01:31,815 --> 00:01:35,681
 October is high: a supplier was paid into a new bank account.
 
 23
-00:01:34,129 --> 00:01:38,494
+00:01:35,981 --> 00:01:39,716
 August is critical: a statement was edited in a PDF editor.
 
 24
-00:01:38,794 --> 00:01:43,020
+00:01:40,016 --> 00:01:44,065
 One amount is in another font; the balance no longer adds up.
 
 25
-00:01:43,266 --> 00:01:48,328
+00:01:44,333 --> 00:01:49,505
 Files arrive in any order: a late July invoice, a receipt photo, and a statement copy.
 
 26
-00:01:48,628 --> 00:01:52,157
+00:01:49,805 --> 00:01:52,809
 The copy is spotted at once, never counted twice.
 
 27
-00:01:52,457 --> 00:01:54,454
+00:01:53,109 --> 00:01:55,251
 Gemini reads each new page.
 
 28
-00:01:54,754 --> 00:01:58,330
+00:01:55,551 --> 00:01:59,208
 And code checks each value is on the page before it counts.
 
 29
-00:01:59,599 --> 00:02:03,268
+00:02:00,467 --> 00:02:04,124
 Anything Kredibel can't decide for certain goes to one review queue.
 
 30
-00:02:03,568 --> 00:02:06,772
+00:02:04,424 --> 00:02:08,865
 A held copy, an unpaid invoice, a value to check.
 
 31
-00:02:07,066 --> 00:02:11,385
+00:02:09,133 --> 00:02:12,529
 Every AI decision is a label to confirm or correct.
 
 32
-00:02:11,685 --> 00:02:16,097
+00:02:12,829 --> 00:02:17,609
 And every run is traced: each Gemini call, its tokens and its cost.
 
 33
-00:02:17,366 --> 00:02:19,781
+00:02:18,867 --> 00:02:21,871
 And you can simply ask the books.
 
 34
-00:02:20,081 --> 00:02:23,796
+00:02:22,171 --> 00:02:26,612
 The assistant answers from the books' own figures, and cites each one.
 
 35
-00:02:25,566 --> 00:02:28,770
+00:02:28,367 --> 00:02:31,240
 Ready to try your own books? Sign in with Google.
 
 36
-00:02:29,070 --> 00:02:34,039
+00:02:31,540 --> 00:02:36,269
 Set up your business once: its name, industry, currency and time zone.
 
 37
-00:02:34,339 --> 00:02:36,986
+00:02:36,569 --> 00:02:39,834
 The free trial starts in a workspace of your own.
 
 38
-00:02:38,866 --> 00:02:51,265
+00:02:41,133 --> 00:02:50,276
 Kredibel runs on Google Cloud: Firebase Hosting and Authentication, Cloud Run for the app and its ADK workflows, Firestore for the books, and Gemini with Document AI.
 
 39
-00:02:51,565 --> 00:02:55,745
+00:02:50,576 --> 00:02:55,304
 Try the demo, or your own books. Kredibel: every number has a source.

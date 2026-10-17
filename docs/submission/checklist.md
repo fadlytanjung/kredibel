@@ -34,7 +34,7 @@
 - [ ] Demo account reset the evening before judging (`make demo-account …`); the template untouched.
 - [ ] `kredibel-web` minimum instances set to 1 during judging (cold starts), back to 0 after:
       `gcloud run services update kredibel-web --region=asia-southeast1 --min-instances=1`.
-- [ ] Give judges the `web.app` link (sign-in on `kredibel.app` needs `infra/allow-web-domain.sh`).
+- [ ] Give judges `https://kredibel.app` (mirror `kredibel-app.web.app`); never `www.kredibel.app` (no DNS).
 
 ## After submitting
 

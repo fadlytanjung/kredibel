@@ -7,7 +7,7 @@
 | Field | Answer |
 |---|---|
 | **Challenge** | **BFSI: Intelligent Risk, Fraud & Financial Experiences** (detecting or reducing fraud and risk, automating complex processes) |
-| **Prototype link (GCP / Cloud Run)** | `https://kredibel-app.web.app` (Firebase Hosting in front of Cloud Run `kredibel-web`; demo sign-in `demo@kredibel.app` / `Kredibel-Demo-2026`, or any Google account with the sample books from [AI-BUILDER-CUP-2026](https://drive.google.com/drive/folders/1TUpbHZ-nRRoafvzEs4XX1j7rMkM40SfV?usp=sharing)) |
+| **Prototype link (GCP / Cloud Run)** | `https://kredibel.app` (mirror `https://kredibel-app.web.app`; Firebase Hosting in front of Cloud Run `kredibel-web`; demo sign-in `demo@kredibel.app` / `Kredibel-Demo-2026`, or any Google account with the sample books from [AI-BUILDER-CUP-2026](https://drive.google.com/drive/folders/1TUpbHZ-nRRoafvzEs4XX1j7rMkM40SfV?usp=sharing)) |
 | **Deck (PDF, ≤ 5 MB)** | The team's deck in Drive, `Kredibel - AI Builder Cup 2026 pitch.pptx` (follows the organiser's "Submission Template \| AI Builder Cup" slide for slide), with the team details, demo account, production results and video link filled in, exported to PDF (Keynote: File › Export To › PDF, image quality Better) and kept under 5 MB |
 | **GitHub repository (public)** | `https://github.com/fadlytanjung/kredibel` |
 | **Demo video link (3–4 minutes)** | ⟨public YouTube link, uploaded under the team leader's account; title and description in `video-upload.md`⟩ |
@@ -50,6 +50,6 @@ OCR for scans and photos, Cloud Storage, Cloud Trace, Secret Manager and Cloud B
 - [ ] Video uploaded as **public** (or unlisted with the link), under the leader's account; link pasted.
 - [ ] Deck PDF under 5 MB attached.
 - [ ] Repository public (checked 17 Oct: yes).
-- [ ] Prototype answers at `https://kredibel-app.web.app/api/health` (checked 17 Oct: ok).
+- [ ] Prototype answers at `https://kredibel.app/api/health` and `https://kredibel-app.web.app/api/health` (checked 17 Oct: ok, sign-in allowed on both; `www.kredibel.app` has no DNS record, so never hand it out).
 - [ ] Demo account reset (`make demo-account …`) and `kredibel-web` kept at one minimum instance during
       evaluation (19 Oct – 6 Nov): `gcloud run services update kredibel-web --region=asia-southeast1 --min-instances=1`.

@@ -15,7 +15,7 @@ Kredibel is an AI finance workspace that checks a small business's own books. Up
 
 Measured on the demo company (300 synthetic documents, August to October 2026, read on production): 295 of 310 bank lines reconciled automatically (95.2% / 92.2% / 98.0% by month), every planted case found (an edited statement, a scanned copy, a supplier paid into a new account, unpaid invoices from an unknown supplier), nothing counted twice, every value cited to the page it is printed on.
 
-Try it: https://kredibel-app.web.app
+Try it: https://kredibel.app (mirror: https://kredibel-app.web.app)
 Sample books to upload in your own workspace (sign in with Google): https://drive.google.com/drive/folders/1TUpbHZ-nRRoafvzEs4XX1j7rMkM40SfV?usp=sharing
 Demo account: demo@kredibel.app / Kredibel-Demo-2026 (shared, synthetic data; reset any time), or sign in with Google for a workspace of your own.
 Source code: https://github.com/fadlytanjung/kredibel

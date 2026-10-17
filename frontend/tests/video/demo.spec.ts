@@ -14,6 +14,10 @@ import { fileURLToPath } from 'node:url'
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..')
 const OUT = path.join(ROOT, 'tools/video/out')
 const CARDS = path.join(ROOT, 'tools/video/cards')
+// VIDEO_CAPTIONS=0 records without the caption bar (a version to dub over, cut by edit.py --silent);
+// VIDEO_FRAMES names the frames folder under tools/video/out, so the two recordings keep apart.
+const CAPTIONS = process.env.VIDEO_CAPTIONS !== '0'
+const FRAMES = process.env.VIDEO_FRAMES ?? 'frames'
 const PACK = path.join(ROOT, 'tools/synthetic/out/demo-aug-oct/pack')
 // The same books a month earlier: July's files arrive late in the upload scene (make video makes them).
 const JULY = path.join(ROOT, 'tools/synthetic/out/demo-shift5/S1/seed-1')
@@ -250,7 +254,7 @@ class Scene {
     const timing = TIMINGS.find((t) => t.id === id)
     if (!timing) throw new Error(`no timing for ${id}`)
     this.timing = timing
-    this.dir = path.join(OUT, 'frames', id)
+    this.dir = path.join(OUT, FRAMES, id)
     fs.rmSync(this.dir, { recursive: true, force: true })
     fs.mkdirSync(this.dir, { recursive: true })
   }
@@ -301,6 +305,7 @@ class Scene {
 
   private async setCaption(text: string) {
     this.caption = text
+    if (!CAPTIONS) return
     await this.page
       .evaluate((t) => {
         const el = document.getElementById('__demo_caption')
@@ -620,7 +625,7 @@ test('record the demo video', async ({ page, browser, baseURL }) => {
     await scene.end(1)
     await own.close()
   } else {
-    fs.rmSync(path.join(OUT, 'frames', 'onboarding'), { recursive: true, force: true })
+    fs.rmSync(path.join(OUT, FRAMES, 'onboarding'), { recursive: true, force: true })
   }
 
   await card(page, cdp, 'close')

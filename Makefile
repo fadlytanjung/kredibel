@@ -186,7 +186,7 @@ dev-langfuse: ## Run the local API/inline worker traced in Langfuse (CONTENT=1: 
 gemini-usage: ## Gemini requests and tokens of the project from Cloud Monitoring (DAYS=7)
 	cd backend && PYTHONPATH=. uv run python scripts/gemini_usage.py --days $(or $(DAYS),7)
 
-.PHONY: demo-books demo-account demo-template video extractions-rebuild reread-photos clean-workspace
+.PHONY: demo-books demo-account demo-template video video-silent extractions-rebuild reread-photos clean-workspace
 clean-workspace: ## Clean up workspace documents, bank lines and runs (EMAIL=... or ORG=...)
 	cd backend && uv run python -m scripts.clean_workspace $(if $(EMAIL),--email "$(EMAIL)",) $(if $(ORG),--org "$(ORG)",)
 
@@ -204,6 +204,12 @@ video: ## The demo video (tools/video): voice the narration, record it on produc
 	cd tools/synthetic && uv run kredibel-synth demo --shift-months 5 --per-month 100 --out out/demo-shift5 >/dev/null
 	cd frontend && VIDEO_OWNER_TOKEN="$$($(if $(VIDEO_OWNER_EMAIL),cd ../backend && uv run python -m scripts.custom_token --email $(VIDEO_OWNER_EMAIL),true))" npx playwright test -c playwright.video.config.ts
 	python3 tools/video/edit.py
+
+video-silent: ## The demo video without captions or sound, to dub over (tools/video): records it again on production, writes kredibel-demo-silent.mp4 and its .srt (ELEVENLABS_API_KEY=... for the timings; VIDEO_OWNER_EMAIL=... adds the Google onboarding scene)
+	python3 tools/video/narrate.py
+	cd tools/synthetic && uv run kredibel-synth demo --shift-months 5 --per-month 100 --out out/demo-shift5 >/dev/null
+	cd frontend && VIDEO_CAPTIONS=0 VIDEO_FRAMES=frames-silent VIDEO_OWNER_TOKEN="$$($(if $(VIDEO_OWNER_EMAIL),cd ../backend && uv run python -m scripts.custom_token --email $(VIDEO_OWNER_EMAIL),true))" npx playwright test -c playwright.video.config.ts
+	python3 tools/video/edit.py --silent
 
 demo-account: ## Create or reset the public demo account (spec 024; DEMO_ACCOUNT_EMAIL=..., DEMO_ACCOUNT_PASSWORD=...)
 	cd backend && DEMO_ACCOUNT_EMAIL="$(DEMO_ACCOUNT_EMAIL)" DEMO_ACCOUNT_PASSWORD="$(DEMO_ACCOUNT_PASSWORD)" uv run python -m scripts.demo_account

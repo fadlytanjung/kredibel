@@ -38,14 +38,12 @@ OCR for scans and photos, Cloud Storage, Cloud Trace, Secret Manager and Cloud B
 
 (1,860 characters. If the field is shorter, use the first paragraph alone: 788 characters.)
 
-## Team (as registered)
+## Team (as registered; emails are on the registration, not here)
 
-| Member | Email |
-|---|---|
-| Muhammad Fadly Tanjung (leader) | fadlysyah96@gmail.com |
-| Ibnu Habibie | ibnuhabibie90@gmail.com |
-| Jabbar Ali Panggabean | jabbarpanggabean@gmail.com |
-| Muhammad Arisandy Pratama | arisandypratama@gmail.com |
+- Muhammad Fadly Tanjung (leader)
+- Ibnu Habibie
+- Jabbar Ali Panggabean
+- Muhammad Arisandy Pratama
 
 ## Before pressing submit
 

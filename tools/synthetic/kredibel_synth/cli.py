@@ -107,12 +107,21 @@ def fixtures(out: Path, seed: int) -> None:
     help="Keep only these months, after the shift: START:END as yyyy-mm (spec 024).",
 )
 @click.option("--pack", is_flag=True, help="Also merge the scenarios into one set in OUT/pack.")
-def demo(out: Path, shift_months: int, window: str | None, pack: bool) -> None:
+@click.option(
+    "--per-month",
+    type=int,
+    default=0,
+    show_default=True,
+    help="About this many documents a month (0: the books as docs/18 describes them; spec 024).",
+)
+def demo(out: Path, shift_months: int, window: str | None, pack: bool, per_month: int) -> None:
     """S1–S4, seed 1: the files of the demo workspace and the video (docs/18 §5)."""
     from .shift import set_shift
+    from .volume import set_volume
     from .window import keep_window
 
     set_shift(shift_months)
+    set_volume(per_month)
     for name in DEMO_SCENARIOS:
         folder = write_scenario(build(name, 1), out)
         if window:

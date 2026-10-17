@@ -27,6 +27,7 @@ from .model import (
     money,
 )
 from .rng import Rng
+from .volume import extra
 from .world import MONTH_ABBR, MONTH_NAME, MONTHS, YEAR, month_parts
 
 
@@ -137,7 +138,67 @@ def _sales(rng: Rng) -> list[InvoiceData]:
     _special_sales(rng, out)
     _dedupe_totals(out, lambda inv: inv.total)
     _separate_special_payments(out)
+    _extra_sales(rng, out)
     return out
+
+
+# ---------------------------------------------------------------------------- the demo's volume
+
+# Spec 024: the clients of the planted sales cases get no extra invoices in those months.
+_SPECIAL_CLIENT = {
+    "2026-02": "Daybreak Café",
+    "2026-03": "Highland Resort & Spa",
+    "2026-04": "Spice Route Restaurant",
+    "2026-05": "Harborview Hotel Group",
+}
+
+
+def _date_of(item: Any) -> date:
+    return item.issue_date if isinstance(item, InvoiceData) else item.date
+
+
+def _place(
+    item: Any, existing: list[Any], reroll: Callable[[], None], reserved: list[Decimal]
+) -> None:
+    """An extra document whose total no nearby document of its kind could be taken for (the
+    same rule as _dedupe_totals, but drawn again instead of nudged, and only within six weeks)."""
+    when = _date_of(item)
+    near = [o for o in existing if abs((_date_of(o) - when).days) <= 45]
+    for _ in range(80):
+        totals = [o.total for o in near] + reserved
+        same = [o.total for o in near if _party_of(o) == _party_of(item)]
+        if not _clashes(item.total, totals, same):
+            return
+        reroll()
+    while _clashes(item.total, [o.total for o in near] + reserved):
+        if isinstance(item, ReceiptData):
+            item.items = _bump(item.items)
+        else:
+            item.lines = _bump(item.lines)
+
+
+def _extra_sales(rng: Rng, out: list[InvoiceData]) -> None:
+    if not extra()[0]:
+        return
+    by_key = {inv.key: inv for inv in out}
+    pair = by_key["inv-sales-2026-05-02"].total + by_key["inv-sales-2026-05-03"].total
+    reserved = [_net_of_withholding(by_key["inv-sales-2026-03-02"].total), pair]
+    for month in MONTHS:
+        r = rng.stream(month, "sales-extra")
+        year, mon = month_parts(month)
+        # Not in the month of a planted case or next to it: its weeks stay unambiguous.
+        i = MONTHS.index(month)
+        busy = {_SPECIAL_CLIENT.get(m) for m in MONTHS[max(0, i - 1) : i + 2]}
+        pool = [c for c in (*world.CLIENTS, *world.EXTRA_CLIENTS) if c.party.name not in busy]
+        for seq in range(5, 5 + extra()[0]):
+            client = r.choice(pool)
+            inv = _sales_invoice(r, month, seq, client, r.day(year, mon, 1, 12), 14)
+
+            def reroll(inv: InvoiceData = inv, client: world.Client = client, r: Rng = r) -> None:
+                inv.lines = _lines_for(r, r.amount(client.lo, client.hi))
+
+            _place(inv, out, reroll, reserved)
+            out.append(inv)
 
 
 def _client(name: str) -> world.Client:
@@ -281,9 +342,18 @@ def _sales_payments(rng: Rng, sales: list[InvoiceData]) -> list[_Payment]:
     split = by_key["inv-sales-2026-04-01"]
     totals = [inv.total for inv in sales if inv.key != split.key]
     same = [inv.total for inv in sales if inv.key != split.key and inv.party == split.party]
+    if extra()[0]:  # spec 024: at volume, only invoices paid in the same weeks can be confused
+        near = [
+            i
+            for i in sales
+            if i.key != split.key and abs((i.issue_date - split.issue_date).days) <= 45
+        ]
+        totals = [i.total for i in near]
+        same = [i.total for i in near if i.party == split.party]
+    percents = (60, 55, 65, 50, 70, 45, 75, 40, 58, 62, 52, 68, *range(30, 81))
     part = next(
         candidate
-        for percent in (60, 55, 65, 50, 70, 45, 75, 40, 58, 62, 52, 68)
+        for percent in percents
         if not _clashes(candidate := _thousands(split.total * percent / 100), totals, same)
         and not _clashes(split.total - candidate, totals, same)
     )
@@ -347,6 +417,37 @@ def _purchases(rng: Rng) -> tuple[list[InvoiceData], dict[str, world.Supplier]]:
             supplier_of[inv.key] = supplier
     fixed = (world.RENT, world.LOAN_INSTALLMENT, world.INTERNET)
     _dedupe_totals(out, lambda inv: inv.total, fixed)
+    # Spec 024: the demo's volume, bills of the same and more suppliers, paid 5 to 12 days later.
+    suppliers = [*world.SUPPLIERS, *world.EXTRA_SUPPLIERS]
+    for month in MONTHS if extra()[1] else []:
+        r = rng.stream(month, "purchases-extra")
+        year, mon = month_parts(month)
+        # From 05: S4 adds its unknown supplier's bills as -03 and -04 (docs/18 §3.6, T13).
+        first = max(len(world.SUPPLIER_SCHEDULE[month]), 4) + 1
+        for seq in range(first, first + extra()[1]):
+            supplier = r.choice(suppliers)
+            issue = date(year, mon, r.between(2, 16))
+            if supplier.code == "gvf":
+                number = f"GVF-{YEAR}-{issue:%m%d}-{seq:02d}"
+            elif supplier.code == "primepack":
+                number = f"PP/26/{issue:%m}{50 + seq:02d}"
+            elif supplier.code == "roastline":
+                number = f"RES-{500 + MONTHS.index(month) * 100 + seq:04d}"
+            else:
+                number = f"{supplier.code.upper()}/{issue:%y%m}/{seq:03d}"
+            key = f"inv-purchase-{month}-{seq:02d}"
+            inv = purchase_invoice(r, supplier, key, number, issue)
+
+            def reroll(
+                inv: InvoiceData = inv, supplier: world.Supplier = supplier, r: Rng = r
+            ) -> None:
+                inv.lines = [
+                    Line(d, r.between(lo, hi), price) for d, price, lo, hi in supplier.products
+                ]
+
+            _place(inv, out, reroll, list(fixed))
+            out.append(inv)
+            supplier_of[inv.key] = supplier
     return out, supplier_of
 
 
@@ -389,6 +490,35 @@ def _receipts(rng: Rng) -> list[ReceiptData]:
                 )
             )
     _dedupe_totals(out, lambda rec: rec.total)
+    # Spec 024: the demo's volume, half photos and half PDFs, mostly paid by card or QRIS.
+    for month in MONTHS if extra()[2] else []:
+        r = rng.stream(month, "receipts-extra")
+        year, mon = month_parts(month)
+        for i in range(4, 4 + extra()[2]):
+            merchant = r.choice(world.MERCHANTS)
+            description, price, lo, hi = r.choice(list(merchant.items))
+            issued = datetime(year, mon, r.between(2, 27), r.between(8, 18), r.between(0, 59))
+            initials = "".join(word[0] for word in merchant.party.name.split())
+            rec = ReceiptData(
+                key=f"receipt-{month}-{i + 1:02d}",
+                merchant=merchant.party,
+                issued_at=issued,
+                items=[Line(description, r.between(lo, hi), price)],
+                vat_rate=world.VAT_RATE,
+                payment=r.choice(["QRIS", "DEBIT CARD ••4821", "DEBIT CARD ••4821", "CASH"]),
+                form="pdf" if i % 2 else "jpeg",
+                expense_account=merchant.account,
+                receipt_no=f"{initials}-{issued:%m%d}-{r.between(100, 999)}",
+            )
+
+            def reroll(
+                rec: ReceiptData = rec, merchant: world.Merchant = merchant, r: Rng = r
+            ) -> None:
+                d, p_, lo_, hi_ = r.choice(list(merchant.items))
+                rec.items = [Line(d, r.between(lo_, hi_), p_)]
+
+            _place(rec, out, reroll, [])
+            out.append(rec)
     return out
 
 

@@ -196,6 +196,7 @@ async def _run(
     scenarios: tuple[str, ...] = SCENARIOS,
     seed_ledger_only: bool = False,
     retry_failed: bool = False,
+    concurrency: int = CHUNK,
 ) -> int:
     import firebase_admin
     from firebase_admin import auth
@@ -330,8 +331,8 @@ async def _run(
     # Locally the queue runs tasks in this process; with Cloud Tasks the deployed worker reads them.
     queue = deps.task_queue if isinstance(deps.task_queue, InlineTaskQueue) else None
     outcomes: Counter[str] = Counter()
-    for start in range(0, len(plan), CHUNK):
-        for scenario, path in plan[start : start + CHUNK]:
+    for start in range(0, len(plan), concurrency):
+        for scenario, path in plan[start : start + concurrency]:
             try:
                 content = path.read_bytes()
                 if months and path.name.startswith("ledger-") and path.suffix == ".csv":
@@ -354,8 +355,8 @@ async def _run(
                 _log(f"  {scenario} {path.name}: {type(error).__name__}")
         if queue:
             await queue.drain()
-        if (start // CHUNK) % 5 == 4:
-            _log(f"  {min(start + CHUNK, len(plan))}/{len(plan)} uploaded")
+        if (start // concurrency) % 5 == 4:
+            _log(f"  {min(start + concurrency, len(plan))}/{len(plan)} uploaded")
     if queue:
         await queue.drain()
     _log("uploads:", dict(outcomes))
@@ -405,6 +406,12 @@ def main() -> int:
         help="Read documents that failed (a model timeout) again, then reconcile every month",
     )
     parser.add_argument(
+        "--concurrency",
+        type=int,
+        default=CHUNK,
+        help="Documents read at the same time (default 4; 10 for the 300-document demo)",
+    )
+    parser.add_argument(
         "--seed-ledger-only",
         action="store_true",
         help="Seed ledger rows and account classifications without uploading documents",
@@ -422,6 +429,7 @@ def main() -> int:
             scenarios=scenarios_tuple,
             seed_ledger_only=args.seed_ledger_only,
             retry_failed=args.retry_failed,
+            concurrency=args.concurrency,
         )
     )
 

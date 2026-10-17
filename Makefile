@@ -208,9 +208,9 @@ demo-account: ## Create or reset the public demo account (spec 024; DEMO_ACCOUNT
 	cd backend && DEMO_ACCOUNT_EMAIL="$(DEMO_ACCOUNT_EMAIL)" DEMO_ACCOUNT_PASSWORD="$(DEMO_ACCOUNT_PASSWORD)" uv run python -m scripts.demo_account
 
 demo-template: ## Build the demo template workspace (spec 021): seed it, then read the demo books ending last month (TEMPLATE_EMAIL=..., RETRY=1 reads failed documents again)
-	cd tools/synthetic && uv run kredibel-synth demo --shift-months 5 --window 2026-08:2026-10 --pack --out out/demo-aug-oct
+	cd tools/synthetic && uv run kredibel-synth demo --shift-months 5 --window 2026-08:2026-10 --pack --per-month 100 --out out/demo-aug-oct
 	cd backend && uv run python -m scripts.seed_demo_workspace --org org_demo_template --name "Sunrise Coffee Roasters" --entity COMPANY --trial-ends 2027-12-31 --timezone Asia/Jakarta --owner "$(or $(TEMPLATE_EMAIL),template@demo.kredibel)" --database "$${FIRESTORE_DATABASE:-kredibel}"
-	cd backend && DATA_CLASS=synthetic AI_CONTENT_CAPTURE=off $(shell command -v caffeinate >/dev/null && echo caffeinate -i) uv run python -m scripts.upload_demo_books --email "$(or $(TEMPLATE_EMAIL),template@demo.kredibel)" --demo-dir ../tools/synthetic/out/demo-aug-oct/pack $(if $(RETRY),--retry-failed,)
+	cd backend && DATA_CLASS=synthetic AI_CONTENT_CAPTURE=off $(shell command -v caffeinate >/dev/null && echo caffeinate -i) uv run python -m scripts.upload_demo_books --email "$(or $(TEMPLATE_EMAIL),template@demo.kredibel)" --demo-dir ../tools/synthetic/out/demo-aug-oct/pack --concurrency 10 $(if $(RETRY),--retry-failed,)
 
 .PHONY: demo-reconciliation demo-reconciliation-traced reconciliation-fixtures
 demo-reconciliation: ## Replay generated invoices/receipts/statements in both orders (offline)

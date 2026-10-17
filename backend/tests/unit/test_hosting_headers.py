@@ -20,6 +20,8 @@ def test_adr018_hosting_sends_the_security_headers_on_every_path():
     assert _hosting_headers("**") == SECURITY_HEADERS
 
 
-def test_adr018_hosting_caches_hashed_assets_and_never_index_html():
+def test_adr018_hosting_caches_hashed_assets_and_never_a_route_html():
+    """index.html and every public route's own HTML (spec 020, AC-020-13) are fetched fresh."""
     assert "immutable" in _hosting_headers("/assets/**")["Cache-Control"]
-    assert _hosting_headers("/index.html")["Cache-Control"] == "no-cache"
+    assert _hosting_headers("**/*.html")["Cache-Control"] == "no-cache"
+    assert _hosting_headers("/index.html") == {}  # covered by the rule above, not a second one

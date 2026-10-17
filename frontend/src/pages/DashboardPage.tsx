@@ -20,6 +20,7 @@ import {
   AlertList,
   ChartsSection,
   currentMonthIn,
+  ExpectationsPanel,
   FlowSummary,
   KpiCard,
   MonthStrip,
@@ -46,7 +47,7 @@ function rangeOf(months: string[], t: (key: string, o?: Record<string, unknown>)
   return t('periodRange', { first: monthName(first, !sameYear), last: monthName(last) })
 }
 
-function Body({ data, name, period, framework }: { data: Dashboard; name: string; period: string; framework?: Framework }) {
+function Body({ data, name, period, framework, currency, expectations }: { data: Dashboard; name: string; period: string; framework?: Framework; currency?: string; expectations?: boolean }) {
   const { t } = useTranslation('dashboard')
   const months = data.periodMonths ?? []
   const range = rangeOf(months, t)
@@ -71,6 +72,8 @@ function Body({ data, name, period, framework }: { data: Dashboard; name: string
           ))}
         </dl>
       </section>
+
+      {expectations && <ExpectationsPanel currency={currency ?? 'IDR'} />}
 
       <ChartsSection period={period} range={range} framework={framework} />
 
@@ -119,7 +122,7 @@ function Body({ data, name, period, framework }: { data: Dashboard; name: string
       <div className="dash-lists">
         <AlertList alerts={alerts} />
         <ReviewPreview items={data.reviewPreview ?? []} />
-        <SuggestionCard />
+        <SuggestionCard place="dashboard" />
         <FlowSummary
           sources={data.moneyFlowSummary?.topSources ?? []}
           uses={data.moneyFlowSummary?.topUses ?? []}
@@ -198,7 +201,7 @@ export function DashboardPage() {
           </button>
         </p>
       )}
-      <Body data={data} name={workspace?.name ?? ''} period={period} framework={workspace?.profile?.accountingFramework as Framework | undefined} />
+      <Body data={data} name={workspace?.name ?? ''} period={period} framework={workspace?.profile?.accountingFramework as Framework | undefined} currency={workspace?.currency} expectations={workspace?.goal === 'CHECK_EXPECTATIONS' && Boolean(workspace?.expectations?.length)} />
     </div>
   )
 }

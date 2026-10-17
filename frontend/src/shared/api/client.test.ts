@@ -65,6 +65,27 @@ describe('apiClient', () => {
     }
   })
 
+  it('turns a gateway\'s HTML page (Firebase Hosting after 60 s) into a timeout, not a message', async () => {
+    server.use(
+      http.get('/api/slow', () =>
+        new HttpResponse('<!DOCTYPE html><html><body>504 Gateway Timeout</body></html>', {
+          status: 504,
+          statusText: 'Gateway Timeout',
+          headers: { 'content-type': 'text/html' },
+        }),
+      ),
+    )
+    try {
+      await apiClient('/api/slow')
+      expect.fail('Should have thrown ProblemError')
+    } catch (err) {
+      const problemErr = err as ProblemError
+      expect(problemErr.code).toBe('GATEWAY_TIMEOUT')
+      expect(problemErr.message).toBe('Gateway Timeout')
+      expect(problemErr.message).not.toContain('<')
+    }
+  })
+
   it('triggers unauthorized handler on 401 response', async () => {
     const onUnauthorized = vi.fn()
     setUnauthorizedHandler(onUnauthorized)

@@ -34,6 +34,9 @@ class LedgerRow(ReportModel):
     currency: str | None = None
     posting_status: Literal["POSTED", "DRAFT", "UNKNOWN"] = "UNKNOWN"
     journal_id: str | None = None
+    # The row's own words (docs/08 §6.2): what a bank line's booking is matched by.
+    description: str = ""
+    reference: str | None = None
     entry_kind: Literal["ACTIVITY", "OPENING", "CLOSING"] = "ACTIVITY"
     held_as_duplicate: bool = False
     # D06: {code, ofEntryId, decision} once the row repeats an earlier entry (docs/09 §3.8)
@@ -51,6 +54,14 @@ class LedgerRow(ReportModel):
         if self.debit and self.credit:
             raise ValueError("A ledger row cannot have both a debit and a credit")
         return self
+
+
+def journal_key(row: LedgerRow) -> tuple[str, ...]:
+    """The rows of one journal entry: its journal ID or, when the export has none for the row, the
+    rows of the same file, date and description (a journal's lines share them)."""
+    if row.journal_id:
+        return (row.doc_id, "J", row.journal_id)
+    return (row.doc_id, "D", row.date.isoformat(), " ".join(row.description.split()).upper())
 
 
 class Classification(ReportModel):

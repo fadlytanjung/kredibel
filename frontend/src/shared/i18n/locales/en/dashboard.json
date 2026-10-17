@@ -165,5 +165,23 @@
       "TRANSFERS_ELSEWHERE": "{{account}} moved {{amount}} to or from an account without statements.",
       "BALANCE_BREAK": "{{account}}'s balance breaks in {{month}}."
     }
+  },
+  "expectations": {
+    "title": "What you expected",
+    "subtitle": "Your expectations against the reconciled months, in {{currency}}. Within {{tolerance}}% counts as expected.",
+    "moneyIn": "Money in",
+    "moneyOut": "Money out",
+    "expected": "Expected",
+    "found": "Kredibel found",
+    "status": {
+      "AS_EXPECTED": "As expected",
+      "DIFFERENT_more": "{{difference}} more than expected",
+      "DIFFERENT_less": "{{difference}} less than expected",
+      "WAITING": "Waiting for this month's documents"
+    },
+    "openMonth": "Open the month",
+    "transactions": "Transactions",
+    "documents": "Documents",
+    "change": "Change"
   }
 }

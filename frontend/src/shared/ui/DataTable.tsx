@@ -45,6 +45,8 @@ export interface DataTableProps<T> {
   getRowKey: (item: T, index: number) => string
   searchable?: boolean
   searchPlaceholder?: string
+  /** The search box's first value, e.g. from the URL. */
+  initialSearch?: string
   searchPredicate?: (item: T, query: string) => boolean
   filters?: DataTableFilter<T>[]
   activeFilter?: string
@@ -71,6 +73,7 @@ export function DataTable<T>({
   getRowKey,
   searchable = true,
   searchPlaceholder,
+  initialSearch = '',
   searchPredicate,
   filters,
   activeFilter,
@@ -92,7 +95,7 @@ export function DataTable<T>({
 }: DataTableProps<T>) {
   const { t } = useTranslation(['common', 'documents'])
   const [internalFilter, setInternalFilter] = useState<string>(filters?.[0]?.key ?? 'all')
-  const [searchQuery, setSearchQuery] = useState('')
+  const [searchQuery, setSearchQuery] = useState(initialSearch)
   const [currentPage, setCurrentPage] = useState(0)
   const [sortKey, setSortKey] = useState<string | null>(null)
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')

@@ -32,6 +32,10 @@
       "title": "Reconciliation, month by month",
       "body": "Each month matches its bank lines with invoices, receipts and the ledger. The same data gives the same result, whatever the upload order."
     },
+    "transactions": {
+      "title": "Every transaction, one row each",
+      "body": "Each bank line with its category, how IFRS and US GAAP classify it, its subledger, how sure Kredibel is and what it is matched to. Open one to see its statement and documents."
+    },
     "review": {
       "title": "What needs a person",
       "body": "Everything the AI could not settle comes here: a match to confirm, a possible copy, a value to check, columns to confirm. Only a person resolves it."

@@ -134,6 +134,38 @@ paths:
         "409": { $ref: "#/components/responses/Problem" }
         "503": { $ref: "#/components/responses/Problem" }
 
+  /api/expectations:
+    get:
+      tags: [workspace]
+      operationId: compareExpectations
+      description: |
+        Spec 024, AC-024-5: each month the person expects money in or out for, against the month's
+        reconciled figures: AS_EXPECTED within the tolerance, DIFFERENT with the difference, WAITING
+        until the month is reconciled. It never judges the expectation.
+      responses:
+        "200":
+          description: The comparison
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ExpectationComparison" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+  /api/workspaces/demo/reset:
+    post:
+      tags: [workspace]
+      operationId: resetDemoAccount
+      description: |
+        Spec 024: the public demo account's workspace (DEMO_ACCOUNT_EMAIL) replaced by a fresh copy
+        of the demo company; any other caller gets 403. The client refreshes its ID token after it.
+      responses:
+        "200":
+          description: The new workspace
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Workspace" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "503": { $ref: "#/components/responses/Problem" }
   /api/workspace:
     get:
       tags: [workspace]
@@ -582,6 +614,32 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/BankLinePage" }
+
+  /api/transactions:
+    get:
+      tags: [books]
+      operationId: listTransactions
+      description: |
+        Spec 024, AC-024-6: every bank line of a month, by date, with its category and, from the
+        category policy, its cash-flow class under IFRS and US GAAP, its profit-and-loss line and
+        subledger (cash basis); the model's confidence when a model chose the category; the weakest
+        of its amount and date readings; and the records its confirmed or proposed match points to.
+      parameters:
+        - { name: month, in: query, required: true, schema: { $ref: "#/components/schemas/YearMonth" } }
+      responses:
+        "200":
+          description: The month's transactions
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [month, items]
+                properties:
+                  month: { $ref: "#/components/schemas/YearMonth" }
+                  items: { type: array, items: { $ref: "#/components/schemas/Transaction" } }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
 
   /api/bank-lines/{txId}:
     parameters:
@@ -1714,6 +1772,7 @@ components:
         - TAX_PAYMENT
         - BANK_FEES
         - OTHER_OPERATING_EXPENSE
+        - CASH_WITHDRAWAL
         - INTEREST_RECEIVED
         - INTEREST_PAID
         - ASSET_SALE
@@ -1733,7 +1792,7 @@ components:
       type: string
       enum: [BANK_SALES_INVOICE, BANK_PURCHASE_INVOICE, BANK_RECEIPT, BANK_LEDGER, DOCUMENT_LEDGER]
     MatchStatus: { type: string, enum: [CONFIRMED, PROPOSED, REJECTED] }
-    MatchReason: { type: string, enum: [AMOUNT_EXACT, NET_OF_TAX, WITHHOLDING_RATE, FEE_DEDUCTED, PARTY_MATCH, REFERENCE_IN_TEXT, DATE_NEAR, SPLIT, GROUPED] }
+    MatchReason: { type: string, enum: [AMOUNT_EXACT, OTHER_READING, NET_OF_TAX, WITHHOLDING_RATE, FEE_DEDUCTED, PARTY_MATCH, REFERENCE_IN_TEXT, DATE_NEAR, SPLIT, GROUPED, LEDGER_BOOKED] }
     PaymentEvidence:
       type: string
       description: ADR-025; never the same thing as integrity or a person's approval.
@@ -1985,6 +2044,41 @@ components:
         timezone: { type: string }
         defaultLanguage: { type: string, enum: [en] }
         learning: { $ref: "#/components/schemas/LearningSettings" }
+        goal: { $ref: "#/components/schemas/WorkspaceGoal" }
+        expectations: { type: array, maxItems: 12, items: { $ref: "#/components/schemas/MonthExpectation" } }
+    WorkspaceGoal:
+      type: string
+      enum: [BOOKKEEPING, CHECK_EXPECTATIONS]
+      description: "Spec 024: what the person wants from Kredibel, asked once after onboarding"
+    MonthExpectation:
+      type: object
+      required: [month]
+      properties:
+        month: { $ref: "#/components/schemas/YearMonth" }
+        moneyIn: { oneOf: [{ $ref: "#/components/schemas/Decimal" }, { type: "null" }], description: "Expected money in, major units, never negative" }
+        moneyOut: { oneOf: [{ $ref: "#/components/schemas/Decimal" }, { type: "null" }] }
+    ExpectationSide:
+      type: object
+      required: [expected, status]
+      properties:
+        expected: { $ref: "#/components/schemas/Decimal" }
+        actual: { oneOf: [{ $ref: "#/components/schemas/Decimal" }, { type: "null" }] }
+        difference: { oneOf: [{ $ref: "#/components/schemas/Decimal" }, { type: "null" }], description: "Actual minus expected" }
+        status: { type: string, enum: [AS_EXPECTED, DIFFERENT, WAITING] }
+    ExpectationComparison:
+      type: object
+      required: [tolerance, months]
+      properties:
+        tolerance: { $ref: "#/components/schemas/Decimal" }
+        months:
+          type: array
+          items:
+            type: object
+            required: [month]
+            properties:
+              month: { $ref: "#/components/schemas/YearMonth" }
+              moneyIn: { oneOf: [{ $ref: "#/components/schemas/ExpectationSide" }, { type: "null" }] }
+              moneyOut: { oneOf: [{ $ref: "#/components/schemas/ExpectationSide" }, { type: "null" }] }
     SubscriptionState:
       type: object
       required: [planId, status]
@@ -2019,6 +2113,9 @@ components:
         subscription: { $ref: "#/components/schemas/SubscriptionState" }
         usage: { $ref: "#/components/schemas/UsageSummary" }
         learning: { $ref: "#/components/schemas/LearningSettings" }
+        goal: { oneOf: [{ $ref: "#/components/schemas/WorkspaceGoal" }, { type: "null" }] }
+        expectations: { type: array, items: { $ref: "#/components/schemas/MonthExpectation" } }
+        createdAt: { type: string, format: date-time, description: "When the workspace was made; a demo copy's documents are older (spec 024)." }
         counts:
           type: object
           properties:
@@ -2259,6 +2356,47 @@ components:
         corrected: { type: boolean }
         source: { type: string, enum: [AI, WITNESS], description: "WITNESS: a row only the page's words have (ADR-023)" }
         notes: { type: array, items: { type: string } }
+    Transaction:
+      type: object
+      required: [txId, docId, date, month, description, amount, category, categoryLabel, cashflow, reading, match]
+      properties:
+        txId: { type: string }
+        docId: { type: string, description: "The statement" }
+        page: { type: integer }
+        date: { type: string, format: date }
+        month: { $ref: "#/components/schemas/YearMonth" }
+        description: { type: string }
+        counterpartyName: { type: [string, "null"] }
+        amount: { $ref: "#/components/schemas/Money" }
+        category: { $ref: "#/components/schemas/Category" }
+        categoryLabel: { type: string }
+        categorizedBy: { type: string, enum: [USER, MATCH, TRANSFER, RULE, MODEL, NONE] }
+        categoryConfidence: { oneOf: [{ $ref: "#/components/schemas/Decimal" }, { type: "null" }], description: "0–1, only when a model chose the category" }
+        cashflow:
+          type: object
+          required: [ifrs, usGaap]
+          properties:
+            ifrs: { $ref: "#/components/schemas/CashflowClass" }
+            usGaap: { $ref: "#/components/schemas/CashflowClass" }
+        pnlLine: { type: [string, "null"], description: "The profit-and-loss line's label (cash basis)" }
+        subledger: { type: [string, "null"], description: "The subledger's label" }
+        reading: { $ref: "#/components/schemas/ValueStatus" }
+        match:
+          type: object
+          required: [state, records]
+          properties:
+            state: { $ref: "#/components/schemas/MatchState" }
+            kind: { oneOf: [{ $ref: "#/components/schemas/MatchKind" }, { type: "null" }] }
+            records:
+              type: array
+              items:
+                type: object
+                required: [kind, id, docId, label]
+                properties:
+                  kind: { type: string, enum: [INVOICE, RECEIPT, LEDGER_ENTRY] }
+                  id: { type: string }
+                  docId: { type: string }
+                  label: { type: string }
     BankLineUpdate:
       type: object
       required: [category]
@@ -2489,6 +2627,8 @@ components:
         score: { $ref: "#/components/schemas/Decimal" }
         reasons: { type: array, items: { $ref: "#/components/schemas/MatchReason" } }
         text: { type: string }
+        aiRank: { type: [integer, "null"], description: "Spec 023: the model's order among a proposal's candidates (1 first); advice, never a match" }
+        aiReason: { type: [string, "null"], description: "The model's one sentence for this candidate" }
     ReviewItem:
       type: object
       required: [itemId, kind, status, priority, subject, allowedActions]
@@ -2514,6 +2654,7 @@ components:
           type: object
           properties:
             candidates: { type: array, items: { $ref: "#/components/schemas/ReviewCandidate" } }
+            rankedBy: { type: [string, "null"], description: "Spec 023: model@prompt that ordered the candidates" }
             reading: { $ref: "#/components/schemas/ValueReading" }
             docType: { $ref: "#/components/schemas/DocType" }
             confidence: { $ref: "#/components/schemas/Decimal", description: "The classifier's confidence in docType (CONFIRM_TYPE)" }
@@ -2702,8 +2843,8 @@ components:
       properties:
         period: { type: string }
         framework: { $ref: "#/components/schemas/AccountingFramework" }
-        opening: { $ref: "#/components/schemas/Money" }
-        closing: { $ref: "#/components/schemas/Money" }
+        opening: { oneOf: [{ $ref: "#/components/schemas/Money" }, { type: "null" }], description: "null when no statement in the period prints balances (gap NO_BALANCES)" }
+        closing: { oneOf: [{ $ref: "#/components/schemas/Money" }, { type: "null" }], description: "null when no statement in the period prints balances (gap NO_BALANCES)" }
         balanced: { type: boolean, description: "opening + Σ byActivity = closing for every account; false means a statement or month is missing (see gaps)" }
         gapReason: { type: [string, "null"], deprecated: true, description: "Superseded by gaps; always null" }
         gaps:

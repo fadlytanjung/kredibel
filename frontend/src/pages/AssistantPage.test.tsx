@@ -174,7 +174,7 @@ describe('AssistantPage', () => {
 
     expect(screen.getByTestId('prompt-card-0')).toBeInTheDocument()
     expect(screen.getByLabelText('Suggested questions')).toBeInTheDocument()
-    expect(screen.getAllByText('Where did the money go in Q2?')[0]).toBeInTheDocument()
+    expect(screen.getAllByText('Where did the money go over the last three months?')[0]).toBeInTheDocument()
   })
 
   it('allows user to stream a new question via composer with SSE', async () => {

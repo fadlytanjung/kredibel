@@ -7,6 +7,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 import { currencyLabel, useUpdateWorkspace, type Workspace } from '../../entities/workspace'
 import { ProblemError } from '../../shared/api/client'
 import type { components } from '../../shared/api/schema'
@@ -153,6 +154,16 @@ export function ProfileForm({ workspace }: { workspace: Workspace }) {
               options={FRAMEWORKS.map((key) => ({ key, label: t(`profile.frameworks.${key}`) }))}
             />
             <span className="hint">{t('profile.frameworkHint')}</span>
+          </div>
+          <div className="field span-2">
+            <span className="label">{t('profile.goal')}</span>
+            <span className="row gap-2">
+              {t(`profile.goals.${workspace.goal ?? 'NONE'}`)}
+              <Link className="link" to={workspace.goal === 'CHECK_EXPECTATIONS' ? '/welcome?expect=1' : '/welcome'}>
+                {t('profile.changeGoal')}
+              </Link>
+            </span>
+            <span className="hint">{t('profile.goalHint')}</span>
           </div>
           <Field
             id="name"

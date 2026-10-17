@@ -47,6 +47,8 @@ class Settings(BaseSettings):
     runs_enabled: bool = True
     # Spec 021: the workspace a demo company is copied from; empty means no demo on onboarding.
     demo_template_org: str = ""
+    # Spec 024: the public demo account (email and password sign-in) that may reset its workspace.
+    demo_account_email: str = ""
     run_quota_per_org_per_day: int = 80
 
     # Google Cloud Platform
@@ -92,6 +94,9 @@ class Settings(BaseSettings):
     # calls still take minutes, so each is cut off and retried once.
     reader_thinking_level: Literal["low", "high"] = "low"
     reader_timeout_seconds: float = 60.0
+    # The assistant's model call must answer inside Firebase Hosting's 60 s request limit; after
+    # this many seconds the safe summary (the books' own figures) answers instead.
+    assistant_answer_seconds: float = 50.0
     reader_attempts: int = 2
     reader_rate_limit_retries: int = 6  # waits on 429/5xx, about 90 s in all (docs/07 §9)
     page_concurrency: int = 6

@@ -87,6 +87,8 @@ def parse_ledger_csv(
                 currency=currency,
                 posting_status=posting_status,
                 journal_id=journal_id,
+                description=r_lower.get("description") or "",
+                reference=r_lower.get("reference") or None,
                 entry_kind="ACTIVITY",
                 held_as_duplicate=False,
             )

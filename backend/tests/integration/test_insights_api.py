@@ -148,7 +148,7 @@ async def test_the_dashboard_shows_the_period_figures_months_and_top_flows():
     assert D(kpis["NET"]["value"]["amount"]) == money_in - money_out
     assert kpis["MONEY_IN"]["previous"] is None  # nothing before March
     assert "AUTO_MATCH_RATE" in kpis and kpis["DOCUMENTS_WAITING"]["value"] == 0
-    assert kpis["OPEN_REVIEW_ITEMS"]["value"] == len(queue)  # the period's open items (AC-010-1)
+    assert kpis["OPEN_REVIEW_ITEMS"]["value"] == len(queue)  # every open item (docs/11 §6.2)
     assert [i["itemId"] for i in board["reviewPreview"]] == [i["itemId"] for i in queue][:5]
     [march] = board["months"]
     assert (

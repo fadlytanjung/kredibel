@@ -13,6 +13,20 @@
 ## Phase B — prompts and ranking (P1)
 
 - [ ] **T023-06** Statement reader v4, categorizer v4, classifier v3; synthetic *rekening koran*
-  scenario; measured by the eval suite before shipping. (AC-023-6)
-- [ ] **T023-07** **TDD** The model ranks a proposal's candidates; shown on the review item. (AC-023-7)
+  scenario; measured by the eval suite before shipping. (AC-023-6) Partly built 16 Oct 2026: classifier v3 and categorizer v5 shipped; statement v4 (procedure, local words, balance self-check) read the demo the same but lost 14 rows' amounts on a real scan, so it was rolled back with the invoice and receipt self-checks (docs/07 §5a). Open: a statement version that passes both.
+- [x] **T023-07** **TDD** The model ranks a proposal's candidates; shown on the review item. (AC-023-7) Built 16 Oct 2026: `Allocation.rivals`, `rank_candidates` prompt v1 and reader call, `month_nodes.rank_proposals`, candidates' `aiRank`/`aiReason` and `rankedBy` (contract, Firestore, schema snapshot), the review panel's AI view and its mock.
+- [x] **T023-09** **TDD** Cash withdrawals are money out (`CASH_WITHDRAWAL`); Indonesian and Malay
+  words for cash, fees, tax and interest in `categorization-rules.v1.yaml`; `categorize_transactions`
+  v4. (AC-023-10)
+- [x] **T023-10** **TDD** A value corrected on the Labels page reaches the record and reconciles its
+  months; a value corrected anywhere settles its label. (AC-023-8)
+- [x] **T023-11** **TDD** Matching tries the other reading of an amount the readings disagreed on
+  (`OTHER_READING`, a proposal). (AC-023-9)
+- [x] **T023-12** **TDD** Bank lines matched to their bookings on the mapped ledger account
+  (`match_ledger_cash`, `ledgerCash` policy, ledger rows keep description and reference). (AC-023-11)
+  Built 17 Oct 2026: S1 84 of 87 lines no document explains, none wrong; 92–100% per month.
+- [x] **T023-13** **TDD** A line nothing categorized takes the category its match names
+  (`match_categories.py`, written by the month run with `set_match_categories`; a journal is its ID
+  or, without one, its file, date and description). (AC-023-12) Built 17 Oct 2026: the demo's cash
+  deposits booked to Retail sales are sales receipts, from their match.
 - [ ] **T023-08** Update `docs/07`, `docs/08`, `docs/20`.

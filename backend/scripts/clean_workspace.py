@@ -2,7 +2,9 @@
 """Clean up a workspace's uploaded documents, bank lines, matches, months, and runs (dev helper).
 
 Preserves workspace profile, settings, members, and declared bank accounts.
-Resets document and review item counters to 0.
+Resets document and review item counters to 0. With --reset-usage it also removes the plan usage
+counters (usageMonthly, usage): only for the demo template, whose books are read again in full by
+`make demo-template` and would otherwise count twice against its trial in the same month.
 
 Usage:
   uv run python -m scripts.clean_workspace --email owner@example.com
@@ -34,10 +36,18 @@ COLLECTIONS = (
     "runs",
     "events",
     "fileHashes",
+    "labels",
+    "counterparties",
+    "chunks",
 )
 
 
-async def clean_org_data(org_id: str, settings: Settings | None = None) -> dict[str, int | str]:
+USAGE_COLLECTIONS = ("usageMonthly", "usage")
+
+
+async def clean_org_data(
+    org_id: str, settings: Settings | None = None, reset_usage: bool = False
+) -> dict[str, int | str]:
     settings = settings or Settings()
     db = firestore.Client(
         project=settings.google_cloud_project, database=settings.firestore_database
@@ -45,7 +55,7 @@ async def clean_org_data(org_id: str, settings: Settings | None = None) -> dict[
     org_ref = db.collection("orgs").document(org_id)
 
     deleted_counts: dict[str, int | str] = {}
-    for col_name in COLLECTIONS:
+    for col_name in (*COLLECTIONS, *(USAGE_COLLECTIONS if reset_usage else ())):
         col_ref = org_ref.collection(col_name)
         count = 0
         while True:
@@ -92,6 +102,11 @@ async def main() -> int:
     )
     parser.add_argument("--email", help="Workspace owner's email")
     parser.add_argument("--org", help="Workspace org ID")
+    parser.add_argument(
+        "--reset-usage",
+        action="store_true",
+        help="Also remove the plan usage counters (the demo template only)",
+    )
     args = parser.parse_args()
 
     if not args.email and not args.org:
@@ -112,7 +127,7 @@ async def main() -> int:
             return 1
 
     print(f"Cleaning workspace {org_id}...")
-    counts = await clean_org_data(org_id, settings)
+    counts = await clean_org_data(org_id, settings, reset_usage=args.reset_usage)
     print("Deleted items:")
     for k, v in counts.items():
         if v:

@@ -23,7 +23,7 @@ def _disagreed(reading: dict[str, Any] | None) -> bool:
     return _by_ocr(reading) and ((reading or {}).get("agreement") or 0) < 1
 
 
-async def _run(org: str, disagreed: bool, ocr: bool) -> int:
+async def _run(org: str, disagreed: bool, ocr: bool, doc_type: str | None = None) -> int:
     from app.adapters.cloud_tasks import InlineTaskQueue, month_task_id
     from app.adapters.policy_files import load_plans
     from app.core.settings import Settings
@@ -42,9 +42,10 @@ async def _run(org: str, disagreed: bool, ocr: bool) -> int:
         if d.status.value in ("DONE", "NEEDS_INPUT")
         and d.doc_type.value != "LEDGER_EXPORT"
         and (
-            (ocr and _by_ocr(d.reading))
+            (doc_type is not None and d.doc_type.value == doc_type)
+            or (ocr and _by_ocr(d.reading))
             or (disagreed and _disagreed(d.reading))
-            or not await deps.chunk_repo.list_chunks(org, d.doc_id)
+            or (doc_type is None and not await deps.chunk_repo.list_chunks(org, d.doc_id))
         )
     ]
     for doc in without:
@@ -91,8 +92,13 @@ def main() -> int:
         action="store_true",
         help="every document read by OCR (after a change to how its words are built)",
     )
+    parser.add_argument(
+        "--type",
+        dest="doc_type",
+        help="every read document of this type (after a new prompt version), e.g. BANK_STATEMENT",
+    )
     args = parser.parse_args()
-    return asyncio.run(_run(args.org, args.disagreed, args.ocr))
+    return asyncio.run(_run(args.org, args.disagreed, args.ocr, args.doc_type))
 
 
 if __name__ == "__main__":

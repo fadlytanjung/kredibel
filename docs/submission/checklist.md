@@ -1,38 +1,42 @@
 # Submission checklist
 
-> Target: submit **17 Oct 2026, 21:00 UTC+7** (deadline 18 Oct; time zone unconfirmed). Owner: role D.
+> The day-of checklist. The rules and where each artefact is: [`README.md`](README.md). Target:
+> submit before the portal's deadline; record the confirmation.
 
-## Before D7
+## Artefacts (the five required)
 
-- [ ] Registration and team formation confirmed on the Hack2skill dashboard (closes **11 Oct**).
-- [ ] Official FAQ re-read for: exact deadline and time zone, required portal fields, character
-      limits, required Cloud Run labels or hashtags, repository visibility, video length.
-- [ ] Every team member meets eligibility (working professional, 21+, JAPAC, not a student).
+- [ ] **Pitch deck** on the prescribed template, filled from [`pitch-deck.md`](pitch-deck.md); every
+      `⟨…⟩` replaced (team); exported as the template asks.
+- [ ] **Video** 3:00–4:00 (ours: [`demo-video/`](demo-video/)), working functionality on production,
+      English voice and captions, uploaded as a public (or unlisted) link that opens without sign-in.
+- [ ] **Prototype link** <https://kredibel-app.web.app> opens logged out; the demo sign-in
+      (`demo@kredibel.app` / `Kredibel-Demo-2026`) works; `/api/health` answers.
+- [ ] **Repository** <https://github.com/fadlytanjung/kredibel> is public; README renders with the
+      logo, the live link, the demo account and the video link.
+- [ ] **Brief description** pasted from [`brief-description.md`](brief-description.md) (mentions
+      Firebase, Firestore, Cloud Run and Gemini); within the field's limit.
 
-## Artefacts
+## Verification on production (the demo account)
 
-- [ ] **Prototype URL** works logged out; the demo account is listed in the submission notes.
-- [ ] **Video** ≤ 3:00, public link, follows `demo-script.md`, English, captions on.
-- [ ] **Proposal** (`proposal.md`) final; all `⟨…⟩` replaced; numbers match the eval report; under
-      portal limits (measure: `python3 -c "print(len(open('brief.txt').read()))"`).
-- [ ] **Repository** link works; README renders with the logo; docs and code in English.
-- [ ] **Theme** stated: Theme 1 — BFSI.
+- [ ] Sign in with email and password; a fresh copy asks the welcome question; Skip records a goal.
+- [ ] Dashboard (August–October): Matched by Kredibel 95.2%; To review equals the Review page (20).
+- [ ] Months: August Critical, September Medium, October High; ≥ 85% matched each month.
+- [ ] Risk: August A01/A02/M01–M04 (the evidence viewer lights the edited amount); October X08.
+- [ ] Documents: uploading `statement-2026-10.pdf` again says "Not read again and not counted".
+- [ ] Transactions: ten rows a page; a cash deposit is "Sales receipts (From its match)".
+- [ ] Assistant: "How much money went out in October 2026?" answers IDR 705,933,026.00 with a citation.
+- [ ] A second account (Google) sees nothing of the demo workspace.
+- [ ] Worker rejects unauthenticated calls (403); no secrets in the repo (`make check` runs the scan).
 
-## Verification (run `/submission-check`)
+## Keep it working until judging ends
 
-- [ ] S1: months reconciled or with the expected short queue; ≥ 85% matched automatically; LOW risk.
-- [ ] S3: exact copy "not read again"; four content duplicates held and confirmable; figures equal S1.
-- [ ] S2: March `CRITICAL`; evidence viewer lights the edited value with both readings.
-- [ ] S4: May `HIGH` with the supplier's old and new account.
-- [ ] Dashboard Sankey opens the bank lines behind a band.
-- [ ] A second workspace's account sees nothing of the demo workspace.
-- [ ] Worker rejects unauthenticated calls (403).
-- [ ] No secrets in the repo or image; `scan_secrets.py` clean.
-- [ ] README "Results" passes `readme_results.py`.
-- [ ] `min-instances` back to 0 after recording.
+- [ ] `make check` green on `main`; the deployed version (`/api/health` `version`) is a pushed commit.
+- [ ] Demo account reset the evening before judging (`make demo-account …`); the template untouched.
+- [ ] `kredibel-web` minimum instances set to 1 during judging (cold starts), back to 0 after:
+      `gcloud run services update kredibel-web --region=asia-southeast1 --min-instances=1`.
+- [ ] Give judges the `web.app` link (sign-in on `kredibel.app` needs `infra/allow-web-domain.sh`).
 
 ## After submitting
 
 - [ ] Screenshot of the submission confirmation in the team drive.
 - [ ] Freeze `main`; tag `v1.0-submission`.
-- [ ] Social post (if the competition has a Social Choice award) with the video and repo link.

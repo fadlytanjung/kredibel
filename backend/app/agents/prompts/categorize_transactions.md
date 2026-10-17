@@ -1,6 +1,6 @@
 ---
 id: categorize_transactions
-version: 3
+version: 5
 model_env: MODEL_LITE
 output_schema: CategorizeResult
 ---
@@ -16,7 +16,7 @@ printed, direction, amount).
 ### IFRS Classification Guidance
 - **Operating Activities**:
   - Money in: `SALES_RECEIPT` (customer invoices, daily takings, merchant settlement), `OTHER_OPERATING_INCOME`.
-  - Money out: `INVENTORY_PURCHASE` (stock, goods for sale, raw materials), `SUPPLIER_PAYMENT` (services, software, contractor fees), `PAYROLL` (salaries, wages, staff medical, bonuses), `RENT` (property leases, office rent), `UTILITIES` (electric, water, internet, phone), `BANK_FEES` (account charges, wire fees), `TAX_PAYMENT` (VAT/GST/PPN, corporate income tax), `OTHER_OPERATING_EXPENSE` (routine expenses, shops, transport).
+  - Money out: `INVENTORY_PURCHASE` (stock, goods for sale, raw materials), `SUPPLIER_PAYMENT` (services, software, contractor fees), `PAYROLL` (salaries, wages, staff medical, bonuses), `RENT` (property leases, office rent), `UTILITIES` (electric, water, internet, phone), `BANK_FEES` (account charges, wire fees), `TAX_PAYMENT` (VAT/GST/PPN, corporate income tax), `OTHER_OPERATING_EXPENSE` (routine expenses, shops, transport). `CASH_WITHDRAWAL` (cash taken out at a teller or ATM: TRK TUNAI, TARIKAN TUNAI, ATM WITHDRAWAL; it is money out, not a transfer between own accounts).
 - **Investing Activities**:
   - Money in: `ASSET_SALE` (proceeds from selling equipment/vehicles), `INTEREST_RECEIVED` (bank deposit interest).
   - Money out: `ASSET_PURCHASE` (equipment, machinery, computers, leasehold improvements).
@@ -24,7 +24,17 @@ printed, direction, amount).
   - Money in: `LOAN_DISBURSEMENT` (bank borrowings, facilities), `OWNER_CAPITAL` (equity injected by founders/owners).
   - Money out: `LOAN_REPAYMENT` (principal loan amortisation), `INTEREST_PAID` (financing charges, loan interest), `OWNER_DRAWING` (dividends, partner drawings).
 - **Non-Cash / Non-Operational**:
-  - `INTERNAL_TRANSFER` (transfers between company's own accounts, sweep accounts, petty cash withdrawals), `REVERSAL` (chargebacks, failed transaction reversals).
+  - `INTERNAL_TRANSFER` (transfers between the business's own bank accounts and sweep accounts; never a cash withdrawal), `REVERSAL` (chargebacks, failed transaction reversals).
+
+### Words in Indonesian and Malay statements
+- `BIAYA ADM`, `ADM BANK`, `CAJ` → `BANK_FEES`; `JASA GIRO`, `BUNGA`, `FAEDAH` (money in) → `INTEREST_RECEIVED`.
+- `PAJAK`, `PPH`, `PPN`, `PAJAK JASA GIRO` → `TAX_PAYMENT`.
+- `SETORAN`, `SETOR TUNAI` (money in): from a customer `SALES_RECEIPT`, from the owner `OWNER_CAPITAL`; `UNKNOWN` when the line does not say which.
+- `SP2D` (money in) is a government treasury payment to a supplier of the government: `SALES_RECEIPT`.
+- `GAJI` → `PAYROLL`; `SEWA` → `RENT`; `LISTRIK`, `PLN`, `PDAM`, `TELKOM`, `INTERNET` → `UTILITIES`.
+
+Confidence: above 0.9 only when the description names what it is; 0.5 to 0.7 when you infer it from a
+name alone; `UNKNOWN` rather than a guess below 0.5.
 
 For every line return its id and:
 1. `category`: one id from the list that best fits the description and line's direction. Use `UNKNOWN` when there is not enough information to categorize reliably.

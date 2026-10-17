@@ -73,6 +73,7 @@ from app.api.runs import create_runs_router
 from app.api.static import mount_static_spa
 from app.api.suggestions import create_suggestions_router
 from app.api.tasks import create_tasks_router
+from app.api.transactions import create_transactions_router
 from app.api.workspace import create_workspace_router
 from app.core.auth import (
     FirebaseTokenVerifier,
@@ -131,6 +132,7 @@ from app.services.counterparty_service import CounterpartyService
 from app.services.decision_service import DecisionService
 from app.services.document_service import DocumentService
 from app.services.entitlement_service import EntitlementService
+from app.services.expectation_service import ExpectationService
 from app.services.extraction_service import ExtractionPorts, ExtractionService
 from app.services.finding_service import FindingService
 from app.services.insight_service import InsightService
@@ -142,6 +144,7 @@ from app.services.record_service import RecordService
 from app.services.review_service import ReviewService
 from app.services.runs import DocumentWorkflowRunner, MonthWorkflowRunner, RunService
 from app.services.suggestion_service import SuggestionService
+from app.services.transaction_service import TransactionService
 from app.services.workspace_service import WorkspaceService
 
 T = TypeVar("T")
@@ -353,6 +356,7 @@ class AppDeps:
                 ),
                 copier=self.workspace_copier,
                 demo_template_org=self.settings.demo_template_org,
+                demo_account_email=self.settings.demo_account_email,
             ),
         )
 
@@ -877,6 +881,35 @@ class AppDeps:
         )
 
     @property
+    def transaction_service(self) -> TransactionService:
+        return self._once(
+            "transaction_service",
+            lambda: TransactionService(
+                bank_lines=self.bank_lines,
+                matches=self.matches,
+                invoices=self.invoices,
+                receipts=self.receipts,
+                ledger=self.ledger_repo,
+                workspaces=self.workspace_repo,
+                categories=self.categories,
+                profit_loss=load_profit_loss_policy(
+                    self.settings.contract_path(self.settings.policy_dir)
+                ),
+            ),
+        )
+
+    @property
+    def expectation_service(self) -> ExpectationService:
+        return self._once(
+            "expectation_service",
+            lambda: ExpectationService(
+                self.workspace_repo,
+                self.month_repo,
+                self.reconciliation.expectations.tolerance,
+            ),
+        )
+
+    @property
     def month_service(self) -> MonthService:
         return self._once(
             "month_service",
@@ -909,6 +942,7 @@ class AppDeps:
                 receipts=self.receipts,
                 entitlements=self.entitlement_service,
                 search=self.extraction_service.search_org,
+                answer_seconds=self.settings.assistant_answer_seconds,
             ),
         )
 
@@ -971,6 +1005,7 @@ def create_app(
         app.include_router(create_runs_router(deps, workspace_dep))
         app.include_router(create_months_router(deps, workspace_dep))
         app.include_router(create_bank_lines_router(deps, workspace_dep))
+        app.include_router(create_transactions_router(deps, workspace_dep))
         app.include_router(create_insights_router(deps, workspace_dep))
         app.include_router(create_profit_loss_router(deps, workspace_dep))
         app.include_router(create_records_router(deps, workspace_dep))

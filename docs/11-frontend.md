@@ -99,9 +99,11 @@ they never set colours, font sizes or shadows ([`12`](12-design-system.md) §0).
 | Group | Item (short label in the rail) | Route | Count badge |
 |---|---|---|---|
 | — | Dashboard | `/dashboard` (`/` is the public landing, spec 020) | — |
+| — | Welcome: asked once after onboarding, no navigation (spec 024) | `/welcome` | — |
 | — | Company profit and loss (opened from the dashboard's P&L panel; the Dashboard item stays current) | `/profit-loss` | — |
 | Books | Documents | `/documents` | total, neutral (sidebar only) |
 | Books | Reconciliation (Reconcile) | `/months` | — |
+| Books | Transactions: every bank line of a month with its classes, subledger and match (spec 024); a row opens in the drawer | `/transactions`, `/transactions/:txId` | — |
 | Books | Review | `/review` | open items, alert colour |
 | Books | Risk | `/risk` | months at High or Critical with open findings, alert colour |
 | Insight | Clients and suppliers: not in the menus since 16 Oct 2026; the pages stay for links | `/counterparties` | — |
@@ -114,7 +116,7 @@ The logo, the workspace switcher (one workspace in P0; its subtitle shows the ty
 accounting framework), the trial status and a global **Upload** action are always reachable: in the
 sidebar and top bar from 600 px, as the floating **Upload** button and the bottom navigation
 (Dashboard, Documents, Review, Risk, More) below 600 px. **More** opens a sheet with Reconciliation,
-Assistant, Labels, Runs and Settings; `Esc` or a tap outside closes it.
+Transactions, Assistant, Labels, Runs and Settings; `Esc` or a tap outside closes it.
 
 The sidebar foot has two rows and nothing else, so the labelled sidebar shows every item without
 scrolling in a window 768 px tall (below that only the navigation scrolls; the logo and the foot stay
@@ -350,7 +352,7 @@ wins; on looks, the mock and [`12`](12-design-system.md) win.
 <p><img src="assets/mocks/onboarding-desktop.png" alt="Onboarding at 1440 px: dark ledger-paper brand panel with the logo, tagline and three ledger lines; the form asks whose books these are" width="66%"> <img src="assets/mocks/onboarding-mobile.png" alt="Onboarding on a phone: brand band with the tagline above the form" width="26%"></p>
 
 - When the server has a demo template (`demoAvailable`), the form opens with **Explore a demo
-  company**: Sunrise Coffee Roasters' six months of synthetic books, already read and reconciled.
+  company**: Sunrise Coffee Roasters' three months of synthetic books (300 documents), already read and reconciled.
   **Open the demo company** → `POST /api/workspaces/demo` (a copy of the template for this person,
   spec 021) → refresh the ID token → the dashboard with the guided tour. Below it, "or set up your
   own business" and the form.
@@ -400,7 +402,9 @@ visible headings, segmented controls and panel links at 390, 834 and 1440 px. To
 - **Figures:** money in and money out against the previous period of equal length, net (kept in or
   taken from the accounts), matched by Kredibel (share, with the previous period and a small meter),
   waiting for you (documents to decide on) and to review (open items), the last two in the alert
-  colour when above zero and linking to the documents and the queue.
+  colour when above zero and linking to the documents' possible copies (`/documents?filter=duplicates`)
+  and the queue. Both are to-dos, not figures of the period: they count everything open, as the
+  sidebar and the queue do (17 Oct 2026), and the review panel previews the queue's first five.
 - **Profit and loss:** the company P&L panel of spec 018 (§6.2a) with **Accounts and sources**. Its
   **Flow** draws income meeting in the middle and splitting into expenses and the profit kept; a
   period with a net loss draws the loss as a source that funds the expenses, the middle being the

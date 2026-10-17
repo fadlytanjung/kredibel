@@ -44,6 +44,8 @@ function Inline({ text }: { text: string }) {
 }
 
 function Block({ block }: { block: MdBlock }): ReactNode {
+  const { t } = useTranslation('common')
+  // A wide table or block scrolls sideways: a region the keyboard can reach (axe scrollable-region-focusable).
   switch (block.kind) {
     case 'heading': {
       const Tag = (['h3', 'h4', 'h5', 'h6', 'h6', 'h6'] as const)[block.level - 1]
@@ -65,7 +67,7 @@ function Block({ block }: { block: MdBlock }): ReactNode {
       )
     case 'table':
       return (
-        <div className="md-table">
+        <div className="md-table" role="region" aria-label={t('markdown.tableRegion')} tabIndex={0}>
           <table>
             <thead>
               <tr>
@@ -91,7 +93,11 @@ function Block({ block }: { block: MdBlock }): ReactNode {
         </div>
       )
     case 'code':
-      return <pre className="md-code">{block.text}</pre>
+      return (
+        <pre className="md-code" role="region" aria-label={t('markdown.codeRegion')} tabIndex={0}>
+          {block.text}
+        </pre>
+      )
     case 'list':
       return (
         <ul>

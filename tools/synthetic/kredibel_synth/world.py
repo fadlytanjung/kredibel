@@ -78,6 +78,68 @@ CLIENTS = [
     ),
 ]
 
+# Spec 024: more clients for the demo's volume only; the books of docs/18 never use them.
+EXTRA_CLIENTS = [
+    Client(
+        Party("Kopi Senja Café", ("Jl. Riau 41", "Bandung 40115"), "99-102.338.4-423.000"),
+        3_000_000,
+        9_000_000,
+    ),
+    Client(
+        Party("Braga Corner Coffee", ("Jl. Braga 12", "Bandung 40111"), "99-118.502.7-423.000"),
+        4_000_000,
+        11_000_000,
+    ),
+    Client(
+        Party(
+            "Lembang Hillside Hotel",
+            ("Jl. Raya Lembang 260", "Lembang 40391"),
+            "99-225.611.3-441.000",
+        ),
+        25_000_000,
+        48_000_000,
+    ),
+    Client(
+        Party(
+            "Dago Bakery & Co.", ("Jl. Ir. H. Juanda 88", "Bandung 40135"), "99-341.907.2-423.000"
+        ),
+        5_000_000,
+        14_000_000,
+    ),
+    Client(
+        Party(
+            "Cimahi Office Pantry Services",
+            ("Jl. Amir Machmud 15", "Cimahi 40526"),
+            "99-456.220.9-421.000",
+        ),
+        9_000_000,
+        20_000_000,
+    ),
+    Client(
+        Party(
+            "Pasar Baru Grocers",
+            ("Jl. Otto Iskandardinata 70", "Bandung 40181"),
+            "99-563.118.5-429.000",
+        ),
+        12_000_000,
+        26_000_000,
+    ),
+    Client(
+        Party("Sunda Kitchen Group", ("Jl. Pasteur 33", "Bandung 40161"), "99-672.405.1-422.000"),
+        30_000_000,
+        55_000_000,
+    ),
+    Client(
+        Party(
+            "Jatinangor Campus Canteen",
+            ("Jl. Raya Jatinangor 9", "Sumedang 45363"),
+            "99-781.539.6-446.000",
+        ),
+        6_000_000,
+        16_000_000,
+    ),
+]
+
 PRODUCTS = [
     ("Arabica roasted beans, 1 kg", Decimal("285000")),
     ("Robusta roasted beans, 1 kg", Decimal("180000")),
@@ -163,6 +225,71 @@ BLUEWATER = Supplier(
     (("Green beans, Arabica Gayo, 60 kg sack", Decimal("7400000"), 1, 2),),
 )
 SUPPLIERS = [GREEN_VALLEY, PRIMEPACK, ROASTLINE]
+# Spec 024: more suppliers for the demo's volume only (a real roaster's month has many bills); the
+# books of docs/18 never use them.
+EXTRA_SUPPLIERS = [
+    Supplier(
+        "gayo",
+        Party(
+            "Gayo Highland Coffee Cooperative",
+            ("Jl. Takengon 12", "Aceh Tengah 24552"),
+            "99-401.226.8-101.000",
+        ),
+        PayTo(BANK_NAME, "9900031876", "GAYO HIGHLAND COFFEE COOP"),
+        "gvf",
+        "5100",
+        "INVENTORY_PURCHASE",
+        (("Green beans, Arabica Gayo, 60 kg sack", Decimal("7150000"), 1, 3),),
+    ),
+    Supplier(
+        "sinar",
+        Party(
+            "Sinar Label Printing", ("Jl. Cibaduyut 77", "Bandung 40239"), "99-318.540.2-422.000"
+        ),
+        PayTo(BANK_NAME, "9900042259", "SINAR LABEL PRINTING"),
+        "primepack",
+        "5200",
+        "INVENTORY_PURCHASE",
+        (
+            ("Bag labels, full colour", Decimal("420"), 2000, 6000),
+            ("Gift sleeves", Decimal("2600"), 100, 400),
+        ),
+    ),
+    Supplier(
+        "kilat",
+        Party(
+            "Kilat Logistics", ("Jl. Soekarno-Hatta 455", "Bandung 40266"), "99-207.815.5-424.000"
+        ),
+        PayTo(BANK_NAME, "9900055041", "KILAT LOGISTICS"),
+        "roastline",
+        "6300",
+        "SUPPLIER_PAYMENT",
+        (("Pallet freight, Bandung to Jakarta", Decimal("1250000"), 1, 4),),
+    ),
+    Supplier(
+        "parahyangan",
+        Party(
+            "Parahyangan Office Supply", ("Jl. Braga 38", "Bandung 40111"), "99-590.114.7-423.000"
+        ),
+        PayTo(BANK_NAME, "9900068813", "PARAHYANGAN OFFICE SUPPLY"),
+        "roastline",
+        "6200",
+        "SUPPLIER_PAYMENT",
+        (
+            ("Printer paper, box", Decimal("265000"), 2, 8),
+            ("Toner cartridge", Decimal("890000"), 1, 2),
+        ),
+    ),
+    Supplier(
+        "toba",
+        Party("Toba Jute Sacks", ("Jl. Sisingamangaraja 9", "Medan 20217"), "99-713.402.6-121.000"),
+        PayTo(BANK_NAME, "9900079120", "TOBA JUTE SACKS"),
+        "primepack",
+        "5200",
+        "INVENTORY_PURCHASE",
+        (("Jute sacks, 60 kg, printed", Decimal("38500"), 100, 400),),
+    ),
+]
 # Which suppliers invoice in which month: 3, 2, 3, 2, 3, 3 = 16 (docs/18 §3.6).
 SUPPLIER_SCHEDULE: dict[str, list[Supplier]] = {
     "2026-01": [GREEN_VALLEY, PRIMEPACK, ROASTLINE],

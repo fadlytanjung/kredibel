@@ -230,7 +230,9 @@ export function AssistantPage() {
             setStreamError(err.message)
             const fallbackText = draftText.trim()
               ? `${draftText}\n\n*(${t('assistant:errors.interrupted', { message: err.message })})*`
-              : t('assistant:errors.retrieve', { message: err.message })
+              : err.timeout
+                ? t('assistant:errors.timeout')
+                : t('assistant:errors.retrieve', { message: err.message })
             const errorMsg: AssistantMessage = {
               messageId: `err-${Date.now()}`,
               role: 'assistant',
@@ -301,15 +303,15 @@ export function AssistantPage() {
 
   const starterQuestions = [
     t('assistant:starters.unpaid'),
-    t('assistant:starters.q2'),
+    t('assistant:starters.flow'),
     t('assistant:starters.clients'),
   ]
 
   // The welcome prompts; the same four as the mock (assistant-welcome.html).
   const welcomePrompts = [
-    { title: t('assistant:welcome.prompts.flow'), question: t('assistant:starters.q2'), icon: 'bar-chart' as const },
+    { title: t('assistant:welcome.prompts.flow'), question: t('assistant:starters.flow'), icon: 'bar-chart' as const },
     { title: t('assistant:welcome.prompts.unpaid'), question: t('assistant:starters.unpaid'), icon: 'file-text' as const },
-    { title: t('assistant:welcome.prompts.risk'), question: t('assistant:starters.riskJune'), icon: 'shield-alert' as const },
+    { title: t('assistant:welcome.prompts.risk'), question: t('assistant:starters.risk'), icon: 'shield-alert' as const },
     { title: t('assistant:welcome.prompts.pnl'), question: t('assistant:starters.pnl'), icon: 'table' as const },
   ]
 

@@ -23,6 +23,12 @@ describe('the upload tray (spec 003, AC-003-1, AC-003-6)', () => {
     expect(rows[3].reviewItemId).toBe('itm_ledger_h1')
   })
 
+  it('lists only what was uploaded since the workspace began: a demo copy\'s files were not (spec 024)', () => {
+    // The demo company is copied with its documents' upload times; in a copy made within a day
+    // of them they are not this workspace's uploads. Anything waiting for a person still shows.
+    expect(trayRows(DOCS, [], ITEMS, NOW, NOW).map((r) => r.state)).toEqual(['held', 'columns'])
+  })
+
   it('keeps a held copy or a ledger waiting for its columns after the day; read files leave', () => {
     const later = new Date('2026-07-12T09:30:00Z')
     expect(trayRows(DOCS, [], ITEMS, later).map((r) => r.state)).toEqual(['held', 'columns'])

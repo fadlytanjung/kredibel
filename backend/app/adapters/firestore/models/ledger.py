@@ -21,6 +21,9 @@ class LedgerEntryDoc(FirestoreModel):
     currency: str | None = None
     posting_status: Literal["POSTED", "DRAFT", "UNKNOWN"] = "UNKNOWN"
     journal_id: str | None = None
+    # docs/09 §3.8 (optional, additive): the row's description and reference, for bank matching.
+    description: str = ""
+    reference: str | None = None
     entry_kind: Literal["ACTIVITY", "OPENING", "CLOSING"] = "ACTIVITY"
     held_as_duplicate: bool = False
     duplicate: dict[str, Any] | None = None

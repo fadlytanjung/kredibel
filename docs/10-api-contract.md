@@ -40,7 +40,9 @@
 | `GET /api/plans` | Plan catalog (Free trial `AVAILABLE`; others `COMING_SOON`), coming-soon features, UI languages | P0 |
 | `POST /api/workspaces` | Create the workspace: name, `entityType` (`INDIVIDUAL` or `COMPANY`), profile basics, time zone, `currency` (`IDR`, `MYR`, `SGD`, `JPY`, `USD`; fixed afterwards); starts the free trial; caller becomes `owner` | P0 |
 | `GET /api/workspace` | Profile, subscription (trial days left, effective limits), usage this month, counts | P0 |
-| `PATCH /api/workspace` | Profile fields (incl. `accountingFramework`: `IFRS` or `US_GAAP`), time zone, language (`en` only), `learning.shareVerifiedLabels`; entity type is fixed | P0 / P1 |
+| `PATCH /api/workspace` | Profile fields (incl. `accountingFramework`: `IFRS` or `US_GAAP`), time zone, language (`en` only), `learning.shareVerifiedLabels`, the `goal` and per-month `expectations` (spec 024); entity type is fixed | P0 / P1 |
+| `GET /api/expectations` | Spec 024: each expected month against its reconciled money in and out (`AS_EXPECTED` within the policy's tolerance, `DIFFERENT` with the difference, `WAITING`) | P1 |
+| `POST /api/workspaces/demo/reset` | Spec 024: the public demo account's workspace becomes a fresh copy of the demo company; 403 for any other account | P0 |
 | `GET /api/bank-accounts` · `POST /api/bank-accounts` · `PATCH /api/bank-accounts/{accountId}` · `DELETE /api/bank-accounts/{accountId}` | The workspace's bank accounts (full number in, mask + hash stored); `ledgerAccountCode` for ledger reconciliation | P0 |
 | `GET /api/workspace/members` · `POST /api/workspace/invites` · `DELETE /api/workspace/members/{uid}` · `POST /api/invites/{inviteId}/accept` | Team members and roles (nothing is emailed; invite link only) | P1 |
 
@@ -63,6 +65,7 @@
 | Method & path | Purpose | P |
 |---|---|---|
 | `GET /api/bank-lines?docId=&month=&accountId=&matchState=&category=&counterpartyId=&q=&flow=` | Bank lines with each value's readings (status, page, box); `docId` gives one statement's lines (the document page); `flow` is a money-flow link ID (Sankey drill-down) | P0 |
+| `GET /api/transactions?month=` | Spec 024: every bank line of the month with its category, IFRS and US GAAP class, P&L line and subledger (from the category policy), the model's confidence, its weakest reading and the records its match points to | P1 |
 | `PATCH /api/bank-lines/{txId}` | Change the category (`categorizedBy: USER`); same as correcting its `CATEGORY` label (§2.10); marks the month dirty | P0 |
 | `GET /api/invoices?docId=&kind=&month=&paymentState=&counterpartyId=` · `GET /api/invoices/{invoiceId}` | Sales and purchase invoices with payment state, matches and each value's readings; `docId` gives the invoices read from one document (a PDF can hold several) | P0 |
 | `GET /api/receipts?docId=&month=&paymentState=` · `GET /api/receipts/{receiptId}` | Receipts with each value's readings; `docId` gives one document's | P0 |

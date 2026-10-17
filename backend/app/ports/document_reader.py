@@ -83,6 +83,11 @@ class DocumentReader(Protocol):
         """Gemini explanation for the month's fraud risk level (spec 008, AC-008-4)."""
         ...
 
+    async def rank_candidates(self, payment: str, candidates: str) -> ReaderCall[Any]:
+        """Spec 023, AC-023-7: the model's order of the candidates code found for a payment, with
+        one sentence each (`CandidateRanking`)."""
+        ...
+
     async def suggest_match(
         self,
         bank_line_info: str,

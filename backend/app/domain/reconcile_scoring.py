@@ -44,6 +44,9 @@ class MatchRecord:
     # The spellings the line's counterparty is known by (spec 014): a terse bank description can
     # still name the invoice's party.
     aliases: tuple[str, ...] = ()
+    # The other reading of the amount when the two readings disagree and no person settled it
+    # (signed like `amount`): a match on it is a proposal that also says which value to correct.
+    alt_amounts: tuple[Decimal, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -153,6 +156,15 @@ def score_pair(
     fee = policy.fee_allowance.get(workspace_currency)
     if abs(paid - total) <= tolerance:
         amount, reason, adjusted = Decimal(1), "AMOUNT_EXACT", False
+    elif any(
+        abs(abs(a) - abs(b)) <= tolerance
+        for a in (left.amount, *left.alt_amounts)
+        for b in (right.amount, *right.alt_amounts)
+        if a is not None and b is not None
+    ):
+        # The readings disagreed on an amount and the other reading is the one that matches:
+        # stronger evidence than any adjustment below.
+        amount, reason = Decimal(1), "OTHER_READING"
     elif (
         invoice
         and right.kind == "SALES_INVOICE"
@@ -213,13 +225,15 @@ def _score(
 
 def _party(document: MatchRecord, payment: MatchRecord) -> Decimal:
     """The best of the payment's cleaned party, its printed description and its counterparty's
-    known spellings against the document's party (AC-023-5)."""
-    document_text = _fold(document.party or "")
+    known spellings against the document's party (AC-023-5) and, for a ledger booking, the names of
+    the journal's other accounts (docs/08 §6.2)."""
+    own = [document.party, *(document.aliases if document.kind == "LEDGER_CASH" else ())]
+    document_texts = [_fold(n) for n in own if n and n.strip()]
     names = [payment.party, payment.description, *payment.aliases]
     texts = [_fold(n) for n in names if n and n.strip()]
-    if not document_text or not texts:
+    if not document_texts or not texts:
         return Decimal(0)
-    return max(Decimal(str(token_set_ratio(document_text, t))) / 100 for t in texts)
+    return max(Decimal(str(token_set_ratio(d, t))) / 100 for d in document_texts for t in texts)
 
 
 def part_of(

@@ -4,6 +4,7 @@ Normative references: docs/09 §3.1–§3.4, §3.16, §3.18; docs/13 §2.2 (atom
 """
 
 from datetime import datetime
+from decimal import Decimal
 from typing import Any
 
 from google.cloud.firestore import AsyncClient, AsyncTransaction, async_transactional
@@ -19,7 +20,13 @@ from app.adapters.firestore.models.workspace import (
 )
 from app.adapters.firestore.txn import dump, with_backoff
 from app.domain.models.events import AuditEvent
-from app.domain.models.workspace import BankAccount, Profile, Subscription, Workspace
+from app.domain.models.workspace import (
+    BankAccount,
+    MonthExpectation,
+    Profile,
+    Subscription,
+    Workspace,
+)
 from app.ports.workspace_repository import (
     AlreadyMember,
     Created,
@@ -163,6 +170,8 @@ class FirestoreWorkspaceRepository(WorkspaceRepository):
             subscription=Subscription.model_validate(doc.subscription),
             share_verified_labels=bool(doc.learning.get("shareVerifiedLabels", False)),
             ledger_mappings=dict(doc.ledger_mappings or {}),
+            goal=doc.goal,  # type: ignore[arg-type]
+            expectations=[_expectation(e) for e in doc.expectations],
             created_by=doc.created_by,
             created_at=doc.created_at,
         )
@@ -188,6 +197,8 @@ class FirestoreWorkspaceRepository(WorkspaceRepository):
             "timezone": workspace.timezone,
             "defaultLanguage": workspace.default_language,
             "learning": {"shareVerifiedLabels": workspace.share_verified_labels},
+            "goal": workspace.goal,
+            "expectations": [_expectation_doc(e) for e in workspace.expectations],
         }
         batch = self._db.batch()
         batch.update(org_ref, fields)
@@ -285,3 +296,28 @@ class FirestoreWorkspaceRepository(WorkspaceRepository):
             created_by=ws.created_by,
             created_at=ws.created_at,
         )
+
+
+def _minor(value: Decimal | None) -> int | None:
+    return None if value is None else int((value * 100).to_integral_value())
+
+
+def _expectation_doc(e: MonthExpectation) -> dict[str, Any]:
+    out: dict[str, Any] = {"month": e.month}
+    if e.money_in is not None:
+        out["moneyInMinor"] = _minor(e.money_in)
+    if e.money_out is not None:
+        out["moneyOutMinor"] = _minor(e.money_out)
+    return out
+
+
+def _expectation(raw: dict[str, Any]) -> MonthExpectation:
+    def major(key: str) -> Decimal | None:
+        value = raw.get(key)
+        return None if value is None else Decimal(int(value)) / 100
+
+    return MonthExpectation(
+        month=str(raw.get("month")),
+        money_in=major("moneyInMinor"),
+        money_out=major("moneyOutMinor"),
+    )

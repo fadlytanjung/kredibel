@@ -68,6 +68,15 @@ class Thresholds(_Part):
         return self
 
 
+class LedgerCash(_Part):
+    rival_days: Days
+    min_party: Share
+
+
+class Expectations(_Part):
+    tolerance: Share
+
+
 class ReasonThresholds(_Part):
     party: Share
     date: Share
@@ -86,12 +95,16 @@ class ReconciliationPolicy(_Part):
     thresholds: Thresholds
     reason_thresholds: ReasonThresholds
     ledger: dict[str, Any]
+    ledger_cash: LedgerCash
     review_items: dict[str, Any]
+    expectations: Expectations
 
     @model_validator(mode="after")
     def identity_needed_for_auto(self) -> Self:
         if self.weights.amount + self.weights.date >= self.thresholds.auto_confirm_score:
             raise ValueError("amount and date alone must not reach the automatic threshold")
+        if self.ledger_cash.rival_days < self.windows.ledger_days:
+            raise ValueError("a rival is looked for at least as far as a booking may be")
         return self
 
     def tolerance(self, total: Decimal, workspace_currency: str) -> Decimal | None:

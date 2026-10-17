@@ -1736,6 +1736,10 @@ button.tab { border: 0; background: transparent; cursor: pointer; font-family: i
 .lp-actions { gap: var(--k-space-2); }
 .lp-md summary, .ev-inspector summary { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 640; cursor: pointer; padding: 4px 0; }
 .md-tabs .tabs { margin-top: var(--k-space-1); }
+.ai-view { margin-top: var(--k-space-3); padding: var(--k-space-3); border: 1px dashed var(--k-color-border-default); border-radius: var(--k-radius-sm); background: var(--k-color-bg-sunken); }
+.ai-view-head { display: flex; align-items: center; gap: 6px; margin: 0 0 var(--k-space-2); font-size: 13px; font-weight: 640; }
+.ai-view ol { margin: 0 0 var(--k-space-2); padding-left: var(--k-space-4); font-size: 13px; line-height: 1.45; }
+.ai-view li + li { margin-top: var(--k-space-1); }
 .md-preview { margin: 6px 0; padding: var(--k-space-3); border: 1px solid var(--k-color-border-default); border-radius: var(--k-radius-sm); background: var(--k-color-bg-surface); color: var(--k-color-text-default); font-size: 13px; line-height: 1.45; overflow-x: auto; }
 .md-preview h3, .md-preview h4, .md-preview h5, .md-preview h6 { margin: var(--k-space-3) 0 var(--k-space-1); font-size: 13px; font-weight: 700; }
 .md-preview .md-h1 { margin-top: 0; font-size: 15px; }
@@ -2641,3 +2645,43 @@ button.span-name:focus-visible { outline: 2px solid var(--k-color-focus-ring); o
 @container app (width < 600px) { .tour-card { width: calc(100vw - 32px); } }
 @media (prefers-reduced-motion: reduce) { .tour-spot { transition: none; } }
 
+
+/* Spec 024: the welcome choice after onboarding, the expectation rows, and the dashboard's comparison. */
+.welcome-choices { display: grid; gap: var(--k-space-3); }
+.welcome-choice { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--k-space-2) var(--k-space-4); align-items: start; width: 100%; padding: var(--k-space-5); border: 1px solid var(--k-color-border-default); border-radius: var(--k-radius-md); background: var(--k-color-bg-surface); color: var(--k-color-text-default); text-align: left; font: inherit; cursor: pointer; transition: border-color var(--k-motion-duration-fast), background var(--k-motion-duration-fast); }
+.welcome-choice:hover { border-color: var(--k-color-brand-default); }
+.welcome-choice:focus-visible { outline: 2px solid var(--k-color-focus-ring); outline-offset: 2px; }
+.welcome-choice[aria-expanded="true"] { border-color: var(--k-color-brand-default); background: var(--k-color-brand-soft); }
+.welcome-choice > .icon { color: var(--k-color-brand-default); margin-top: 2px; }
+.welcome-choice .w-t { font-size: 16px; line-height: 22px; font-weight: 660; }
+.welcome-choice .w-b { color: var(--k-color-text-muted); font-size: 14px; }
+.onboard-form > .welcome-skip { align-self: flex-start; width: auto; }
+.expect-rows { display: grid; gap: var(--k-space-3); }
+.expect-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--k-space-3); align-items: end; padding: var(--k-space-3); border: 1px solid var(--k-color-border-default); border-radius: var(--k-radius-md); }
+.expect-row > .field:first-child { grid-column: 1 / -1; }
+.expect-remove { justify-self: end; grid-column: 1 / -1; }
+@container app (width >= 600px) { .expect-row { grid-template-columns: 1.1fr 1fr 1fr auto; } .expect-row > .field:first-child, .expect-remove { grid-column: auto; } }
+.expect-list { list-style: none; margin: 0; padding: 0; }
+.expect-list > li { display: grid; gap: var(--k-space-3); padding: var(--k-space-4) var(--k-space-5); border-top: 1px solid var(--k-color-border-default); }
+.expect-list > li:first-child { border-top: 0; }
+.expect-month { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--k-space-2); }
+.expect-month h3 { font-size: 15px; font-weight: 660; }
+.expect-sides { display: grid; gap: var(--k-space-3); }
+@container app (width >= 720px) { .expect-sides { grid-template-columns: 1fr 1fr; } }
+.expect-side { display: grid; gap: 4px; padding: var(--k-space-3); border-radius: var(--k-radius-sm); background: var(--k-color-bg-sunken); }
+.expect-side .k { font-size: 12.5px; font-weight: 620; color: var(--k-color-text-muted); }
+.expect-side .v { display: flex; flex-wrap: wrap; gap: 4px var(--k-space-4); font-size: 13.5px; }
+.expect-side .v strong { font-variant-numeric: tabular-nums; }
+.expect-links { display: flex; flex-wrap: wrap; gap: var(--k-space-2); }
+
+/* Spec 024: the Transactions table's drawer. */
+.tx-facts { display: grid; grid-template-columns: 1fr; gap: var(--k-space-3); margin: 0; }
+@container app (width >= 600px) { .tx-facts { grid-template-columns: 1fr 1fr; } }
+.tx-facts dt { font-size: 12.5px; font-weight: 620; color: var(--k-color-text-muted); }
+.tx-facts dd { margin: 2px 0 0; }
+.tx-records { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--k-space-2); }
+.tx-records .link { display: inline-flex; align-items: center; gap: 6px; }
+.drawer-body.tx-body { display: flex; flex-direction: column; gap: var(--k-space-5); padding: var(--k-space-5); }
+.tx-table td:first-child { white-space: nowrap; }
+.tx-body .match-chip { align-self: flex-start; }
+.tx-body .actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--k-space-2); }

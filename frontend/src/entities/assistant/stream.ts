@@ -6,7 +6,7 @@
  */
 
 import type { AssistantMessage } from './api'
-import { apiStream } from '../../shared/api/client'
+import { apiStream, ProblemError } from '../../shared/api/client'
 
 export interface RawEvent {
   event: string
@@ -29,7 +29,7 @@ export interface StreamHandlers {
   onTool?: (tool: ToolEvent) => void
   onToken?: (text: string) => void
   onMessage?: (message: AssistantMessage) => void
-  onError?: (error: { message: string }) => void
+  onError?: (error: { message: string; timeout?: boolean }) => void
   onDone?: () => void
 }
 
@@ -121,6 +121,7 @@ export async function streamQuestion(
     if (signal?.aborted) return
     handlers.onError?.({
       message: err instanceof Error ? err.message : String(err),
+      timeout: err instanceof ProblemError && err.code === 'GATEWAY_TIMEOUT',
     })
     handlers.onDone?.()
     return

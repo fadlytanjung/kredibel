@@ -9,19 +9,21 @@ import calendar
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from decimal import Decimal
-from typing import Any
+from typing import Any, Literal
 
 from app.agents.deps import PipelineDeps
 from app.domain.accounts import statement_account
 from app.domain.checks.month import StatementSpan
 from app.domain.evidence import AccountSpan, DocumentEvidence, DocumentFacts, PaymentConfirmation
 from app.domain.figures import AccountLines
+from app.domain.ledger_cash import BOOKED
 from app.domain.models.bank_line import BankLine
 from app.domain.models.decision import Decision
 from app.domain.models.document import DocStatus, DocType, Document, DuplicateKind
 from app.domain.models.invoice import Invoice, Receipt
 from app.domain.models.match import StoredMatch
-from app.domain.profit_loss import LedgerRow
+from app.domain.normalize import detect_amount_style, parse_amount
+from app.domain.profit_loss import Classification, LedgerRow, journal_key
 from app.domain.reconcile import Allocation, Decisions, ManualMatch
 from app.domain.reconcile_scoring import MatchRecord, in_workspace_currency
 
@@ -54,6 +56,9 @@ class MonthData:
     not_required: set[str] = field(default_factory=set)
     ledger_rows: list[LedgerRow] = field(default_factory=list)
     bank_account_mappings: dict[str, str] = field(default_factory=dict)
+    # Spec 023: what each ledger account is (the person confirmed it), and the workspace framework.
+    classifications: dict[str, Classification] = field(default_factory=dict)
+    framework: Literal["IFRS", "US_GAAP"] = "IFRS"
     # counterpartyId → the names it is known by (spec 014), for the party score (AC-023-5)
     spellings: dict[str, tuple[str, ...]] = field(default_factory=dict)
 
@@ -149,8 +154,10 @@ async def read_month(deps: PipelineDeps, org_id: str, month: str) -> MonthData |
             bank_account_mappings[key] = acc.ledger_account_code
 
     ledger_rows: list[LedgerRow] = []
+    classifications: dict[str, Classification] = {}
     if deps.ledger is not None:
         ledger_rows = await deps.ledger.list_rows(org_id)
+        classifications = await deps.ledger.classifications(org_id)
     spellings: dict[str, tuple[str, ...]] = {}
     if deps.counterparties is not None:
         cursor: str | None = None
@@ -179,6 +186,8 @@ async def read_month(deps: PipelineDeps, org_id: str, month: str) -> MonthData |
         ledger_rows=ledger_rows,
         bank_account_mappings=bank_account_mappings,
         spellings=spellings,
+        classifications=classifications,
+        framework="US_GAAP" if workspace.profile.accounting_framework == "US_GAAP" else "IFRS",
     )
 
 
@@ -187,6 +196,26 @@ async def read_month(deps: PipelineDeps, org_id: str, month: str) -> MonthData |
 
 def _conflict(consensus: dict[str, dict[str, Any]], *fields: str) -> bool:
     return any(consensus.get(f, {}).get("status") == "CONFLICT" for f in fields)
+
+
+def other_readings(
+    consensus: dict[str, Any], name: str, current: Decimal | None, corrected: list[str]
+) -> tuple[Decimal, ...]:
+    """The other readings of an amount the two readers disagreed on and no person settled, signed
+    like the current value (spec 023, AC-023-9)."""
+    info = consensus.get(name) or {}
+    if current is None or name in corrected or info.get("status") != "CONFLICT":
+        return ()
+    raw = info.get("raw")
+    texts = (
+        [v for v in raw.values() if isinstance(v, str) and v.strip()]
+        if isinstance(raw, dict)
+        else []
+    )
+    style = detect_amount_style(texts)
+    sign = Decimal(-1) if current < 0 else Decimal(1)
+    values = {parse_amount(text, style).value for text in texts}
+    return tuple(sorted(sign * abs(v) for v in values if v is not None and abs(v) != abs(current)))
 
 
 def bank_record(line: BankLine, data: MonthData) -> MatchRecord:
@@ -204,6 +233,7 @@ def bank_record(line: BankLine, data: MonthData) -> MatchRecord:
         has_conflict=_conflict(line.consensus, "amount", "date"),
         currency_override_confirmed=line.doc_id in data.accepted_docs,
         aliases=data.spellings.get(line.counterparty_id or "", ()),
+        alt_amounts=other_readings(line.consensus, "amount", line.amount, line.corrected_fields),
     )
 
 
@@ -233,6 +263,7 @@ def document_records(data: MonthData) -> list[MatchRecord]:
                 due_date=inv.due_date,
                 has_conflict=_conflict(inv.consensus, "total", "issueDate"),
                 currency_override_confirmed=inv.doc_id in data.accepted_docs,
+                alt_amounts=other_readings(inv.consensus, "total", inv.total, inv.corrected_fields),
             )
         )
     for rc in data.receipts:
@@ -250,6 +281,53 @@ def document_records(data: MonthData) -> list[MatchRecord]:
                 payment_method=rc.payment_method,
                 has_conflict=_conflict(rc.consensus, "total", "date"),
                 currency_override_confirmed=rc.doc_id in data.accepted_docs,
+                alt_amounts=other_readings(rc.consensus, "total", rc.total, rc.corrected_fields),
+            )
+        )
+    return out
+
+
+def ledger_cash_records(data: MonthData, rival_days: int) -> list[MatchRecord]:
+    """Bookings on the mapped ledger accounts near the month, keyed like the statements' lines."""
+    # docs/08 §6.2: never one another month's confirmed match used; each carries its description,
+    # reference and the names of its journal's other accounts (what the line is matched by).
+    account_of_code = {code: account for account, code in data.bank_account_mappings.items()}
+    if not account_of_code:
+        return []
+    first, last = month_bounds(data.month)
+    lo, hi = first - timedelta(days=2 * rival_days), last + timedelta(days=2 * rival_days)
+    taken = {
+        e
+        for m in data.matches
+        if m.status == "CONFIRMED" and m.month != data.month
+        for e in m.ledger_entry_ids
+    }
+    journals: dict[tuple[str, ...], list[LedgerRow]] = {}
+    for row in data.ledger_rows:
+        journals.setdefault(journal_key(row), []).append(row)
+    out: list[MatchRecord] = []
+    for row in data.ledger_rows:
+        account = account_of_code.get(row.account_code)
+        if account is None or row.entry_kind != "ACTIVITY" or row.posting_status == "DRAFT":
+            continue
+        if not lo <= row.date <= hi or row.entry_id in taken:
+            continue
+        others = journals.get(journal_key(row), [])
+        out.append(
+            MatchRecord(
+                record_id=row.entry_id,
+                kind="LEDGER_CASH",
+                amount=row.debit - row.credit,  # a debit to the bank account is money in
+                date=row.date,
+                currency=row.currency,
+                party=row.description or None,
+                description=row.description,
+                reference=row.reference,
+                account_id=account,
+                held=row.held_as_duplicate,
+                aliases=tuple(
+                    sorted({o.account_name for o in others if o.account_code != row.account_code})
+                ),
             )
         )
     return out
@@ -273,7 +351,7 @@ def stored_allocations(matches: list[StoredMatch]) -> list[Allocation]:
         Allocation(
             match_id=m.match_id,
             left_ids=tuple(m.bank_line_ids),
-            right_ids=tuple(m.document_ids),
+            right_ids=(*m.document_ids, *m.ledger_entry_ids),
             status="CONFIRMED" if m.status == "CONFIRMED" else "PROPOSED",
             method=m.method,
             score=m.score,
@@ -294,8 +372,14 @@ def stored_allocations(matches: list[StoredMatch]) -> list[Allocation]:
 def allocations_for_checks(
     fresh: list[Allocation], matches: list[StoredMatch], month: str
 ) -> list[Allocation]:
-    others = [m for m in matches if m.month != month and m.status in ("CONFIRMED", "PROPOSED")]
-    return [*fresh, *stored_allocations(others)]
+    # A booking in the ledger explains a line's cash, not a document's payment: a second payment
+    # booked there is still a second payment (D07), so the checks see document matches only.
+    others = [
+        m
+        for m in matches
+        if m.month != month and m.status in ("CONFIRMED", "PROPOSED") and m.kind != "BANK_LEDGER"
+    ]
+    return [*(a for a in fresh if BOOKED not in a.reasons), *stored_allocations(others)]
 
 
 def document_facts(record: Invoice | Receipt, data: MonthData) -> DocumentFacts | None:

@@ -21,6 +21,7 @@ class StoredMatch:
     bank_line_ids: list[str]
     invoice_ids: list[str] = field(default_factory=list)
     receipt_ids: list[str] = field(default_factory=list)
+    ledger_entry_ids: list[str] = field(default_factory=list)  # BANK_LEDGER: its bookings
     amount: Decimal = Decimal("0")  # the bank side, unsigned
     amount_difference: Decimal = Decimal("0")
     score: Decimal = Decimal("0")

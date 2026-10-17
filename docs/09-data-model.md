@@ -72,6 +72,8 @@ erDiagram
 | `profile.accountingFramework` | `IFRS` \| `US_GAAP` | Decides each category's cash-flow class (`contracts/policy/categories.v1.yaml`); default `IFRS` ([ADR-016](adr/ADR-016-human-verified-labels-and-learning-loop.md)) |
 | `learning` | map | `shareVerifiedLabels` (bool, default `false`): consent to use masked verified labels in tuning datasets (later) |
 | `ledgerMappings` | map | per file layout signature → confirmed column mapping (§3.8); bank account → ledger account code |
+| `goal` | string? | spec 024: `BOOKKEEPING` or `CHECK_EXPECTATIONS`, asked once after onboarding (optional field, no version bump) |
+| `expectations` | array | spec 024: `{month, moneyInMinor?, moneyOutMinor?}` the person expects per month, at most 12; compared with the reconciled months, never used in reconciliation |
 | `subscription` | map | `planId`, `status` (`TRIALING`, `TRIAL_EXPIRED`, `ACTIVE`), `trialStartedAt`, `trialEndsAt`, `limitOverrides?` |
 | `counts` | map | `documents`, `openReviewItems`, `openFindingsBySeverity` — for the dashboard header |
 | `createdBy`, `createdAt` | | |
@@ -187,6 +189,9 @@ contribute), `currency` defaults to null (must equal the workspace currency), an
 defaults to null. `entryKind` defaults to `ACTIVITY`; explicit `OPENING`/`CLOSING` rows are
 excluded from period performance. Rows missing posting/currency evidence are excluded explicitly. This is an
 additive v1 persistence model; no legacy row is assumed posted. Each row stores `orgId` and `entryId`.
+`description` and `reference` are stored from 17 Oct 2026 (optional, default empty; spec 023, AC-023-11):
+they are the words a bank line's booking is matched by, so rows imported before have no automatic
+bank-to-ledger match until the ledger is imported again.
 
 `orgs/{orgId}/accountClassifications/{sha256(accountCode)}` (v1): `orgId`, `accountCode`, `pnlLine`,
 `subledger`, `confirmedBy`, `confirmedAt`, `schemaVersion`. Mappings are confirmed only through the
@@ -243,7 +248,7 @@ are optional until it has run (no migration: new optional fields).
 | `subject` | map | IDs of the bank line, document, entry or match concerned |
 | `status` | `OPEN` \| `RESOLVED` \| `DISMISSED` | |
 | `priority` | int | Sorting: duplicates and high-risk first |
-| `suggestion?` | map | Proposed fix (candidates for a match, the other reading for a value) |
+| `suggestion?` | map | Proposed fix (candidates for a match, the other reading for a value). A proposal's candidates are the proposal and up to 3 rivals code scored; each may carry `aiRank` and `aiReason` (spec 023: the model's order and one sentence, advice only), with `rankedBy` (model@prompt) on the suggestion |
 | `resolution?` | map | `action` (the person's action of [`10`](10-api-contract.md) §4; absent when the system closed the item because its cause is gone), `note?`, `resolvedBy` (a uid or `system`), `resolvedAt` |
 | `key` | string | Deterministic ID input, so a re-run never duplicates an item (§4) |
 

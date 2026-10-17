@@ -1,0 +1,424 @@
+{
+  "_about": "Synthetic: Sunrise Coffee Roasters, amounts in IDR, May 2026 (spec 024)",
+  "month": "2026-05",
+  "items": [
+    {
+      "txId": "st-05#1",
+      "docId": "doc_st_2026_05",
+      "page": 1,
+      "date": "2026-05-01",
+      "month": "2026-05",
+      "description": "WAREHOUSE RENT MAY",
+      "counterpartyName": null,
+      "amount": {
+        "amount": "-15000000.00",
+        "currency": "IDR"
+      },
+      "category": "RENT",
+      "categoryLabel": "Rent",
+      "categorizedBy": "RULE",
+      "categoryConfidence": null,
+      "cashflow": {
+        "ifrs": "OPERATING",
+        "usGaap": "OPERATING"
+      },
+      "pnlLine": "Operating expenses",
+      "subledger": "Rent and utilities",
+      "reading": "AGREED",
+      "match": {
+        "state": "AUTO",
+        "kind": "BANK_LEDGER",
+        "records": [
+          {
+            "kind": "LEDGER_ENTRY",
+            "id": "lg#301",
+            "docId": "doc_gl_2026",
+            "label": "BNK-2026-05-001"
+          }
+        ]
+      }
+    },
+    {
+      "txId": "st-05#2",
+      "docId": "doc_st_2026_05",
+      "page": 1,
+      "date": "2026-05-04",
+      "month": "2026-05",
+      "description": "CASH DEPOSIT",
+      "counterpartyName": null,
+      "amount": {
+        "amount": "2500000.00",
+        "currency": "IDR"
+      },
+      "category": "SALES_RECEIPT",
+      "categoryLabel": "Sales receipts",
+      "categorizedBy": "MODEL",
+      "categoryConfidence": "0.88",
+      "cashflow": {
+        "ifrs": "OPERATING",
+        "usGaap": "OPERATING"
+      },
+      "pnlLine": "Revenue",
+      "subledger": "Sales",
+      "reading": "AGREED",
+      "match": {
+        "state": "AUTO",
+        "kind": "BANK_LEDGER",
+        "records": [
+          {
+            "kind": "LEDGER_ENTRY",
+            "id": "lg#304",
+            "docId": "doc_gl_2026",
+            "label": "BNK-2026-05-002"
+          }
+        ]
+      }
+    },
+    {
+      "txId": "st-05#3",
+      "docId": "doc_st_2026_05",
+      "page": 1,
+      "date": "2026-05-06",
+      "month": "2026-05",
+      "description": "LOAN INSTALLMENT LN-0071-2291",
+      "counterpartyName": null,
+      "amount": {
+        "amount": "-8450000.00",
+        "currency": "IDR"
+      },
+      "category": "LOAN_REPAYMENT",
+      "categoryLabel": "Loan principal repaid",
+      "categorizedBy": "RULE",
+      "categoryConfidence": null,
+      "cashflow": {
+        "ifrs": "FINANCING",
+        "usGaap": "FINANCING"
+      },
+      "pnlLine": "Balance sheet (excluded from profit)",
+      "subledger": "Owner and loans",
+      "reading": "AGREED",
+      "match": {
+        "state": "AUTO",
+        "kind": "BANK_LEDGER",
+        "records": [
+          {
+            "kind": "LEDGER_ENTRY",
+            "id": "lg#306",
+            "docId": "doc_gl_2026",
+            "label": "BNK-2026-05-003"
+          }
+        ]
+      }
+    },
+    {
+      "txId": "st-05#4",
+      "docId": "doc_st_2026_05",
+      "page": 1,
+      "date": "2026-05-08",
+      "month": "2026-05",
+      "description": "DEBIT CARD SWIFT COURIER",
+      "counterpartyName": "Swift Courier",
+      "amount": {
+        "amount": "-355200.00",
+        "currency": "IDR"
+      },
+      "category": "SUPPLIER_PAYMENT",
+      "categoryLabel": "Other suppliers and services",
+      "categorizedBy": "MATCH",
+      "categoryConfidence": null,
+      "cashflow": {
+        "ifrs": "OPERATING",
+        "usGaap": "OPERATING"
+      },
+      "pnlLine": "Operating expenses",
+      "subledger": "Suppliers and services",
+      "reading": "AGREED",
+      "match": {
+        "state": "AUTO",
+        "kind": "BANK_RECEIPT",
+        "records": [
+          {
+            "kind": "RECEIPT",
+            "id": "rc_0508",
+            "docId": "doc_rc_0508",
+            "label": "SC-0508-527"
+          }
+        ]
+      }
+    },
+    {
+      "txId": "st-05#5",
+      "docId": "doc_st_2026_05",
+      "page": 1,
+      "date": "2026-05-11",
+      "month": "2026-05",
+      "description": "TRANSFER OUT GREEN VALLEY FARMS 7312",
+      "counterpartyName": "Green Valley Farms",
+      "amount": {
+        "amount": "-27250500.00",
+        "currency": "IDR"
+      },
+      "category": "INVENTORY_PURCHASE",
+      "categoryLabel": "Purchases for sale or production",
+      "categorizedBy": "MATCH",
+      "categoryConfidence": null,
+      "cashflow": {
+        "ifrs": "OPERATING",
+        "usGaap": "OPERATING"
+      },
+      "pnlLine": "Cost of sales",
+      "subledger": "Purchases and cost of goods",
+      "reading": "AGREED",
+      "match": {
+        "state": "AUTO",
+        "kind": "BANK_PURCHASE_INVOICE",
+        "records": [
+          {
+            "kind": "INVOICE",
+            "id": "inv_gvf_0503",
+            "docId": "doc_inv_gvf_0503",
+            "label": "GVF-2026-0503"
+          }
+        ]
+      }
+    },
+    {
+      "txId": "st-05#6",
+      "docId": "doc_st_2026_05",
+      "page": 1,
+      "date": "2026-05-14",
+      "month": "2026-05",
+      "description": "INSTANT TRANSFER IN SPICE ROUTE RESTAURANT INV/SCR/2026/05/0011",
+      "counterpartyName": "Spice Route Restaurant",
+      "amount": {
+        "amount": "24358950.00",
+        "currency": "IDR"
+      },
+      "category": "SALES_RECEIPT",
+      "categoryLabel": "Sales receipts",
+      "categorizedBy": "MATCH",
+      "categoryConfidence": null,
+      "cashflow": {
+        "ifrs": "OPERATING",
+        "usGaap": "OPERATING"
+      },
+      "pnlLine": "Revenue",
+      "subledger": "Sales",
+      "reading": "AGREED",
+      "match": {
+        "state": "AUTO",
+        "kind": "BANK_SALES_INVOICE",
+        "records": [
+          {
+            "kind": "INVOICE",
+            "id": "inv_scr_0511",
+            "docId": "doc_inv_scr_0511",
+            "label": "INV/SCR/2026/05/0011"
+          }
+        ]
+      }
+    },
+    {
+      "txId": "st-05#7",
+      "docId": "doc_st_2026_05",
+      "page": 1,
+      "date": "2026-05-18",
+      "month": "2026-05",
+      "description": "ELECTRICITY BILL 532110987421",
+      "counterpartyName": null,
+      "amount": {
+        "amount": "-3126000.00",
+        "currency": "IDR"
+      },
+      "category": "UTILITIES",
+      "categoryLabel": "Utilities",
+      "categorizedBy": "RULE",
+      "categoryConfidence": null,
+      "cashflow": {
+        "ifrs": "OPERATING",
+        "usGaap": "OPERATING"
+      },
+      "pnlLine": "Operating expenses",
+      "subledger": "Rent and utilities",
+      "reading": "CONFLICT",
+      "match": {
+        "state": "UNMATCHED",
+        "kind": null,
+        "records": []
+      }
+    },
+    {
+      "txId": "st-05#8",
+      "docId": "doc_st_2026_05",
+      "page": 1,
+      "date": "2026-05-21",
+      "month": "2026-05",
+      "description": "INSTANT TRANSFER IN DAYBREAK CAFE",
+      "counterpartyName": "Daybreak Café",
+      "amount": {
+        "amount": "19597050.00",
+        "currency": "IDR"
+      },
+      "category": "SALES_RECEIPT",
+      "categoryLabel": "Sales receipts",
+      "categorizedBy": "MODEL",
+      "categoryConfidence": "0.94",
+      "cashflow": {
+        "ifrs": "OPERATING",
+        "usGaap": "OPERATING"
+      },
+      "pnlLine": "Revenue",
+      "subledger": "Sales",
+      "reading": "AGREED",
+      "match": {
+        "state": "PROPOSED",
+        "kind": "BANK_SALES_INVOICE",
+        "records": [
+          {
+            "kind": "INVOICE",
+            "id": "inv_dbc_0509",
+            "docId": "doc_inv_dbc_0509",
+            "label": "INV/SCR/2026/05/0009"
+          }
+        ]
+      }
+    },
+    {
+      "txId": "st-05#9",
+      "docId": "doc_st_2026_05",
+      "page": 1,
+      "date": "2026-05-22",
+      "month": "2026-05",
+      "description": "TRANSFER OUT ANDI PRATAMA",
+      "counterpartyName": "Andi Pratama",
+      "amount": {
+        "amount": "-6000000.00",
+        "currency": "IDR"
+      },
+      "category": "OWNER_DRAWING",
+      "categoryLabel": "Owner drawings",
+      "categorizedBy": "USER",
+      "categoryConfidence": null,
+      "cashflow": {
+        "ifrs": "FINANCING",
+        "usGaap": "FINANCING"
+      },
+      "pnlLine": "Balance sheet (excluded from profit)",
+      "subledger": "Owner and loans",
+      "reading": "AGREED",
+      "match": {
+        "state": "MANUAL",
+        "kind": "BANK_LEDGER",
+        "records": [
+          {
+            "kind": "LEDGER_ENTRY",
+            "id": "lg#341",
+            "docId": "doc_gl_2026",
+            "label": "BNK-2026-05-020"
+          }
+        ]
+      }
+    },
+    {
+      "txId": "st-05#10",
+      "docId": "doc_st_2026_05",
+      "page": 1,
+      "date": "2026-05-25",
+      "month": "2026-05",
+      "description": "PAYROLL MAY",
+      "counterpartyName": null,
+      "amount": {
+        "amount": "-44100000.00",
+        "currency": "IDR"
+      },
+      "category": "PAYROLL",
+      "categoryLabel": "Payroll",
+      "categorizedBy": "RULE",
+      "categoryConfidence": null,
+      "cashflow": {
+        "ifrs": "OPERATING",
+        "usGaap": "OPERATING"
+      },
+      "pnlLine": "Operating expenses",
+      "subledger": "Payroll",
+      "reading": "AGREED",
+      "match": {
+        "state": "AUTO",
+        "kind": "BANK_LEDGER",
+        "records": [
+          {
+            "kind": "LEDGER_ENTRY",
+            "id": "lg#350",
+            "docId": "doc_gl_2026",
+            "label": "PAY-2026-05"
+          }
+        ]
+      }
+    },
+    {
+      "txId": "st-05#11",
+      "docId": "doc_st_2026_05",
+      "page": 1,
+      "date": "2026-05-28",
+      "month": "2026-05",
+      "description": "INTEREST LOAN LN-0071-2291",
+      "counterpartyName": null,
+      "amount": {
+        "amount": "-1250000.00",
+        "currency": "IDR"
+      },
+      "category": "INTEREST_PAID",
+      "categoryLabel": "Interest paid",
+      "categorizedBy": "RULE",
+      "categoryConfidence": null,
+      "cashflow": {
+        "ifrs": "FINANCING",
+        "usGaap": "OPERATING"
+      },
+      "pnlLine": "Finance costs",
+      "subledger": "Bank and finance",
+      "reading": "SINGLE_SOURCE",
+      "match": {
+        "state": "UNMATCHED",
+        "kind": null,
+        "records": []
+      }
+    },
+    {
+      "txId": "st-05#12",
+      "docId": "doc_st_2026_05",
+      "page": 1,
+      "date": "2026-05-31",
+      "month": "2026-05",
+      "description": "ADMIN FEE",
+      "counterpartyName": null,
+      "amount": {
+        "amount": "-25000.00",
+        "currency": "IDR"
+      },
+      "category": "BANK_FEES",
+      "categoryLabel": "Bank fees",
+      "categorizedBy": "RULE",
+      "categoryConfidence": null,
+      "cashflow": {
+        "ifrs": "OPERATING",
+        "usGaap": "OPERATING"
+      },
+      "pnlLine": "Operating expenses",
+      "subledger": "Bank and finance",
+      "reading": "AGREED",
+      "match": {
+        "state": "AUTO",
+        "kind": "BANK_LEDGER",
+        "records": [
+          {
+            "kind": "LEDGER_ENTRY",
+            "id": "lg#362",
+            "docId": "doc_gl_2026",
+            "label": "BNK-2026-05-024"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -12,6 +12,7 @@ import { Trans, useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { useUploadDocument, type DocType, type Document } from '../../entities/document'
 import { useReviewItems } from '../../entities/review'
+import { useWorkspace } from '../../entities/workspace'
 import { ProblemError } from '../../shared/api/client'
 import { formatDate } from '../../shared/lib/formatDate'
 import { Button, Icon, type IconName } from '../../shared/ui'
@@ -57,6 +58,8 @@ export function UploadSheet({ onUploaded, docTypeHint, className = '', documents
   const { t } = useTranslation(['documents', 'errors', 'common'])
   // Only a ledger waiting for its columns or a file that needs input is found through the queue;
   // a held copy names its review item itself.
+  // The shell has loaded the workspace; the sheet reads it without a request of its own.
+  const { data: workspace } = useWorkspace(false)
   const { data: review } = useReviewItems(
     documents.some((d) => d.status === 'NEEDS_INPUT' || (d.docType === 'LEDGER_EXPORT' && d.ledgerMeta?.mappingStatus === 'PROPOSED')),
   )
@@ -160,6 +163,7 @@ export function UploadSheet({ onUploaded, docTypeHint, className = '', documents
     items.map((i) => ({ id: i.id, fileName: i.file.name, status: i.status, progress: i.progress, docId: i.document?.docId, error: i.error })),
     review?.items ?? [],
     now,
+    workspace?.createdAt ? new Date(workspace.createdAt) : undefined,
   )
   const original = (row: TrayRow) =>
     row.original ? (

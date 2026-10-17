@@ -215,10 +215,16 @@ choice, and Kredibel applies the IFRS 18 one for comparability and says so under
 `ROUND_TRIP`.
 
 **Order of precedence:** (1) a person's decision on the line's `CATEGORY` label (`categorizedBy =
-USER`, never overwritten); (2) a match decides it (a credit matched to a sales invoice is
-`SALES_RECEIPT`, a debit matched to a purchase invoice is `INVENTORY_PURCHASE` or `SUPPLIER_PAYMENT`
-by its `supplyKind`, a debit matched to a
-ledger entry takes that entry's account mapping); (3) internal transfer between the workspace's own
+USER`, never overwritten); (2) a confirmed match names it for a line the rules and the model left
+`UNKNOWN`, or the model only guessed (its confidence below the learning policy's `needsCheckBelow.
+CATEGORY`, 0.70; spec 024) (spec 023, AC-023-12; `categorizedBy = MATCH`): a credit matched to a sales invoice is
+`SALES_RECEIPT`; a line matched to a ledger entry takes the category its journal's other account is
+classified as (§6.2a of spec 018), when that classification's P&L line, and if needed its subledger,
+names exactly one category for the line's direction ("CASH DEPOSIT" booked to Retail sales is a sales
+receipt); balance-sheet accounts name none. A match never replaces a rule's category or one the
+model was sure of (a utility bill is more specific than an expense account); a "CASH DEPOSIT" the
+model guessed was the owner's money at 50% is booked to retail sales and takes that. A debit to a purchase invoice stays
+with the reading (stock or a service); (3) internal transfer between the workspace's own
 accounts; (4) a **workspace rule** a person created with "Apply to similar lines" (P1,
 [`09`](09-data-model.md) §3.20); (5) related party (P1); (6) keyword rules in
 `contracts/policy/categorization-rules.v1.yaml`, first match wins; (7) Gemini (`txn_categorizer`,
@@ -422,7 +428,7 @@ output: uploading S1 in reverse order (scenario S5) ends in the same matches.
 |---|---|---|---|
 | Sales | Bank credit | Sales invoice(s) | from 5 days before the invoice date; exact; net of withholding tax (up to 2%, or a known rate above it, `WITHHOLDING_RATE`); less a bank transfer fee up to the currency's `feeAllowance` (`FEE_DEDUCTED`); split (2–3 credits); several invoices of one party in one credit (up to 8) |
 | Purchases | Bank debit | Purchase invoice(s) or receipt(s) | receipts paid by card or transfer only, up to 5 days apart (card and QR settlements); several receipts of one party in one charge (up to 8, e.g. a subscription batch) |
-| Ledger cash | Bank line | Ledger entry on a mapped bank account | same date ±3 days and same amount (±5 made monthly bookings of the same amount rivals) |
+| Ledger cash | Bank line no document explains | Ledger entry on a mapped bank account | same amount within ±3 days; automatic only when unique both ways within ±5 days (`ledgerCash.rivalDays`), no conflicting reading, and the booking's description, counter-account or reference names the line (`ledgerCash.minParty`); else left for a person (spec 023, AC-023-11) |
 | Ledger documents | Invoice or receipt | Ledger entry (receivable, payable or expense) | invoice number in the reference, or party + amount + date |
 
 A bank line is matched when its amount is fully explained by documents or ledger entries; a document
@@ -430,7 +436,13 @@ is paid when its total is fully covered by bank lines (a confirmed net-of-tax, w
 adjustment counts as fully covered).
 
 **Spec 023 (16 Oct 2026).** Every adjustment (`NET_OF_TAX`, `WITHHOLDING_RATE`, `FEE_DEDUCTED`) is a
-proposal a person confirms, never automatic. A group of several documents for one bank line is found
+proposal a person confirms, never automatic. When the two readings disagree on an amount and no
+person settled it, matching also tries the other reading; a match only that reading explains is a
+proposal (`OTHER_READING`) that tells the reviewer which value to correct. A cash withdrawal is
+`CASH_WITHDRAWAL`, money out, never a transfer between own accounts. For a proposal with rivals the
+month run asks the model to order the candidates code found and say why in one sentence
+(`rank_candidates`, at most 8 proposals a run, kept while the candidates stay the same); the review
+panel shows it as the AI's view. It never changes a score, a match or what is automatic. A group of several documents for one bank line is found
 by a subset sum over the line's party in its date window (at most `maxGroupParts`, the 24 nearest
 candidates); a group of more than `maxAutoGroupParts` is never automatic. The party score is the
 best of the line's cleaned counterparty name, its printed description and the spellings its
@@ -487,7 +499,7 @@ first and their records are not offered again; rejected match IDs never return.
 | **None** | Otherwise | Left item stays unmatched |
 
 Every match stores its reason codes (`AMOUNT_EXACT`, `NET_OF_TAX`, `PARTY_MATCH`, `REFERENCE_IN_TEXT`,
-`DATE_NEAR`, `SPLIT`, `GROUPED`) shown as plain text in the UI ("Same amount, same client, invoice number in the
+`DATE_NEAR`, `SPLIT`, `GROUPED`, `LEDGER_BOOKED`) shown as plain text in the UI ("Same amount, same client, invoice number in the
 transfer description").
 
 ---

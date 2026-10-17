@@ -5,6 +5,7 @@
 
 import { AuthContext, type AuthContextType } from '../entities/session'
 import { OnboardingPage } from '../pages/OnboardingPage'
+import { WelcomePage } from '../pages/WelcomePage'
 
 const PREVIEW_SESSION = {
   user: { email: 'owner@example.test' },
@@ -30,4 +31,9 @@ export function OnboardingPreview() {
       <OnboardingPage />
     </AuthContext.Provider>
   )
+}
+
+/** Spec 024: the welcome question; the browser tests serve /api/workspace. */
+export function WelcomePreview() {
+  return <WelcomePage />
 }

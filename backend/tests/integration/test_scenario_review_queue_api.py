@@ -61,7 +61,13 @@ async def test_ac009_8_s1_queue_holds_only_what_the_truth_expects_and_resolving_
         proposals = by_kind["PROPOSED_MATCH"]
         [feb] = [i for i in proposals if i["month"] == "2026-02"]
         assert feb["subject"]["bankLineIds"] == ["st-02#8"]
-        assert len(feb["suggestion"]["candidates"]) == 1
+        # The proposal first, then the rivals code scored for the same records (spec 023, AC-023-7).
+        proposal, *rivals = feb["suggestion"]["candidates"]
+        assert proposal["matchId"] == feb["subject"]["matchId"]
+        mine = {*proposal["bankLineIds"], *proposal["invoiceIds"], *proposal["receiptIds"]}
+        for rival in rivals:
+            assert mine & {*rival["bankLineIds"], *rival["invoiceIds"], *rival["receiptIds"]}
+        assert all(c["aiRank"] for c in feb["suggestion"]["candidates"]) or not rivals
         assert feb["allowedActions"] == ["CONFIRM_MATCH", "MATCH", "REJECT_MATCH"]
         # A payment net of withholding tax is a proposal until a person confirms the adjustment
         # (reconciliation.v1 netOfTaxAmountScore); truth.json marks this one automatic.

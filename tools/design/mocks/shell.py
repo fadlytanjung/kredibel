@@ -11,6 +11,7 @@ NAV_MAIN = [("dashboard", "dashboard", "Dashboard", "Dashboard", "dashboard.html
 NAV_BOOKS = [
     ("documents", "files", "Documents", "Documents", "documents.html", ("92", True)),
     ("months", "reconcile", "Reconciliation", "Reconcile", "month.html", None),
+    ("transactions", "table", "Transactions", "Transactions", "transactions.html", None),
     ("review", "inbox", "Review", "Review", "review.html", ("10", False)),
     ("risk", "shield-alert", "Risk", "Risk", "risk.html", ("2", False)),
 ]
@@ -64,7 +65,7 @@ def bottom_nav(active: str) -> str:
         ("risk", "shield-alert", "Risk", "risk.html", "2"),
         ("more", "menu", "More", "#more", None),
     ]
-    in_more = active in {"months", "clients", "assistant", "labels", "runs", "settings"}
+    in_more = active in {"months", "transactions", "clients", "assistant", "labels", "runs", "settings"}
     out = []
     for key, ic, label, href, n in items:
         cur = ' aria-current="page"' if key == active or (key == "more" and in_more) else ""
@@ -75,7 +76,7 @@ def bottom_nav(active: str) -> str:
 
 def more_sheet() -> str:
     links = [
-        ("reconcile", "Reconciliation", "month.html"),
+        ("reconcile", "Reconciliation", "month.html"), ("table", "Transactions", "transactions.html"),
         ("sparkles", "Assistant", "assistant.html"), ("tag", "Labels", "labels.html"),
         ("flow", "Runs", "runs.html"), ("sliders", "Settings", "plan-usage.html"),
         ("book", "Logo and brand", "brand.html"), ("dashboard", "All screens", "index.html"),

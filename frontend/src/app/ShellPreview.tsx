@@ -19,6 +19,7 @@ import { RiskPage } from '../pages/RiskPage'
 import { RunsContent } from '../pages/RunsPage'
 import { SettingsPage } from '../pages/SettingsPage'
 import { AppShell } from '../shared/ui'
+import { TransactionsContent } from '../pages/TransactionsPage'
 
 // The same sample as tools/design/mocks/shell.py.
 const PREVIEW_PROPS = {
@@ -150,6 +151,15 @@ export function CounterpartyPreview() {
   return (
     <AppShell {...PREVIEW_PROPS} activePath="/counterparties" onUpload={() => undefined}>
       <CounterpartyPage />
+    </AppShell>
+  )
+}
+
+/** The Transactions table inside the shell (spec 024); the tests serve its API data. */
+export function TransactionsPreview() {
+  return (
+    <AppShell {...PREVIEW_PROPS} activePath="/transactions" onUpload={() => undefined}>
+      <TransactionsContent basePath="/preview/transactions" />
     </AppShell>
   )
 }

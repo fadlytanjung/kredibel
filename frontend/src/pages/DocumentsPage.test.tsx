@@ -20,9 +20,9 @@ describe('DocumentsPage', () => {
     vi.clearAllMocks()
   })
 
-  function renderPage() {
+  function renderPage(entry = '/documents') {
     return render(
-      <MemoryRouter>
+      <MemoryRouter initialEntries={[entry]}>
         <QueryClientProvider client={queryClient}>
           <DocumentsPage />
         </QueryClientProvider>
@@ -98,6 +98,23 @@ describe('DocumentsPage', () => {
     expect(screen.getByText('Invoice_Daybreak.pdf')).toBeInTheDocument()
     expect(screen.queryByText('BCA_Mar_2026.pdf')).not.toBeInTheDocument()
     expect(apiClient).not.toHaveBeenCalledWith(expect.stringContaining('type=BANK_STATEMENT'))
+  })
+
+  it("opens on the dashboard's possible copies with ?filter=duplicates", async () => {
+    const doc = (docId: string, fileName: string, heldAsDuplicate: boolean) => ({
+      docId, fileName, contentType: 'application/pdf', docType: 'PURCHASE_INVOICE', status: 'DONE', pageCount: 1,
+      months: ['2026-08'], uploadedAt: '2026-08-02T10:00:00Z', heldAsDuplicate,
+    })
+    vi.mocked(apiClient).mockResolvedValueOnce({
+      items: [doc('doc_1', 'inv-purchase-2026-08-01.pdf', false), doc('doc_2', 'inv-purchase-2026-08-01-scan.pdf', true)],
+      nextCursor: null,
+    })
+
+    renderPage('/documents?filter=duplicates')
+
+    expect((await screen.findAllByText('inv-purchase-2026-08-01-scan.pdf')).length).toBeGreaterThan(0)
+    expect(screen.queryAllByText('inv-purchase-2026-08-01.pdf')).toHaveLength(0)
+    expect(screen.getByRole('button', { name: /Possible copies/ })).toHaveAttribute('aria-pressed', 'true')
   })
 
   it('pages the library ten documents at a time', async () => {

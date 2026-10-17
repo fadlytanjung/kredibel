@@ -61,6 +61,10 @@
       "long": "Reconciliation",
       "short": "Reconcile"
     },
+    "transactions": {
+      "long": "Transactions",
+      "short": "Transactions"
+    },
     "review": {
       "long": "Review",
       "short": "Review"
@@ -172,7 +176,9 @@
   "markdown": {
     "tabsAria": "{{name}}: preview or Markdown",
     "preview": "Preview",
-    "source": "Markdown"
+    "source": "Markdown",
+    "tableRegion": "Table from the page",
+    "codeRegion": "Text from the page"
   },
   "table": {
     "searchPlaceholder": "Search...",

@@ -132,5 +132,5 @@ If the full P0 path does not run on Cloud Run for S1–S4 by then:
 | Matching below 85% or a wrong automatic match | Scenario test on D4 | Raise `autoConfirmScore`, widen windows only with a test; a wrong match is worse than a review item |
 | Model quota or availability | 429/404 | Switch `MODEL_*` to the next model in the ladder; reduce `PAGE_CONCURRENCY` |
 | Frontend falls behind | D4 without the review queue | Backend owner builds the review queue from the mocks; the Sankey falls back to its table |
-| Video takes longer than planned | D7 midday not recorded | Use the scripted 10-shot plan in [`docs/submission/demo-script.md`](submission/demo-script.md); record screen + voice-over separately |
+| Video takes longer than planned | D7 midday not recorded | Use the scripted 10-shot plan in [`docs/submission/demo-video/script.md`](submission/demo-video/script.md); record screen + voice-over separately |
 | Deadline time zone | — | Submit 17 Oct 21:00 UTC+7 |

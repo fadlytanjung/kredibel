@@ -10,6 +10,12 @@ queue**, and shows a **fraud risk level** for each month with the evidence and t
 
 > Google Cloud AI Builder Cup 2026 · Theme 1 — **BFSI: Intelligent Risk, Fraud & Financial Experiences**
 
+**Try it now:** live app [kredibel-app.web.app](https://kredibel-app.web.app) · demo sign-in
+`demo@kredibel.app` / `Kredibel-Demo-2026` (shared, synthetic books, reset nightly) · or your own
+Google account with the [sample books on Drive](https://drive.google.com/drive/folders/1TUpbHZ-nRRoafvzEs4XX1j7rMkM40SfV?usp=sharing)
+· [demo video](docs/submission/README.md#the-video) · [architecture](docs/diagrams/gcp-architecture.drawio.svg)
+· [what to click](docs/submission/demo-walkthrough-guide.md)
+
 ---
 
 ## The problem
@@ -56,8 +62,10 @@ Around it: a **dashboard** with a money-flow Sankey and a profit and loss flow, 
 individuals and companies (paid tiers and a **loan readiness report** shown as coming soon), a
 **Finance Assistant** that answers from your books' figures and quotes the pages of your documents it
 relied on (searched in Firestore vector search), **labels** people confirm or correct, a **Runs**
-page with every workflow's stages, models and cost, and a **demo company** with a guided tour for a
-first look. The assistant's agent with tools and Memory Bank, Model Armor screening and team invites
+page with every workflow's stages, models and cost, a **Transactions** table with each bank line's
+IFRS and US GAAP class, subledger and match, and a **demo company** with a guided tour for a first
+look, also open to anyone through a **demo account** with email and password
+([docs/25](docs/25-demo.md)). The assistant's agent with tools and Memory Bank, Model Armor screening and team invites
 are planned (P1); [`docs/24`](docs/24-submission-checklist.md) lists what is built and what is not.
 
 ## Built on Google Cloud
@@ -121,12 +129,36 @@ Spec 001 Foundation is deployed on Google Cloud (`cloud-hack2skill`, `asia-south
 - **Cloud Run Web (Origin API & SPA)**: [https://kredibel-web-110491117045.asia-southeast1.run.app](https://kredibel-web-110491117045.asia-southeast1.run.app)
 - **Cloud Run Worker (IAM only)**: [https://kredibel-worker-110491117045.asia-southeast1.run.app](https://kredibel-worker-110491117045.asia-southeast1.run.app)
 - **Data Migration Job**: `kredibel-migrate` Cloud Run job with automated Cloud Build pipeline step.
+- **Try it without a Google account**: sign in at [https://kredibel-app.web.app/login](https://kredibel-app.web.app/login)
+  with `demo@kredibel.app` / `Kredibel-Demo-2026`: a shared copy of the synthetic demo company
+  ([docs/25](docs/25-demo.md); what to click: [docs/submission/demo-walkthrough-guide.md](docs/submission/demo-walkthrough-guide.md)).
+  The account is shared, so several people trying it at once see each other's changes.
+- **Try it in a workspace of your own** (recommended for judges): sign in with your Google account,
+  choose **Set up your business** (any name; the free trial needs no card), then upload the **sample
+  books** from the shared Drive folder
+  [AI-BUILDER-CUP-2026](https://drive.google.com/drive/folders/1TUpbHZ-nRRoafvzEs4XX1j7rMkM40SfV?usp=sharing) (`demo-aug-oct/pack`: 39 synthetic files of Sunrise
+  Coffee Roasters, August–October 2026: three bank statements, invoices, receipts and a ledger export;
+  upload them all at once, in any order). Reading takes a few minutes; each page is read twice and the
+  months reconcile themselves. The same folder holds the demo video and its scripts. Please upload
+  synthetic files only: every document in the sample pack is marked *SYNTHETIC, FOR TESTING*.
+- **Submission pack**: the video, the brief description and the pitch-deck content are in
+  [docs/submission](docs/submission/README.md).
 
 
 ## Results
 
-_Filled from the latest eval report (`backend/evals/reports/`). Numbers measured on synthetic data
-only._
+**The demo company on production** (synthetic, August–October 2026, read by the deployed workflows;
+measured 17 Oct 2026):
+
+| Measure | Result |
+|---|---|
+| Bank lines matched automatically | 295 of 310 (95%) in 300 documents: August 95.2%, September 92.2%, October 98.0% |
+| Planted cases found | Edited statement (August Critical), scanned copy held, payment to a supplier's new account (October High), two unpaid supplier invoices |
+| Bank lines without a document matched to their ledger booking (scenario S1, test) | 84 of 87, none wrongly |
+| Reading cost | About USD 0.43 for 80 documents (89 pages) |
+
+_The eval suite (spec 012) fills the table below from `backend/evals/reports/`; it has not been run
+yet, so no general accuracy is claimed._
 
 | Measure | Result |
 |---|---|

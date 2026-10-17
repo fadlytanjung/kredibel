@@ -240,7 +240,33 @@ function Proposal({ item }: { item: ReviewItem }) {
           <span>{score.toFixed(2)}</span>
         </span>
       </div>
+      <AiView item={item} proposal={candidate.matchId} />
     </div>
+  )
+}
+
+/** Spec 023, AC-023-7: the model's order of the candidates code found, each with its sentence. */
+function AiView({ item, proposal }: { item: ReviewItem; proposal?: string }) {
+  const { t } = useTranslation('review')
+  const ranked = (item.suggestion?.candidates ?? [])
+    .filter((c) => c.aiRank != null && c.aiReason)
+    .sort((a, b) => (a.aiRank ?? 0) - (b.aiRank ?? 0))
+  if (ranked.length === 0) return null
+  return (
+    <section className="ai-view" aria-label={t('panel.aiView')}>
+      <p className="ai-view-head">
+        <Icon name="sparkles" size="sm" />
+        {t('panel.aiView')}
+      </p>
+      <ol>
+        {ranked.map((c) => (
+          <li key={c.matchId}>
+            <strong>{c.matchId === proposal ? t('panel.aiThisProposal') : t('panel.aiOther')}</strong> {c.aiReason}
+          </li>
+        ))}
+      </ol>
+      <p className="muted small">{t('panel.aiNote')}</p>
+    </section>
   )
 }
 

@@ -1,6 +1,7 @@
 """Month workflow node factories with stubs for specs 004-008 (docs/06 §3, §4)."""
 
 import hashlib
+from dataclasses import replace
 from datetime import date
 from decimal import Decimal
 from typing import Any
@@ -17,6 +18,7 @@ from app.agents.month_data import (
     document_facts,
     document_records,
     evidence_body,
+    ledger_cash_records,
     month_bounds,
     person_decisions,
     read_month,
@@ -24,6 +26,8 @@ from app.agents.month_data import (
 )
 from app.agents.month_result import MonthResult, PendingMonths, run_key
 from app.agents.stages import stage
+from app.domain.accounts import mask_numbers_in_text
+from app.domain.candidate_ranking import apply_ranking
 from app.domain.categorize import Framework
 from app.domain.checks.month import MonthContext, run_month_checks
 from app.domain.counterparties import build_counterparties as group_counterparties
@@ -31,6 +35,8 @@ from app.domain.evidence import document_evidence, line_support
 from app.domain.figures import month_figures
 from app.domain.findings import Finding, merge_findings
 from app.domain.grounding import GroundingContext, check_grounding
+from app.domain.ledger_cash import match_ledger_cash
+from app.domain.match_categories import categories_from_matches
 from app.domain.models.document import DocStatus, DocType, DuplicateDecision, DuplicateKind
 from app.domain.models.match import StoredMatch
 from app.domain.models.month import Month, MonthState
@@ -43,6 +49,7 @@ from app.domain.profile_suggestions import (
     build_profile_suggestions,
 )
 from app.domain.reconcile import assign_matches
+from app.domain.reconcile_scoring import INVOICES
 from app.domain.review_items import (
     Check,
     HeldCopy,
@@ -50,6 +57,8 @@ from app.domain.review_items import (
     LineFacts,
     ProposalFacts,
     RecordFacts,
+    ReviewCandidate,
+    ReviewItem,
     month_items,
 )
 from app.domain.risk import RiskAssessment, assess_document_risk, assess_month_risk
@@ -90,6 +99,7 @@ _KIND = {
     "SALES_INVOICE": "BANK_SALES_INVOICE",
     "PURCHASE_INVOICE": "BANK_PURCHASE_INVOICE",
     "RECEIPT": "BANK_RECEIPT",
+    "LEDGER_CASH": "BANK_LEDGER",
 }
 
 
@@ -107,10 +117,44 @@ def reconcile(deps: PipelineDeps, pending: PendingMonths):
         policy = deps.reconciliation
         left = [bank_record(line, data) for line in data.lines]
         right = document_records(data)
+        decisions = person_decisions(data)
         allocations = assign_matches(
-            left, right, policy, workspace_currency=data.currency, decisions=person_decisions(data)
+            left, right, policy, workspace_currency=data.currency, decisions=decisions
         )
-        kinds = {r.record_id: r.kind for r in right}
+        # Then the lines no document explains, against their bookings on the mapped ledger account.
+        bookings = ledger_cash_records(data, policy.ledger_cash.rival_days)
+        allocations += match_ledger_cash(
+            left,
+            bookings,
+            policy,
+            workspace_currency=data.currency,
+            taken=frozenset(t for a in allocations for t in a.left_ids),
+            rejected=decisions.rejected,
+        )
+        kinds = {r.record_id: r.kind for r in (*right, *bookings)}
+        # A line nothing categorized, or only guessed, takes the category its match names (spec
+        # 023, AC-023-12; spec 024), before the figures count it.
+        named = categories_from_matches(
+            data.lines,
+            allocations,
+            kinds,
+            data.ledger_rows,
+            data.classifications,
+            deps.categories,
+            unsure_below=(
+                deps.learning.needs_check_below.get("CATEGORY") if deps.learning else None
+            ),
+        )
+        for line in data.lines:
+            if category := named.get(line.tx_id):
+                line.category, line.categorized_by, line.category_confidence = (
+                    category,
+                    "MATCH",
+                    None,
+                )
+                line.cashflow_class = deps.categories.categories[category].cashflow_class(
+                    data.framework
+                )
         amounts = {ln.tx_id: ln.amount for ln in data.all_lines}
         run_id = str(node_input.get("runId") or "")
         now = deps.clock.now()
@@ -122,8 +166,9 @@ def reconcile(deps: PipelineDeps, pending: PendingMonths):
                 status=a.status,
                 method=a.method,
                 bank_line_ids=list(a.left_ids),
-                invoice_ids=[r for r in a.right_ids if kinds[r] != "RECEIPT"],
+                invoice_ids=[r for r in a.right_ids if kinds[r] in INVOICES],
                 receipt_ids=[r for r in a.right_ids if kinds[r] == "RECEIPT"],
+                ledger_entry_ids=[r for r in a.right_ids if kinds[r] == "LEDGER_CASH"],
                 amount=sum((abs(amounts.get(t, Decimal(0))) for t in a.left_ids), Decimal(0)),
                 amount_difference=a.amount_difference,
                 score=a.score,
@@ -137,6 +182,11 @@ def reconcile(deps: PipelineDeps, pending: PendingMonths):
             if a.method != "MANUAL"
         ]
         result = MonthResult(data=data, allocations=allocations, matches=stored)
+        result.categories = {
+            line.tx_id: (line.category, line.cashflow_class)
+            for line in data.lines
+            if line.tx_id in named
+        }
         pending[run_key(node_input)] = result
 
         # Bank support of the month's lines: separate from cash (ADR-025).
@@ -853,6 +903,7 @@ def sync_review_items(deps: PipelineDeps, pending: PendingMonths | None = None):
                     )
                 )
 
+        rivals = _rivals(result) if result is not None else {}
         proposals = [
             ProposalFacts(
                 m.match_id,
@@ -863,6 +914,7 @@ def sync_review_items(deps: PipelineDeps, pending: PendingMonths | None = None):
                 min((day_of[t] for t in m.bank_line_ids if t in day_of), default=None),
                 m.score,
                 tuple(m.reasons),
+                rivals.get(m.match_id, ()),
             )
             for m in (
                 [m for m in result.matches if m.status == "PROPOSED"]
@@ -883,6 +935,7 @@ def sync_review_items(deps: PipelineDeps, pending: PendingMonths | None = None):
             held=held,
             held_entries=held_entries,
         )
+        fresh = await rank_proposals(deps, org_id, month, fresh, result)
         written = await deps.review_items.replace_month_review_items(
             org_id, month, fresh, now=deps.clock.now()
         )
@@ -893,6 +946,133 @@ def sync_review_items(deps: PipelineDeps, pending: PendingMonths | None = None):
         }
 
     return _node
+
+
+def _rivals(result: MonthResult) -> dict[str, tuple[ReviewCandidate, ...]]:
+    """Each proposal's rivals as review candidates, split by the kind of record."""
+    invoices = {i.invoice_id for i in result.data.invoices}
+    receipts = {r.receipt_id for r in result.data.receipts}
+    out: dict[str, tuple[ReviewCandidate, ...]] = {}
+    for allocation in result.allocations:
+        if not allocation.rivals:
+            continue
+        out[allocation.match_id] = tuple(
+            ReviewCandidate(
+                match_id=r.match_id,
+                bank_line_ids=[
+                    i for i in (*r.left_ids, *r.right_ids) if i not in invoices | receipts
+                ],
+                invoice_ids=[i for i in (*r.left_ids, *r.right_ids) if i in invoices],
+                receipt_ids=[i for i in (*r.left_ids, *r.right_ids) if i in receipts],
+                score=r.score,
+                reasons=list(r.reasons),
+            )
+            for r in allocation.rivals
+        )
+    return out
+
+
+MAX_RANKED = 8  # proposals the model ranks per month run; the rest wait for the next run
+
+
+async def rank_proposals(
+    deps: PipelineDeps,
+    org_id: str,
+    month: str,
+    items: list[ReviewItem],
+    result: MonthResult | None,
+) -> list[ReviewItem]:
+    # Spec 023, AC-023-7: for a proposal with rivals, the model orders the candidates code found
+    # and says why; a ranking is kept while the candidates stay the same. Advice only: the
+    # matching, the scores and what is automatic never change; a failed call leaves it unranked.
+    if deps.reader is None or result is None or deps.review_items is None:
+        return items
+    listed, _, _ = await deps.review_items.list_review_items(
+        org_id, month=month, kind="PROPOSED_MATCH", limit=500
+    )
+    stored = {i.item_id: i for i in listed}
+    out: list[ReviewItem] = []
+    asked = 0
+    for item in items:
+        candidates = item.suggestion.candidates
+        if item.kind != "PROPOSED_MATCH" or len(candidates) < 2:
+            out.append(item)
+            continue
+        before = stored.get(item.item_id)
+        same = before is not None and [c.match_id for c in before.suggestion.candidates] == [
+            c.match_id for c in candidates
+        ]
+        if same and before is not None and before.suggestion.ranked_by:
+            kept = {c.match_id: c for c in before.suggestion.candidates}
+            ranked = [
+                replace(c, ai_rank=kept[c.match_id].ai_rank, ai_reason=kept[c.match_id].ai_reason)
+                for c in candidates
+            ]
+            out.append(
+                replace(
+                    item,
+                    suggestion=replace(
+                        item.suggestion, candidates=ranked, ranked_by=before.suggestion.ranked_by
+                    ),
+                )
+            )
+            continue
+        if asked >= MAX_RANKED:
+            out.append(item)
+            continue
+        asked += 1
+        try:
+            call = await deps.reader.rank_candidates(
+                _payment_text(item, result), _candidates_text(candidates, result)
+            )
+        except Exception:  # noqa: BLE001 - the item stays a plain proposal
+            _log.warning("rank_candidates_failed", item_id=item.item_id)
+            out.append(item)
+            continue
+        ranked = apply_ranking(candidates, call.value)
+        out.append(
+            replace(
+                item,
+                suggestion=replace(
+                    item.suggestion,
+                    candidates=ranked,
+                    ranked_by=f"{call.model}@{call.prompt_version}",
+                ),
+            )
+        )
+    return out
+
+
+def _payment_text(item: ReviewItem, result: MonthResult) -> str:
+    lines = {ln.tx_id: ln for ln in result.data.all_lines}
+    rows = [lines[t] for t in item.subject.bank_line_ids if t in lines]
+    return "\n".join(
+        f"{ln.date.isoformat()} | {mask_numbers_in_text(ln.description)} | {ln.amount}"
+        for ln in rows
+    )
+
+
+def _candidates_text(candidates: list[ReviewCandidate], result: MonthResult) -> str:
+    invoices = {i.invoice_id: i for i in result.data.invoices}
+    receipts = {r.receipt_id: r for r in result.data.receipts}
+    out: list[str] = []
+    for c in candidates:
+        parts = [
+            f"invoice {i.number or ''} {_party_of(i)} {i.issue_date} total {i.total}"
+            for i in (invoices[x] for x in c.invoice_ids if x in invoices)
+        ] + [
+            f"receipt {r.number or ''} {r.merchant_name or ''} {r.date} total {r.total}"
+            for r in (receipts[x] for x in c.receipt_ids if x in receipts)
+        ]
+        out.append(
+            f"{c.match_id}: {'; '.join(mask_numbers_in_text(p) for p in parts)} "
+            f"| code's score {c.score} | reasons {', '.join(c.reasons)}"
+        )
+    return "\n".join(out)
+
+
+def _party_of(invoice: Any) -> str:
+    return (invoice.issuer_name if invoice.kind == "PURCHASE" else invoice.buyer_name) or ""
 
 
 def _months_paid_elsewhere(result: MonthResult, month: str) -> set[str]:
@@ -973,6 +1153,7 @@ def finalize_month(deps: PipelineDeps, pending: PendingMonths):
             paid_elsewhere = _months_paid_elsewhere(result, month_str)  # before the stores change
             await deps.matches.replace_month_matches(org_id, month_str, result.matches)
             await deps.bank_lines.set_support(org_id, result.support)
+            await deps.bank_lines.set_match_categories(org_id, result.categories)
             await deps.invoices.set_evidence(org_id, result.invoice_evidence)
             await deps.receipts.set_evidence(org_id, result.receipt_evidence)
             if result.findings is not None and deps.findings is not None:

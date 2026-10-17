@@ -6,7 +6,7 @@
 
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
-import { type Run, useRun, useRunEvents, useRuns } from '../entities/run'
+import { type Run, useRun, useRunEvents, useRunsByKind } from '../entities/run'
 import { useAuth } from '../entities/session'
 import { DataTable, type DataTableColumn, type DataTableFilter, Icon, type IconName } from '../shared/ui'
 import { durationMs, kTokens, RunDrawer, runTitle, seconds, shortModel, startedAt } from '../widgets/runs'
@@ -25,7 +25,7 @@ export function RunsContent({ role, known = true, basePath = '/runs' }: { role?:
   const navigate = useNavigate()
   const { runId } = useParams<{ runId?: string }>()
   const owner = role === 'owner'
-  const { data, isLoading, isError, refetch } = useRuns({ limit: 100 }, owner)
+  const { data, isLoading, isError, refetch } = useRunsByKind(100, owner)
   const { data: run } = useRun(owner ? runId : undefined)
   const { data: events } = useRunEvents(runId, owner)
 

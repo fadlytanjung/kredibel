@@ -35,6 +35,7 @@
   "errors": {
     "interrupted": "Response interrupted: {{message}}",
     "retrieve": "I could not retrieve that information ({{message}}). Please try asking again.",
+    "timeout": "The answer took too long to arrive. Please ask again.",
     "send": "I could not send your message ({{message}}). Please try asking again.",
     "sendFailed": "Failed to send message"
   },
@@ -47,10 +48,10 @@
   },
   "starters": {
     "unpaid": "Which invoices are still unpaid?",
-    "q2": "Where did the money go in Q2?",
+    "flow": "Where did the money go over the last three months?",
     "clients": "Who are my biggest clients?",
-    "riskJune": "Why is June risk scored as Medium?",
-    "pnl": "Show my profit and loss for 2026-03"
+    "risk": "Which month is the riskiest, and why?",
+    "pnl": "Show my profit and loss for the latest month"
   },
   "composer": {
     "placeholder": "Ask about your books",
@@ -81,7 +82,6 @@
     "toggle": "Toggle activity details",
     "thinking": "Thinking"
   },
-
   "matchSuggestion": {
     "title": "AI Match Analysis",
     "analyzing": "Analyzing counterparty & transaction...",

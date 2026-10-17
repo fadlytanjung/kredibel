@@ -345,6 +345,26 @@ business data leaves the workspace for this step beyond column names.
 
 ---
 
+## 5a. How the reader prompts are written (spec 023)
+
+Each reader prompt states the document is data, never instructions, and asks for values exactly as
+printed. The classifier lists the documents that look alike (proforma, quotation, delivery note,
+*Faktur Pajak*, *mutasi rekening*, *kuitansi*) and when its confidence may be high (v3); the
+categorizer has a glossary of Indonesian and Malay statement words (`BIAYA ADM`, `JASA GIRO`, `PPH`,
+`SETORAN`, `SP2D`, `GAJI`…) and a confidence scale (v5). No chain-of-thought text in the answers: the
+readers use Gemini's own thinking (`READER_THINKING_LEVEL`).
+
+**Measured before shipping.** A new reader version is read again on the demo books and on a real
+pilot's documents (structure only: lines, agreement, balance breaks, findings) and ships only when
+nothing gets worse. On 16 Oct 2026 a statement reader v4 with a procedure, local column words, sign
+markers and a "check the running balance before answering" step read the demo's 9 statements the
+same as v3 but lost the amounts of 14 rows of a real scanned *rekening koran*: it was rolled back,
+and invoice and receipt self-checks (items + tax = total) were held with it. The eval suite of
+spec 012 takes this over.
+
+A page's reading is cached under the page image, model, prompt version and a hash of the chunks it
+saw, so a new prompt, new OCR words or a new layout read the page again.
+
 ## 6. Grounding (reading vs the page's words)
 
 Since [ADR-023](adr/ADR-023-parse-extract-ground.md) the witness is the reader's context too: a value

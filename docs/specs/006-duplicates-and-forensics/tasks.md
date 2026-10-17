@@ -29,4 +29,4 @@
 - [x] **T006-10** Update `docs/20-implementation-status.md`. (kept current with every change; the duplicate and integrity rows record what is built and the deviations)
 - [x] **T006-12** **TDD** A running-balance break right after a statement row that could not be kept
   (`ROW_DROPPED_ABOVE`) is `E01`, not a CRITICAL `A01`: the gap is our reading, not the page (16 Oct
-  2026, a real scanned statement; docs/08 §2.3).
+  2026, a real scanned statement; docs/08 §2.3). Also a row the reader returned with a running balance but no amount after the first transaction (16 Oct 2026: a trial prompt lost 14 amounts on a real scan and four breaks became CRITICAL).

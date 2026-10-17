@@ -331,6 +331,11 @@ def build_statement(
                 closing_row = balance
             elif balance is None or not description:
                 notes.append(f"row {index}: no amount")
+            elif lines:
+                # A running balance without its amount after the first transaction: a transaction
+                # whose amount was not read, so the next balance break is our gap (spec 023).
+                notes.append(f"row {index}: no amount, a balance without its amount")
+                dropped = True
             continue
         if debit is not None and credit is not None:
             # The witness alone saw the other side (an amount of the next row in the same chunk):

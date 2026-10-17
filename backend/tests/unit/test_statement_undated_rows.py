@@ -169,3 +169,39 @@ def test_the_line_after_a_dropped_row_carries_the_mark():
     assert any("row 1: both debit and credit" in note for note in result.notes)
     assert [line.description for line in result.lines[:2]] == ["SETORAN TUNAI", "BIAYA ADM"]
     assert "ROW_DROPPED_ABOVE" in result.lines[1].notes
+
+
+def test_a_row_with_a_balance_but_no_amount_is_a_lost_transaction_not_a_heading():
+    # The page shows only a balance on the second row (its amount is lost to the scan), and the
+    # reader returned that row's balance without an amount: the break after it is our gap.
+    page_words = [
+        *_line(0.10, ("Period 01/03/2026 - 31/03/2026", 0.05)),
+        *_line(0.20, *COLUMNS),
+        *_line(
+            0.23,
+            ("05/03/2026", 0.05),
+            ("SETORAN TUNAI", 0.15),
+            ("1,000,000.00", 0.70),
+            ("1,500,000.00", 0.85),
+        ),
+        *_line(0.25, ("PPH JASA", 0.15), ("1,480,000.00", 0.85)),
+        *_line(0.27, ("BIAYA ADM", 0.15), ("5,000.00", 0.55), ("1,475,000.00", 0.85)),
+    ]
+    rows = [
+        _row(0, "05/03/2026", "SETORAN TUNAI", credit="1,000,000.00", balance="1,500,000.00"),
+        _row(1, "", "PPH JASA", balance="1,480,000.00"),
+        _row(2, "", "BIAYA ADM", debit="5,000.00", balance="1,475,000.00"),
+    ]
+    page = StatementPageReading(
+        page=1,
+        header=StatementHeader(
+            currency="IDR",
+            period_start_text="01/03/2026",
+            period_end_text="31/03/2026",
+            column_order=["date", "description", "debit", "credit", "balance"],
+        ),
+        rows=rows,
+    )
+    result = build_statement("doc_1", [page], {1: chunk_page(page_words, page=1)})
+    assert any("row 1" in note and "no amount" in note for note in result.notes)
+    assert "ROW_DROPPED_ABOVE" in result.lines[-1].notes

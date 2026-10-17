@@ -54,6 +54,13 @@ ledger:
   bankAccountMapping: user          # the user maps each bank account to a ledger account code once
   cashAccountHints: ["1100", "1110", "bank", "cash at bank"]   # used only to pre-fill the mapping
 
+ledgerCash:                         # docs/08 §6.2: a line no document explains, against its booking on the mapped account
+  rivalDays: 5                      # another line or booking of the same amount within ±5 days: never automatic
+  minParty: "0.50"                  # the booking's words (description or counter-account) must name the line, or its reference be printed
+
+expectations:
+  tolerance: "0.05"               # spec 024: within 5% of what the person expected is "as expected"
+
 reviewItems:
   waitForStatement: true            # no UNMATCHED_DOCUMENT items for a month without a statement
   unsupportedBankLine: informational # support absence alone does not create a blocking item

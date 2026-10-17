@@ -43,6 +43,8 @@ def review_item_body(it: ReviewItem) -> dict[str, Any]:
             "receiptIds": c.receipt_ids,
             "score": str(c.score),
             "reasons": c.reasons,
+            "aiRank": c.ai_rank,
+            "aiReason": c.ai_reason,
         }
         for c in it.suggestion.candidates
     ]
@@ -75,6 +77,7 @@ def review_item_body(it: ReviewItem) -> dict[str, Any]:
         },
         "suggestion": {
             "candidates": candidates,
+            "rankedBy": it.suggestion.ranked_by,
             "reading": it.suggestion.reading,
             "docType": it.suggestion.doc_type,
             "confidence": it.suggestion.confidence,

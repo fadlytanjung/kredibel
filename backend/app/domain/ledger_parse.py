@@ -461,6 +461,8 @@ def _row_with_mapping(
         currency=currency,
         posting_status=posting_status,
         journal_id=(row.get(mapping.reference or "", "") or None),
+        description=row.get(mapping.description or "", "") or "",
+        reference=(row.get(mapping.reference or "", "") or None),
         entry_kind="ACTIVITY",
         held_as_duplicate=False,
     )
@@ -635,6 +637,8 @@ def parse_ledger_content(
                 currency=currency,
                 posting_status=posting_status,
                 journal_id=journal_id,
+                description=r_lower.get("description") or r_lower.get("memo") or "",
+                reference=r_lower.get("reference") or None,
                 entry_kind="ACTIVITY",
                 held_as_duplicate=False,
             )

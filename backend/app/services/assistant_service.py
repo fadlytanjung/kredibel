@@ -5,8 +5,9 @@ from __future__ import annotations
 import asyncio
 import re
 import uuid
-from collections.abc import AsyncIterator, Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
 from datetime import UTC, datetime
+from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from app.domain.extraction_store import StoredChunk
@@ -57,12 +58,23 @@ GREETING_TEXT = (
     "Hello! I am your Kredibel AI Finance Assistant.\n\n"
     "I can help you review your finances, check invoice statuses, explore cash flow, "
     "and investigate fraud risk findings:\n\n"
-    '• **"Where did the money go in Q2?"** — Visual cash flow & Sankey diagram\n'
+    '• **"Where did the money go over the last three months?"** — Cash flow and Sankey\n'
     '• **"Which invoices are still unpaid?"** — Outstanding invoices and due dates\n'
-    '• **"Why is June risk Medium?"** — Forensic findings and evidence\n'
-    '• **"What is our profit for 2026-03?"** — Accrual P&L and posted ledger lines\n\n'
+    '• **"Which month is the riskiest, and why?"** — Forensic findings and evidence\n'
+    '• **"Show my profit and loss for the latest month"** — P&L and its ledger lines\n\n'
     "What would you like to check today?"
 )
+
+
+def _figure(figs: dict[str, Any], key: str) -> Decimal:
+    """A month figure as stored ({value, factId, inputs}; money in major units, rates as a
+    fraction); 0 when the month has none."""
+    raw = figs.get(key)
+    value = raw.get("value") if isinstance(raw, dict) else raw
+    try:
+        return Decimal(str(value)) if value is not None else Decimal(0)
+    except (InvalidOperation, ValueError):
+        return Decimal(0)
 
 
 def _extract_fig(figs: dict[str, Any], key: str, alt_key: str) -> float:
@@ -75,6 +87,28 @@ def _extract_fig(figs: dict[str, Any], key: str, alt_key: str) -> float:
         return abs(float(val))
     except (ValueError, TypeError):
         return 0.0
+
+
+def flow_rows(months: Sequence[Any]) -> list[list[str]]:
+    """The money-flow mini chart: a row a month, its bar its money in and out against the busiest
+    month's (a month with no money draws none)."""
+    totals = [
+        (
+            m.month,
+            _extract_fig(m.figures or {}, "moneyIn", "inflow_minor"),
+            _extract_fig(m.figures or {}, "moneyOut", "outflow_minor"),
+        )
+        for m in sorted(months, key=lambda x: x.month)
+    ]
+    busiest = max((i + o for _, i, o in totals), default=0.0)
+    return [
+        [
+            key,
+            f"In: {i:,.0f} | Out: {o:,.0f}",
+            f"{round(100 * (i + o) / busiest)}%" if busiest else "0%",
+        ]
+        for key, i, o in totals
+    ]
 
 
 def is_greeting(question: str) -> bool:
@@ -125,6 +159,7 @@ class AssistantService:
         profit_loss: Callable[[], ProfitLossService] | None = None,
         search: Callable[[str, str, int], Awaitable[list[tuple[StoredChunk, float, str]]]]
         | None = None,
+        answer_seconds: float = 50.0,
     ) -> None:
         self._assistant_repo = assistant_repo
         self._month_repo = month_repo
@@ -138,6 +173,8 @@ class AssistantService:
         self._entitlements = entitlements
         self._profit_loss = profit_loss
         self._search = search
+        # The model's time to answer; the safe summary answers after it (Hosting cuts at 60 s).
+        self._answer_seconds = answer_seconds
 
     async def list_threads(
         self, org_id: str, limit: int = 50, cursor: str | None = None
@@ -222,10 +259,10 @@ class AssistantService:
         context_lines: list[str] = ["WORKSPACE MONTHS:"]
         for m in sorted(months, key=lambda x: x.month):
             figs = m.figures or {}
-            in_val = figs.get("inflow_minor", 0) / 100
-            out_val = figs.get("outflow_minor", 0) / 100
+            in_val = _figure(figs, "moneyIn")
+            out_val = abs(_figure(figs, "moneyOut"))
             net_val = in_val - out_val
-            rate = figs.get("match_rate_pct", 0)
+            rate = (_figure(figs, "autoMatchRate") * 100).quantize(Decimal("0.01"))
 
             in_fid = f"fact:{m.month}:money_in"
             out_fid = f"fact:{m.month}:money_out"
@@ -371,10 +408,12 @@ class AssistantService:
 
         # 3. Call AI reader
         try:
-            call = await self._reader.ask_assistant(history_payload, context_str)
+            call = await asyncio.wait_for(
+                self._reader.ask_assistant(history_payload, context_str), self._answer_seconds
+            )
             raw_response = call.value
             answer_text = getattr(raw_response, "answer", str(raw_response))
-        except Exception:
+        except Exception:  # the model failed or ran out of time: the books answer in a template
             answer_text = self._fallback_answer(context_str, question)
 
         # 4. Check grounding
@@ -513,10 +552,12 @@ class AssistantService:
             history_payload.append({"role": m.role, "content": text})
 
         try:
-            call = await self._reader.ask_assistant(history_payload, context_str)
+            call = await asyncio.wait_for(
+                self._reader.ask_assistant(history_payload, context_str), self._answer_seconds
+            )
             raw_response = call.value
             answer_text = getattr(raw_response, "answer", str(raw_response))
-        except Exception:
+        except Exception:  # the model failed or ran out of time: the books answer in a template
             answer_text = self._fallback_answer(context_str, question)
 
         # 4. Stream tokens chunk-by-chunk for live typing experience
@@ -690,16 +731,7 @@ class AssistantService:
             )
             try:
                 months = await self._month_repo.list(org_id)
-                chart_rows = []
-                if months:
-                    for m in sorted(months, key=lambda x: x.month)[-6:]:
-                        figs = m.figures or {}
-
-                        in_val = _extract_fig(figs, "moneyIn", "inflow_minor")
-                        out_val = _extract_fig(figs, "moneyOut", "outflow_minor")
-                        chart_rows.append(
-                            [m.month, f"In: {in_val:,.0f} | Out: {out_val:,.0f}", "100%"]
-                        )
+                chart_rows = flow_rows(sorted(months, key=lambda x: x.month)[-6:])
                 parts.append(
                     AnswerPart(
                         type="chart",

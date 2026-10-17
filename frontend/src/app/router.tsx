@@ -35,6 +35,7 @@ const ProfitLossPage = lazy(() => import('../pages/ProfitLossPage').then((m) => 
 const DocumentPage = lazy(() => import('../pages/DocumentPage').then((m) => ({ default: m.DocumentPage })))
 const DocumentsPage = lazy(() => import('../pages/DocumentsPage').then((m) => ({ default: m.DocumentsPage })))
 const OnboardingPage = lazy(() => import('../pages/OnboardingPage').then((m) => ({ default: m.OnboardingPage })))
+const WelcomePage = lazy(() => import('../pages/WelcomePage').then((m) => ({ default: m.WelcomePage })))
 const MonthPage = lazy(() => import('../pages/MonthPage').then((m) => ({ default: m.MonthPage })))
 const MonthsPage = lazy(() => import('../pages/MonthsPage').then((m) => ({ default: m.MonthsPage })))
 const AssistantPage = lazy(() => import('../pages/AssistantPage').then((m) => ({ default: m.AssistantPage })))
@@ -45,13 +46,16 @@ const CounterpartiesPage = lazy(() => import('../pages/CounterpartiesPage').then
 const CounterpartyPage = lazy(() => import('../pages/CounterpartyPage').then((m) => ({ default: m.CounterpartyPage })))
 const LabelsPage = lazy(() => import('../pages/LabelsPage').then((m) => ({ default: m.LabelsPage })))
 const RunsPage = lazy(() => import('../pages/RunsPage').then((m) => ({ default: m.RunsPage })))
+const TransactionsPage = lazy(() => import('../pages/TransactionsPage').then((m) => ({ default: m.TransactionsPage })))
 const OnboardingPreview = lazy(() => import('./OnboardingPreview').then((m) => ({ default: m.OnboardingPreview })))
+const WelcomePreview = lazy(() => import('./OnboardingPreview').then((m) => ({ default: m.WelcomePreview })))
 const AssistantPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.AssistantPreview })))
 const DocumentPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.DocumentPreview })))
 const DocumentsPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.DocumentsPreview })))
 const TourPreview = lazy(() => import('./TourPreview').then((m) => ({ default: m.TourPreview })))
 const MonthPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.MonthPreview })))
 const MonthsPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.MonthsPreview })))
+const TransactionsPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.TransactionsPreview })))
 const ProfitLossPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.ProfitLossPreview })))
 const CounterpartiesPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.CounterpartiesPreview })))
 const CounterpartyPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.CounterpartyPreview })))
@@ -100,12 +104,15 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
   const navigate = useNavigate()
   const workspaceQuery = useWorkspace(Boolean(user && me?.orgId))
   const reviewQuery = useReviewItems(Boolean(user && me?.orgId))
-  const labelsQuery = useLabels({ needsCheck: true, limit: 1 })
+  const labelsQuery = useLabels({ needsCheck: true, limit: 1 }, Boolean(user && me?.orgId))
 
   if (loading) return <FullPageLoading />
   if (!user) return <Navigate to="/login" replace />
   if (meError) return <SessionError />
   if (needsWorkspace) return <Navigate to="/onboarding" replace />
+  // Spec 024: an owner whose workspace has no goal yet (a new workspace, a fresh demo copy) is
+  // asked it first; choosing, or skipping, records one.
+  if (me?.role === 'owner' && workspaceQuery.data && !workspaceQuery.data.goal) return <Navigate to="/welcome" replace />
 
   const name = me?.displayName || user.displayName || user.email || ''
   const shell = workspaceQuery.data
@@ -160,6 +167,16 @@ export function OnboardingRoute({ children }: { children: ReactNode }) {
   return <>{children}</>
 }
 
+/** Spec 024: the welcome question needs a workspace but no navigation. */
+export function WelcomeRoute({ children }: { children: ReactNode }) {
+  const { user, needsWorkspace, loading } = useAuth()
+
+  if (loading) return <FullPageLoading />
+  if (!user) return <Navigate to="/login" replace />
+  if (needsWorkspace) return <Navigate to="/onboarding" replace />
+  return <>{children}</>
+}
+
 /** `/` is public: the landing for visitors, the dashboard for a signed-in user (spec 020, AC-020-1/9). */
 export function IndexRoute() {
   const { user, loading } = useAuth()
@@ -190,6 +207,8 @@ const PROTECTED_ROUTES: { path: string; element: ReactNode }[] = [
   { path: '/months', element: <CurrentMonthRedirect /> },
   { path: '/months/all', element: <MonthsPage /> },
   { path: '/months/:month', element: <MonthPage /> },
+  { path: '/transactions', element: <TransactionsPage /> },
+  { path: '/transactions/:txId', element: <TransactionsPage /> },
   { path: '/review', element: <ReviewPage /> },
   { path: '/review/:itemId', element: <ReviewPage /> },
   { path: '/risk', element: <RiskPage /> },
@@ -221,6 +240,14 @@ export function AppRouter() {
             </OnboardingRoute>
           }
         />
+        <Route
+          path="/welcome"
+          element={
+            <WelcomeRoute>
+              <WelcomePage />
+            </WelcomeRoute>
+          }
+        />
         {PUBLIC_ROUTES.map(({ path, element }) => (
           <Route key={path} path={path} element={element} />
         ))}
@@ -232,6 +259,9 @@ export function AppRouter() {
         {PREVIEW_ROUTES && <Route path="/preview/shell" element={<ShellPreview />} />}
         {PREVIEW_ROUTES && <Route path="/preview/tour/*" element={<TourPreview />} />}
         {PREVIEW_ROUTES && <Route path="/preview/onboarding" element={<OnboardingPreview />} />}
+        {PREVIEW_ROUTES && <Route path="/preview/welcome" element={<WelcomePreview />} />}
+        {PREVIEW_ROUTES && <Route path="/preview/transactions" element={<TransactionsPreview />} />}
+        {PREVIEW_ROUTES && <Route path="/preview/transactions/:txId" element={<TransactionsPreview />} />}
         {PREVIEW_ROUTES && (
           <Route path="/preview/settings/:section" element={<SettingsPreview />} />
         )}

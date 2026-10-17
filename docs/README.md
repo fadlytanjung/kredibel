@@ -35,6 +35,7 @@ Specifications are the source of truth: code implements them, and both change to
 | 22 | [Data migrations](22-data-migrations.md) | Versioned documents, upcasters, forward-only migrations, backups, portability |
 | 23 | [How the agents work, and how to trace them](23-agents-and-tracing-guide.md) | ADK for LangGraph and LangSmith users: workflows, runs, the dev UI (`make dev-agents`), Cloud Trace |
 | 24 | [Submission checklist](24-submission-checklist.md) | What is live, every spec's open tasks, the public copy against what is built, and the owner actions outside the code |
+| 25 | [Try Kredibel with the demo account](25-demo.md) | The public demo sign-in, what its synthetic books hold, and how to reset it |
 | — | [Glossary](glossary.md) | Terms |
 | — | [ADRs](adr) | Decisions and their trade-offs |
 
@@ -90,7 +91,7 @@ only; when a change alters what a diagram shows, update the diagram in the same 
 | Folder | Content |
 |---|---|
 | [`specs/`](specs/README.md) | 15 feature specs (`spec.md` → `plan.md` → `tasks.md`), build order and dependency graph |
-| [`submission/`](submission/) | Proposal draft, 3-minute demo script, submission checklist |
+| [`submission/`](submission/README.md) | The submission pack: the rules and links, the brief description, the pitch-deck content, the demo video (3–4 minutes, its script and captions), the judges' walkthrough, the proposal and the day-of checklist |
 
 ## Decisions (ADRs)
 

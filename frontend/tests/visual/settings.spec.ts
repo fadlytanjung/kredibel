@@ -5,11 +5,12 @@
  */
 import { expect, type Page, test } from '@playwright/test'
 import { createRequire } from 'node:module'
-import { mockUrl, texts, WORKSPACE } from './fixtures'
+import { COUNTERPARTIES, mockUrl, texts, WORKSPACE } from './fixtures'
 
 const require = createRequire(import.meta.url)
 const PROFILE_WORKSPACE = {
   ...WORKSPACE,
+  goal: 'BOOKKEEPING',
   timezone: 'Asia/Jakarta',
   entityType: 'COMPANY',
   defaultLanguage: 'en',
@@ -25,6 +26,7 @@ async function serve(page: Page, sent: unknown[] = []) {
       return route.fulfill({ json: { ...PROFILE_WORKSPACE, profile: { ...PROFILE_WORKSPACE.profile, ...body.profile } } })
     }
     if (path === '/api/workspace') return route.fulfill({ json: PROFILE_WORKSPACE })
+    if (path === '/api/suggestions') return route.fulfill({ json: { items: COUNTERPARTIES.suggestions } })
     return route.fulfill({ json: { items: [] } })
   })
 }

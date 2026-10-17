@@ -4,8 +4,14 @@ text is escaped, never trusted."""
 
 from __future__ import annotations
 
+import json
 import re
 from html import escape
+from pathlib import Path
+
+_COMMON = json.loads((Path(__file__).resolve().parents[3] / "frontend/src/shared/i18n/locales/en/common.json").read_text(encoding="utf-8"))
+_TABLE = escape(_COMMON["markdown"]["tableRegion"])
+_CODE = escape(_COMMON["markdown"]["codeRegion"])
 
 FENCE = re.compile(r"^```\s*([\w-]*)\s*$")
 HEADING = re.compile(r"^(#{1,6})\s+(.*)$")
@@ -60,7 +66,7 @@ def preview(source: str) -> str:
                 body.append(lines[i])
                 i += 1
             i += 1
-            out.append(f'<pre class="md-code">{escape(chr(10).join(body))}</pre>')
+            out.append(f'<pre class="md-code" role="region" aria-label="{_CODE}" tabindex="0">{escape(chr(10).join(body))}</pre>')
             continue
         if m := HEADING.match(line):
             level = len(m.group(1))
@@ -79,7 +85,7 @@ def preview(source: str) -> str:
             while i < len(lines) and _row(lines[i]):
                 rows.append("<tr>" + "".join(f"<td>{inline(c)}</td>" for c in _cells(lines[i])) + "</tr>")
                 i += 1
-            out.append(f'<div class="md-table"><table><thead><tr>{head}</tr></thead><tbody>{"".join(rows)}</tbody></table></div>')
+            out.append(f'<div class="md-table" role="region" aria-label="{_TABLE}" tabindex="0"><table><thead><tr>{head}</tr></thead><tbody>{"".join(rows)}</tbody></table></div>')
             continue
         if ITEM.match(line):
             items = []

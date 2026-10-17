@@ -17,6 +17,7 @@ import riskEn from './locales/en/risk.json'
 import runsEn from './locales/en/runs.json'
 import settingsEn from './locales/en/settings.json'
 import tourEn from './locales/en/tour.json'
+import transactionsEn from './locales/en/transactions.json'
 
 void i18n.use(initReactI18next).init({
   resources: {
@@ -37,6 +38,7 @@ void i18n.use(initReactI18next).init({
       labels: labelsEn,
 
       runs: runsEn,
+      transactions: transactionsEn,
       tour: tourEn,
       settings: settingsEn,
     },

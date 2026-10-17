@@ -90,6 +90,29 @@ as on GitHub and Azure DevOps.
 - **AC-023-7** For an ambiguous proposal, the model ranks the candidates code found and says why in
   one sentence; the ranking orders the review item's choices and is shown as the AI's view; a
   person still decides.
+- **AC-023-8** A value a person corrects on the Labels page changes the line, invoice or receipt and
+  reconciles its months, as a correction in the review queue does, with the same validation; a value
+  a person corrected anywhere is their decision on its label, which stops asking.
+- **AC-023-9** When the two readings disagree on an amount and no person settled it, matching also
+  tries the other reading; a match only the other reading explains is a proposal (`OTHER_READING`)
+  that says which value to correct.
+- **AC-023-10** A cash withdrawal (`TRK TUNAI`, `TARIKAN TUNAI`, `ATM WITHDRAWAL`…) is money out
+  (`CASH_WITHDRAWAL`, operating; other spending in the profit and loss), never a transfer between
+  own accounts (product decision 16 Oct 2026); Indonesian and Malay words for cash, fees, tax and
+  interest are in the categorization rules.
+- **AC-023-11** A bank line no document explains is matched automatically to its booking on the
+  ledger account its bank account is mapped to (same amount, within `ledgerDays`) only when no other
+  line or booking of that amount is within `rivalDays`, neither reading conflicts, and the booking's
+  description, counter-account or reference names the line (`LEDGER_BOOKED`); otherwise it stays
+  for a person. On S1 every such match is one the truth lists and each month is at least 85%
+  matched; the risk checks still see document matches only.
+- **AC-023-12** A line the rules and the model left `UNKNOWN` (a "CASH DEPOSIT" that names nobody)
+  takes the category its confirmed match names: a sales invoice gives `SALES_RECEIPT`; a ledger
+  booking gives the one category its journal's other account is classified as, for the line's
+  direction. It is marked `categorizedBy MATCH`; a person's or a rule's category is never replaced,
+  nor the model's when it was sure of it (at or above the learning policy's category check
+  threshold); a model's guess below it gives way to the match (spec 024, 17 Oct 2026). An
+  ambiguous booking leaves the line as it is.
 
 ## Out of scope
 

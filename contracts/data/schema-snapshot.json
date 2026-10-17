@@ -321,6 +321,7 @@
       "currency": "str | None",
       "date": "str",
       "debit_minor": "int",
+      "description": "str",
       "doc_id": "str",
       "duplicate": "dict[str, Any] | None",
       "entry_id": "str",
@@ -329,6 +330,7 @@
       "journal_id": "str | None",
       "org_id": "str",
       "posting_status": "Literal[POSTED, DRAFT, UNKNOWN]",
+      "reference": "str | None",
       "row_number": "int"
     },
     "file": "ledger.py",
@@ -381,6 +383,8 @@
       "currency": "Currency",
       "default_language": "str",
       "entity_type": "EntityType",
+      "expectations": "list[dict[str, Any]]",
+      "goal": "str | None",
       "learning": "dict[str, Any]",
       "ledger_mappings": "dict[str, Any]",
       "name": "str",
@@ -439,6 +443,8 @@
   },
   "ReviewCandidateDoc": {
     "fields": {
+      "ai_rank": "int | None",
+      "ai_reason": "str | None",
       "bank_line_ids": "list[str]",
       "invoice_ids": "list[str]",
       "match_id": "str",
@@ -498,6 +504,7 @@
       "doc_type": "str | None",
       "evidence": "list[dict[str, Any]]",
       "mapping": "dict[str, Any] | None",
+      "ranked_by": "str | None",
       "reading": "dict[str, Any] | None"
     },
     "file": "review_item.py",

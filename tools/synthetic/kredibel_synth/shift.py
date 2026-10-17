@@ -9,7 +9,7 @@ so the scenarios' edits, copies and diversions land on the same rows n months la
 import calendar
 import re
 from dataclasses import fields, is_dataclass, replace
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Any
 
 from . import world
@@ -127,6 +127,24 @@ def _move(value: Any, name: str = "") -> Any:
 
 
 def shift_books(books: Any) -> None:
-    """Move every date, key and printed month of the books in place (no-op without a shift)."""
-    if _SHIFT:
-        _move(books)
+    """Move every date, key and printed month of the books in place (no-op without a shift).
+
+    A bank journal keeps its distance from the bank line it books: moving both by whole months
+    would stretch a gap across a short month's end (27 Feb and 1 Mar, two days, become 27 Jul and
+    1 Aug, five), and the booking would fall outside the ledger window (spec 024 volume)."""
+    if not _SHIFT:
+        return
+    rows = {row.key: row for st in books.statements.values() for row in st.rows if row.key}
+    journal_of = {
+        e.journal: (e.bank_key, (e.date - rows[e.bank_key].date).days)
+        for e in books.ledger
+        if e.bank_key in rows
+    }
+    # Entries are moved in place (their journal names change), so remember them by identity.
+    booked = {id(e): journal_of[e.journal] for e in books.ledger if e.journal in journal_of}
+    _move(books)
+    rows = {row.key: row for st in books.statements.values() for row in st.rows if row.key}
+    for entry in books.ledger:
+        bank_key, gap = booked.get(id(entry), (None, 0))
+        if bank_key in rows:
+            entry.date = rows[bank_key].date + timedelta(days=gap)

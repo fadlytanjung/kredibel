@@ -19,7 +19,7 @@ def match_body(match: StoredMatch, currency: str) -> dict[str, Any]:
         "bankLineIds": match.bank_line_ids,
         "invoiceIds": match.invoice_ids,
         "receiptIds": match.receipt_ids,
-        "ledgerEntryIds": [],
+        "ledgerEntryIds": match.ledger_entry_ids,
         "amount": {"amount": f"{match.amount:.2f}", "currency": currency},
         "amountDifference": {"amount": f"{match.amount_difference:.2f}", "currency": currency},
         "method": match.method,

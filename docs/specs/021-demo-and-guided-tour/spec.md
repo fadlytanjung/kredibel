@@ -12,12 +12,13 @@
 ## Summary
 
 A person who signs up to see Kredibel should not have to collect bank statements first. The server
-keeps one **demo template workspace**: Sunrise Coffee Roasters, whose synthetic books (docs/18 §5,
-April to September 2026) were read, checked and reconciled once by the real workflows, so it holds
+keeps one **demo template workspace**: Sunrise Coffee Roasters, whose synthetic books (docs/18 §5;
+since spec 024 August to October 2026 at about a hundred documents a month) were read, checked and
+reconciled once by the real workflows, so it holds
 documents, bank lines, invoices, receipts, the ledger, months, matches, findings, review items,
 clients and suppliers, labels and runs. On onboarding a person can choose **Explore a demo company**:
-the server copies the template into a new workspace that the person owns, in seconds and with no
-model call. A **guided tour** then walks through every menu, highlighting one part of each page with
+the server copies the template into a new workspace that the person owns, in well under a minute and
+with no model call. A **guided tour** then walks through every menu, highlighting one part of each page with
 a short explanation and Next, Back and Skip.
 
 ## User stories

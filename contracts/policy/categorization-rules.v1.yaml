@@ -3,7 +3,8 @@
 # Semantics: docs/08-risk-engine.md §4. Patterns are Python regular expressions, case-insensitive,
 # matched against the normalized description (and counterparty when present).
 # direction: in | out | either. category: null means "leave the category to the model, only add tags".
-# Local-language descriptions for other markets are added later as separate market-pack files (P2).
+# Indonesian and Malay words for cash, fees, tax and interest are included (spec 023, 16 Oct 2026);
+# other markets come as separate market-pack files (P2).
 
 version: 1
 id: categorization-rules.v1
@@ -21,12 +22,12 @@ rules:
     category: UTILITIES
 
   - id: tax
-    pattern: '\b(VAT PAYMENT|TAX PAYMENT|INCOME TAX|WITHHOLDING TAX|TAX OFFICE)\b'
+    pattern: '\b(VAT PAYMENT|TAX PAYMENT|INCOME TAX|WITHHOLDING TAX|TAX OFFICE|PAJAK|PPH|PPN|SETORAN PAJAK)\b'
     direction: out
     category: TAX_PAYMENT
 
   - id: bank_fees
-    pattern: '\b(ADMIN FEE|ADMINISTRATION FEE|TRANSFER FEE|SERVICE CHARGE|STAMP DUTY|BANK CHARGE)\b'
+    pattern: '\b(ADMIN FEE|ADMINISTRATION FEE|TRANSFER FEE|SERVICE CHARGE|STAMP DUTY|BANK CHARGE|BIAYA ADM|BIAYA ADMINISTRASI|BIAYA TRANSFER|BIAYA MATERAI|ADM BANK|CAJ PERKHIDMATAN)\b'
     direction: out
     category: BANK_FEES
 
@@ -70,16 +71,21 @@ rules:
     riskTags: [RETURNED_ITEM]
 
   - id: cash_deposit
-    pattern: '\b(CASH DEPOSIT|CASH DEP)\b'
+    pattern: '\b(CASH DEPOSIT|CASH DEP|SETORAN TUNAI|SETOR TUNAI|DEPOSIT TUNAI)\b'
     direction: in
     category: null
     riskTags: [CASH_DEPOSIT]
 
   - id: cash_withdrawal
-    pattern: '\b(CASH WITHDRAWAL|ATM WITHDRAWAL|ATM WD)\b'
+    pattern: '\b(CASH WITHDRAWAL|ATM WITHDRAWAL|ATM WD|CASH WD|TRK\.? ?TUNAI|TARIK(AN)? TUNAI|PENARIKAN TUNAI|PENGELUARAN TUNAI|TARIK ATM)\b'
     direction: out
-    category: null
+    category: CASH_WITHDRAWAL
     riskTags: [CASH_WITHDRAWAL]
+
+  - id: interest_received
+    pattern: '\b(JASA GIRO|BUNGA TABUNGAN|BUNGA DEPOSITO|BUNGA GIRO|FAEDAH|HIBAH)\b'
+    direction: in
+    category: INTEREST_RECEIVED
 
   - id: interest_income
     pattern: '\b(INTEREST CREDIT|INTEREST)\b'

@@ -10,6 +10,7 @@ import { useAuth } from '../entities/session'
 import { useWorkspace } from '../entities/workspace'
 import { BankAccountsSection } from '../features/manage-bank-accounts/BankAccountsSection'
 import { ProfileForm } from '../features/update-profile/ProfileForm'
+import { SuggestionCard } from '../widgets/dashboard/SuggestionCard'
 import { SETTINGS_SECTIONS, type SettingsSection } from '../shared/ui'
 import { Skeleton } from '../shared/ui/Skeleton'
 import { LanguageSettings } from '../widgets/LanguageSettings'
@@ -50,6 +51,7 @@ export function SettingsPage() {
     <PlanAndUsage workspace={workspace.data} catalog={plans.data} />
   ) : section === 'profile' ? (
     <div className="stack gap-6">
+      <SuggestionCard place="settings" />
       <ProfileForm workspace={workspace.data} />
       <Account />
     </div>

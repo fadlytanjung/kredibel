@@ -30,6 +30,7 @@ the S2–S4 extras ready to upload live; `scripts/reset_demo.py` resets it.
 | Cloud Storage bucket (backups) | `<PROJECT_ID>-kredibel-backups` (Firestore exports before migrations; deleted after 30 days) | `asia-southeast1` |
 | Firestore protection | point-in-time recovery (7 days), delete protection and a daily backup schedule (7-day retention) on `kredibel` | `asia-southeast1` |
 | Cloud Run job | `kredibel-migrate` (data migrations, [`22`](22-data-migrations.md)) | `asia-southeast1` |
+| Cloud Run job | `kredibel-demo-reset` (the public demo account's nightly reset, [`25`](25-demo.md); started 20:00 UTC by Cloud Scheduler `kredibel-demo-reset-nightly`, runs as `kredibel-web`) | `asia-southeast1` |
 | Document AI processors | `kredibel-ocr` (Enterprise Document OCR: witness for scanned pages, P0); `kredibel-form` and `kredibel-invoice` (escalation and thorough mode, P1) | `us` |
 | Model Armor template (P1) | `kredibel-docs` | `asia-southeast1` (confirm in S4) |
 | Memory Bank and Sessions (P1) | `kredibel-assistant`: created without deploying agent code; the assistant runs in `kredibel-web` ([ADR-014](adr/ADR-014-finance-assistant-tools-rag-memory.md)) | `asia-southeast1` if offered, else `us-central1` (Memory Bank may be multi-regional `us`) |
@@ -297,6 +298,7 @@ domains, without which sign-in is refused on it ([`24`](24-submission-checklist.
 | `LEARNING_FILE` / `CATEGORIES_FILE` | `/app/contracts/policy/learning.v1.yaml` / `categories.v1.yaml` | both |
 | `POLICY_DIR` | `/app/contracts/policy` | both |
 | `EXPLAINER_MAX_ATTEMPTS` / `DOCUMENT_RUN_BUDGET_SECONDS` / `MONTH_RUN_BUDGET_SECONDS` | `2` / `600` / `120` | worker |
+| `ASSISTANT_ANSWER_SECONDS` | `50` (the assistant's model call; after it the safe summary answers, inside Firebase Hosting's 60 s request limit) | web |
 | `FEATURE_MODEL_ARMOR`, `FEATURE_VISUAL_FORENSICS`, `FEATURE_REVISION_DIFF`, `FEATURE_ASSISTANT`, `FEATURE_ROLES`, `FEATURE_RUN_GRAPH`, `FEATURE_SIGN_OFF`, `FEATURE_LABELS`, `FEATURE_AGENT_ANALYTICS`, `FEATURE_DATASET_EXPORT` | `false` | both |
 | `TRACE_EXPORT` | `cloud` on Cloud Run \| `otlp` for local Jaeger \| `langfuse` for Langfuse (ADR-026) \| `none` (default) | both: where workflow spans go ([`17`](17-observability.md) §2) |
 | `LANGFUSE_HOST`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` | `http://127.0.0.1:3000`; keys from `infra/langfuse/.env` | the Langfuse project spans go to when `TRACE_EXPORT=langfuse`; the secret key is a secret |

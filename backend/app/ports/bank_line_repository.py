@@ -43,6 +43,11 @@ class BankLineRepository(Protocol):
         """Write the month run's (match state, match IDs, support) per line (ADR-025)."""
         ...
 
+    async def set_match_categories(self, org_id: str, updates: dict[str, tuple[str, str]]) -> None:
+        """The month run's (category, cash-flow class) from each line's match (categorizedBy MATCH;
+        spec 023), for lines nothing categorized."""
+        ...
+
     async def set_category(self, org_id: str, line: BankLine, event: AuditEvent) -> None:
         """A person's category (categorizedBy USER) and its audit event, written together."""
         ...

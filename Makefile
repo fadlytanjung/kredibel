@@ -186,7 +186,7 @@ dev-langfuse: ## Run the local API/inline worker traced in Langfuse (CONTENT=1: 
 gemini-usage: ## Gemini requests and tokens of the project from Cloud Monitoring (DAYS=7)
 	cd backend && PYTHONPATH=. uv run python scripts/gemini_usage.py --days $(or $(DAYS),7)
 
-.PHONY: demo-books demo-template extractions-rebuild reread-photos clean-workspace
+.PHONY: demo-books demo-account demo-template video video-silent extractions-rebuild reread-photos clean-workspace
 clean-workspace: ## Clean up workspace documents, bank lines and runs (EMAIL=... or ORG=...)
 	cd backend && uv run python -m scripts.clean_workspace $(if $(EMAIL),--email "$(EMAIL)",) $(if $(ORG),--org "$(ORG)",)
 
@@ -199,10 +199,25 @@ extractions-rebuild: ## Rebuild a workspace's chunks and page Markdown from what
 reread-photos: ## Read a workspace's photos and scans again with the OCR witness (spec 022; ORG=..., DISAGREED=1 also those whose fields did not all agree, ALL=1 every OCR document)
 	cd backend && uv run python -m scripts.reread_documents --org "$(ORG)" $(if $(DISAGREED),--disagreed,) $(if $(ALL),--ocr,)
 
+video: ## The demo video (tools/video): voice the narration with Cloud Text-to-Speech, record it on production with the demo account (resets it), cut it (VIDEO_OWNER_EMAIL=... adds the Google onboarding scene)
+	cd backend && uv run python ../tools/video/narrate.py
+	cd tools/synthetic && uv run kredibel-synth demo --shift-months 5 --per-month 100 --out out/demo-shift5 >/dev/null
+	cd frontend && VIDEO_OWNER_TOKEN="$$($(if $(VIDEO_OWNER_EMAIL),cd ../backend && uv run python -m scripts.custom_token --email $(VIDEO_OWNER_EMAIL),true))" npx playwright test -c playwright.video.config.ts
+	python3 tools/video/edit.py
+
+video-silent: ## The demo video without captions or sound, to dub over (tools/video): records it again on production, writes kredibel-demo-silent.mp4 and its .srt (VIDEO_OWNER_EMAIL=... adds the Google onboarding scene)
+	cd backend && uv run python ../tools/video/narrate.py
+	cd tools/synthetic && uv run kredibel-synth demo --shift-months 5 --per-month 100 --out out/demo-shift5 >/dev/null
+	cd frontend && VIDEO_CAPTIONS=0 VIDEO_FRAMES=frames-silent VIDEO_OWNER_TOKEN="$$($(if $(VIDEO_OWNER_EMAIL),cd ../backend && uv run python -m scripts.custom_token --email $(VIDEO_OWNER_EMAIL),true))" npx playwright test -c playwright.video.config.ts
+	python3 tools/video/edit.py --silent
+
+demo-account: ## Create or reset the public demo account (spec 024; DEMO_ACCOUNT_EMAIL=..., DEMO_ACCOUNT_PASSWORD=...)
+	cd backend && DEMO_ACCOUNT_EMAIL="$(DEMO_ACCOUNT_EMAIL)" DEMO_ACCOUNT_PASSWORD="$(DEMO_ACCOUNT_PASSWORD)" uv run python -m scripts.demo_account
+
 demo-template: ## Build the demo template workspace (spec 021): seed it, then read the demo books ending last month (TEMPLATE_EMAIL=..., RETRY=1 reads failed documents again)
-	cd tools/synthetic && uv run kredibel-synth demo --shift-months 3 --out out/demo-recent
+	cd tools/synthetic && uv run kredibel-synth demo --shift-months 5 --window 2026-08:2026-10 --pack --per-month 100 --out out/demo-aug-oct
 	cd backend && uv run python -m scripts.seed_demo_workspace --org org_demo_template --name "Sunrise Coffee Roasters" --entity COMPANY --trial-ends 2027-12-31 --timezone Asia/Jakarta --owner "$(or $(TEMPLATE_EMAIL),template@demo.kredibel)" --database "$${FIRESTORE_DATABASE:-kredibel}"
-	cd backend && DATA_CLASS=synthetic AI_CONTENT_CAPTURE=off $(shell command -v caffeinate >/dev/null && echo caffeinate -i) uv run python -m scripts.upload_demo_books --email "$(or $(TEMPLATE_EMAIL),template@demo.kredibel)" --demo-dir ../tools/synthetic/out/demo-recent $(if $(RETRY),--retry-failed,)
+	cd backend && DATA_CLASS=synthetic AI_CONTENT_CAPTURE=off $(shell command -v caffeinate >/dev/null && echo caffeinate -i) uv run python -m scripts.upload_demo_books --email "$(or $(TEMPLATE_EMAIL),template@demo.kredibel)" --demo-dir ../tools/synthetic/out/demo-aug-oct/pack --concurrency 10 $(if $(RETRY),--retry-failed,)
 
 .PHONY: demo-reconciliation demo-reconciliation-traced reconciliation-fixtures
 demo-reconciliation: ## Replay generated invoices/receipts/statements in both orders (offline)

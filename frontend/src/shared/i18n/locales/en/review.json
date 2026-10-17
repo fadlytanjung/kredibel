@@ -32,6 +32,10 @@
     "CONFIRM_LEDGER_MAPPING": "This ledger layout is new. Check which column is which."
   },
   "panel": {
+    "aiView": "The AI's view",
+    "aiThisProposal": "This proposal",
+    "aiOther": "Another candidate",
+    "aiNote": "Advice from Gemini on the candidates Kredibel found. You decide.",
     "close": "Close",
     "position": "{{index}} of {{total}}",
     "bankLine": "Bank line",

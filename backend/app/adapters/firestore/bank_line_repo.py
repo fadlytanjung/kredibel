@@ -147,6 +147,22 @@ class FirestoreBankLineRepository(BankLineRepository):
                 )
             await batch.commit()
 
+    async def set_match_categories(self, org_id: str, updates: dict[str, tuple[str, str]]) -> None:
+        items = sorted(updates.items())
+        for start in range(0, len(items), _BATCH):
+            batch = self._db.batch()
+            for tx_id, (category, cashflow_class) in items[start : start + _BATCH]:
+                batch.update(
+                    self._col(org_id).document(tx_id),
+                    {
+                        "category": category,
+                        "cashflowClass": cashflow_class,
+                        "categorizedBy": "MATCH",
+                        "categoryConfidence": None,
+                    },
+                )
+            await batch.commit()
+
     async def set_category(self, org_id: str, line: BankLine, event: AuditEvent) -> None:
         batch = self._db.batch()
         batch.update(

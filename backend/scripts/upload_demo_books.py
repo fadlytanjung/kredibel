@@ -196,6 +196,7 @@ async def _run(
     scenarios: tuple[str, ...] = SCENARIOS,
     seed_ledger_only: bool = False,
     retry_failed: bool = False,
+    concurrency: int = CHUNK,
 ) -> int:
     import firebase_admin
     from firebase_admin import auth
@@ -205,7 +206,11 @@ async def _run(
     from app.core.settings import Settings
     from app.domain.models.document import DocStatus
     from app.domain.models.run import RunStatus
-    from app.domain.models.workspace import BankAccountCreate, WorkspaceUpdate
+    from app.domain.models.workspace import (
+        BankAccountCreate,
+        BankAccountUpdate,
+        WorkspaceUpdate,
+    )
     from app.main import AppDeps, load_plans
     from app.observability.tracing import setup_tracing
 
@@ -298,7 +303,18 @@ async def _run(
         _log("legal name set to", business["profile"]["legalName"])
     declared = await deps.workspace_repo.list_bank_accounts(org_id)
     for account in business["bankAccounts"]:
-        if any(a.account_masked.endswith(account["accountNumber"][-4:]) for a in declared):
+        # The ledger's cash account for this bank account (spec 024): without it no bank line can
+        # match a ledger entry, and "Matched by Kredibel" stays low.
+        code = account.get("ledgerAccountCode")
+        same = next(
+            (a for a in declared if a.account_masked.endswith(account["accountNumber"][-4:])), None
+        )
+        if same is not None:
+            if code and same.ledger_account_code != code:
+                await deps.workspace_service.update_bank_account(
+                    org_id, same.account_id, BankAccountUpdate(ledger_account_code=code)
+                )
+                _log("bank account mapped to ledger account", code)
             continue
         await deps.workspace_service.add_bank_account(
             principal,
@@ -307,6 +323,7 @@ async def _run(
                 bank_name=account["bankName"],
                 account_number=account["accountNumber"],
                 holder_name=account["holderName"],
+                ledger_account_code=code,
             ),
         )
         _log("bank account declared:", account["bankName"])
@@ -314,8 +331,8 @@ async def _run(
     # Locally the queue runs tasks in this process; with Cloud Tasks the deployed worker reads them.
     queue = deps.task_queue if isinstance(deps.task_queue, InlineTaskQueue) else None
     outcomes: Counter[str] = Counter()
-    for start in range(0, len(plan), CHUNK):
-        for scenario, path in plan[start : start + CHUNK]:
+    for start in range(0, len(plan), concurrency):
+        for scenario, path in plan[start : start + concurrency]:
             try:
                 content = path.read_bytes()
                 if months and path.name.startswith("ledger-") and path.suffix == ".csv":
@@ -338,8 +355,8 @@ async def _run(
                 _log(f"  {scenario} {path.name}: {type(error).__name__}")
         if queue:
             await queue.drain()
-        if (start // CHUNK) % 5 == 4:
-            _log(f"  {min(start + CHUNK, len(plan))}/{len(plan)} uploaded")
+        if (start // concurrency) % 5 == 4:
+            _log(f"  {min(start + concurrency, len(plan))}/{len(plan)} uploaded")
     if queue:
         await queue.drain()
     _log("uploads:", dict(outcomes))
@@ -389,6 +406,12 @@ def main() -> int:
         help="Read documents that failed (a model timeout) again, then reconcile every month",
     )
     parser.add_argument(
+        "--concurrency",
+        type=int,
+        default=CHUNK,
+        help="Documents read at the same time (default 4; 10 for the 300-document demo)",
+    )
+    parser.add_argument(
         "--seed-ledger-only",
         action="store_true",
         help="Seed ledger rows and account classifications without uploading documents",
@@ -406,6 +429,7 @@ def main() -> int:
             scenarios=scenarios_tuple,
             seed_ledger_only=args.seed_ledger_only,
             retry_failed=args.retry_failed,
+            concurrency=args.concurrency,
         )
     )
 

@@ -154,11 +154,13 @@
       "NET_OF_TAX": "Amount net of tax",
       "WITHHOLDING_RATE": "Amount net of withholding at a known rate",
       "FEE_DEDUCTED": "Amount less a bank transfer fee",
+      "OTHER_READING": "Matches the other reading of the amount: correct the value",
       "PARTY_MATCH": "Same party",
       "REFERENCE_IN_TEXT": "Reference in the description",
       "DATE_NEAR": "Close date",
       "SPLIT": "Paid in parts",
-      "GROUPED": "One payment for several documents"
+      "GROUPED": "One payment for several documents",
+      "LEDGER_BOOKED": "Booked once in your ledger's bank account"
     },
     "categoryByYou": "Set by you",
     "categoryAria": "Category: {{category}}, {{cashflow}}",
@@ -253,6 +255,7 @@
     "UTILITIES": "Utilities",
     "BANK_FEES": "Bank fees",
     "OTHER_OPERATING_EXPENSE": "Other spending",
+    "CASH_WITHDRAWAL": "Cash withdrawals",
     "TAX_PAYMENT": "Tax",
     "INTEREST_PAID": "Interest paid",
     "ASSET_PURCHASE": "Equipment bought",

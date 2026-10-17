@@ -10,7 +10,7 @@ decisions win as everywhere else.
 """
 
 from collections.abc import Callable
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from datetime import datetime
 from typing import Any, cast
 
@@ -49,6 +49,12 @@ class ReadRecord:
     consensus: dict[str, Any]
     month: str | None
     tx_id: str | None = None
+    # What a person corrected on the record (the review queue, the Labels page) and its value now:
+    # their decision on the value's label (spec 023, AC-023-8).
+    corrected: tuple[str, ...] = ()
+    corrected_by: str | None = None
+    corrected_at: datetime | None = None
+    current: dict[str, str] = field(default_factory=dict)
 
 
 def first_line(text: str | None) -> str:
@@ -57,9 +63,27 @@ def first_line(text: str | None) -> str:
 
 def line_records(lines: list[BankLine]) -> list[ReadRecord]:
     return [
-        ReadRecord(ln.page, f"Row {ln.row_index}", dict(ln.consensus or {}), ln.month, ln.tx_id)
+        ReadRecord(
+            ln.page,
+            f"Row {ln.row_index}",
+            dict(ln.consensus or {}),
+            ln.month,
+            ln.tx_id,
+            corrected=tuple(ln.corrected_fields),
+            corrected_by=ln.corrected_by,
+            corrected_at=ln.corrected_at,
+            current={"amount": f"{abs(ln.amount):.2f}", "date": ln.date.isoformat()},
+        )
         for ln in lines
     ]
+
+
+def _current(record: Invoice | Receipt) -> dict[str, str]:
+    out = {"total": f"{record.total:.2f}"} if record.total is not None else {}
+    day = record.issue_date if isinstance(record, Invoice) else record.date
+    if day is not None:
+        out["issueDate" if isinstance(record, Invoice) else "date"] = day.isoformat()
+    return out
 
 
 def document_records(noun: str, records: list[Invoice] | list[Receipt]) -> list[ReadRecord]:
@@ -71,7 +95,18 @@ def document_records(noun: str, records: list[Invoice] | list[Receipt]) -> list[
             if isinstance(info, dict):
                 by_page.setdefault(int(info.get("page") or 1), {})[name] = info
         for page_no, consensus in sorted(by_page.items()):
-            out.append(ReadRecord(page_no, title, consensus, record.month))
+            out.append(
+                ReadRecord(
+                    page_no,
+                    title,
+                    consensus,
+                    record.month,
+                    corrected=tuple(record.corrected_fields),
+                    corrected_by=record.corrected_by,
+                    corrected_at=record.corrected_at,
+                    current=_current(record),
+                )
+            )
     return out
 
 
@@ -102,26 +137,45 @@ def value_labels(
     out: list[Label] = []
     for record in records:
         for name, info in record.consensus.items():
-            if not isinstance(info, dict) or info.get("status") not in UNSETTLED:
+            corrected = name in record.corrected
+            if not isinstance(info, dict) or (
+                info.get("status") not in UNSETTLED and not corrected
+            ):
                 continue
-            out.append(
-                propose(
-                    "FIELD_VALUE",
-                    LabelSubject(
-                        display=f"{file_name}, {record.title.lower()} · {name}",
-                        doc_id=doc_id,
-                        page_no=record.page,
-                        field=name,
-                        tx_id=record.tx_id,
-                    ),
-                    decision(mask_numbers_in_text(model_reading(info) or "")),
-                    policy=policy,
-                    month=record.month,
-                    page_image_url=page_image(doc_id, record.page),
-                    extraction_url=extraction_path(doc_id, record.page),
-                )
+            label = propose(
+                "FIELD_VALUE",
+                LabelSubject(
+                    display=f"{file_name}, {record.title.lower()} · {name}",
+                    doc_id=doc_id,
+                    page_no=record.page,
+                    field=name,
+                    tx_id=record.tx_id,
+                ),
+                decision(mask_numbers_in_text(model_reading(info) or "")),
+                policy=policy,
+                month=record.month,
+                page_image_url=page_image(doc_id, record.page),
+                extraction_url=extraction_path(doc_id, record.page),
             )
+            if corrected and name in record.current:
+                label = _corrected_by_person(label, record, record.current[name])
+            out.append(label)
     return out
+
+
+def _corrected_by_person(label: Label, record: ReadRecord, value: str) -> Label:
+    """A value a person corrected elsewhere: their decision on its label (AC-023-8)."""
+    at = record.corrected_at or label.ai.at
+    action = "CONFIRM" if value == label.ai.value else "CORRECT"
+    decided = decide(
+        label,
+        action=action,
+        by=record.corrected_by or "",
+        at=at,
+        policy=_NO_THRESHOLDS,
+        value=value,
+    )
+    return replace(decided, decided_by=record.corrected_by or None, decided_at=at)
 
 
 def _decided_by_person(label: Label, by: str | None, at: datetime | None) -> Label:

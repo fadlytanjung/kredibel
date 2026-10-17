@@ -10,8 +10,8 @@ and [`20`](20-implementation-status.md) for detail and never replaces them._
 |---|---|---|
 | `https://kredibel-app.web.app` serves the app and `/api/health` | Works | `curl -s https://kredibel-app.web.app/api/health` |
 | `https://kredibel.app` serves the app | Works since the CDN cache was cleared (16 Oct) | open it in a browser, not only with `curl` (§4) |
-| Sign-in on `https://kredibel.app` | **Blocked** until the API key allows the domain | §4, `infra/allow-web-domain.sh kredibel.app www.kredibel.app` |
-| `https://www.kredibel.app` | **No certificate**: not added in Firebase Hosting | §4 |
+| Sign-in on `https://kredibel.app` | **Works** (checked 17 Oct 2026: page, API, email and Google sign-in) | — |
+| `https://www.kredibel.app` | **Not set up** (no DNS record, no certificate); hand out `kredibel.app` only | §4 |
 | A new account can open the demo company and the guided tour starts by itself | Works (spec 021) | sign in with a fresh Google account → *Explore a demo company* |
 | The public demo account signs in without Google and can be reset | Works (spec 024) | `demo@kredibel.app` on `/login` ([docs/25](25-demo.md)); `make demo-account` resets it |
 | New workspaces | `MAX_WORKSPACES=200`, `SIGNUP_MODE` open | `infra/env-secret.sh keys`; counter in `system/signup` |
@@ -77,7 +77,7 @@ and number, and check each against [`20`](20-implementation-status.md).
 
 ## 4. Owner actions (outside the code)
 
-- [ ] **Allow the custom domain for sign-in**: `infra/allow-web-domain.sh kredibel.app www.kredibel.app`
+- [x] **Allow the custom domain for sign-in**: done 17 Oct 2026 (`kredibel.app` signs in; `www` only once it exists).
       (adds the domains to the browser key's website restrictions and to Firebase Authentication's
       authorized domains; key changes take up to five minutes). Check:
       a sign-in on `https://kredibel.app` succeeds.

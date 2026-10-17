@@ -7,7 +7,7 @@ ends. Rules as published (copied 17 Oct 2026):
 |---|---|---|---|
 | **Pitch deck** | On the prescribed template; another format may be disqualified | Content per slide: [`pitch-deck.md`](pitch-deck.md); paste it into the template | Content ready; template to fill |
 | **Video demonstration** | 3 to 4 minutes; must clearly show the working solution; longer may be penalised | `demo-video/kredibel-demo.mp4` (2:56, 1920×1080, 15 MB; kept out of git, rebuilt by `make video`) recorded on production with the demo account; script [`demo-video/script.md`](demo-video/script.md) (its times come from the narration; the cut runs a few seconds longer); captions `kredibel-demo.srt`; poster `poster.png`; a silent cut without captions to dub over, `kredibel-demo-silent.mp4` (`make video-silent`), with `kredibel-demo-silent.srt` as its script | Rendered for review (the team caps it at 3:00; the rules say 3 to 4 minutes); upload as a public link |
-| **Deployed prototype** | A valid, accessible, working link for the whole evaluation; no retries | <https://kredibel-app.web.app> with the demo account `demo@kredibel.app` / `Kredibel-Demo-2026` ([docs/25](../25-demo.md)) | Live |
+| **Deployed prototype** | A valid, accessible, working link for the whole evaluation; no retries | <https://kredibel.app> (mirror <https://kredibel-app.web.app>) with the demo account `demo@kredibel.app` / `Kredibel-Demo-2026` ([docs/25](../25-demo.md)) | Live |
 | **GitHub repository** | Accessible, with the source code and supporting material, for the whole evaluation | <https://github.com/fadlytanjung/kredibel> | Check it is public |
 | **Brief description** | What we built, and how we use Firebase, Firestore, Cloud Run and Gemini | [`brief-description.md`](brief-description.md) (short version 820 characters) | Ready |
 
@@ -23,10 +23,9 @@ ends. Rules as published (copied 17 Oct 2026):
   in with Google and use their own workspace; the shared Drive folder
   [AI-BUILDER-CUP-2026](https://drive.google.com/drive/folders/1TUpbHZ-nRRoafvzEs4XX1j7rMkM40SfV?usp=sharing) (`demo-aug-oct/pack`, 39 files) holds synthetic sample
   books for that, so judges need not share the demo account.
-- **Sign-in domains.** `kredibel-app.web.app` signs in today. `kredibel.app` signs in only after
-  `infra/allow-web-domain.sh kredibel.app www.kredibel.app` (the API key's allowed referrers) and
-  `www.kredibel.app` only after it is added in Firebase Hosting ([docs/24](../24-submission-checklist.md) §4).
-  Give judges the `web.app` link.
+- **Sign-in domains.** `kredibel.app` and `kredibel-app.web.app` both serve the app and sign in
+  (checked 17 Oct 2026: page, `/api/health`, email and Google sign-in). `www.kredibel.app` has no
+  DNS record: never hand it out. Give judges `https://kredibel.app`, with `web.app` as the mirror.
 - **Cold starts.** Keep `kredibel-web` at one minimum instance during judging so the first page is
   fast: `gcloud run services update kredibel-web --region=asia-southeast1 --min-instances=1` (and
   back to 0 afterwards; it costs a running instance).

@@ -10,7 +10,7 @@ queue**, and shows a **fraud risk level** for each month with the evidence and t
 
 > Google Cloud AI Builder Cup 2026 · Theme 1 — **BFSI: Intelligent Risk, Fraud & Financial Experiences**
 
-**Try it now:** live app [kredibel-app.web.app](https://kredibel-app.web.app) · demo sign-in
+**Try it now:** live app [kredibel.app](https://kredibel.app) (mirror [kredibel-app.web.app](https://kredibel-app.web.app)) · demo sign-in
 `demo@kredibel.app` / `Kredibel-Demo-2026` (shared, synthetic books, reset nightly) · or your own
 Google account with the [sample books on Drive](https://drive.google.com/drive/folders/1TUpbHZ-nRRoafvzEs4XX1j7rMkM40SfV?usp=sharing)
 · [demo video](docs/submission/README.md#the-video) · [architecture](docs/diagrams/gcp-architecture.drawio.svg)
@@ -125,11 +125,11 @@ make storybook-build
 ### Live Deployment
 
 Spec 001 Foundation is deployed on Google Cloud (`cloud-hack2skill`, `asia-southeast1`):
-- **Web App (Firebase Hosting CDN & Custom Domain Entry)**: [https://kredibel-app.web.app](https://kredibel-app.web.app) (also [https://kredibel-app.firebaseapp.com](https://kredibel-app.firebaseapp.com)). The root URL is the **public landing page** (works logged out, spec 020); the app dashboard is at `/dashboard`.
+- **Web App (Firebase Hosting, custom domain)**: [https://kredibel.app](https://kredibel.app) (mirrors: [https://kredibel-app.web.app](https://kredibel-app.web.app), [https://kredibel-app.firebaseapp.com](https://kredibel-app.firebaseapp.com)). The root URL is the **public landing page** (works logged out, spec 020); the app dashboard is at `/dashboard`.
 - **Cloud Run Web (Origin API & SPA)**: [https://kredibel-web-110491117045.asia-southeast1.run.app](https://kredibel-web-110491117045.asia-southeast1.run.app)
 - **Cloud Run Worker (IAM only)**: [https://kredibel-worker-110491117045.asia-southeast1.run.app](https://kredibel-worker-110491117045.asia-southeast1.run.app)
 - **Data Migration Job**: `kredibel-migrate` Cloud Run job with automated Cloud Build pipeline step.
-- **Try it without a Google account**: sign in at [https://kredibel-app.web.app/login](https://kredibel-app.web.app/login)
+- **Try it without a Google account**: sign in at [https://kredibel.app/login](https://kredibel.app/login)
   with `demo@kredibel.app` / `Kredibel-Demo-2026`: a shared copy of the synthetic demo company
   ([docs/25](docs/25-demo.md); what to click: [docs/submission/demo-walkthrough-guide.md](docs/submission/demo-walkthrough-guide.md)).
   The account is shared, so several people trying it at once see each other's changes.

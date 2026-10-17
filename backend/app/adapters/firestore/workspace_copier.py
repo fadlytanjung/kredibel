@@ -15,7 +15,9 @@ from google.cloud.firestore import AsyncClient
 from app.domain.demo import SKIPPED_COLLECTIONS, rewrite, workspace_extras
 
 BATCH = 400
-PARALLEL_COPIES = 32
+PARALLEL_COPIES = 64
+# The reading cache is not copied: a copy reads again only if asked, and it is most of the files.
+SKIPPED_FILE_FOLDERS = ("cache/",)
 
 
 class FirestoreWorkspaceCopier:
@@ -66,7 +68,10 @@ class FirestoreWorkspaceCopier:
     async def _copy_files(self, source_org: str, target_org: str) -> None:
         bucket = self._get_bucket()
         prefix = f"orgs/{source_org}/"
-        blobs = await asyncio.to_thread(lambda: list(bucket.list_blobs(prefix=prefix)))
+        listed = await asyncio.to_thread(lambda: list(bucket.list_blobs(prefix=prefix)))
+        blobs = [
+            b for b in listed if not str(b.name)[len(prefix) :].startswith(SKIPPED_FILE_FOLDERS)
+        ]
         gate = asyncio.Semaphore(PARALLEL_COPIES)
 
         async def copy(blob: storage.Blob) -> None:

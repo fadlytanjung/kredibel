@@ -120,13 +120,16 @@ async function authedFetch(path: string, options: RequestInit): Promise<Response
         }
       }
     } else {
+      // A gateway's HTML page (Firebase Hosting after 60 s) is not a message to show.
       const text = await response.text()
+      const html = /^\s*<(!doctype|html)/i.test(text)
+      const gateway = response.status >= 502 && response.status <= 504
       problem = {
         type: 'about:blank',
         title: response.statusText || 'HTTP Error',
         status: response.status,
-        detail: text,
-        code: 'HTTP_ERROR',
+        detail: html ? '' : text.slice(0, 300),
+        code: gateway ? 'GATEWAY_TIMEOUT' : 'HTTP_ERROR',
       }
     }
 

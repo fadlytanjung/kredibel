@@ -159,6 +159,7 @@ class AssistantService:
         profit_loss: Callable[[], ProfitLossService] | None = None,
         search: Callable[[str, str, int], Awaitable[list[tuple[StoredChunk, float, str]]]]
         | None = None,
+        answer_seconds: float = 40.0,
     ) -> None:
         self._assistant_repo = assistant_repo
         self._month_repo = month_repo
@@ -172,6 +173,8 @@ class AssistantService:
         self._entitlements = entitlements
         self._profit_loss = profit_loss
         self._search = search
+        # The model's time to answer; the safe summary answers after it (Hosting cuts at 60 s).
+        self._answer_seconds = answer_seconds
 
     async def list_threads(
         self, org_id: str, limit: int = 50, cursor: str | None = None
@@ -405,10 +408,12 @@ class AssistantService:
 
         # 3. Call AI reader
         try:
-            call = await self._reader.ask_assistant(history_payload, context_str)
+            call = await asyncio.wait_for(
+                self._reader.ask_assistant(history_payload, context_str), self._answer_seconds
+            )
             raw_response = call.value
             answer_text = getattr(raw_response, "answer", str(raw_response))
-        except Exception:
+        except Exception:  # the model failed or ran out of time: the books answer in a template
             answer_text = self._fallback_answer(context_str, question)
 
         # 4. Check grounding
@@ -547,10 +552,12 @@ class AssistantService:
             history_payload.append({"role": m.role, "content": text})
 
         try:
-            call = await self._reader.ask_assistant(history_payload, context_str)
+            call = await asyncio.wait_for(
+                self._reader.ask_assistant(history_payload, context_str), self._answer_seconds
+            )
             raw_response = call.value
             answer_text = getattr(raw_response, "answer", str(raw_response))
-        except Exception:
+        except Exception:  # the model failed or ran out of time: the books answer in a template
             answer_text = self._fallback_answer(context_str, question)
 
         # 4. Stream tokens chunk-by-chunk for live typing experience

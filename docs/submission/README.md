@@ -6,7 +6,7 @@ ends. Rules as published (copied 17 Oct 2026):
 | Requirement | Rule | Ours | Status |
 |---|---|---|---|
 | **Pitch deck** | On the prescribed template; another format may be disqualified | Content per slide: [`pitch-deck.md`](pitch-deck.md); paste it into the template | Content ready; template to fill |
-| **Video demonstration** | 3 to 4 minutes; must clearly show the working solution; longer may be penalised | `demo-video/kredibel-demo.mp4` (2:57, 1920×1080, 15 MB; kept out of git, rebuilt by `make video`) recorded on production with the demo account; script [`demo-video/script.md`](demo-video/script.md) (its times come from the narration; the cut runs a few seconds longer); captions `kredibel-demo.srt`; poster `poster.png`; a silent cut without captions to dub over, `kredibel-demo-silent.mp4` (`make video-silent`), with `kredibel-demo-silent.srt` as its script | Rendered for review (the team caps it at 3:00; the rules say 3 to 4 minutes); upload as a public link |
+| **Video demonstration** | 3 to 4 minutes; must clearly show the working solution; longer may be penalised | `demo-video/kredibel-demo.mp4` (2:56, 1920×1080, 15 MB; kept out of git, rebuilt by `make video`) recorded on production with the demo account; script [`demo-video/script.md`](demo-video/script.md) (its times come from the narration; the cut runs a few seconds longer); captions `kredibel-demo.srt`; poster `poster.png`; a silent cut without captions to dub over, `kredibel-demo-silent.mp4` (`make video-silent`), with `kredibel-demo-silent.srt` as its script | Rendered for review (the team caps it at 3:00; the rules say 3 to 4 minutes); upload as a public link |
 | **Deployed prototype** | A valid, accessible, working link for the whole evaluation; no retries | <https://kredibel-app.web.app> with the demo account `demo@kredibel.app` / `Kredibel-Demo-2026` ([docs/25](../25-demo.md)) | Live |
 | **GitHub repository** | Accessible, with the source code and supporting material, for the whole evaluation | <https://github.com/fadlytanjung/kredibel> | Check it is public |
 | **Brief description** | What we built, and how we use Firebase, Firestore, Cloud Run and Gemini | [`brief-description.md`](brief-description.md) (short version 820 characters) | Ready |
@@ -32,7 +32,7 @@ ends. Rules as published (copied 17 Oct 2026):
 ## The video
 
 `tools/video` makes it end to end: `narration.json` (scenes, captions and what the voice says) →
-`narrate.py` (ElevenLabs voice "Eric", one clip per sentence, cached) → `frontend/tests/video/demo.spec.ts`
+`narrate.py` (Google Cloud Text-to-Speech, Chirp 3 HD voice, one clip per sentence, cached) → `frontend/tests/video/demo.spec.ts`
 (Playwright on production with the demo account: Chrome's screencast frames, the cursor and captions
 drawn in the page, each action at its sentence, page loads cut out) → `edit.py` (ffmpeg: 30 fps, the
 narration, dissolves, -16 LUFS; it stops if the film is over 3:00). Run `make video`; it resets the
@@ -41,8 +41,8 @@ signs that account in (it needs `iam.serviceAccounts.signBlob` on the web servic
 scene ends at the welcome question, so nothing of that account's own workspace is filmed. `make video-silent`
 records the same scenes without the caption bar and cuts them without sound, to the same timings, for a
 voice-over in another language; its `.srt` carries the lines and when each is said. The title cards are
-HTML in `tools/video/cards/`. The ElevenLabs key comes from the environment (`ELEVENLABS_API_KEY`) and
-is never written to the repository.
+HTML in `tools/video/cards/`. Text-to-Speech uses Application Default Credentials; no key is written
+to the repository.
 
 ## Older drafts
 

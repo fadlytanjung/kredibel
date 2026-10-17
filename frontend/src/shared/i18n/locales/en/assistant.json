@@ -35,6 +35,7 @@
   "errors": {
     "interrupted": "Response interrupted: {{message}}",
     "retrieve": "I could not retrieve that information ({{message}}). Please try asking again.",
+    "timeout": "The answer took too long to arrive. Please ask again.",
     "send": "I could not send your message ({{message}}). Please try asking again.",
     "sendFailed": "Failed to send message"
   },

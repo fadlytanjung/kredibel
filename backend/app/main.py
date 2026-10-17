@@ -942,6 +942,7 @@ class AppDeps:
                 receipts=self.receipts,
                 entitlements=self.entitlement_service,
                 search=self.extraction_service.search_org,
+                answer_seconds=self.settings.assistant_answer_seconds,
             ),
         )
 

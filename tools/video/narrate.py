@@ -1,21 +1,26 @@
 #!/usr/bin/env python3
-"""Voice the demo video's narration (tools/video/narration.json) with ElevenLabs, one clip per
-sentence (cached by its text), joined per scene with short pauses; write the timings the recording
-follows and the script for review (docs/submission/demo-video/script.md).
+"""Voice the demo video's narration (tools/video/narration.json) with Google Cloud Text-to-Speech,
+one clip per sentence (cached by its text and voice), joined per scene with short pauses; write the
+timings the recording follows and the script for review (docs/submission/demo-video/script.md).
 
-Usage: ELEVENLABS_API_KEY=... python3 tools/video/narrate.py
-The key is read from the environment only and never written anywhere.
+Usage: cd backend && uv run python ../tools/video/narrate.py
+Credentials come from Application Default Credentials (gcloud auth application-default login);
+the Cloud Text-to-Speech API must be enabled on the project named in narration.json (or
+GOOGLE_CLOUD_PROJECT).
 """
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 import os
 import subprocess
 import sys
-import urllib.request
 from pathlib import Path
+
+import google.auth
+from google.auth.transport.requests import AuthorizedSession
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
@@ -23,6 +28,7 @@ OUT = HERE / "out"
 AUDIO = OUT / "audio"
 SCRIPT = ROOT / "docs" / "submission" / "demo-video" / "script.md"
 RATE = 44100
+TTS = "https://texttospeech.googleapis.com/v1/text:synthesize"
 
 
 def duration(path: Path) -> float:
@@ -35,32 +41,32 @@ def duration(path: Path) -> float:
     return float(out.stdout.strip())
 
 
-def speak(text: str, previous: str, following: str, voice: dict, key: str) -> Path:
-    digest = hashlib.sha256(
-        json.dumps([text, previous, following, voice], sort_keys=True).encode()
-    ).hexdigest()[:16]
+def session(project: str) -> AuthorizedSession:
+    credentials, _ = google.auth.default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
+    # Billed to the project that has the API, whatever the credentials' own quota project.
+    s = AuthorizedSession(credentials.with_quota_project(project))
+    s.headers["x-goog-user-project"] = project
+    return s
+
+
+def speak(text: str, voice: dict, api: AuthorizedSession) -> Path:
+    digest = hashlib.sha256(json.dumps([text, voice], sort_keys=True).encode()).hexdigest()[:16]
     target = AUDIO / f"s_{digest}.mp3"
     if target.exists():
         return target
     body = {
-        "text": text,
-        "model_id": voice["model"],
-        "previous_text": previous or None,
-        "next_text": following or None,
-        "voice_settings": {
-            "stability": 0.55,
-            "similarity_boost": 0.8,
-            "style": 0.15,
-            "use_speaker_boost": True,
+        "input": {"text": text},
+        "voice": {"languageCode": voice["languageCode"], "name": voice["voice"]},
+        "audioConfig": {
+            "audioEncoding": "MP3",
+            "sampleRateHertz": RATE,
+            "speakingRate": voice.get("speakingRate", 1.0),
         },
     }
-    req = urllib.request.Request(
-        f"https://api.elevenlabs.io/v1/text-to-speech/{voice['voiceId']}?output_format=mp3_44100_128",
-        data=json.dumps(body).encode(),
-        headers={"xi-api-key": key, "Content-Type": "application/json", "Accept": "audio/mpeg"},
-    )
-    with urllib.request.urlopen(req, timeout=120) as res:
-        target.write_bytes(res.read())
+    res = api.post(TTS, json=body, timeout=120)
+    if res.status_code != 200:
+        raise SystemExit(f"Text-to-Speech {res.status_code}: {res.text[:300]}")
+    target.write_bytes(base64.b64decode(res.json()["audioContent"]))
     return target
 
 
@@ -99,11 +105,9 @@ def clock(seconds: float) -> str:
 
 
 def main() -> int:
-    key = os.environ.get("ELEVENLABS_API_KEY", "")
-    if not key:
-        print("Set ELEVENLABS_API_KEY.", file=sys.stderr)
-        return 2
     plan = json.loads((HERE / "narration.json").read_text(encoding="utf-8"))
+    project = os.environ.get("GOOGLE_CLOUD_PROJECT") or plan["voice"]["project"]
+    api = session(project)
     AUDIO.mkdir(parents=True, exist_ok=True)
     gap, tail = plan["gapSeconds"], plan["tailSeconds"]
     timings: dict = {"scenes": []}
@@ -111,9 +115,7 @@ def main() -> int:
         spoken = [s.get("say") or s["text"] for s in scene["sentences"]]
         clips, sentences, t = [], [], 0.0
         for i, sentence in enumerate(scene["sentences"]):
-            clip = speak(
-                spoken[i], " ".join(spoken[:i]), " ".join(spoken[i + 1 :]), plan["voice"], key
-            )
+            clip = speak(spoken[i], plan["voice"], api)
             length = duration(clip)
             sentences.append(
                 {"text": sentence["text"], "start": round(t, 3), "end": round(t + length, 3)}
@@ -141,7 +143,7 @@ def main() -> int:
         "",
         "> Generated by `tools/video/narrate.py` from `tools/video/narration.json`; edit the",
         "> JSON, not this file.",
-        f"> Voice: ElevenLabs {plan['voice']['name']} ({plan['voice']['model']}). Recorded on",
+        f"> Voice: Google Cloud Text-to-Speech, {plan['voice']['voice']}. Recorded on",
         "> production with the public demo account (synthetic data). Sources: ACFE, *Occupational",
         "> Fraud 2024: A Report to the Nations* (5% of revenue; median loss USD 141,000 for",
         "> organizations under 100 employees).",

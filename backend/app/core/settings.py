@@ -94,6 +94,9 @@ class Settings(BaseSettings):
     # calls still take minutes, so each is cut off and retried once.
     reader_thinking_level: Literal["low", "high"] = "low"
     reader_timeout_seconds: float = 60.0
+    # The assistant's model call must answer inside Firebase Hosting's 60 s request limit; after
+    # this many seconds the safe summary (the books' own figures) answers instead.
+    assistant_answer_seconds: float = 40.0
     reader_attempts: int = 2
     reader_rate_limit_retries: int = 6  # waits on 429/5xx, about 90 s in all (docs/07 §9)
     page_concurrency: int = 6

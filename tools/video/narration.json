@@ -1,9 +1,11 @@
 {
   "title": "Kredibel: every number has a source",
   "voice": {
-    "name": "Eric",
-    "voiceId": "cjVigY5qzO86Huf0OWal",
-    "model": "eleven_multilingual_v2"
+    "name": "Charon",
+    "voice": "en-US-Chirp3-HD-Charon",
+    "languageCode": "en-US",
+    "project": "cloud-hack2skill",
+    "speakingRate": 1.07
   },
   "gapSeconds": 0.3,
   "tailSeconds": 0.6,

@@ -41,7 +41,7 @@ Ibnu Habibie
 Jabbar Ali Panggabean
 Muhammad Arisandy Pratama
 
-All documents in the video are synthetic (Sunrise Coffee Roasters is not a real business). Narration: AI-generated voice (ElevenLabs). Fraud figures: ACFE, Occupational Fraud 2024: A Report to the Nations.
+All documents in the video are synthetic (Sunrise Coffee Roasters is not a real business). Narration: AI-generated voice (Google Cloud Text-to-Speech). Fraud figures: ACFE, Occupational Fraud 2024: A Report to the Nations.
 
 Organised by Hack2skill, sponsored by Google Cloud. @googlecloud @hack2skill
 

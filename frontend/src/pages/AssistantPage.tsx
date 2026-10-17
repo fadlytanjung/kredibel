@@ -230,7 +230,9 @@ export function AssistantPage() {
             setStreamError(err.message)
             const fallbackText = draftText.trim()
               ? `${draftText}\n\n*(${t('assistant:errors.interrupted', { message: err.message })})*`
-              : t('assistant:errors.retrieve', { message: err.message })
+              : err.timeout
+                ? t('assistant:errors.timeout')
+                : t('assistant:errors.retrieve', { message: err.message })
             const errorMsg: AssistantMessage = {
               messageId: `err-${Date.now()}`,
               role: 'assistant',

@@ -13,7 +13,10 @@ Kredibel: every number has a source | AI Builder Cup 2026 demo (Google Cloud, Ge
 
 Kredibel is an AI finance workspace that checks a small business's own books. Upload bank statements, invoices, receipts and your ledger export in any order: Gemini reads every page and cites where each value is printed, code checks it, every month reconciles itself, and what looks wrong (an edited statement, a copied invoice, a supplier paid into a new account) is shown with its evidence. Built for the AI Builder Cup 2026 (Google Cloud JAPAC Hackathon by Hack2skill), BFSI track: Intelligent Risk, Fraud & Financial Experiences.
 
+Measured on the demo company (300 synthetic documents, August to October 2026, read on production): 295 of 310 bank lines reconciled automatically (95.2% / 92.2% / 98.0% by month), every planted case found (an edited statement, a scanned copy, a supplier paid into a new account, unpaid invoices from an unknown supplier), nothing counted twice, every value cited to the page it is printed on.
+
 Try it: https://kredibel-app.web.app
+Sample books to upload in your own workspace (sign in with Google): https://drive.google.com/drive/folders/1TUpbHZ-nRRoafvzEs4XX1j7rMkM40SfV?usp=sharing
 Demo account: demo@kredibel.app / Kredibel-Demo-2026 (shared, synthetic data; reset any time), or sign in with Google for a workspace of your own.
 Source code: https://github.com/fadlytanjung/kredibel
 

@@ -50,6 +50,9 @@ money went out in October?").
   account gets 403; it takes about 20 seconds); sign out and in again afterwards. The fresh copy has
   no goal yet, so the first page asks what you want first: keep the books, or write the money in and
   out you expect per month to compare with what Kredibel finds.
+- Every night at 03:00 Jakarta time (20:00 UTC) the Cloud Run job `kredibel-demo-reset` (the same
+  image and script as below, started by Cloud Scheduler `kredibel-demo-reset-nightly`) replaces the
+  demo account's workspace with a fresh copy, so what one visitor changed does not stay for the next.
 - From the repository: `make demo-account DEMO_ACCOUNT_EMAIL=demo@kredibel.app DEMO_ACCOUNT_PASSWORD=…`
   creates the account if needed, sets its password and replaces its workspace with a fresh copy of the
   demo company. It takes a few seconds: the copy is made from the demo company, nothing is read again.

@@ -30,6 +30,7 @@ the S2–S4 extras ready to upload live; `scripts/reset_demo.py` resets it.
 | Cloud Storage bucket (backups) | `<PROJECT_ID>-kredibel-backups` (Firestore exports before migrations; deleted after 30 days) | `asia-southeast1` |
 | Firestore protection | point-in-time recovery (7 days), delete protection and a daily backup schedule (7-day retention) on `kredibel` | `asia-southeast1` |
 | Cloud Run job | `kredibel-migrate` (data migrations, [`22`](22-data-migrations.md)) | `asia-southeast1` |
+| Cloud Run job | `kredibel-demo-reset` (the public demo account's nightly reset, [`25`](25-demo.md); started 20:00 UTC by Cloud Scheduler `kredibel-demo-reset-nightly`, runs as `kredibel-web`) | `asia-southeast1` |
 | Document AI processors | `kredibel-ocr` (Enterprise Document OCR: witness for scanned pages, P0); `kredibel-form` and `kredibel-invoice` (escalation and thorough mode, P1) | `us` |
 | Model Armor template (P1) | `kredibel-docs` | `asia-southeast1` (confirm in S4) |
 | Memory Bank and Sessions (P1) | `kredibel-assistant`: created without deploying agent code; the assistant runs in `kredibel-web` ([ADR-014](adr/ADR-014-finance-assistant-tools-rag-memory.md)) | `asia-southeast1` if offered, else `us-central1` (Memory Bank may be multi-regional `us`) |

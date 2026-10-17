@@ -10,6 +10,12 @@ queue**, and shows a **fraud risk level** for each month with the evidence and t
 
 > Google Cloud AI Builder Cup 2026 · Theme 1 — **BFSI: Intelligent Risk, Fraud & Financial Experiences**
 
+**Try it now:** live app [kredibel-app.web.app](https://kredibel-app.web.app) · demo sign-in
+`demo@kredibel.app` / `Kredibel-Demo-2026` (shared, synthetic books, reset nightly) · or your own
+Google account with the [sample books on Drive](https://drive.google.com/drive/folders/1TUpbHZ-nRRoafvzEs4XX1j7rMkM40SfV?usp=sharing)
+· [demo video](docs/submission/README.md#the-video) · [architecture](docs/diagrams/gcp-architecture.drawio.svg)
+· [what to click](docs/submission/demo-walkthrough-guide.md)
+
 ---
 
 ## The problem

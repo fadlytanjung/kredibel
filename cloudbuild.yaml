@@ -130,6 +130,14 @@ steps:
           --labels=app=kredibel,component=migrate
         gcloud run jobs execute kredibel-migrate --args=-m,migrations,run,--dry-run --region=asia-southeast1 --wait
         gcloud run jobs execute kredibel-migrate --args=-m,migrations,run --region=asia-southeast1 --wait
+        # The public demo account's nightly reset (docs/25): the same image, run by Cloud Scheduler.
+        gcloud run jobs deploy kredibel-demo-reset \
+          --image="asia-southeast1-docker.pkg.dev/$PROJECT_ID/kredibel/app:$_COMMIT_SHA" \
+          --region=asia-southeast1 \
+          --service-account="kredibel-web@$PROJECT_ID.iam.gserviceaccount.com" \
+          --set-env-vars=APP_ROLE=web,GOOGLE_CLOUD_PROJECT=$PROJECT_ID,FIRESTORE_DATABASE=kredibel,DEMO_TEMPLATE_ORG=org_demo_template,DEMO_ACCOUNT_EMAIL=demo@kredibel.app,DEMO_ACCOUNT_PASSWORD=Kredibel-Demo-2026 \
+          --command=python --args=-m,scripts.demo_account \
+          --max-retries=1 --task-timeout=600
 
   # 6. Deploy worker service (IAM authenticated only)
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'

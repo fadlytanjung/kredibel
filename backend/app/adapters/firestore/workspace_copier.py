@@ -15,6 +15,9 @@ import google.auth
 from google.auth.transport.requests import AuthorizedSession
 from google.cloud import storage
 from google.cloud.firestore import AsyncClient
+from google.cloud.firestore_v1 import _helpers  # pyright: ignore[reportPrivateUsage]
+from google.cloud.firestore_v1.types import document as document_types
+from google.cloud.firestore_v1.types import write as write_types
 from requests.adapters import HTTPAdapter
 
 from app.domain.demo import SKIPPED_COLLECTIONS, rewrite, workspace_extras
@@ -81,13 +84,36 @@ class FirestoreWorkspaceCopier:
         return sum(written)
 
     async def _copy_collection(self, source: Any, target: Any, replace: dict[str, str]) -> int:
+        """A record with nothing to rewrite is copied as it is stored: decoding and encoding a
+        chunk's embedding (768 numbers, one by one) was nine tenths of a copy's time on one vCPU.
+        A record that names the template or its owner is read, rewritten and written as data."""
+        markers = [key.encode() for key in replace]
+        pager = await self._db._firestore_api.list_documents(  # pyright: ignore[reportPrivateUsage]
+            request={
+                "parent": source._parent_info()[0],  # pyright: ignore[reportPrivateUsage]
+                "collection_id": source.id,
+                "page_size": 300,
+            },
+            metadata=self._db._rpc_metadata,  # pyright: ignore[reportPrivateUsage]
+        )
         batches: list[Any] = []
         written = 0
-        async for snap in source.stream():
+        async for doc in pager:
             if written % BATCH == 0:
                 batches.append(self._db.batch())
-            data = snap.to_dict() or {}
-            batches[-1].set(target.document(rewrite(snap.id, replace)), rewrite(data, replace))
+            stored = document_types.Document.pb(doc)
+            ref = target.document(rewrite(stored.name.rsplit("/", 1)[1], replace))
+            serialized = stored.SerializeToString()
+            if any(marker in serialized for marker in markers):
+                data = _helpers.decode_dict(doc.fields, self._db)
+                batches[-1].set(ref, rewrite(data, replace))
+            else:
+                write = write_types.Write.pb(write_types.Write())
+                write.update.CopyFrom(stored)
+                write.update.name = ref._document_path  # pyright: ignore[reportPrivateUsage]
+                write.update.ClearField("create_time")
+                write.update.ClearField("update_time")
+                batches[-1]._add_write_pbs([write_types.Write.wrap(write)])
             written += 1
         await self._commit_all(batches)
         return written
@@ -120,10 +146,10 @@ class FirestoreWorkspaceCopier:
         async def clear(collection: Any) -> None:
             batches: list[Any] = []
             pending = 0
-            async for snap in collection.stream():
+            async for ref in collection.list_documents(page_size=300):  # references only
                 if pending % BATCH == 0:
                     batches.append(self._db.batch())
-                batches[-1].delete(snap.reference)
+                batches[-1].delete(ref)
                 pending += 1
             await self._commit_all(batches)
 

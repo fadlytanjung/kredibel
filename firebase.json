@@ -37,6 +37,15 @@
         ]
       },
       {
+        "source": "**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
+        ]
+      },
+      {
         "source": "/assets/**",
         "headers": [
           {
@@ -46,11 +55,11 @@
         ]
       },
       {
-        "source": "**/*.html",
+        "source": "**/*.@(png|jpg|jpeg|webp|svg|ico|woff2|ttf)",
         "headers": [
           {
             "key": "Cache-Control",
-            "value": "no-cache"
+            "value": "public, max-age=86400"
           }
         ]
       }

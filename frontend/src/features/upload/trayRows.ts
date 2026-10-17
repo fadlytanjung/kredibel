@@ -76,7 +76,17 @@ export function rowOf(doc: Document, byId: Map<string, Document>, items: ReviewI
   return { ...base, state: 'done', rows: doc.ledgerMeta?.rowsImported ?? doc.ledgerMeta?.rows ?? undefined }
 }
 
-export function trayRows(docs: Document[], local: LocalUpload[], items: ReviewItem[], now: Date = new Date()): TrayRow[] {
+/** `since`: when the workspace was made. A demo copy holds the demo company's documents with their
+ * own upload times; they are not this workspace's uploads (spec 024). */
+const uploadedSince = (d: Document, time: number) => Date.parse(d.uploadedAt ?? '') >= time
+
+export function trayRows(
+  docs: Document[],
+  local: LocalUpload[],
+  items: ReviewItem[],
+  now: Date = new Date(),
+  since?: Date,
+): TrayRow[] {
   const byId = new Map(docs.map((d) => [d.docId, d]))
   const rows: TrayRow[] = []
   const shown = new Set<string>()
@@ -93,7 +103,7 @@ export function trayRows(docs: Document[], local: LocalUpload[], items: ReviewIt
   }
   const recent = docs
     .filter((d) => !shown.has(d.docId))
-    .filter((d) => needsPerson(d) || now.getTime() - Date.parse(d.uploadedAt ?? '') < DAY_MS)
+    .filter((d) => needsPerson(d) || (uploadedSince(d, now.getTime() - DAY_MS) && (!since || uploadedSince(d, since.getTime()))))
     .sort((a, b) => Date.parse(b.uploadedAt ?? '') - Date.parse(a.uploadedAt ?? ''))
   for (const doc of recent) rows.push(rowOf(doc, byId, items))
   return rows.slice(0, TRAY_MAX_ROWS)

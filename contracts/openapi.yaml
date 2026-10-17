@@ -2115,6 +2115,7 @@ components:
         learning: { $ref: "#/components/schemas/LearningSettings" }
         goal: { oneOf: [{ $ref: "#/components/schemas/WorkspaceGoal" }, { type: "null" }] }
         expectations: { type: array, items: { $ref: "#/components/schemas/MonthExpectation" } }
+        createdAt: { type: string, format: date-time, description: "When the workspace was made; a demo copy's documents are older (spec 024)." }
         counts:
           type: object
           properties:

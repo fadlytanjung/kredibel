@@ -53,6 +53,7 @@ async def workspace_body(provider: ServiceProvider, workspace: Workspace) -> dic
             "seatsUsed": seats,
         },
         "learning": {"shareVerifiedLabels": workspace.share_verified_labels},
+        "createdAt": workspace.created_at.isoformat(),
     }
 
 

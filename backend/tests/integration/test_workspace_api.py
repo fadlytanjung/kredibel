@@ -175,6 +175,8 @@ async def test_ac013_11_workspace_has_subscription_limits_and_usage(h):
         "seatsUsed": 1,
     }
     assert body["learning"] == {"shareVerifiedLabels": False}
+    # Spec 024: when it was made; a demo copy's older documents are not "just uploaded".
+    assert body["createdAt"].startswith("2026-10")
 
 
 async def test_ac013_14_patch_updates_the_profile_and_masks_the_tax_id(h):

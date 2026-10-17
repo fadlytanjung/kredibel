@@ -158,19 +158,26 @@ def _date_of(item: Any) -> date:
 
 
 def _place(
-    item: Any, existing: list[Any], reroll: Callable[[], None], reserved: list[Decimal]
+    item: Any,
+    existing: list[Any],
+    reroll: Callable[[], None],
+    reserved: list[Decimal],
+    whole_party: bool = True,
 ) -> None:
     """An extra document whose total no nearby document of its kind could be taken for (the
-    same rule as _dedupe_totals, but drawn again instead of nudged, and only within six weeks)."""
+    same rule as _dedupe_totals, but drawn again instead of nudged, and only within six weeks),
+    and, for an invoice, that no other invoice of the same party in the books comes close to: two
+    equal bills a few months apart read as one paid twice (D07). Receipts are paid at the till."""
     when = _date_of(item)
     near = [o for o in existing if abs((_date_of(o) - when).days) <= 45]
+    party = [o.total for o in existing if whole_party and _party_of(o) == _party_of(item)]
     for _ in range(80):
-        totals = [o.total for o in near] + reserved
+        totals = [o.total for o in near] + party + reserved
         same = [o.total for o in near if _party_of(o) == _party_of(item)]
         if not _clashes(item.total, totals, same):
             return
         reroll()
-    while _clashes(item.total, [o.total for o in near] + reserved):
+    while _clashes(item.total, [o.total for o in near] + party + reserved):
         if isinstance(item, ReceiptData):
             item.items = _bump(item.items)
         else:
@@ -350,11 +357,12 @@ def _sales_payments(rng: Rng, sales: list[InvoiceData]) -> list[_Payment]:
         ]
         totals = [i.total for i in near]
         same = [i.total for i in near if i.party == split.party]
-    percents = (60, 55, 65, 50, 70, 45, 75, 40, 58, 62, 52, 68, *range(30, 81))
+    # Shares in tenths of a percent: at volume the whole percents can all be taken.
+    shares = (600, 550, 650, 500, 700, 450, 750, 400, 580, 620, 520, 680, *range(300, 801))
     part = next(
         candidate
-        for percent in percents
-        if not _clashes(candidate := _thousands(split.total * percent / 100), totals, same)
+        for share in shares
+        if not _clashes(candidate := _thousands(split.total * share / 1000), totals, same)
         and not _clashes(split.total - candidate, totals, same)
     )
     payments.append(
@@ -434,7 +442,7 @@ def _purchases(rng: Rng) -> tuple[list[InvoiceData], dict[str, world.Supplier]]:
             elif supplier.code == "roastline":
                 number = f"RES-{500 + MONTHS.index(month) * 100 + seq:04d}"
             else:
-                number = f"{supplier.code.upper()}/{issue:%y%m}/{seq:03d}"
+                number = f"{supplier.code.upper()}/{issue:%Y/%m}/{seq:03d}"  # moved by the shift
             key = f"inv-purchase-{month}-{seq:02d}"
             inv = purchase_invoice(r, supplier, key, number, issue)
 
@@ -517,7 +525,7 @@ def _receipts(rng: Rng) -> list[ReceiptData]:
                 d, p_, lo_, hi_ = r.choice(list(merchant.items))
                 rec.items = [Line(d, r.between(lo_, hi_), p_)]
 
-            _place(rec, out, reroll, [])
+            _place(rec, out, reroll, [], whole_party=False)
             out.append(rec)
     return out
 

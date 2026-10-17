@@ -7,7 +7,7 @@
 | Field | Answer |
 |---|---|
 | **Challenge** | **BFSI: Intelligent Risk, Fraud & Financial Experiences** (detecting or reducing fraud and risk, automating complex processes) |
-| **Prototype link (GCP / Cloud Run)** | `https://kredibel-app.web.app` (Firebase Hosting in front of Cloud Run `kredibel-web`; demo sign-in `demo@kredibel.app` / `Kredibel-Demo-2026`) |
+| **Prototype link (GCP / Cloud Run)** | `https://kredibel-app.web.app` (Firebase Hosting in front of Cloud Run `kredibel-web`; demo sign-in `demo@kredibel.app` / `Kredibel-Demo-2026`, or any Google account with the sample books from [AI-BUILDER-CUP-2026](https://drive.google.com/drive/folders/1TUpbHZ-nRRoafvzEs4XX1j7rMkM40SfV?usp=sharing)) |
 | **Deck (PDF, ≤ 5 MB)** | The team's deck in Drive, `Kredibel - AI Builder Cup 2026 pitch.pptx` (follows the organiser's "Submission Template \| AI Builder Cup" slide for slide), with the team details, demo account, production results and video link filled in, exported to PDF (Keynote: File › Export To › PDF, image quality Better) and kept under 5 MB |
 | **GitHub repository (public)** | `https://github.com/fadlytanjung/kredibel` |
 | **Demo video link (3–4 minutes)** | ⟨public YouTube link, uploaded under the team leader's account; title and description in `video-upload.md`⟩ |

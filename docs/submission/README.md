@@ -19,8 +19,10 @@ ends. Rules as published (copied 17 Oct 2026):
   the evening before judging: `make demo-account DEMO_ACCOUNT_EMAIL=demo@kredibel.app
   DEMO_ACCOUNT_PASSWORD=…`. Never reset the demo template (`org_demo_template`) during judging.
 - **Quotas.** The demo workspace is on the free trial (400 pages a month, USD 5 of AI a month); the
-  demo company is already read, so browsing costs nothing. An evaluator who uploads their own files
-  should sign in with Google and use their own workspace.
+  demo company is already read, so browsing costs nothing. An evaluator who uploads files should sign
+  in with Google and use their own workspace; the shared Drive folder
+  [AI-BUILDER-CUP-2026](https://drive.google.com/drive/folders/1TUpbHZ-nRRoafvzEs4XX1j7rMkM40SfV?usp=sharing) (`demo-aug-oct/pack`, 39 files) holds synthetic sample
+  books for that, so judges need not share the demo account.
 - **Sign-in domains.** `kredibel-app.web.app` signs in today. `kredibel.app` signs in only after
   `infra/allow-web-domain.sh kredibel.app www.kredibel.app` (the API key's allowed referrers) and
   `www.kredibel.app` only after it is added in Firebase Hosting ([docs/24](../24-submission-checklist.md) §4).

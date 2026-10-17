@@ -32,6 +32,9 @@ The account is shared: someone may have changed it. To start from a fresh copy, 
 
 ## If something looks wrong
 
-- Your own files: sign in with Google instead and create a workspace (free trial); do not upload real
+- Several judges at once, or your own workspace: sign in with Google, choose **Set up your business**
+  and upload the sample books from the shared Drive folder
+  [AI-BUILDER-CUP-2026](https://drive.google.com/drive/folders/1TUpbHZ-nRRoafvzEs4XX1j7rMkM40SfV?usp=sharing) (`demo-aug-oct/pack`, 39 files, in any order); reading
+  takes a few minutes. Do not upload real
   documents to the shared demo account.
 - The first page after a quiet period can take a few seconds (Cloud Run starting).

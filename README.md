@@ -126,6 +126,15 @@ Spec 001 Foundation is deployed on Google Cloud (`cloud-hack2skill`, `asia-south
 - **Try it without a Google account**: sign in at [https://kredibel-app.web.app/login](https://kredibel-app.web.app/login)
   with `demo@kredibel.app` / `Kredibel-Demo-2026`: a shared copy of the synthetic demo company
   ([docs/25](docs/25-demo.md); what to click: [docs/submission/demo-walkthrough-guide.md](docs/submission/demo-walkthrough-guide.md)).
+  The account is shared, so several people trying it at once see each other's changes.
+- **Try it in a workspace of your own** (recommended for judges): sign in with your Google account,
+  choose **Set up your business** (any name; the free trial needs no card), then upload the **sample
+  books** from the shared Drive folder
+  [AI-BUILDER-CUP-2026](https://drive.google.com/drive/folders/1TUpbHZ-nRRoafvzEs4XX1j7rMkM40SfV?usp=sharing) (`demo-aug-oct/pack`: 39 synthetic files of Sunrise
+  Coffee Roasters, August–October 2026: three bank statements, invoices, receipts and a ledger export;
+  upload them all at once, in any order). Reading takes a few minutes; each page is read twice and the
+  months reconcile themselves. The same folder holds the demo video and its scripts. Please upload
+  synthetic files only: every document in the sample pack is marked *SYNTHETIC, FOR TESTING*.
 - **Submission pack**: the video, the brief description and the pitch-deck content are in
   [docs/submission](docs/submission/README.md).
 

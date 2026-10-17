@@ -15,7 +15,9 @@ Write the email and password in the form below **Sign in with Google** and press
 Google account needed). Anyone can use this account at the same time, so what you change, someone
 else may see; reset it whenever you like (below). **Do not upload real documents to it**: everyone
 who signs in sees them. To try your own books, sign in with Google instead and create your own
-workspace.
+workspace; the shared Drive folder [AI-BUILDER-CUP-2026](https://drive.google.com/drive/folders/1TUpbHZ-nRRoafvzEs4XX1j7rMkM40SfV?usp=sharing) holds the same synthetic
+books to upload (`demo-aug-oct/pack`, 39 files), so several people can try Kredibel at once without
+sharing the demo account.
 
 ## What is in it
 

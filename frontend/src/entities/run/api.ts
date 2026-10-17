@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQueries, useQuery } from '@tanstack/react-query'
 import { apiClient } from '../../shared/api/client'
 import type { components } from '../../shared/api/schema'
 
@@ -28,6 +28,36 @@ export function useRuns(filters: RunFilters = {}, enabled = true) {
     queryFn: () => apiClient<RunPage>(`/api/runs${qs ? `?${qs}` : ''}`),
     enabled,
   })
+}
+
+const RUN_KINDS = ['DOCUMENT', 'MONTH', 'ASSISTANT'] as const
+
+/** The latest runs as the API lists them, then the latest of each kind not already among them: once a
+ * workspace has a few hundred documents the first hundred runs are all month runs, and the Document
+ * chip would count none. */
+export function useRunsByKind(limit: number, enabled = true) {
+  const results = useQueries({
+    queries: [undefined, ...RUN_KINDS].map((kind) => ({
+      queryKey: ['runs', { kind, limit }],
+      queryFn: () => apiClient<RunPage>(`/api/runs?${kind ? `kind=${kind}&` : ''}limit=${limit}`),
+      enabled,
+    })),
+  })
+  const seen = new Set<string>()
+  const items: Run[] = []
+  for (const result of results) {
+    for (const run of result.data?.items ?? []) {
+      if (seen.has(run.runId)) continue
+      seen.add(run.runId)
+      items.push(run)
+    }
+  }
+  return {
+    data: results[0].data ? { items } : undefined,
+    isLoading: results[0].isLoading,
+    isError: results[0].isError,
+    refetch: () => Promise.all(results.map((r) => r.refetch())),
+  }
 }
 
 export function useRun(runId: string | undefined) {

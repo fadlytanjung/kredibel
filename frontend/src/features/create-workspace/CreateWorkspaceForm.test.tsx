@@ -84,6 +84,10 @@ function renderForm(refreshes: MeResponse[] = [me(false)]) {
   return { refreshSession, user: userEvent.setup(), auth }
 }
 
+// Every test types into the form (user-event, one key at a time); under a full parallel run or on
+// a slow build machine that takes more than the default 5 s.
+vi.setConfig({ testTimeout: 20_000 })
+
 describe('CreateWorkspaceForm (AC-013-2)', () => {
   it('asks only for a business, in three sections, with no person choice', () => {
     renderForm()
@@ -192,7 +196,7 @@ describe('CreateWorkspaceForm (AC-013-2)', () => {
     expect(created[0]).toMatchObject({
       bankAccounts: [{ bankName: 'Bank Sintetis', accountNumber: '123-456-4821', holderName: 'SR Ltd' }],
     })
-  }, 20_000) // about 80 keystrokes: more than the default 5 s on a slow build machine
+  })
 
   it('waits and retries once when the new token has no workspace yet', async () => {
     const { user, refreshSession } = renderForm([me(true), me(false)])

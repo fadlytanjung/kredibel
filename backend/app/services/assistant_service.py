@@ -159,7 +159,7 @@ class AssistantService:
         profit_loss: Callable[[], ProfitLossService] | None = None,
         search: Callable[[str, str, int], Awaitable[list[tuple[StoredChunk, float, str]]]]
         | None = None,
-        answer_seconds: float = 40.0,
+        answer_seconds: float = 50.0,
     ) -> None:
         self._assistant_repo = assistant_repo
         self._month_repo = month_repo

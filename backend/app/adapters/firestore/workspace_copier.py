@@ -7,15 +7,21 @@ with server-side copies. Nothing under the source is ever written.
 """
 
 import asyncio
+from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
+import google.auth
+from google.auth.transport.requests import AuthorizedSession
 from google.cloud import storage
 from google.cloud.firestore import AsyncClient
+from requests.adapters import HTTPAdapter
 
 from app.domain.demo import SKIPPED_COLLECTIONS, rewrite, workspace_extras
 
 BATCH = 400
 PARALLEL_COPIES = 64
+PARALLEL_COMMITS = 8  # batches of one collection written at the same time
 # The reading cache is not copied: a copy reads again only if asked, and it is most of the files.
 SKIPPED_FILE_FOLDERS = ("cache/",)
 
@@ -26,11 +32,36 @@ class FirestoreWorkspaceCopier:
         self._project_id = project_id
         self._bucket_name = bucket_name
         self._bucket: storage.Bucket | None = None
+        # Its own threads: the default pool has about five on one vCPU, and a demo copy moves
+        # about two thousand files within a request's time.
+        self._pool = ThreadPoolExecutor(max_workers=PARALLEL_COPIES, thread_name_prefix="copier")
 
     def _get_bucket(self) -> storage.Bucket:
         if self._bucket is None:
-            self._bucket = storage.Client(project=self._project_id).bucket(self._bucket_name)
+            credentials, _ = google.auth.default(  # pyright: ignore[reportUnknownMemberType]
+                scopes=["https://www.googleapis.com/auth/devstorage.read_write"]
+            )
+            session = AuthorizedSession(credentials)
+            adapter = HTTPAdapter(pool_connections=PARALLEL_COPIES, pool_maxsize=PARALLEL_COPIES)
+            session.mount("https://", adapter)
+            client = storage.Client(
+                project=self._project_id, credentials=credentials, _http=session
+            )
+            self._bucket = client.bucket(self._bucket_name)
         return self._bucket
+
+    async def _in_pool(self, work: Callable[..., Any], *args: Any) -> Any:
+        return await asyncio.get_running_loop().run_in_executor(self._pool, work, *args)
+
+    @staticmethod
+    async def _commit_all(batches: list[Any]) -> None:
+        gate = asyncio.Semaphore(PARALLEL_COMMITS)
+
+        async def commit(batch: Any) -> None:
+            async with gate:
+                await batch.commit()
+
+        await asyncio.gather(*(commit(b) for b in batches))
 
     async def copy_records(self, source_org: str, target_org: str, replace: dict[str, str]) -> int:
         """Collections and files are copied side by side: the request has a time limit."""
@@ -50,25 +81,21 @@ class FirestoreWorkspaceCopier:
         return sum(written)
 
     async def _copy_collection(self, source: Any, target: Any, replace: dict[str, str]) -> int:
-        batch = self._db.batch()
-        pending = written = 0
+        batches: list[Any] = []
+        written = 0
         async for snap in source.stream():
+            if written % BATCH == 0:
+                batches.append(self._db.batch())
             data = snap.to_dict() or {}
-            batch.set(target.document(rewrite(snap.id, replace)), rewrite(data, replace))
-            pending += 1
-            if pending == BATCH:
-                await batch.commit()
-                written += pending
-                batch, pending = self._db.batch(), 0
-        if pending:
-            await batch.commit()
-            written += pending
+            batches[-1].set(target.document(rewrite(snap.id, replace)), rewrite(data, replace))
+            written += 1
+        await self._commit_all(batches)
         return written
 
     async def _copy_files(self, source_org: str, target_org: str) -> None:
         bucket = self._get_bucket()
         prefix = f"orgs/{source_org}/"
-        listed = await asyncio.to_thread(lambda: list(bucket.list_blobs(prefix=prefix)))
+        listed = await self._in_pool(lambda: list(bucket.list_blobs(prefix=prefix)))
         blobs = [
             b for b in listed if not str(b.name)[len(prefix) :].startswith(SKIPPED_FILE_FOLDERS)
         ]
@@ -77,7 +104,7 @@ class FirestoreWorkspaceCopier:
         async def copy(blob: storage.Blob) -> None:
             name = f"orgs/{target_org}/{str(blob.name)[len(prefix) :]}"
             async with gate:
-                await asyncio.to_thread(bucket.copy_blob, blob, bucket, name)
+                await self._in_pool(bucket.copy_blob, blob, bucket, name)
 
         await asyncio.gather(*(copy(b) for b in blobs))
 
@@ -91,26 +118,25 @@ class FirestoreWorkspaceCopier:
 
     async def discard(self, org_id: str) -> None:
         async def clear(collection: Any) -> None:
-            batch, pending = self._db.batch(), 0
+            batches: list[Any] = []
+            pending = 0
             async for snap in collection.stream():
-                batch.delete(snap.reference)
+                if pending % BATCH == 0:
+                    batches.append(self._db.batch())
+                batches[-1].delete(snap.reference)
                 pending += 1
-                if pending == BATCH:
-                    await batch.commit()
-                    batch, pending = self._db.batch(), 0
-            if pending:
-                await batch.commit()
+            await self._commit_all(batches)
 
         for root in ("orgs", "orgPrivate"):
             ref = self._db.collection(root).document(org_id)
             await asyncio.gather(*[clear(c) async for c in ref.collections()])
             await ref.delete()
         bucket = self._get_bucket()
-        blobs = await asyncio.to_thread(lambda: list(bucket.list_blobs(prefix=f"orgs/{org_id}/")))
+        blobs = await self._in_pool(lambda: list(bucket.list_blobs(prefix=f"orgs/{org_id}/")))
         gate = asyncio.Semaphore(PARALLEL_COPIES)
 
         async def remove(blob: storage.Blob) -> None:
             async with gate:
-                await asyncio.to_thread(blob.delete)
+                await self._in_pool(blob.delete)
 
         await asyncio.gather(*(remove(b) for b in blobs))

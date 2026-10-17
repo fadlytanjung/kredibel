@@ -3,6 +3,7 @@
 Normative references: docs/09 §3.1–§3.4 and §3.18, docs/14 §4.1 and §6, ADR-011.
 """
 
+import asyncio
 from collections.abc import Awaitable, Callable
 from dataclasses import replace
 from datetime import timedelta
@@ -120,9 +121,19 @@ class WorkspaceService:
             raise ForbiddenError("Only the demo account can be reset.")
         if not self.demo_available or self._copier is None:
             raise DemoUnavailableError()
-        if principal.org_id is not None and principal.org_id != self._demo_template_org:
-            await self._copier.discard(principal.org_id)
-        return await self.create_demo(principal.model_copy(update={"org_id": None, "role": None}))
+        fresh = principal.model_copy(update={"org_id": None, "role": None})
+        old = principal.org_id
+        if old is None or old == self._demo_template_org:
+            return await self.create_demo(fresh)
+        # The old copy is removed while the new one is made: together they fit in one request.
+        removed, made = await asyncio.gather(
+            self._copier.discard(old), self.create_demo(fresh), return_exceptions=True
+        )
+        for outcome in (made, removed):
+            if isinstance(outcome, BaseException):
+                raise outcome
+        assert isinstance(made, Workspace)
+        return made
 
     async def create_demo(self, principal: Principal) -> Workspace:
         """Spec 021: a new workspace, owned by the principal, holding a copy of the demo template's

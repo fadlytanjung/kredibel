@@ -30,6 +30,24 @@ describe('AnswerParts', () => {
     expect(screen.getByText('Open the evidence')).toBeInTheDocument()
   })
 
+  it('shows a markdown heading line as a bold line, without its hashes', () => {
+    const answer: MessageAnswer = {
+      parts: [{ type: 'text', text: 'Money out was IDR 5.\n### Summary for October 2026:\n- In: IDR 9' }],
+      citations: [],
+      grounding: { verdict: 'AGREED', citations: [] },
+      toolsUsed: [],
+    }
+
+    const { container } = render(
+      <MemoryRouter>
+        <AnswerParts answer={answer} />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByText('Summary for October 2026:').tagName).toBe('STRONG')
+    expect(container.textContent).not.toContain('#')
+  })
+
   it('renders markdown links to internal pages', () => {
     const answer: MessageAnswer = {
       parts: [

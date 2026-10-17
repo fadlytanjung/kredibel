@@ -68,6 +68,8 @@ type Citation = NonNullable<MessageAnswer['citations']>[number]
 /** Render text with citation markers [[kind:id]] converted into citation chips and markdown links.
  *  A chip shows the citation's label ("3 bank lines", mock assistant.html), never a bare ID. */
 function renderFormattedContent(text: string, citations: Citation[] = []) {
+  // A markdown heading line ("### Summary") reads as a bold line in a chat answer.
+  text = text.replace(/^#{1,6}[ \t]+(.+?)[ \t]*$/gm, '**$1**')
   const parts = text.split(/(\[\[[a-zA-Z0-9_]+:[^\]]+\]\])/g)
   return parts.map((part, index) => {
     const match = part.match(/^\[\[([a-zA-Z0-9_]+):([^\]]+)\]\]$/)

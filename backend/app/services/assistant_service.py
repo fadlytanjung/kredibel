@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import re
 import uuid
-from collections.abc import AsyncIterator, Awaitable, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable, Sequence
 from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
 from typing import Any
@@ -87,6 +87,28 @@ def _extract_fig(figs: dict[str, Any], key: str, alt_key: str) -> float:
         return abs(float(val))
     except (ValueError, TypeError):
         return 0.0
+
+
+def flow_rows(months: Sequence[Any]) -> list[list[str]]:
+    """The money-flow mini chart: a row a month, its bar its money in and out against the busiest
+    month's (a month with no money draws none)."""
+    totals = [
+        (
+            m.month,
+            _extract_fig(m.figures or {}, "moneyIn", "inflow_minor"),
+            _extract_fig(m.figures or {}, "moneyOut", "outflow_minor"),
+        )
+        for m in sorted(months, key=lambda x: x.month)
+    ]
+    busiest = max((i + o for _, i, o in totals), default=0.0)
+    return [
+        [
+            key,
+            f"In: {i:,.0f} | Out: {o:,.0f}",
+            f"{round(100 * (i + o) / busiest)}%" if busiest else "0%",
+        ]
+        for key, i, o in totals
+    ]
 
 
 def is_greeting(question: str) -> bool:
@@ -702,16 +724,7 @@ class AssistantService:
             )
             try:
                 months = await self._month_repo.list(org_id)
-                chart_rows = []
-                if months:
-                    for m in sorted(months, key=lambda x: x.month)[-6:]:
-                        figs = m.figures or {}
-
-                        in_val = _extract_fig(figs, "moneyIn", "inflow_minor")
-                        out_val = _extract_fig(figs, "moneyOut", "outflow_minor")
-                        chart_rows.append(
-                            [m.month, f"In: {in_val:,.0f} | Out: {out_val:,.0f}", "100%"]
-                        )
+                chart_rows = flow_rows(sorted(months, key=lambda x: x.month)[-6:])
                 parts.append(
                     AnswerPart(
                         type="chart",

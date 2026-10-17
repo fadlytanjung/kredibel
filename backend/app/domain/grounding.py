@@ -68,6 +68,9 @@ class GroundingResult:
     clean_text: str = ""
 
 
+ISO_DATE_REGEX = re.compile(r"\b(?:19|20)\d\d-(?:0[1-9]|1[0-2])(?:-(?:0[1-9]|[12]\d|3[01]))?\b")
+
+
 def _split_sentences(text: str) -> list[str]:
     """Split text into sentences preserving markers."""
     raw = re.split(r"(?<=[.!?\n])\s+", text)
@@ -205,8 +208,9 @@ def check_grounding(text: str, context: GroundingContext) -> GroundingResult:
                     f"Unresolved marker: [[{kind}:{marker_id}]] in sentence '{sentence}'"
                 )
 
-        # 3. Check numbers in the sentence
-        clean_sentence = MARKER_REGEX.sub("", sentence)
+        # 3. Check numbers in the sentence; a month or day written as a date (2026-10, 2026-10-17,
+        # in a link or its path) is a date, not an amount.
+        clean_sentence = ISO_DATE_REGEX.sub(" ", MARKER_REGEX.sub("", sentence))
 
         # Match e.g. IDR 1,250,000, 1.25 million, 64%, 99,000,000
         number_tokens = re.finditer(

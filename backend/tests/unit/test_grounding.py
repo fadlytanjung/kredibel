@@ -53,6 +53,17 @@ class TestGroundingGuardTDD:
         assert res.citations[1].kind == "finding"
         assert res.citations[1].id == "fnd_a01"
 
+    def test_ac008_5_a_month_written_as_a_date_is_not_a_number(self, sample_context):
+        """Spec 024: "Month 2026-10 Reconciliation" in a link is a date; its "10" needs no source,
+        while an uncited amount in the same sentence still does."""
+        text = (
+            "Money in reached IDR 231,400,000 [[fact:2026-03:money_in]]. "
+            "See the [Month 2026-10 Reconciliation](/months/2026-10) page, opened 2026-10-17."
+        )
+        assert check_grounding(text, sample_context).valid is True
+        res = check_grounding("The 2026-10 month lost 75,000 to fees.", sample_context)
+        assert res.valid is False
+
     def test_ac008_5_unresolved_marker_fails(self, sample_context):
         text = "Revenue was strong [[fact:2026-03:unknown_metric]]."
         res = check_grounding(text, sample_context)

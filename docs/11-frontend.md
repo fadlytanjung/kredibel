@@ -352,7 +352,7 @@ wins; on looks, the mock and [`12`](12-design-system.md) win.
 <p><img src="assets/mocks/onboarding-desktop.png" alt="Onboarding at 1440 px: dark ledger-paper brand panel with the logo, tagline and three ledger lines; the form asks whose books these are" width="66%"> <img src="assets/mocks/onboarding-mobile.png" alt="Onboarding on a phone: brand band with the tagline above the form" width="26%"></p>
 
 - When the server has a demo template (`demoAvailable`), the form opens with **Explore a demo
-  company**: Sunrise Coffee Roasters' six months of synthetic books, already read and reconciled.
+  company**: Sunrise Coffee Roasters' three months of synthetic books (300 documents), already read and reconciled.
   **Open the demo company** → `POST /api/workspaces/demo` (a copy of the template for this person,
   spec 021) → refresh the ID token → the dashboard with the guided tour. Below it, "or set up your
   own business" and the form.

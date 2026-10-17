@@ -41,7 +41,7 @@
   `tools/video/narration.json` (ElevenLabs), records the story on production with the demo account
   (`frontend/tests/video/demo.spec.ts`: screencast frames, cursor and captions, loading cut) and cuts
   it (`tools/video/edit.py`): 3:13, as the 3–4 minute rule asks; `docs/submission/` holds the rules,
-  the brief description, the pitch-deck content, the judges' walkthrough and the day-of checklist.
+  the brief description, the pitch-deck content, the judges' walkthrough and the day-of checklist. Re-cut 17 Oct 2026 at 2:57 (the team caps the video at 3:00; `edit.py` stops above it) with a late upload and the Google onboarding, and a silent version to dub over (`make video-silent`).
 - [x] **T024-10** **TDD** The demo at a real business's volume: `kredibel-synth demo --per-month 100`
   (about 100 documents a month: more sales invoices, eight more clients, five more suppliers,
   receipts half photos; the planted cases unchanged; a bank journal keeps its distance from its line

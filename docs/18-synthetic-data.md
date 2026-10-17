@@ -187,11 +187,14 @@ date, month key, file name and printed month moves together (the edited statemen
 copies are of May, the diverted Roastline invoice is August, the unpaid Bluewater bills are July,
 the ledger is `ledger-2026-04_2026-09.csv`). Without the option the output is byte for byte the
 same (`kredibel_synth/shift.py`).
-`make demo-template` builds the **demo template workspace** `org_demo_template` from these books
-(seeded, then read through the real workflows with Gemini once); with `DEMO_TEMPLATE_ORG` set,
-onboarding offers **Explore a demo company**, which copies it for the new person in seconds and with
-no model call (spec 021). A reading that times out leaves its document `FAILED`; `make demo-template RETRY=1`
-reads those again and reconciles every month. Built 16 Oct 2026: 81 documents (79 read, the exact
+`make demo-template` builds the **demo template workspace** `org_demo_template` (seeded, then read
+through the real workflows with Gemini once); with `DEMO_TEMPLATE_ORG` set, onboarding offers
+**Explore a demo company**, which copies it for the new person in about 40 seconds and with no model
+call (spec 021). Since 17 Oct 2026 it builds from `kredibel-synth demo --shift-months 5 --window
+2026-08:2026-10 --pack --per-month 100` (spec 024, docs/25): August to October 2026 at about a hundred
+documents a month, 300 files, 295 of 310 bank lines matched automatically and only the planted
+findings open. A reading that times out leaves its document `FAILED`; `make demo-template RETRY=1`
+reads those again and reconciles every month. First built 16 Oct 2026 from `demo-recent`: 81 documents (79 read, the exact
 copy, the ledger waiting for its type), 221 bank lines, 44 invoices, 25 receipts, 428 ledger
 entries, 6 months (June `CRITICAL`), 57 matches, 43 findings, 28 review items, 23 clients and
 suppliers, 658 labels and 180 runs. `make demo-books EMAIL=…`

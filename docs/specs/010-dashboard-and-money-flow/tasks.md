@@ -32,7 +32,7 @@
 ## Phase 3 — Scenario and close
 
 - [x] **T010-07** Scenario test: S1 top sources and uses. (AC-010-8) `test_scenario_money_flow_api.py` through `GET /api/money-flow`.
-- [ ] **T010-08** Update `docs/20-implementation-status.md`.
+- [x] **T010-08** Update `docs/20-implementation-status.md`. (Rows kept current; last 17 Oct 2026.)
 - [x] **T010-09** **TDD** A period whose statements print no balance (the current month before its
   statement arrives) has a null opening and closing (contract), and the cash-flow panel explains it
   instead of crashing (16 Oct 2026, a tester's dashboard). (AC-010-13)

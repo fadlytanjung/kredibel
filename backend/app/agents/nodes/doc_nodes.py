@@ -1578,6 +1578,27 @@ async def _model_categories(
     return {c.id: (c.category, c.confidence, c.counterparty_name) for c in result.items}
 
 
+_SETTLED_BY_PAYMENTS = {DocType.SALES_INVOICE, DocType.PURCHASE_INVOICE, DocType.RECEIPT}
+
+
+def _next_month(month: str) -> str:
+    year, mon = (int(part) for part in month.split("-"))
+    return f"{year + 1}-01" if mon == 12 else f"{year}-{mon + 1:02d}"
+
+
+async def months_to_reconcile(deps: Any, org_id: str, doc: Document) -> list[str]:
+    """The document's months and, for an invoice or receipt, the next month with a statement."""
+    # A month's run looks one month back for documents its payments settle (docs/08 §6): a late
+    # invoice reconciles the next month again, so the upload order never changes the result.
+    months = set(doc.months)
+    if doc.doc_type in _SETTLED_BY_PAYMENTS:
+        for month in doc.months:
+            following = await deps.month_repo.get(org_id, _next_month(month))
+            if following is not None and following.statements:
+                months.add(following.month)
+    return sorted(months)
+
+
 def finalize_document(deps: PipelineDeps):
     @stage(deps, "finalize_document")
     async def _node(ctx: Context, node_input: dict[str, Any]) -> dict[str, Any]:
@@ -1590,7 +1611,7 @@ def finalize_document(deps: PipelineDeps):
 
             # Mark months dirty and enqueue debounced month runs
             if deps.task_queue is not None:
-                for m in doc.months:
+                for m in await months_to_reconcile(deps, org_id, updated):
                     gen, _ = await deps.month_repo.bump_generation(org_id, m, dirty=True)
                     await deps.task_queue.enqueue_month_task(
                         org_id, m, gen, delay_seconds=deps.settings.month_run_delay_seconds

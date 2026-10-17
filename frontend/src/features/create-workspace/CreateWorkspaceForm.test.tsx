@@ -192,7 +192,7 @@ describe('CreateWorkspaceForm (AC-013-2)', () => {
     expect(created[0]).toMatchObject({
       bankAccounts: [{ bankName: 'Bank Sintetis', accountNumber: '123-456-4821', holderName: 'SR Ltd' }],
     })
-  })
+  }, 20_000) // about 80 keystrokes: more than the default 5 s on a slow build machine
 
   it('waits and retries once when the new token has no workspace yet', async () => {
     const { user, refreshSession } = renderForm([me(true), me(false)])

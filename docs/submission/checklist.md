@@ -19,12 +19,12 @@
 ## Verification on production (the demo account)
 
 - [ ] Sign in with email and password; a fresh copy asks the welcome question; Skip records a goal.
-- [ ] Dashboard (August–October): Matched by Kredibel ≈ 97%; To review equals the Review page (6).
+- [ ] Dashboard (August–October): Matched by Kredibel 95.2%; To review equals the Review page (20).
 - [ ] Months: August Critical, September Medium, October High; ≥ 85% matched each month.
 - [ ] Risk: August A01/A02/M01–M04 (the evidence viewer lights the edited amount); October X08.
 - [ ] Documents: uploading `statement-2026-10.pdf` again says "Not read again and not counted".
 - [ ] Transactions: ten rows a page; a cash deposit is "Sales receipts (From its match)".
-- [ ] Assistant: "How much money went out in October 2026?" answers IDR 152,306,418.00 with a citation.
+- [ ] Assistant: "How much money went out in October 2026?" answers IDR 705,933,026.00 with a citation.
 - [ ] A second account (Google) sees nothing of the demo workspace.
 - [ ] Worker rejects unauthenticated calls (403); no secrets in the repo (`make check` runs the scan).
 

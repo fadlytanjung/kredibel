@@ -39,8 +39,8 @@ uploads statements, invoices, receipts and the general-ledger export **in any or
 4. **Reconciles every month automatically, in any upload order.** Bank lines are matched to invoices,
    receipts and, where no document exists, to their booking in the ledger, each with its reason; only
    unique, high-scoring matches are automatic; a month is recomputed whenever its data changes and
-   gives the same result whatever the order. On the demo company 97% of bank lines are matched
-   automatically.
+   gives the same result whatever the order. On the demo company (300 documents) 95% of bank lines
+   are matched automatically.
 5. **Keeps people in charge of the exceptions.** What code cannot match for certain goes to one short
    review queue with evidence and the right fixes; every fix is audited and re-reconciles the month.
 6. **Explains fraud risk.** Running balances, PDF revisions, font anomalies, statement continuity and
@@ -83,7 +83,8 @@ uploads statements, invoices, receipts and the general-ledger export **in any or
   reason, not a black-box score.
 
 Measured on synthetic data (17 Oct 2026): the August–October demo company, read by the production
-workflows, has 71 of 73 bank lines (97%) matched automatically and every planted case found (an edited
+workflows (300 documents, about 100 a month), has 295 of 310 bank lines (95%) matched automatically
+and every planted case found (an edited
 statement, a held scanned copy, a payment to a supplier's new account, two unpaid supplier invoices);
 on scenario S1, 84 of 87 bank lines without a document are matched to their ledger booking with no
 wrong automatic match; reading 80 documents (89 pages) cost about USD 0.43.

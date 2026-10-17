@@ -10,9 +10,9 @@ Kredibel is an AI finance workspace that checks a small business's own books. Yo
 statements, sales and purchase invoices, receipts and the general-ledger export, in any order.
 Gemini reads every page from its image and its own text, and code checks that every value is printed
 where Gemini says it is. Kredibel then holds copies so nothing is counted twice, finds edited PDFs and
-payments to a supplier's new bank account, and reconciles each month: on the demo company 97% of bank
-lines are matched automatically, to an invoice, a receipt or the ledger, each with its reason. What
-it cannot decide goes to one short review queue; every month gets a risk level with the evidence;
+payments to a supplier's new bank account, and reconciles each month: on the demo company (300
+documents, about 100 a month) 95% of bank lines are matched automatically, to an invoice, a receipt or the ledger, each with its reason. What
+it cannot decide goes to one review queue; every month gets a risk level with the evidence;
 and a finance assistant answers from the books' own figures with citations. Built on Firebase,
 Firestore, Cloud Run and Gemini.
 
@@ -41,8 +41,9 @@ Firestore, Cloud Run and Gemini.
 
 ## What the demo shows (synthetic data)
 
-- 39 files of Sunrise Coffee Roasters, August–October 2026: 97% of bank lines matched automatically
-  (91.7%, 100%, 100% by month), each match with its reason.
+- 300 files of Sunrise Coffee Roasters, August–October 2026 (about 100 a month: 117 sales and 77
+  purchase invoices, 102 receipts, three statements, the ledger): 295 of 310 bank lines (95%) matched
+  automatically (95.2%, 92.2%, 98.0% by month), each match with its reason.
 - August is **Critical**: one statement was edited in a PDF editor (another font in one amount, a
   second revision, a running balance that no longer adds up).
 - October is **High**: a supplier's invoice asked to be paid into a new bank account, and it was.

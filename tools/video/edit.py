@@ -20,6 +20,7 @@ OUT = HERE / "out"
 FILM = ROOT / "docs" / "submission" / "demo-video"
 FPS = 30
 DISSOLVE = 0.5
+MAX_SECONDS = 180  # the team's limit: three minutes at most
 
 
 def run(*args: str) -> None:
@@ -117,6 +118,12 @@ def srt_time(t: float) -> str:
 
 def main() -> int:
     timings = json.loads((OUT / "timings.json").read_text(encoding="utf-8"))["scenes"]
+    # A scene recorded only on request (the Google onboarding needs VIDEO_OWNER_EMAIL) is left out.
+    recorded = [s for s in timings if (OUT / "frames" / s["id"] / "manifest.json").exists()]
+    for scene in timings:
+        if scene not in recorded:
+            print(f"{scene['id']:<13} not recorded, left out")
+    timings = recorded
     built = [build_scene(scene) for scene in timings]
     for scene, (_, length) in zip(timings, built, strict=False):
         print(f"{scene['id']:<13} {length:6.2f} s (narration {scene['duration']:.2f})")
@@ -181,6 +188,9 @@ def main() -> int:
     length = probe(film)
     size = film.stat().st_size / 1e6
     print(f"wrote {film.relative_to(ROOT)}: {int(length // 60)}:{length % 60:04.1f}, {size:.1f} MB")
+    if length > MAX_SECONDS:
+        print(f"over {MAX_SECONDS // 60}:00 by {length - MAX_SECONDS:.1f} s: shorten narration.json")
+        return 1
     return 0
 
 

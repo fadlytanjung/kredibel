@@ -33,7 +33,7 @@ wrong and shows the evidence behind every number. *Every number has a source.*
 - **Numbers come from code:** matches, totals and risk levels are deterministic and explained; the
   same data gives the same result in any upload order.
 - **Reconciliation that finishes:** bank lines are matched to invoices, receipts and, where no
-  document exists, to their booking in the ledger: 97% automatically on the demo company.
+  document exists, to their booking in the ledger: 95% automatically on the demo company.
 - **Forensics:** duplicates held, edited PDFs (fonts, revisions, running balances), payments to a
   changed supplier account, unpaid invoices from unknown suppliers.
 - **People decide the rest:** one short review queue; every AI decision is a label a person can
@@ -77,7 +77,8 @@ answer.
 
 ## 10. Results and cost
 
-- Demo company: 39 files, 97% of bank lines matched automatically (91.7%, 100%, 100%), Critical and
+- Demo company: 300 files (about 100 a month), 95% of bank lines matched automatically (95.2%,
+  92.2%, 98.0%), Critical and
   High months found with evidence, a held copy, an exact copy never read.
 - Test scenario S1: 84 of 87 bank lines without a document matched to their ledger booking, none
   wrongly.

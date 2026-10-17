@@ -137,7 +137,7 @@ measured 17 Oct 2026):
 
 | Measure | Result |
 |---|---|
-| Bank lines matched automatically | 71 of 73 (97%): August 91.7%, September 100%, October 100% |
+| Bank lines matched automatically | 295 of 310 (95%) in 300 documents: August 95.2%, September 92.2%, October 98.0% |
 | Planted cases found | Edited statement (August Critical), scanned copy held, payment to a supplier's new account (October High), two unpaid supplier invoices |
 | Bank lines without a document matched to their ledger booking (scenario S1, test) | 84 of 87, none wrongly |
 | Reading cost | About USD 0.43 for 80 documents (89 pages) |

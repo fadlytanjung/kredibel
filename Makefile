@@ -199,9 +199,10 @@ extractions-rebuild: ## Rebuild a workspace's chunks and page Markdown from what
 reread-photos: ## Read a workspace's photos and scans again with the OCR witness (spec 022; ORG=..., DISAGREED=1 also those whose fields did not all agree, ALL=1 every OCR document)
 	cd backend && uv run python -m scripts.reread_documents --org "$(ORG)" $(if $(DISAGREED),--disagreed,) $(if $(ALL),--ocr,)
 
-video: ## The demo video (tools/video): voice the narration, record it on production with the demo account (resets it), cut it (ELEVENLABS_API_KEY=...)
+video: ## The demo video (tools/video): voice the narration, record it on production with the demo account (resets it), cut it (ELEVENLABS_API_KEY=...; VIDEO_OWNER_EMAIL=... adds the Google onboarding scene)
 	python3 tools/video/narrate.py
-	cd frontend && npx playwright test -c playwright.video.config.ts
+	cd tools/synthetic && uv run kredibel-synth demo --shift-months 5 --per-month 100 --out out/demo-shift5 >/dev/null
+	cd frontend && VIDEO_OWNER_TOKEN="$$($(if $(VIDEO_OWNER_EMAIL),cd ../backend && uv run python -m scripts.custom_token --email $(VIDEO_OWNER_EMAIL),true))" npx playwright test -c playwright.video.config.ts
 	python3 tools/video/edit.py
 
 demo-account: ## Create or reset the public demo account (spec 024; DEMO_ACCOUNT_EMAIL=..., DEMO_ACCOUNT_PASSWORD=...)

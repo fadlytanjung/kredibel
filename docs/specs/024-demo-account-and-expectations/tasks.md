@@ -42,8 +42,13 @@
   (`frontend/tests/video/demo.spec.ts`: screencast frames, cursor and captions, loading cut) and cuts
   it (`tools/video/edit.py`): 3:13, as the 3–4 minute rule asks; `docs/submission/` holds the rules,
   the brief description, the pitch-deck content, the judges' walkthrough and the day-of checklist.
-- [ ] **T024-10** **TDD** The demo at a real business's volume: `kredibel-synth demo --per-month 100`
+- [x] **T024-10** **TDD** The demo at a real business's volume: `kredibel-synth demo --per-month 100`
   (about 100 documents a month: more sales invoices, eight more clients, five more suppliers,
   receipts half photos; the planted cases unchanged; a bank journal keeps its distance from its line
   through the shift); the demo template rebuilt from 300 documents, 10 read at a time. (AC-024-1,
-  AC-024-2)
+  AC-024-2) Built 17 Oct
+  2026 (`test_volume.py`, `test_months_to_reconcile.py`, `test_workspace_copier_files.py`): the
+  template holds 300 documents (117 sales and 77 purchase invoices, 102 receipts, three statements,
+  the ledger), 295 of 310 bank lines matched automatically (95.2 %, 92.2 %, 98.0 %) and only the
+  planted findings open; a reset copies it in about 40 s (records as stored, 64 file threads); a
+  late July invoice reconciles August again; a model's guessed category gives way to its match.

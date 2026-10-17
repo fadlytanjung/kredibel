@@ -15,6 +15,8 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../.
 const OUT = path.join(ROOT, 'tools/video/out')
 const CARDS = path.join(ROOT, 'tools/video/cards')
 const PACK = path.join(ROOT, 'tools/synthetic/out/demo-aug-oct/pack')
+// The same books a month earlier: July's files arrive late in the upload scene (make video makes them).
+const JULY = path.join(ROOT, 'tools/synthetic/out/demo-shift5/S1/seed-1')
 const EMAIL = process.env.DEMO_ACCOUNT_EMAIL ?? 'demo@kredibel.app'
 const PASSWORD = process.env.DEMO_ACCOUNT_PASSWORD ?? 'Kredibel-Demo-2026'
 
@@ -55,6 +57,66 @@ async function idToken(origin: string): Promise<string> {
   const body = (await res.json()) as { idToken?: string }
   if (!body.idToken) throw new Error(`demo sign-in failed (${res.status})`)
   return body.idToken
+}
+
+/** A Firebase session for the owner's own Google account (VIDEO_OWNER_TOKEN, a custom token for that
+ * user from scripts/custom_token.py), in the form Firebase keeps it: the onboarding scene starts
+ * signed in instead of going through Google's account chooser. */
+async function ownerSession(origin: string, customToken: string): Promise<{ key: string; user: string }> {
+  const key = webApiKey()
+  const call = async (method: string, body: object) => {
+    const res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:${method}?key=${key}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Referer: `${origin}/` },
+      body: JSON.stringify(body),
+    })
+    if (!res.ok) throw new Error(`owner sign-in failed (${method} ${res.status})`)
+    return res.json()
+  }
+  const session = (await call('signInWithCustomToken', { token: customToken, returnSecureToken: true })) as {
+    idToken: string
+    refreshToken: string
+    expiresIn: string
+  }
+  const found = (await call('lookup', { idToken: session.idToken })) as {
+    users: {
+      localId: string
+      email?: string
+      emailVerified?: boolean
+      displayName?: string
+      photoUrl?: string
+      createdAt?: string
+      lastLoginAt?: string
+      providerUserInfo?: { providerId: string; rawId: string; email?: string; displayName?: string; photoUrl?: string }[]
+    }[]
+  }
+  const u = found.users[0]
+  const user = {
+    uid: u.localId,
+    email: u.email ?? null,
+    emailVerified: Boolean(u.emailVerified),
+    displayName: u.displayName ?? null,
+    photoURL: u.photoUrl ?? null,
+    isAnonymous: false,
+    providerData: (u.providerUserInfo ?? []).map((p) => ({
+      providerId: p.providerId,
+      uid: p.rawId,
+      email: p.email ?? null,
+      displayName: p.displayName ?? null,
+      photoURL: p.photoUrl ?? null,
+      phoneNumber: null,
+    })),
+    stsTokenManager: {
+      refreshToken: session.refreshToken,
+      accessToken: session.idToken,
+      expirationTime: Date.now() + Number(session.expiresIn) * 1000,
+    },
+    createdAt: u.createdAt,
+    lastLoginAt: u.lastLoginAt,
+    apiKey: key,
+    appName: '[DEFAULT]',
+  }
+  return { key: `firebase:authUser:${key}:[DEFAULT]`, user: JSON.stringify(user) }
 }
 
 /** A fresh copy of the demo company (no goal yet, so the welcome question shows) with the tour seen. */
@@ -271,7 +333,7 @@ async function card(page: Page, cdp: CDPSession, id: string) {
   await scene.end()
 }
 
-test('record the demo video', async ({ page, baseURL }) => {
+test('record the demo video', async ({ page, browser, baseURL }) => {
   const origin = baseURL ?? 'https://kredibel-app.web.app'
   // VIDEO_SCENES=problem,close re-records only those title cards (no reset, no app scenes).
   const only = (process.env.VIDEO_SCENES ?? '').split(',').filter(Boolean)
@@ -309,14 +371,14 @@ test('record the demo video', async ({ page, baseURL }) => {
   await scene.say(2)
   await press(page, page.getByRole('button', { name: /Check what I expect/ }), 300)
   await scene.say(3)
-  await typeInto(page, page.getByLabel('Money in').first(), '130000000')
-  await typeInto(page, page.getByLabel('Money out').first(), '115000000')
+  await typeInto(page, page.getByLabel('Money in').first(), '820000000')
+  await typeInto(page, page.getByLabel('Money out').first(), '840000000')
   await press(page, page.getByRole('button', { name: 'Add a month' }))
   const month = page.getByLabel('Month').nth(1)
   await press(page, month, 500)
   await month.fill('2026-10')
-  await typeInto(page, page.getByLabel('Money in').nth(1), '160000000')
-  await typeInto(page, page.getByLabel('Money out').nth(1), '120000000')
+  await typeInto(page, page.getByLabel('Money in').nth(1), '1000000000')
+  await typeInto(page, page.getByLabel('Money out').nth(1), '620000000')
   await glide(page, page.getByRole('button', { name: 'Save and go to my dashboard' }), 700)
   await scene.end(-0.4)
   await page.getByRole('button', { name: 'Save and go to my dashboard' }).click()
@@ -411,7 +473,7 @@ test('record the demo video', async ({ page, baseURL }) => {
   await glide(page, page.getByRole('dialog').getByRole('heading').first(), 800)
   await scene.end()
 
-  // The same file twice.
+  // Late July files, and a copy of one already read.
   await closeDrawer(page)
   await page.goto('/documents')
   await expect(page.getByRole('heading', { name: 'Documents', level: 1 })).toBeVisible({ timeout: 60_000 })
@@ -421,11 +483,39 @@ test('record the demo video', async ({ page, baseURL }) => {
   await scene.begin()
   await scene.say(0)
   await glide(page, content.getByText('Choose files').first(), 700)
-  await page.locator('input[type="file"]').first().setInputFiles(path.join(PACK, 'statement-2026-10.pdf'))
+  await page
+    .locator('input[type="file"]')
+    .first()
+    .setInputFiles([
+      path.join(JULY, 'inv-sales-2026-07-04.pdf'),
+      path.join(JULY, 'receipt-2026-07-01.jpg'),
+      path.join(PACK, 'statement-2026-10.pdf'),
+    ])
+  const tray = content.locator('.tray-list')
   const notice = content.getByText(/Not read again and not counted/).first()
-  await scene.cut(() => expect(notice).toBeVisible({ timeout: 60_000 }))
-  await glide(page, notice, 700)
-  await scene.end(2.5)
+  await scene.cut(async () => {
+    await expect(notice).toBeVisible({ timeout: 60_000 })
+    await expect(tray.getByText('Reading').first()).toBeVisible({ timeout: 60_000 })
+  })
+  await glide(page, tray.locator('li').first(), 700)
+  await scene.say(1)
+  await glide(page, notice, 800)
+  await scene.say(2)
+  const readAs = (name: string) => tray.locator('li', { hasText: name }).getByText(/^Read as/)
+  await scene.cut(async () => {
+    await expect(readAs('inv-sales-2026-07-04')).toBeVisible({ timeout: 300_000 })
+    await expect(readAs('receipt-2026-07-01')).toBeVisible({ timeout: 300_000 })
+  })
+  const invoiceRow = tray.locator('li', { hasText: 'inv-sales-2026-07-04' })
+  await glide(page, invoiceRow.getByText(/^Read as/), 700)
+  await press(page, invoiceRow.getByRole('link', { name: 'Open' }), 600)
+  const total = content.locator('button', { hasText: /^Total/ }).first()
+  await scene.cut(() => expect(total).toBeVisible({ timeout: 60_000 }))
+  await scene.say(3)
+  await press(page, total, 800)
+  await sleep(700)
+  await glide(page, total.getByText('On the page'), 600)
+  await scene.end(1)
 
   // What only a person can decide.
   await page.goto('/review')
@@ -478,10 +568,60 @@ test('record the demo video', async ({ page, baseURL }) => {
   await scene.say(0)
   await typeInto(page, composer, 'How much money went out in October 2026?')
   await page.keyboard.press('Enter')
-  await scene.cut(() => expect(content.getByText(/152,306,418/).first()).toBeVisible({ timeout: 120_000 }))
+  await scene.cut(() => expect(content.getByText(/705,933,026/).first()).toBeVisible({ timeout: 120_000 }))
   await scene.say(1)
-  await glide(page, content.getByText(/152,306,418/).first(), 800)
-  await scene.end(3)
+  await glide(page, content.getByText(/705,933,026/).first(), 800)
+  await scene.end(1.5)
+
+  // Your own books: sign in with Google, set up the business, and the free trial starts. Only with
+  // VIDEO_OWNER_TOKEN; that account's own workspace is never opened (the scene ends at the welcome
+  // question, which shows nothing of it).
+  const ownerToken = process.env.VIDEO_OWNER_TOKEN
+  if (ownerToken) {
+    const own = await browser.newContext({ ...test.info().project.use, baseURL: origin })
+    await own.addInitScript(overlay)
+    const ownPage = await own.newPage()
+    const ownCdp = await own.newCDPSession(ownPage)
+    const session = await ownerSession(origin, ownerToken)
+    await ownPage.goto('/login')
+    const google = ownPage.getByRole('button', { name: /Google/ }).first()
+    await expect(google).toBeVisible({ timeout: 60_000 })
+    await sleep(1000)
+    mouse = { x: 960, y: 540 }
+    scene = new Scene(ownPage, ownCdp, 'onboarding')
+    await scene.begin()
+    await scene.say(0)
+    await glide(ownPage, google, 900)
+    await sleep(150)
+    // The click's ripple only: Google's account chooser is not filmed.
+    await ownPage.evaluate(({ x, y }) => window.dispatchEvent(new MouseEvent('mousedown', { clientX: x, clientY: y })), mouse)
+    await sleep(500)
+    await scene.cut(async () => {
+      await ownPage.evaluate(([k, v]) => localStorage.setItem(k, v), [session.key, session.user])
+      await ownPage.goto('/onboarding')
+      await expect(ownPage.getByRole('heading', { name: 'Set up your business' })).toBeVisible({ timeout: 60_000 })
+      await sleep(800)
+    })
+    await scene.say(1)
+    await typeInto(ownPage, ownPage.getByLabel('Legal name'), 'Bandung Brew Co.')
+    await press(ownPage, ownPage.getByLabel('Industry'), 500)
+    await ownPage.getByLabel('Industry').selectOption({ label: 'Food and drink, cafes and restaurants' })
+    await glide(ownPage, ownPage.getByLabel('Currency'), 600)
+    await glide(ownPage, ownPage.getByLabel('Time zone'), 600)
+    await scene.say(2)
+    // The owner's own Google account, clear of the caption; the pointer on the address, not on Sign out.
+    const signedIn = ownPage.getByText(/Signed in as/).first()
+    await scrollTo(signedIn, 0.5)
+    await glide(ownPage, signedIn, 800, 0.3)
+    await sleep(600)
+    await press(ownPage, ownPage.getByRole('button', { name: 'Start the free trial' }), 700)
+    await scene.cut(() => expect(ownPage.getByRole('heading', { name: /What would you like Kredibel to do first/ })).toBeVisible({ timeout: 60_000 }))
+    await glide(ownPage, ownPage.getByRole('button', { name: /Keep my books/ }), 800)
+    await scene.end(1)
+    await own.close()
+  } else {
+    fs.rmSync(path.join(OUT, 'frames', 'onboarding'), { recursive: true, force: true })
+  }
 
   await card(page, cdp, 'close')
 })

@@ -20,7 +20,7 @@ working second front door, and local and container runs need no Hosting.
   `firebase deploy --only hosting`, so both front doors always serve the same files.
 - `firebase.json` → `hosting.headers` sets the security headers of [`14`](../14-security-and-compliance.md)
   §8 on everything Hosting serves; a unit test (`test_hosting_headers.py`) fails when they differ from
-  `core/security_headers.py`. Hashed `assets/**` are cached for a year; `index.html` is `no-cache`.
+  `core/security_headers.py`. Hashed `assets/**` are cached for a year; every `.html` (`index.html` and each public route's own head, spec 020) is `no-cache`.
 - Firebase Auth's authorized domains include the Hosting domains and the `run.app` URL.
 
 ## Alternatives considered

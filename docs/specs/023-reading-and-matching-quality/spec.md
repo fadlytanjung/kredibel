@@ -109,8 +109,10 @@ as on GitHub and Azure DevOps.
 - **AC-023-12** A line the rules and the model left `UNKNOWN` (a "CASH DEPOSIT" that names nobody)
   takes the category its confirmed match names: a sales invoice gives `SALES_RECEIPT`; a ledger
   booking gives the one category its journal's other account is classified as, for the line's
-  direction. It is marked `categorizedBy MATCH`; a person's, a rule's or the model's category is
-  never replaced, and an ambiguous booking leaves the line as it is.
+  direction. It is marked `categorizedBy MATCH`; a person's or a rule's category is never replaced,
+  nor the model's when it was sure of it (at or above the learning policy's category check
+  threshold); a model's guess below it gives way to the match (spec 024, 17 Oct 2026). An
+  ambiguous booking leaves the line as it is.
 
 ## Out of scope
 

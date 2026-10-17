@@ -1,6 +1,7 @@
 """A line nothing categorized takes its category from what it is matched to (spec 023, AC-023-12):
 a sales invoice is a sales receipt; a ledger booking is what its other account is classified as,
-when that names one category. A category a person or the reading set is never replaced, and an
+when that names one category. A category a person or a rule set is never replaced, nor one the
+reading was sure of; a reading's guess that still needs a check gives way to the match. An
 ambiguous booking leaves the line as it is. Synthetic data only."""
 
 from datetime import date
@@ -18,7 +19,9 @@ POLICY_DIR = Path(__file__).resolve().parents[3] / "contracts" / "policy"
 CATEGORIES = load_category_policy(POLICY_DIR / "categories.v1.yaml", POLICY_DIR)
 
 
-def line(tx: str, amount: str, category: str = "UNKNOWN", by: str = "NONE") -> BankLine:
+def line(
+    tx: str, amount: str, category: str = "UNKNOWN", by: str = "NONE", sure: str | None = None
+) -> BankLine:
     return BankLine(
         tx,
         "doc_st",
@@ -31,6 +34,7 @@ def line(tx: str, amount: str, category: str = "UNKNOWN", by: str = "NONE") -> B
         None,
         category=category,
         categorized_by=by,
+        category_confidence=D(sure) if sure else None,
     )
 
 
@@ -120,3 +124,28 @@ def test_a_line_takes_the_category_its_match_names():
     found = categories_from_matches(lines, allocations, kinds, ledger, CLASSES, CATEGORIES)
 
     assert found == {"st#1": "SALES_RECEIPT", "st#2": "PAYROLL", "st#3": "SALES_RECEIPT"}
+
+
+def test_a_match_replaces_a_reading_guess_that_needs_a_check():
+    """Spec 024: a cash deposit the reading guessed was the owner's money (50% sure, below the
+    learning policy's 0.70 for a category check) is booked to retail sales: the match decides."""
+    lines = [
+        line("st#1", "2500000", "OWNER_CAPITAL", "MODEL", sure="0.5"),  # a guess
+        line("st#2", "2500000", "OWNER_CAPITAL", "MODEL", sure="0.9"),  # the reading was sure
+        line("st#3", "2500000", "OWNER_CAPITAL", "RULE"),  # a rule decided
+        line("st#4", "2500000", "OWNER_CAPITAL", "USER"),  # a person decided
+    ]
+    ledger: list[LedgerRow] = []
+    for n in "1234":
+        ledger += [
+            booking(f"le#{n}", f"J{n}", "1110", debit="2500000"),
+            booking(f"lr#{n}", f"J{n}", "4100", credit="2500000"),
+        ]
+    allocations = [matched(f"st#{n}", f"le#{n}") for n in "1234"]
+    kinds = {f"le#{n}": "LEDGER_CASH" for n in "1234"}
+
+    found = categories_from_matches(
+        lines, allocations, kinds, ledger, CLASSES, CATEGORIES, unsure_below=D("0.70")
+    )
+
+    assert found == {"st#1": "SALES_RECEIPT"}

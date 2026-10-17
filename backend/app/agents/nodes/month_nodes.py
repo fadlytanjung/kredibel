@@ -132,10 +132,18 @@ def reconcile(deps: PipelineDeps, pending: PendingMonths):
             rejected=decisions.rejected,
         )
         kinds = {r.record_id: r.kind for r in (*right, *bookings)}
-        # A line nothing categorized takes the category its match names (spec 023, AC-023-12),
-        # before the figures count it.
+        # A line nothing categorized, or only guessed, takes the category its match names (spec
+        # 023, AC-023-12; spec 024), before the figures count it.
         named = categories_from_matches(
-            data.lines, allocations, kinds, data.ledger_rows, data.classifications, deps.categories
+            data.lines,
+            allocations,
+            kinds,
+            data.ledger_rows,
+            data.classifications,
+            deps.categories,
+            unsure_below=(
+                deps.learning.needs_check_below.get("CATEGORY") if deps.learning else None
+            ),
         )
         for line in data.lines:
             if category := named.get(line.tx_id):

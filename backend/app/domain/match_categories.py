@@ -3,11 +3,14 @@
 The reading categorizes a line from its own words; some lines do not say enough ("CASH DEPOSIT" may
 be the day's takings or the owner's money). Once the line is matched for certain, its match can
 say: a paid sales invoice is a sales receipt, and a ledger booking is what its other account is
-classified as, when that classification names exactly one category for the line's direction. Only
-a line nothing categorized takes it; a category a person or the reading chose stays.
+classified as, when that classification names exactly one category for the line's direction. A
+line nothing categorized takes it, and so does a line the reading only guessed (below the learning
+policy's check threshold, spec 024); a category a person or a rule chose, or the reading was sure
+of, stays.
 """
 
 from collections.abc import Mapping, Sequence
+from decimal import Decimal
 
 from app.domain.categorize import CategoryPolicy
 from app.domain.models.bank_line import BankLine
@@ -56,15 +59,22 @@ def categories_from_matches(
     ledger: Sequence[LedgerRow],
     classifications: Mapping[str, Classification],
     policy: CategoryPolicy,
+    unsure_below: Decimal | None = None,
 ) -> dict[str, str]:
-    """The category each uncategorized line's confirmed match names, by transaction ID."""
+    """The category each uncategorized (or only guessed) line's confirmed match names, by ID."""
     rows = {r.entry_id: r for r in ledger}
     journals: dict[tuple[str, ...], list[LedgerRow]] = {}
     for r in ledger:
         journals.setdefault(journal_key(r), []).append(r)
     out: dict[str, str] = {}
     for line in lines:
-        if line.category not in ("", "UNKNOWN") or line.categorized_by == "USER":
+        guessed = (
+            line.categorized_by == "MODEL"
+            and unsure_below is not None
+            and line.category_confidence is not None
+            and line.category_confidence < unsure_below
+        )
+        if line.categorized_by == "USER" or (line.category not in ("", "UNKNOWN") and not guessed):
             continue
         mine = [a for a in allocations if a.status == "CONFIRMED" and line.tx_id in a.left_ids]
         if len(mine) != 1:

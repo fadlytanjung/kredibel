@@ -216,12 +216,14 @@ choice, and Kredibel applies the IFRS 18 one for comparability and says so under
 
 **Order of precedence:** (1) a person's decision on the line's `CATEGORY` label (`categorizedBy =
 USER`, never overwritten); (2) a confirmed match names it for a line the rules and the model left
-`UNKNOWN` (spec 023, AC-023-12; `categorizedBy = MATCH`): a credit matched to a sales invoice is
+`UNKNOWN`, or the model only guessed (its confidence below the learning policy's `needsCheckBelow.
+CATEGORY`, 0.70; spec 024) (spec 023, AC-023-12; `categorizedBy = MATCH`): a credit matched to a sales invoice is
 `SALES_RECEIPT`; a line matched to a ledger entry takes the category its journal's other account is
 classified as (§6.2a of spec 018), when that classification's P&L line, and if needed its subledger,
 names exactly one category for the line's direction ("CASH DEPOSIT" booked to Retail sales is a sales
-receipt); balance-sheet accounts name none. A match never replaces a rule's or the model's category
-(a utility bill is more specific than an expense account), and a debit to a purchase invoice stays
+receipt); balance-sheet accounts name none. A match never replaces a rule's category or one the
+model was sure of (a utility bill is more specific than an expense account); a "CASH DEPOSIT" the
+model guessed was the owner's money at 50% is booked to retail sales and takes that. A debit to a purchase invoice stays
 with the reading (stock or a service); (3) internal transfer between the workspace's own
 accounts; (4) a **workspace rule** a person created with "Apply to similar lines" (P1,
 [`09`](09-data-model.md) §3.20); (5) related party (P1); (6) keyword rules in

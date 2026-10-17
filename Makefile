@@ -186,7 +186,7 @@ dev-langfuse: ## Run the local API/inline worker traced in Langfuse (CONTENT=1: 
 gemini-usage: ## Gemini requests and tokens of the project from Cloud Monitoring (DAYS=7)
 	cd backend && PYTHONPATH=. uv run python scripts/gemini_usage.py --days $(or $(DAYS),7)
 
-.PHONY: demo-books demo-account demo-template extractions-rebuild reread-photos clean-workspace
+.PHONY: demo-books demo-account demo-template video extractions-rebuild reread-photos clean-workspace
 clean-workspace: ## Clean up workspace documents, bank lines and runs (EMAIL=... or ORG=...)
 	cd backend && uv run python -m scripts.clean_workspace $(if $(EMAIL),--email "$(EMAIL)",) $(if $(ORG),--org "$(ORG)",)
 
@@ -198,6 +198,11 @@ extractions-rebuild: ## Rebuild a workspace's chunks and page Markdown from what
 
 reread-photos: ## Read a workspace's photos and scans again with the OCR witness (spec 022; ORG=..., DISAGREED=1 also those whose fields did not all agree, ALL=1 every OCR document)
 	cd backend && uv run python -m scripts.reread_documents --org "$(ORG)" $(if $(DISAGREED),--disagreed,) $(if $(ALL),--ocr,)
+
+video: ## The demo video (tools/video): voice the narration, record it on production with the demo account (resets it), cut it (ELEVENLABS_API_KEY=...)
+	python3 tools/video/narrate.py
+	cd frontend && npx playwright test -c playwright.video.config.ts
+	python3 tools/video/edit.py
 
 demo-account: ## Create or reset the public demo account (spec 024; DEMO_ACCOUNT_EMAIL=..., DEMO_ACCOUNT_PASSWORD=...)
 	cd backend && DEMO_ACCOUNT_EMAIL="$(DEMO_ACCOUNT_EMAIL)" DEMO_ACCOUNT_PASSWORD="$(DEMO_ACCOUNT_PASSWORD)" uv run python -m scripts.demo_account

@@ -1,6 +1,6 @@
 # Submission checklist
 
-_Last checked: 16 Oct 2026. Live: `kredibel-web` and Firebase Hosting at the latest `main`. This page
+_Last checked: 17 Oct 2026. Live: `kredibel-web` and Firebase Hosting at the latest `main`. This page
 is the single list to walk before the submission and before sharing the link; it points at the specs
 and [`20`](20-implementation-status.md) for detail and never replaces them._
 
@@ -94,9 +94,20 @@ and number, and check each against [`20`](20-implementation-status.md).
 
 ## 5. Before the submission
 
+The challenge requires five things (rules copied in [`submission/README.md`](submission/README.md)):
+a pitch deck on the prescribed template ([content](submission/pitch-deck.md)), a **3 to 4 minute**
+video of the working solution ([`submission/demo-video/`](submission/demo-video/), made by
+`make video`), the deployed link (it must keep working for the whole evaluation), the GitHub
+repository, and a brief description that says how Firebase, Firestore, Cloud Run and Gemini are used
+([`submission/brief-description.md`](submission/brief-description.md)). The day-of list:
+[`submission/checklist.md`](submission/checklist.md).
+
 - [ ] Spec 012: run the P0 suites on the synthetic books and publish the report; only then quote
       numbers in the README or on the site.
 - [ ] T013-18 on the deployed env with a new Google account.
 - [ ] The demo company refreshed for the current month if the demo date moves
       (`make demo-template`, spec 021).
-- [ ] README: what is built, the live URL, the demo path, and the honest list of what is not built.
+- [x] README: what is built, the live URL, the demo account and path, measured demo results, and
+      the honest list of what is not built (17 Oct 2026).
+- [ ] Pitch deck filled on the prescribed template; video uploaded as a public link; both links in
+      the README and the portal.

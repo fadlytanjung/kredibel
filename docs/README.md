@@ -91,7 +91,7 @@ only; when a change alters what a diagram shows, update the diagram in the same 
 | Folder | Content |
 |---|---|
 | [`specs/`](specs/README.md) | 15 feature specs (`spec.md` → `plan.md` → `tasks.md`), build order and dependency graph |
-| [`submission/`](submission/) | Proposal draft, 3-minute demo script, submission checklist |
+| [`submission/`](submission/README.md) | The submission pack: the rules and links, the brief description, the pitch-deck content, the demo video (3–4 minutes, its script and captions), the judges' walkthrough, the proposal and the day-of checklist |
 
 ## Decisions (ADRs)
 

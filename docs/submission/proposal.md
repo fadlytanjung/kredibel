@@ -4,7 +4,7 @@
 > numbers from the latest eval report or from the cited sources. Check the portal's character limits.
 
 **Theme:** 1 — BFSI: Intelligent Risk, Fraud & Financial Experiences
-**Team:** ⟨names⟩ · **Prototype:** ⟨URL⟩ · **Video:** ⟨URL⟩ · **Repository:** ⟨URL⟩
+**Team:** ⟨names⟩ · **Prototype:** <https://kredibel-app.web.app> (demo sign-in `demo@kredibel.app` / `Kredibel-Demo-2026`) · **Video:** ⟨URL⟩ · **Repository:** <https://github.com/fadlytanjung/kredibel>
 
 ---
 
@@ -37,16 +37,21 @@ uploads statements, invoices, receipts and the general-ledger export **in any or
 3. **Imports ledger files safely.** Gemini proposes the column mapping from the header and value
    shapes only; the user confirms it once; code imports every row.
 4. **Reconciles every month automatically, in any upload order.** Bank lines are matched to invoices,
-   receipts and ledger entries with reasons; only unique, high-scoring matches are automatic; a month
-   is recomputed whenever its data changes and gives the same result whatever the order.
-5. **Keeps people in charge of the exceptions.** The 15–20% AI cannot match goes to a review queue
-   with evidence and the right fixes; every fix is audited and re-reconciles the month.
+   receipts and, where no document exists, to their booking in the ledger, each with its reason; only
+   unique, high-scoring matches are automatic; a month is recomputed whenever its data changes and
+   gives the same result whatever the order. On the demo company 97% of bank lines are matched
+   automatically.
+5. **Keeps people in charge of the exceptions.** What code cannot match for certain goes to one short
+   review queue with evidence and the right fixes; every fix is audited and re-reconciles the month.
 6. **Explains fraud risk.** Running balances, PDF revisions, font anomalies, statement continuity and
    payments to a supplier's new account produce findings with evidence; a policy file sets each
    month's risk level; Gemini explains it and orders the next steps, and a grounding guard checks every
    number it writes.
-7. **Shows where the money went** on a dashboard with a money-flow Sankey; a Finance Assistant (P1)
-   answers questions with read-only tools, retrieval and memory of the user's preferences.
+7. **Shows where the money went** on a dashboard with a money-flow Sankey and a Transactions table
+   (every bank line with its IFRS and US GAAP class, subledger and match); a Finance Assistant answers
+   questions from the books' own figures with citations.
+8. **Checks what the owner expects.** After onboarding the owner can write the money in and out they
+   expect per month; the dashboard compares it with the reconciled months and links to the evidence.
 
 ## 3. How it works (Google Cloud)
 
@@ -60,9 +65,11 @@ uploads statements, invoices, receipts and the general-ledger export **in any or
 - **Document AI** Enterprise OCR as the witness for scans and receipt photos; the PDF text layer is the
   witness for digital pages.
 - **Firestore** (system of record, realtime progress, vector search for the assistant) and **Cloud
-  Storage**; **Firebase Auth**; **Model Armor** for files that try to instruct the AI.
-- **Agent Platform Sessions and Memory Bank** give the Finance Assistant conversation state and
-  per-user preferences; DeepEval with a Gemini judge measures its answers.
+  Storage**; **Firebase Hosting and Authentication** (Google sign-in, and email and password for the
+  public demo account). Documents are always data, never instructions; **Model Armor** screening of
+  uploads is planned.
+- Planned next for the assistant: **Agent Platform Sessions and Memory Bank** for conversation state
+  and preferences, and an evaluation suite with a Gemini judge.
 - A self-serve **workspace** for an individual or a company with a **30-day free trial**; paid tiers
   and a loan readiness report shown as coming soon; limits enforced server-side.
 
@@ -75,8 +82,11 @@ uploads statements, invoices, receipts and the general-ledger export **in any or
 - **Fraud prevention:** payment diversion and doctored statements flagged with the page and the
   reason, not a black-box score.
 
-Measured on our synthetic scenarios (⟨date⟩, ⟨n⟩ runs): ⟨bank lines matched automatically⟩,
-⟨wrong automatic matches⟩, ⟨duplicates caught⟩, ⟨seeded tampering detected⟩, ⟨cost per page⟩.
+Measured on synthetic data (17 Oct 2026): the August–October demo company, read by the production
+workflows, has 71 of 73 bank lines (97%) matched automatically and every planted case found (an edited
+statement, a held scanned copy, a payment to a supplier's new account, two unpaid supplier invoices);
+on scenario S1, 84 of 87 bank lines without a document are matched to their ledger booking with no
+wrong automatic match; reading 80 documents (89 pages) cost about USD 0.43.
 
 ## 5. Feasibility
 

@@ -123,12 +123,27 @@ Spec 001 Foundation is deployed on Google Cloud (`cloud-hack2skill`, `asia-south
 - **Cloud Run Web (Origin API & SPA)**: [https://kredibel-web-110491117045.asia-southeast1.run.app](https://kredibel-web-110491117045.asia-southeast1.run.app)
 - **Cloud Run Worker (IAM only)**: [https://kredibel-worker-110491117045.asia-southeast1.run.app](https://kredibel-worker-110491117045.asia-southeast1.run.app)
 - **Data Migration Job**: `kredibel-migrate` Cloud Run job with automated Cloud Build pipeline step.
+- **Try it without a Google account**: sign in at [https://kredibel-app.web.app/login](https://kredibel-app.web.app/login)
+  with `demo@kredibel.app` / `Kredibel-Demo-2026`: a shared copy of the synthetic demo company
+  ([docs/25](docs/25-demo.md); what to click: [docs/submission/demo-walkthrough-guide.md](docs/submission/demo-walkthrough-guide.md)).
+- **Submission pack**: the video, the brief description and the pitch-deck content are in
+  [docs/submission](docs/submission/README.md).
 
 
 ## Results
 
-_Filled from the latest eval report (`backend/evals/reports/`). Numbers measured on synthetic data
-only._
+**The demo company on production** (synthetic, August–October 2026, read by the deployed workflows;
+measured 17 Oct 2026):
+
+| Measure | Result |
+|---|---|
+| Bank lines matched automatically | 71 of 73 (97%): August 91.7%, September 100%, October 100% |
+| Planted cases found | Edited statement (August Critical), scanned copy held, payment to a supplier's new account (October High), two unpaid supplier invoices |
+| Bank lines without a document matched to their ledger booking (scenario S1, test) | 84 of 87, none wrongly |
+| Reading cost | About USD 0.43 for 80 documents (89 pages) |
+
+_The eval suite (spec 012) fills the table below from `backend/evals/reports/`; it has not been run
+yet, so no general accuracy is claimed._
 
 | Measure | Result |
 |---|---|

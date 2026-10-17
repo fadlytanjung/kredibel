@@ -37,3 +37,8 @@
   workspace, a fresh demo copy after a reset) is asked it before any page; Skip records Keep my
   books; Settings › Profile shows the goal and changes it; the expectations panel shows while the
   goal is Check what I expect; Transactions shows ten rows a page. (AC-024-4, AC-024-6)
+- [x] **T024-09** The demo video and the submission pack (17 Oct 2026): `make video` voices
+  `tools/video/narration.json` (ElevenLabs), records the story on production with the demo account
+  (`frontend/tests/video/demo.spec.ts`: screencast frames, cursor and captions, loading cut) and cuts
+  it (`tools/video/edit.py`): 3:13, as the 3–4 minute rule asks; `docs/submission/` holds the rules,
+  the brief description, the pitch-deck content, the judges' walkthrough and the day-of checklist.

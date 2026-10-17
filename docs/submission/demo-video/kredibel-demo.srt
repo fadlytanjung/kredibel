@@ -1,0 +1,131 @@
+1
+00:00:00,000 --> 00:00:04,087
+Meet Sunrise Coffee Roasters, a small coffee roaster in Bandung.
+
+2
+00:00:04,437 --> 00:00:11,542
+Every month the bank sends statements, the bookkeeper sends a ledger, and invoices and receipts pile up.
+
+3
+00:00:11,892 --> 00:00:15,747
+But the owner has a feeling: October cost more than it should have.
+
+4
+00:00:16,097 --> 00:00:18,883
+A missing record? A mistake? Or fraud?
+
+5
+00:00:19,267 --> 00:00:29,437
+Organizations lose an estimated 5% of revenue to fraud each year. For small businesses, the median loss is $141,000 per case.
+
+6
+00:00:29,787 --> 00:00:32,342
+And checking every page by hand takes days.
+
+7
+00:00:32,701 --> 00:00:34,512
+That's where Kredibel comes in.
+
+8
+00:00:34,862 --> 00:00:41,875
+It reads your statements, invoices, receipts and ledger, reconciles every month, and shows the evidence behind every number.
+
+9
+00:00:42,267 --> 00:00:46,168
+Anyone can try the demo account, no Google account needed.
+
+10
+00:00:46,518 --> 00:00:49,722
+After signing in, Kredibel asks what you want first.
+
+11
+00:00:50,072 --> 00:00:53,834
+Our owner wants to check a hunch, so: check what I expect.
+
+12
+00:00:54,184 --> 00:01:04,494
+September: about IDR 130 million in and 115 million out. October: 160 million in, 120 million out.
+
+13
+00:01:04,701 --> 00:01:07,952
+The dashboard puts the books against those expectations.
+
+14
+00:01:08,302 --> 00:01:14,943
+September is as expected. October's money in is too, but money out is 32 million more than expected.
+
+15
+00:01:15,293 --> 00:01:22,352
+And every October bank line was matched automatically: to an invoice, a receipt, or its booking in the ledger.
+
+16
+00:01:22,714 --> 00:01:27,404
+So where did the money go? Here is every October bank line, one row each.
+
+17
+00:01:27,754 --> 00:01:34,953
+Its category, how IFRS and US GAAP classify it, its subledger, and what it is matched to.
+
+18
+00:01:35,303 --> 00:01:42,547
+Even a plain cash deposit is explained: the ledger books it to retail sales, so it is a sales receipt.
+
+19
+00:01:42,914 --> 00:01:46,954
+Each month reconciles itself, whatever order the files arrived in.
+
+20
+00:01:47,304 --> 00:01:52,645
+Every match carries its reason, and the month explains its risk with citations to the documents.
+
+21
+00:01:53,014 --> 00:01:56,218
+The risk page finds what the owner was afraid of.
+
+22
+00:01:56,568 --> 00:02:02,002
+October is high: a supplier's invoice asked to be paid to a new bank account, and it was.
+
+23
+00:02:02,352 --> 00:02:06,531
+August is critical: one statement was edited in a PDF editor.
+
+24
+00:02:06,881 --> 00:02:14,683
+The edited amount is drawn in a different font, and the running balance no longer adds up. Every finding points to the page it comes from.
+
+25
+00:02:15,047 --> 00:02:18,902
+Send the same file twice, and it is never read twice, or counted twice.
+
+26
+00:02:21,780 --> 00:02:25,774
+Whatever Kredibel can't decide for certain goes to one short review queue.
+
+27
+00:02:26,124 --> 00:02:31,604
+A scanned copy held so it's never counted twice, an invoice nobody paid, a value to check.
+
+28
+00:02:31,980 --> 00:02:38,064
+Every AI decision is a label with its confidence, for a person to confirm or correct.
+
+29
+00:02:38,414 --> 00:02:44,265
+And every workflow run is traced: each step, each Gemini call, its tokens and its cost.
+
+30
+00:02:45,647 --> 00:02:47,226
+And you can simply ask.
+
+31
+00:02:47,576 --> 00:02:51,430
+The finance assistant answers from the books' own figures, and cites each one.
+
+32
+00:02:54,814 --> 00:03:07,353
+Kredibel runs on Google Cloud: Firebase Hosting and Authentication, Cloud Run for the app and its ADK workflows, Firestore for the books, and Gemini with Document AI to read every page.
+
+33
+00:03:07,703 --> 00:03:11,789
+Try it with the demo account. Kredibel: every number has a source.

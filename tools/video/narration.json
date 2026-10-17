@@ -1,0 +1,205 @@
+{
+  "title": "Kredibel: every number has a source",
+  "voice": {
+    "name": "Eric",
+    "voiceId": "cjVigY5qzO86Huf0OWal",
+    "model": "eleven_multilingual_v2"
+  },
+  "gapSeconds": 0.35,
+  "tailSeconds": 0.7,
+  "scenes": [
+    {
+      "id": "problem",
+      "kind": "card",
+      "shot": "Title card: Sunrise Coffee Roasters, with the month's paperwork stacking up (statements, ledger, invoices, receipts).",
+      "sentences": [
+        {
+          "text": "Meet Sunrise Coffee Roasters, a small coffee roaster in Bandung."
+        },
+        {
+          "text": "Every month the bank sends statements, the bookkeeper sends a ledger, and invoices and receipts pile up."
+        },
+        {
+          "text": "But the owner has a feeling: October cost more than it should have."
+        },
+        {
+          "text": "A missing record? A mistake? Or fraud?"
+        }
+      ]
+    },
+    {
+      "id": "stat",
+      "kind": "card",
+      "shot": "Card: the cost of fraud (ACFE 2024), then \"Checking by hand takes days.\"",
+      "sentences": [
+        {
+          "text": "Organizations lose an estimated 5% of revenue to fraud each year. For small businesses, the median loss is $141,000 per case.",
+          "say": "Organizations lose an estimated five percent of their revenue to fraud every year. For small businesses, the median loss is a hundred and forty-one thousand dollars per case."
+        },
+        {
+          "text": "And checking every page by hand takes days."
+        }
+      ]
+    },
+    {
+      "id": "intro",
+      "kind": "card",
+      "shot": "Card: the Kredibel logo and what it does.",
+      "sentences": [
+        {
+          "text": "That's where Kredibel comes in."
+        },
+        {
+          "text": "It reads your statements, invoices, receipts and ledger, reconciles every month, and shows the evidence behind every number."
+        }
+      ]
+    },
+    {
+      "id": "signin",
+      "kind": "app",
+      "shot": "Production: sign in with the demo account (email and password), the welcome question, \"Check what I expect\", two months of expectations, save.",
+      "sentences": [
+        {
+          "text": "Anyone can try the demo account, no Google account needed."
+        },
+        {
+          "text": "After signing in, Kredibel asks what you want first."
+        },
+        {
+          "text": "Our owner wants to check a hunch, so: check what I expect."
+        },
+        {
+          "text": "September: about IDR 130 million in and 115 million out. October: 160 million in, 120 million out.",
+          "say": "September: about a hundred and thirty million rupiah in, and a hundred and fifteen million out. October: a hundred and sixty million in, and a hundred and twenty million out."
+        }
+      ]
+    },
+    {
+      "id": "dashboard",
+      "kind": "app",
+      "shot": "Dashboard for October: the figures, then the \"What you expected\" panel.",
+      "sentences": [
+        {
+          "text": "The dashboard puts the books against those expectations."
+        },
+        {
+          "text": "September is as expected. October's money in is too, but money out is 32 million more than expected.",
+          "say": "September is as expected. October's money in is too, but money out is thirty-two million more than expected."
+        },
+        {
+          "text": "And every October bank line was matched automatically: to an invoice, a receipt, or its booking in the ledger."
+        }
+      ]
+    },
+    {
+      "id": "transactions",
+      "kind": "app",
+      "shot": "Transactions for October: the table, then a cash deposit in the drawer.",
+      "sentences": [
+        {
+          "text": "So where did the money go? Here is every October bank line, one row each."
+        },
+        {
+          "text": "Its category, how IFRS and US GAAP classify it, its subledger, and what it is matched to."
+        },
+        {
+          "text": "Even a plain cash deposit is explained: the ledger books it to retail sales, so it is a sales receipt."
+        }
+      ]
+    },
+    {
+      "id": "month",
+      "kind": "app",
+      "shot": "October's reconciliation: its explained risk, then the bank lines with the reason for each match.",
+      "sentences": [
+        {
+          "text": "Each month reconciles itself, whatever order the files arrived in."
+        },
+        {
+          "text": "Every match carries its reason, and the month explains its risk with citations to the documents."
+        }
+      ]
+    },
+    {
+      "id": "risk",
+      "kind": "app",
+      "shot": "Risk: October High (a supplier paid to a new bank account), then August Critical with the evidence on the page.",
+      "sentences": [
+        {
+          "text": "The risk page finds what the owner was afraid of."
+        },
+        {
+          "text": "October is high: a supplier's invoice asked to be paid to a new bank account, and it was."
+        },
+        {
+          "text": "August is critical: one statement was edited in a PDF editor."
+        },
+        {
+          "text": "The edited amount is drawn in a different font, and the running balance no longer adds up. Every finding points to the page it comes from."
+        }
+      ]
+    },
+    {
+      "id": "upload",
+      "kind": "app",
+      "shot": "Documents: upload October's statement again; it is recognized as a copy and not read.",
+      "sentences": [
+        {
+          "text": "Send the same file twice, and it is never read twice, or counted twice."
+        }
+      ]
+    },
+    {
+      "id": "review",
+      "kind": "app",
+      "shot": "Review: the short queue of decisions.",
+      "sentences": [
+        {
+          "text": "Whatever Kredibel can't decide for certain goes to one short review queue."
+        },
+        {
+          "text": "A scanned copy held so it's never counted twice, an invoice nobody paid, a value to check."
+        }
+      ]
+    },
+    {
+      "id": "labels",
+      "kind": "app",
+      "shot": "Labels (every AI decision with its confidence), then Runs (each workflow, its Gemini calls, tokens and cost).",
+      "sentences": [
+        {
+          "text": "Every AI decision is a label with its confidence, for a person to confirm or correct."
+        },
+        {
+          "text": "And every workflow run is traced: each step, each Gemini call, its tokens and its cost."
+        }
+      ]
+    },
+    {
+      "id": "assistant",
+      "kind": "app",
+      "shot": "Assistant: \"How much money went out in October?\" and the cited answer.",
+      "sentences": [
+        {
+          "text": "And you can simply ask."
+        },
+        {
+          "text": "The finance assistant answers from the books' own figures, and cites each one."
+        }
+      ]
+    },
+    {
+      "id": "close",
+      "kind": "card",
+      "shot": "Closing card: Kredibel on Google Cloud (Firebase, Cloud Run, Firestore, Gemini, Document AI) and the demo sign-in.",
+      "sentences": [
+        {
+          "text": "Kredibel runs on Google Cloud: Firebase Hosting and Authentication, Cloud Run for the app and its ADK workflows, Firestore for the books, and Gemini with Document AI to read every page."
+        },
+        {
+          "text": "Try it with the demo account. Kredibel: every number has a source."
+        }
+      ]
+    }
+  ]
+}

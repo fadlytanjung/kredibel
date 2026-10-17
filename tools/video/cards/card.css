@@ -1,0 +1,51 @@
+/* Title cards of the demo video (tools/video): 1920x1080, the brand's colours and type
+   (contracts/design/tokens.json). The recorder sets body[data-step] as each sentence starts. */
+@font-face {
+  font-family: "Archivo Variable";
+  font-weight: 100 900;
+  font-stretch: 62% 125%;
+  src: url(../../../design/mocks/assets/fonts/archivo-latin-wdth-normal.woff2) format("woff2-variations");
+}
+:root {
+  --ink: #16212B; --canvas: #F2F4F5; --brand: #0E5A47; --brand-line: #2E8B6A; --brand-soft: #E7F2EE;
+  --muted: #5B6875; --critical: #C2410C; --white: #FFFFFF;
+}
+* { box-sizing: border-box; margin: 0; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; }
+body { font-family: "Archivo Variable", system-ui, sans-serif; color: var(--ink); background: var(--canvas); }
+body.dark { background: var(--ink); color: var(--white); }
+body.dark::before {
+  content: ""; position: fixed; inset: 0; opacity: .5;
+  background: repeating-linear-gradient(0deg, transparent 0 39px, rgba(255,255,255,.06) 39px 40px);
+}
+.stage { position: relative; width: 100%; height: 100%; padding: 140px 160px; display: flex; flex-direction: column; justify-content: center; gap: 48px; }
+.eyebrow { font-size: 26px; letter-spacing: .14em; text-transform: uppercase; font-weight: 600; color: var(--brand-line); }
+.head { font-size: 104px; line-height: 1.04; font-weight: 720; font-stretch: 112%; letter-spacing: -.01em; max-width: 1500px; }
+.sub { font-size: 40px; line-height: 1.35; color: var(--muted); max-width: 1400px; }
+body.dark .sub { color: rgba(255,255,255,.72); }
+.reveal { opacity: 0; transform: translateY(28px); transition: opacity .7s cubic-bezier(.2,.7,.2,1), transform .7s cubic-bezier(.2,.7,.2,1); }
+.gone { transition: opacity .5s ease; }
+.row { display: flex; gap: 28px; flex-wrap: wrap; }
+.tile { width: 360px; height: 230px; border-radius: 22px; background: rgba(255,255,255,.07); border: 1.5px solid rgba(255,255,255,.18);
+  padding: 30px; display: flex; flex-direction: column; justify-content: space-between; }
+.tile .n { font-size: 64px; font-weight: 700; font-stretch: 110%; }
+.tile .l { font-size: 28px; color: rgba(255,255,255,.75); }
+.chip { font-size: 56px; font-weight: 680; padding: 22px 40px; border-radius: 999px; border: 2px solid rgba(255,255,255,.3); }
+.chip.alarm { border-color: #F97316; color: #FDBA74; }
+.big { font-size: 260px; font-weight: 760; font-stretch: 118%; line-height: .9; color: #FDBA74; }
+.fact { display: grid; grid-template-columns: auto 1fr; gap: 24px 48px; align-items: end; }
+.fact .v { font-size: 120px; font-weight: 740; font-stretch: 114%; line-height: .95; }
+.fact .t { font-size: 40px; color: rgba(255,255,255,.78); padding-bottom: 14px; max-width: 900px; }
+.source { font-size: 24px; color: rgba(255,255,255,.5); }
+.logo { height: 120px; }
+.steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 28px; }
+.step { background: var(--white); border: 1.5px solid #D5DCE1; border-radius: 22px; padding: 34px; display: flex; flex-direction: column; gap: 16px; }
+.step .k { width: 52px; height: 52px; border-radius: 14px; background: var(--brand-soft); color: var(--brand); display: grid; place-items: center; font-size: 28px; font-weight: 720; }
+.step .l { font-size: 34px; font-weight: 640; line-height: 1.2; }
+.cloud { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+.svc { background: var(--white); border: 1.5px solid #D5DCE1; border-radius: 22px; padding: 30px 34px; }
+.svc .s { font-size: 36px; font-weight: 700; }
+.svc .w { font-size: 26px; color: var(--muted); margin-top: 8px; line-height: 1.3; }
+.try { font-size: 34px; color: var(--muted); }
+.try b { color: var(--ink); font-weight: 680; }
+.tag { font-size: 64px; font-weight: 720; font-stretch: 110%; color: var(--brand); }

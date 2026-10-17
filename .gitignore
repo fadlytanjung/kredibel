@@ -45,3 +45,5 @@ firebase-debug.log
 .adk/
 demo-pack/
 
+tools/video/out/
+docs/submission/demo-video/*.mp4

@@ -1,0 +1,164 @@
+#!/usr/bin/env python3
+"""Voice the demo video's narration (tools/video/narration.json) with ElevenLabs, one clip per
+sentence (cached by its text), joined per scene with short pauses; write the timings the recording
+follows and the script for review (docs/submission/demo-video/script.md).
+
+Usage: ELEVENLABS_API_KEY=... python3 tools/video/narrate.py
+The key is read from the environment only and never written anywhere.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import subprocess
+import sys
+import urllib.request
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+ROOT = HERE.parents[1]
+OUT = HERE / "out"
+AUDIO = OUT / "audio"
+SCRIPT = ROOT / "docs" / "submission" / "demo-video" / "script.md"
+RATE = 44100
+
+
+def duration(path: Path) -> float:
+    out = subprocess.run(
+        ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(path)],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return float(out.stdout.strip())
+
+
+def speak(text: str, previous: str, following: str, voice: dict, key: str) -> Path:
+    digest = hashlib.sha256(
+        json.dumps([text, previous, following, voice], sort_keys=True).encode()
+    ).hexdigest()[:16]
+    target = AUDIO / f"s_{digest}.mp3"
+    if target.exists():
+        return target
+    body = {
+        "text": text,
+        "model_id": voice["model"],
+        "previous_text": previous or None,
+        "next_text": following or None,
+        "voice_settings": {
+            "stability": 0.55,
+            "similarity_boost": 0.8,
+            "style": 0.15,
+            "use_speaker_boost": True,
+        },
+    }
+    req = urllib.request.Request(
+        f"https://api.elevenlabs.io/v1/text-to-speech/{voice['voiceId']}?output_format=mp3_44100_128",
+        data=json.dumps(body).encode(),
+        headers={"xi-api-key": key, "Content-Type": "application/json", "Accept": "audio/mpeg"},
+    )
+    with urllib.request.urlopen(req, timeout=120) as res:
+        target.write_bytes(res.read())
+    return target
+
+
+def scene_audio(clips: list[Path], gap: float, tail: float, target: Path) -> None:
+    """The scene's clips with `gap` seconds between them and `tail` after the last, as one WAV."""
+    inputs, parts = [], []
+    for i, clip in enumerate(clips):
+        inputs += ["-i", str(clip)]
+        pad = tail if i == len(clips) - 1 else gap
+        parts.append(
+            f"[{i}:a]aresample={RATE},aformat=channel_layouts=mono,apad=pad_dur={pad}[a{i}]"
+        )
+    joined = "".join(f"[a{i}]" for i in range(len(clips)))
+    graph = ";".join(parts) + f";{joined}concat=n={len(clips)}:v=0:a=1[out]"
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-y",
+            "-v",
+            "error",
+            *inputs,
+            "-filter_complex",
+            graph,
+            "-map",
+            "[out]",
+            "-ar",
+            str(RATE),
+            str(target),
+        ],
+        check=True,
+    )
+
+
+def clock(seconds: float) -> str:
+    return f"{int(seconds // 60)}:{seconds % 60:04.1f}"
+
+
+def main() -> int:
+    key = os.environ.get("ELEVENLABS_API_KEY", "")
+    if not key:
+        print("Set ELEVENLABS_API_KEY.", file=sys.stderr)
+        return 2
+    plan = json.loads((HERE / "narration.json").read_text(encoding="utf-8"))
+    AUDIO.mkdir(parents=True, exist_ok=True)
+    gap, tail = plan["gapSeconds"], plan["tailSeconds"]
+    timings: dict = {"scenes": []}
+    for scene in plan["scenes"]:
+        spoken = [s.get("say") or s["text"] for s in scene["sentences"]]
+        clips, sentences, t = [], [], 0.0
+        for i, sentence in enumerate(scene["sentences"]):
+            clip = speak(
+                spoken[i], " ".join(spoken[:i]), " ".join(spoken[i + 1 :]), plan["voice"], key
+            )
+            length = duration(clip)
+            sentences.append(
+                {"text": sentence["text"], "start": round(t, 3), "end": round(t + length, 3)}
+            )
+            t += length + (gap if i < len(spoken) - 1 else tail)
+            clips.append(clip)
+        target = AUDIO / f"{scene['id']}.wav"
+        scene_audio(clips, gap, tail, target)
+        timings["scenes"].append(
+            {
+                "id": scene["id"],
+                "kind": scene["kind"],
+                "duration": round(duration(target), 3),
+                "sentences": sentences,
+            }
+        )
+        print(f"{scene['id']:<13} {timings['scenes'][-1]['duration']:6.2f} s")
+    (OUT / "timings.json").write_text(json.dumps(timings, indent=2) + "\n", encoding="utf-8")
+    total = sum(s["duration"] for s in timings["scenes"])
+    print(f"narration {total:.1f} s")
+
+    # The script for review, with the time each scene starts in the final cut (0.5 s dissolves).
+    lines = [
+        f"# {plan['title']} (demo video script)",
+        "",
+        "> Generated by `tools/video/narrate.py` from `tools/video/narration.json`; edit the",
+        "> JSON, not this file.",
+        f"> Voice: ElevenLabs {plan['voice']['name']} ({plan['voice']['model']}). Recorded on",
+        "> production with the public demo account (synthetic data). Sources: ACFE, *Occupational",
+        "> Fraud 2024: A Report to the Nations* (5% of revenue; median loss USD 141,000 for",
+        "> organizations under 100 employees).",
+        "",
+        "| Time | Scene | Shot | Voice-over |",
+        "|---|---|---|---|",
+    ]
+    start = 0.0
+    for scene, timing in zip(plan["scenes"], timings["scenes"], strict=False):
+        voice_over = " ".join(s["text"] for s in scene["sentences"]).replace("|", "\\|")
+        lines.append(f"| {clock(start)} | {scene['id']} | {scene['shot']} | {voice_over} |")
+        start += timing["duration"] - 0.5
+    lines += ["", f"Total: about {clock(start + 0.5)}.", ""]
+    SCRIPT.write_text("\n".join(lines), encoding="utf-8")
+    print(f"wrote {SCRIPT.relative_to(ROOT)}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -146,6 +146,24 @@ describe('RiskPage (AC-008-7, AC-008-8, AC-008-9, AC-008-10)', () => {
     ).toBeInTheDocument()
   })
 
+  it('names a document that is not among the first page of documents (spec 024)', async () => {
+    // A busy workspace has more documents than one page: the held copy is fetched by its ID.
+    const held = { ...MOCK_FINDING_A01, findingId: 'fnd_held', docId: 'doc_scan_0001', evidence: [] }
+    vi.mocked(apiClient).mockImplementation((path: string) => {
+      if (path === '/api/dashboard?period=all') return Promise.resolve(MOCK_DASHBOARD)
+      if (path === '/api/documents?limit=200') return Promise.resolve({ items: [] })
+      if (path === '/api/documents/doc_scan_0001')
+        return Promise.resolve({ docId: 'doc_scan_0001', fileName: 'inv-purchase-2026-08-01-scan.pdf' })
+      if (path === '/api/findings') return Promise.resolve({ items: [held], nextCursor: null })
+      return Promise.reject(new Error(`Unhandled path: ${path}`))
+    })
+
+    renderRiskPage()
+
+    expect((await screen.findAllByText(/inv-purchase-2026-08-01-scan\.pdf/)).length).toBeGreaterThan(0)
+    expect(screen.queryByText(/doc_scan_0001/)).toBeNull()
+  })
+
   it('filters findings by severity chips (AC-008-7)', async () => {
     vi.mocked(apiClient).mockImplementation((path: string) => {
       if (path === '/api/dashboard?period=all') return Promise.resolve(MOCK_DASHBOARD)

@@ -19,6 +19,9 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
+    // Form and landing tests type and animate in jsdom; under a full parallel run, or on the build
+    // machine, some take longer than the default 5 s.
+    testTimeout: 15_000,
     setupFiles: './src/test-setup.ts',
     // A fixed placeholder config: tests never depend on a developer's .env (Firebase refuses an
     // empty API key at import) and never reach a real project.

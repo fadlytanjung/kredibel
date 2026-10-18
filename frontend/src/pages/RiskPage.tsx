@@ -9,7 +9,9 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { useDocuments } from '../entities/document'
+import { useQueries } from '@tanstack/react-query'
+import { type Document, useDocuments } from '../entities/document'
+import { apiClient } from '../shared/api/client'
 import {
   EvidenceViewer,
   SeverityBadge,
@@ -44,8 +46,19 @@ export function RiskPage() {
   const { data: documents } = useDocuments({ limit: 200 })
 
   const months = dashboard?.months ?? []
-  const files = new Map((documents?.items ?? []).map((d) => [d.docId, d.fileName]))
   const shown = (findingsData?.items ?? []).filter((f) => SHOWN.has(f.status))
+  // A busy workspace has more documents than one page; any a finding names is fetched by its ID.
+  const listed = new Map((documents?.items ?? []).map((d) => [d.docId, d.fileName]))
+  const named = [...new Set(shown.flatMap((f) => [f.docId, ...f.evidence.map((e) => e.docId)]))].filter(
+    (id): id is string => Boolean(id) && Boolean(documents) && !listed.has(id as string),
+  )
+  const fetched = useQueries({
+    queries: named.map((docId) => ({
+      queryKey: ['document', docId],
+      queryFn: () => apiClient<Document>(`/api/documents/${docId}`),
+    })),
+  })
+  const files = new Map([...listed, ...fetched.flatMap((q) => (q.data ? [[q.data.docId, q.data.fileName] as const] : []))])
   const levels = new Map(months.map((m) => [m.month, m.riskLevel]))
 
   const byMonth = new Map<string, Finding[]>()

@@ -332,6 +332,27 @@ def test_x09_month_movement_difference_medium_and_high():
     assert x09_high[0].facts["difference"] == "1000.00"
 
 
+def test_x09_cites_the_statement_of_its_own_month():
+    """The account's statements of every month are in the context; the month's difference points to
+    the statement that covers the month, not to whichever statement comes first (spec 024)."""
+    lines = [line("l1", date(2026, 3, 10), "10000.00", "CLIENT PAYMENT")]
+    statements = [
+        span("doc_may", date(2026, 5, 1), date(2026, 5, 31), "500.00", "800.00"),
+        span("doc_mar", date(2026, 3, 1), date(2026, 3, 31), "1000.00", "500.00"),
+    ]
+    found = run_month_checks(
+        ctx(
+            statements=statements,
+            lines=lines,
+            all_lines=lines,
+            ledger_rows=[ledger_row("e1", date(2026, 3, 10), "1100", debit="10200.00")],
+            bank_account_mappings={ACC: "1100"},
+        )
+    )
+    [x09] = [f for f in found if f.code == "X09_LEDGER_BANK_MISMATCH"]
+    assert [e.doc_id for e in x09.evidence if e.label == "Bank statement"] == ["doc_mar"]
+
+
 def test_x09_entry_missing_bank_line_within_window():
     lines = [
         line("l1", date(2026, 3, 1), "1000.00", "CLIENT PAYMENT"),

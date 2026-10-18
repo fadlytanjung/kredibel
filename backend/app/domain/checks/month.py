@@ -582,6 +582,12 @@ def _unbooked(
     return out
 
 
+def _month_bounds(month: str) -> tuple[date, date]:
+    year, number = int(month[:4]), int(month[5:7])
+    last_day = calendar.monthrange(year, number)[1]
+    return date(year, number, 1), date(year, number, last_day)
+
+
 @_check("X09_LEDGER_BANK_MISMATCH")
 def ledger_bank_mismatch(ctx: MonthContext) -> list[Finding]:
     """docs/08 §2.6: For a mapped bank account, ledger cash movement for the month differs from
@@ -624,8 +630,11 @@ def ledger_bank_mismatch(ctx: MonthContext) -> list[Finding]:
             is_high = (diff / abs(bank_net) > high_threshold) if bank_net != Decimal(0) else True
             severity: Severity = "HIGH" if is_high else "MEDIUM"
             ev: list[Evidence] = []
-            if account_spans:
-                ev.append(Evidence(doc_id=account_spans[0].doc_id, page=1, label="Bank statement"))
+            # The statement that covers this month (the context holds every month's statements).
+            first, last = _month_bounds(ctx.month)
+            covering = [s for s in account_spans if s.start <= last and s.end >= first]
+            cited = sorted(covering or account_spans, key=lambda s: (s.start, s.doc_id))[0]
+            ev.append(Evidence(doc_id=cited.doc_id, page=1, label="Bank statement"))
             for r in month_rows[:5]:
                 ev.append(
                     Evidence(doc_id=r.doc_id, ledger_entry_id=r.entry_id, label="Ledger entry")

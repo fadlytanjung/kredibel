@@ -6,8 +6,8 @@
 ## Artefacts (the five required)
 
 - [ ] **Pitch deck** on the prescribed template: [`kredibel-pitch-deck.pdf`](kredibel-pitch-deck.pdf)
-      from [`kredibel-pitch-deck.pptx`](kredibel-pitch-deck.pptx), aligned with the video; the video
-      link added on slide 15 and the PDF exported again ([README › The deck](README.md#the-deck)).
+      from [`kredibel-pitch-deck.pptx`](kredibel-pitch-deck.pptx), aligned with the video; slide 15
+      has the three links and their QR codes ([README › The deck](README.md#the-deck)).
 - [ ] **Video** 3:00–4:00 (ours: [`demo-video/`](demo-video/)), working functionality on production,
       English voice and captions, uploaded as a public (or unlisted) link that opens without sign-in.
 - [ ] **Prototype link** <https://kredibel-app.web.app> opens logged out; the demo sign-in

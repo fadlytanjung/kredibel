@@ -94,7 +94,7 @@ memory, more banks and local formats, a measured evaluation suite on real docume
 
 ## 12. Links
 
-- Prototype: <https://kredibel-app.web.app> (demo sign-in: `demo@kredibel.app` /
+- Prototype: <https://kredibel.app> (mirror <https://kredibel-app.web.app>; demo sign-in: `demo@kredibel.app` /
   `Kredibel-Demo-2026`; [docs/25](../25-demo.md))
-- Video: ⟨public link to `kredibel-demo.mp4`⟩
+- Video: https://youtu.be/5UI2NZFmzrk
 - Repository: <https://github.com/fadlytanjung/kredibel>

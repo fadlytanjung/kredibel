@@ -8,9 +8,9 @@
 |---|---|
 | **Challenge** | **BFSI: Intelligent Risk, Fraud & Financial Experiences** (detecting or reducing fraud and risk, automating complex processes) |
 | **Prototype link (GCP / Cloud Run)** | `https://kredibel.app` (mirror `https://kredibel-app.web.app`; Firebase Hosting in front of Cloud Run `kredibel-web`; demo sign-in `demo@kredibel.app` / `Kredibel-Demo-2026`, or any Google account with the sample books from [AI-BUILDER-CUP-2026](https://drive.google.com/drive/folders/1TUpbHZ-nRRoafvzEs4XX1j7rMkM40SfV?usp=sharing)) |
-| **Deck (PDF, ≤ 5 MB)** | `docs/submission/kredibel-pitch-deck.pdf` (16 slides, 1.1 MB), exported from `kredibel-pitch-deck.pptx`: the team's deck on the organiser's "Submission Template \| AI Builder Cup", slide for slide, with the team details, demo account, production results and the screens of the video. Add the video link on slide 15 and export again before uploading ([README › The deck](README.md#the-deck)) |
+| **Deck (PDF, ≤ 5 MB)** | `docs/submission/kredibel-pitch-deck.pdf` (16 slides, 1.1 MB), exported from `kredibel-pitch-deck.pptx`: the team's deck on the organiser's "Submission Template \| AI Builder Cup", slide for slide, with the team details, demo account, production results and the screens of the video. Slide 15 has the live, repository and video links with a QR code each ([README › The deck](README.md#the-deck)) |
 | **GitHub repository (public)** | `https://github.com/fadlytanjung/kredibel` |
-| **Demo video link (3–4 minutes)** | ⟨public YouTube link, uploaded under the team leader's account; title and description in `video-upload.md`⟩ |
+| **Demo video link (3–4 minutes)** | `https://youtu.be/5UI2NZFmzrk` (public on YouTube under the team leader's account; title and description in `video-upload.md`) |
 | **Brief description** | the text below |
 
 ## Brief description (for the form)

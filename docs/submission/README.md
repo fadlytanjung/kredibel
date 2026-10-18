@@ -5,11 +5,19 @@ ends. Rules as published (copied 17 Oct 2026):
 
 | Requirement | Rule | Ours | Status |
 |---|---|---|---|
-| **Pitch deck** | On the prescribed template; another format may be disqualified | Content per slide: [`pitch-deck.md`](pitch-deck.md); paste it into the template | Content ready; template to fill |
+| **Pitch deck** | On the prescribed template; another format may be disqualified | [`kredibel-pitch-deck.pdf`](kredibel-pitch-deck.pdf) (16 slides, 1.1 MB) to upload, exported from [`kredibel-pitch-deck.pptx`](kredibel-pitch-deck.pptx): the team's deck on the organiser's template, slide for slide, with the figures and screens of the video (demo company August–October 2026, 95% matched, demo account); content notes in [`pitch-deck.md`](pitch-deck.md) | Final; slide 15 waits for the video link |
 | **Video demonstration** | 3 to 4 minutes; must clearly show the working solution; longer may be penalised | `demo-video/kredibel-demo.mp4` (2:56, 1920×1080, 15 MB; kept out of git, rebuilt by `make video`) recorded on production with the demo account; script [`demo-video/script.md`](demo-video/script.md) (its times come from the narration; the cut runs a few seconds longer); captions `kredibel-demo.srt`; poster `poster.png`; a silent cut without captions to dub over, `kredibel-demo-silent.mp4` (`make video-silent`), with `kredibel-demo-silent.srt` as its script | Rendered for review (the team caps it at 3:00; the rules say 3 to 4 minutes); upload as a public link |
 | **Deployed prototype** | A valid, accessible, working link for the whole evaluation; no retries | <https://kredibel.app> (mirror <https://kredibel-app.web.app>) with the demo account `demo@kredibel.app` / `Kredibel-Demo-2026` ([docs/25](../25-demo.md)) | Live |
 | **GitHub repository** | Accessible, with the source code and supporting material, for the whole evaluation | <https://github.com/fadlytanjung/kredibel> | Check it is public |
 | **Brief description** | What we built, and how we use Firebase, Firestore, Cloud Run and Gemini | [`brief-description.md`](brief-description.md) (short version 820 characters) | Ready |
+
+## The deck
+
+After the video is on YouTube, put its link on slide 15 of `kredibel-pitch-deck.pptx` (the box
+*Add video link*), then export the PDF again. Export with an English (US) number format, or the
+charts print decimal commas: open the deck with
+`open -a Keynote kredibel-pitch-deck.pptx --args -AppleLocale en_US`, then File › Export To › PDF,
+image quality Better. Keep it under 5 MB.
 
 ## Keep the prototype working until judging ends
 

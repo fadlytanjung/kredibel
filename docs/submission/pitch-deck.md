@@ -4,6 +4,9 @@
 > slide of the template (keep its layout, fonts and order; do not add slides it does not have). The
 > pictures named here exist in the repository. Numbers are from the demo company (synthetic,
 > August–October 2026) on production, 17 Oct 2026, and from the cited source.
+>
+> The finished deck is [`kredibel-pitch-deck.pptx`](kredibel-pitch-deck.pptx) (PDF:
+> [`kredibel-pitch-deck.pdf`](kredibel-pitch-deck.pdf)); this file is the content it was built from.
 
 ## 1. Team
 
@@ -82,7 +85,7 @@ answer.
   High months found with evidence, a held copy, an exact copy never read.
 - Test scenario S1: 84 of 87 bank lines without a document matched to their ledger booking, none
   wrongly.
-- Reading cost measured on the demo company: about USD 0.43 for 80 documents (89 pages).
+- Reading cost measured on an earlier, 80-document demo company: about USD 0.43 (89 pages).
 
 ## 11. What comes next
 

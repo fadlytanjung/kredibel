@@ -61,6 +61,13 @@ voice-over in another language; its `.srt` carries the lines and when each is sa
 HTML in `tools/video/cards/`. Text-to-Speech uses Application Default Credentials; no key is written
 to the repository.
 
+## Meet the Builders (November 2026)
+
+The second submission, for the Meet the Builders page (Google Gen AI APAC Builder 2026, closes
+26 Nov 2026): a 90-second video with the presenter on camera, three Google AI tools and a social post.
+Everything for it is in [`meet-the-builders/`](meet-the-builders/README.md); its new scene is the loan
+readiness report (spec 025).
+
 ## Older drafts
 
 [`proposal.md`](proposal.md) (long-form proposal), [`demo-walkthrough-guide.md`](demo-walkthrough-guide.md)

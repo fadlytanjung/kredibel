@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Ready |
+| **Status** | Deployed |
 | **Priority** | P0 (A, B), P1 (C) |
 | **Owner role** | B: Backend, C: Frontend |
 | **Depends on** | 007 (reconciliation), 008 (risk), 009 (review queue), 010 (cash flow), 013 (plans) |

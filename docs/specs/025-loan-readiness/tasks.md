@@ -22,5 +22,6 @@
 
 ## C. Record (P1)
 
-- [ ] **T025-05** ADR-028, `docs/03`, `docs/04`, `docs/11`, `docs/20`, README; deploy and check it
-  on the demo account.
+- [x] **T025-05** ADR-028, `docs/03`, `docs/04`, `docs/11`, `docs/20`, README; deploy and check it
+  on the demo account. Deployed 23 Nov 2026 (`1b8544d`, Cloud Build green); `GET /api/readiness` on
+  the demo account: Not ready yet (HISTORY and COVERAGE to settle, FINDINGS to fix, REVIEW 20).

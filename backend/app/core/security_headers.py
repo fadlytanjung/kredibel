@@ -1,4 +1,5 @@
-"""Security headers middleware: CSP, HSTS, content-type, referrer and permissions policies.
+"""Security headers middleware: CSP, HSTS, content-type, referrer and permissions policies, and
+`Cache-Control: no-store` on every API response (errors too) so no CDN keeps one.
 
 Normative reference: docs/14-security-and-compliance.md §8 (values are tested against its table).
 """
@@ -65,4 +66,6 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers.update(SECURITY_HEADERS)
         if request.url.path in _API_DOCS_PATHS:
             response.headers["Content-Security-Policy"] = _API_DOCS_CSP
+        if request.url.path.startswith("/api/"):
+            response.headers["Cache-Control"] = "no-store"
         return response

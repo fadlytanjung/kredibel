@@ -66,7 +66,7 @@ test('record the 90-second cut', async ({ page, baseURL }) => {
   await page.getByLabel(/Password/).fill(PASSWORD)
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
   await page.getByRole('button', { name: /Keep my books/ }).click({ timeout: 60_000 })
-  await expect(content.getByText('Matched by Kredibel', { exact: true }).first()).toBeVisible({ timeout: 60_000 })
+  await expect(page.getByRole('heading', { name: 'Sunrise Coffee Roasters', level: 1 })).toBeVisible({ timeout: 60_000 })
 
   // Files in any order: a copy is never read again; Gemini reads, code checks each value on the page.
   await page.goto('/documents')

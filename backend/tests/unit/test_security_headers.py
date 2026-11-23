@@ -63,3 +63,16 @@ async def test_t001_11_api_docs_page_only_adds_its_cdn():
     expected_script = "script-src 'self' 'unsafe-inline' https://apis.google.com https://cdn.jsdelivr.net"
     assert expected_script in csp
     assert "frame-ancestors 'none'" in csp
+
+
+async def test_every_api_response_an_error_too_is_never_kept_by_a_cache():
+    """docs/14 §8: Firebase Hosting's CDN kept a 404 of /api/workspace for every caller."""
+    async with _client() as client:
+        ok = await client.get("/api/thing")
+        missing = await client.get("/api/no-such-thing")
+        page = await client.get("/index.html-route")
+
+    assert ok.headers.get("Cache-Control") == "no-store"
+    assert missing.status_code == 404
+    assert missing.headers.get("Cache-Control") == "no-store"
+    assert page.headers.get("Cache-Control") is None  # the SPA's own caching is Hosting's

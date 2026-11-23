@@ -200,6 +200,10 @@ for its scripts, styles and assets, inline script initialization, and `https://f
 Firebase Hosting sets the same headers on the SPA it serves (`firebase.json` → `hosting.headers`,
 [ADR-018](adr/ADR-018-firebase-hosting-in-front-of-cloud-run.md)); a test keeps both in step.
 
+Every API response (`/api/**`), an error included, also carries `Cache-Control: no-store`, so
+Firebase Hosting's CDN never keeps one. Without it the CDN kept a `404` of `/api/workspace` for ten
+minutes and served it to every caller at that edge, signed in or not (23 Nov 2026).
+
 ---
 
 ## 9. Responsible AI

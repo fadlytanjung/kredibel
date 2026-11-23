@@ -1,0 +1,29 @@
+# Kredibel loan readiness — version 1
+# Whether a workspace's books are ready to show a lender (spec 025, ADR-028). This is the owner's own
+# check of the books, never a credit decision: no score, no recommendation to lend. Every check is
+# computed by code (backend/app/domain/readiness.py); a FAIL makes the report NOT_READY, otherwise a
+# WARN makes it ALMOST_READY, otherwise it is READY.
+
+version: 1
+id: readiness.v1
+
+period:
+  maxMonths: 12                     # the report covers at most this many months
+
+checks:
+  HISTORY:                          # months with a read bank statement in the period
+    failBelowMonths: 3
+    warnBelowMonths: 6              # lenders often ask for six months of statements
+  COVERAGE: {}                      # FAIL: a month misses an account's statement; WARN: balances do not carry over
+  RECONCILED:
+    warnBelowMatchedShare: "0.85"   # "Matched by Kredibel" per month (docs/03 NFR-05)
+  FINDINGS:
+    failSeverities: [CRITICAL]      # e.g. an edited statement (A01, M04)
+    warnSeverities: [HIGH]          # e.g. a supplier paid into a new account (X08)
+  REVIEW:
+    warnAboveOpenItems: 0           # every decision taken, so every figure is final
+  CASH:
+    warnOnNegativeNet: true         # more money out than in over the period
+    warnOnNegativeBalanceDays: true
+
+largestClients: 3                   # clients named with their share of money in

@@ -323,6 +323,10 @@ class InsightService:
             review_preview=tuple(preview),
         )
 
+    async def month_strip(self, org_id: str) -> list[MonthChip]:
+        """The dashboard's months: statements present and expected, state, risk, match rate."""
+        return self._strip(await self._books(org_id))
+
     @staticmethod
     def _auto_match_rate(books: _Books, months: Sequence[str]) -> Decimal | None:
         matched = in_scope = 0

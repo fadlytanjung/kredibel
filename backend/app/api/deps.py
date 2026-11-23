@@ -22,6 +22,7 @@ from app.services.label_service import LabelService
 from app.services.match_service import MatchService
 from app.services.month_service import MonthService
 from app.services.profit_loss_service import ProfitLossService
+from app.services.readiness_service import ReadinessService
 from app.services.record_service import RecordService
 from app.services.review_service import ReviewService
 from app.services.runs import RunService
@@ -45,6 +46,9 @@ class ServiceProvider(Protocol):
 
     @property
     def expectation_service(self) -> ExpectationService: ...
+
+    @property
+    def readiness_service(self) -> ReadinessService: ...
 
     @property
     def transaction_service(self) -> TransactionService: ...

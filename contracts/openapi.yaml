@@ -20,6 +20,7 @@ tags:
   - name: review
   - name: risk
   - name: insight
+  - name: readiness
   - name: assistant
   - name: labels
   - name: internal
@@ -1141,6 +1142,25 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/CashFlow" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /api/readiness:
+    get:
+      tags: [readiness]
+      operationId: getReadiness
+      description: >-
+        The loan readiness report (spec 025, ADR-028): whether the books are ready to show a lender,
+        from six checks computed by code with the thresholds of contracts/policy/readiness.v1.yaml,
+        and the figures a lender reads first. Not a credit decision. Defaults to every month with
+        data, capped at the policy's latest months. Read-only.
+      parameters:
+        - $ref: "#/components/parameters/Period"
+      responses:
+        "200":
+          description: The report for the period
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Readiness" }
         "422": { $ref: "#/components/responses/Problem" }
 
   /api/counterparties:
@@ -2890,6 +2910,89 @@ components:
               cashflowClass: { $ref: "#/components/schemas/CashflowClass" }
               amount: { $ref: "#/components/schemas/Money" }
         note: { type: string }
+    ReadinessLevel: { type: string, enum: [READY, ALMOST_READY, NOT_READY] }
+    ReadinessCheck:
+      type: object
+      description: One check of the report; the UI words it from its id, status and facts
+      required: [id, status, months, count, threshold, findings]
+      properties:
+        id: { type: string, enum: [HISTORY, COVERAGE, RECONCILED, FINDINGS, REVIEW, CASH] }
+        status: { type: string, enum: [PASS, WARN, FAIL] }
+        months: { type: array, items: { $ref: "#/components/schemas/YearMonth" }, description: "The months the check concerns" }
+        count: { type: [integer, "null"], description: "Months with statements (HISTORY), months or breaks (COVERAGE, RECONCILED), findings, open review items, days below zero (CASH)" }
+        threshold: { type: [string, "null"], description: "The policy value the words quote" }
+        findings:
+          type: array
+          items:
+            type: object
+            required: [findingId, code, severity, title, month, nextStep, link]
+            properties:
+              findingId: { type: string }
+              code: { type: string }
+              severity: { $ref: "#/components/schemas/Severity" }
+              title: { type: string }
+              month: { type: [string, "null"] }
+              nextStep: { type: [string, "null"] }
+              link: { type: string, examples: ["/risk/fnd_x08"] }
+    Readiness:
+      type: object
+      required: [workspace, currency, framework, period, generatedAt, level, checks, totals, months, clients, documents]
+      properties:
+        workspace: { type: string, description: "The legal name, or the workspace name" }
+        currency: { type: string, minLength: 3, maxLength: 3 }
+        framework: { $ref: "#/components/schemas/AccountingFramework" }
+        period: { type: string }
+        generatedAt: { type: string, format: date-time }
+        level: { $ref: "#/components/schemas/ReadinessLevel" }
+        checks: { type: array, items: { $ref: "#/components/schemas/ReadinessCheck" } }
+        totals:
+          type: object
+          required: [months, moneyIn, moneyOut, net, averageIn, averageOut, averageNet, matchedShare, closing]
+          properties:
+            months: { type: integer }
+            moneyIn: { $ref: "#/components/schemas/Money" }
+            moneyOut: { $ref: "#/components/schemas/Money" }
+            net: { $ref: "#/components/schemas/Money" }
+            averageIn: { oneOf: [{ $ref: "#/components/schemas/Money" }, { type: "null" }] }
+            averageOut: { oneOf: [{ $ref: "#/components/schemas/Money" }, { type: "null" }] }
+            averageNet: { oneOf: [{ $ref: "#/components/schemas/Money" }, { type: "null" }] }
+            matchedShare: { type: [string, "null"], description: "Bank lines matched by Kredibel over those in scope, 0..1" }
+            closing: { oneOf: [{ $ref: "#/components/schemas/Money" }, { type: "null" }] }
+        months:
+          type: array
+          items:
+            type: object
+            required: [month, statementsPresent, statementsExpected, reconciled, moneyIn, moneyOut, net, closing, matchedShare, riskLevel, explanation]
+            properties:
+              month: { $ref: "#/components/schemas/YearMonth" }
+              statementsPresent: { type: integer }
+              statementsExpected: { type: integer }
+              reconciled: { type: boolean }
+              moneyIn: { $ref: "#/components/schemas/Money" }
+              moneyOut: { $ref: "#/components/schemas/Money" }
+              net: { $ref: "#/components/schemas/Money" }
+              closing: { oneOf: [{ $ref: "#/components/schemas/Money" }, { type: "null" }] }
+              matchedShare: { type: [string, "null"] }
+              riskLevel: { type: [string, "null"], enum: [LOW, MEDIUM, HIGH, CRITICAL, null] }
+              explanation: { type: [string, "null"], description: "The month run's risk explanation, only when the grounding guard verified it" }
+        clients:
+          type: array
+          items:
+            type: object
+            required: [name, moneyIn, share]
+            properties:
+              name: { type: string }
+              moneyIn: { $ref: "#/components/schemas/Money" }
+              share: { type: string, description: "Of the period's money in, 0..1" }
+        documents:
+          type: array
+          description: Read documents of the period by type (exact and held copies left out)
+          items:
+            type: object
+            required: [type, count]
+            properties:
+              type: { type: string }
+              count: { type: integer }
     Counterparty:
       type: object
       required: [counterpartyId, name, roles]

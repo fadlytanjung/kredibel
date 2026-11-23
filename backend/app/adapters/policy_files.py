@@ -13,6 +13,7 @@ from app.domain.checks.policy import ForensicsPolicy, parse_forensics
 from app.domain.labels import LearningPolicy
 from app.domain.plans import PlanCatalog, parse_plans
 from app.domain.profit_loss import ProfitLossPolicy
+from app.domain.readiness import ReadinessPolicy, parse_readiness_policy
 from app.domain.reconciliation_policy import ReconciliationPolicy
 from app.domain.risk import RiskPolicy, parse_risk_policy
 from app.domain.run_usage import ModelPrice, parse_prices
@@ -52,6 +53,12 @@ def load_reconciliation_policy(policy_dir: Path) -> ReconciliationPolicy:
     """Validate all scoring thresholds from reconciliation.v1.yaml (AC-007-17)."""
     with (policy_dir / "reconciliation.v1.yaml").open(encoding="utf-8") as handle:
         return ReconciliationPolicy.model_validate(yaml.safe_load(handle))
+
+
+def load_readiness_policy(policy_dir: Path) -> ReadinessPolicy:
+    """readiness.v1.yaml: the loan readiness checks' thresholds (spec 025, ADR-028)."""
+    with (policy_dir / "readiness.v1.yaml").open(encoding="utf-8") as handle:
+        return parse_readiness_policy(yaml.safe_load(handle) or {})
 
 
 def load_profit_loss_policy(policy_dir: Path) -> ProfitLossPolicy:

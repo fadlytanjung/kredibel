@@ -42,6 +42,7 @@ from app.adapters.policy_files import (
     load_model_prices,
     load_plans,
     load_profit_loss_policy,
+    load_readiness_policy,
     load_reconciliation_policy,
     load_risk_policy,
 )
@@ -67,6 +68,7 @@ from app.api.me import create_me_router
 from app.api.months import create_months_router
 from app.api.plans import create_plans_router
 from app.api.profit_loss import create_profit_loss_router
+from app.api.readiness import create_readiness_router
 from app.api.records import create_records_router
 from app.api.review_items import create_review_items_router
 from app.api.runs import create_runs_router
@@ -140,6 +142,7 @@ from app.services.label_service import LabelService
 from app.services.match_service import MatchService
 from app.services.month_service import MonthService
 from app.services.profit_loss_service import ProfitLossService
+from app.services.readiness_service import ReadinessService
 from app.services.record_service import RecordService
 from app.services.review_service import ReviewService
 from app.services.runs import DocumentWorkflowRunner, MonthWorkflowRunner, RunService
@@ -899,6 +902,22 @@ class AppDeps:
         )
 
     @property
+    def readiness_service(self) -> ReadinessService:
+        return self._once(
+            "readiness_service",
+            lambda: ReadinessService(
+                insights=self.insight_service,
+                workspaces=self.workspace_repo,
+                months=self.month_repo,
+                findings=self.findings,
+                review_items=self.review_items,
+                documents=self.doc_repo,
+                policy=load_readiness_policy(self.settings.contract_path(self.settings.policy_dir)),
+                clock=self.clock,
+            ),
+        )
+
+    @property
     def expectation_service(self) -> ExpectationService:
         return self._once(
             "expectation_service",
@@ -1007,6 +1026,7 @@ def create_app(
         app.include_router(create_bank_lines_router(deps, workspace_dep))
         app.include_router(create_transactions_router(deps, workspace_dep))
         app.include_router(create_insights_router(deps, workspace_dep))
+        app.include_router(create_readiness_router(deps, workspace_dep))
         app.include_router(create_profit_loss_router(deps, workspace_dep))
         app.include_router(create_records_router(deps, workspace_dep))
         app.include_router(create_findings_router(deps, workspace_dep))

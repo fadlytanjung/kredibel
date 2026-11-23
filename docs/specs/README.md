@@ -33,6 +33,7 @@ documents sit under `docs/`. Paths to other docs are relative (`../01-…`, `../
 | 022 | [Extraction store and knowledge base](022-extraction-store/spec.md) | P0 (A, B), P1 (C) | A, B, C | 005, 016, 011 | D8 |
 | 023 | [Reading and matching quality](023-reading-and-matching-quality/spec.md) | P0 (A), P1 (B) | A, B, C | 005, 007, 016, 022 | D9 |
 | 024 | [Demo account, expectations and transactions](024-demo-account-and-expectations/spec.md) | P0 (A, B), P1 (C, D) | A, B, C | 002, 007, 013, 021 | D9 |
+| 025 | [Loan readiness report](025-loan-readiness/spec.md) | P0 (A, B), P1 (C) | B, C | 007, 008, 009, 010, 013 | D10 |
 
 Spec numbers are identifiers, not the build order: 013 is built right after 001, because 003 and 004
 call its entitlement checks.

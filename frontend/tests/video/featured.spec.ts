@@ -15,6 +15,7 @@ import {
   closeDrawer,
   EMAIL,
   glide,
+  idToken,
   JULY,
   OUT,
   overlay,
@@ -120,8 +121,21 @@ test('record the 90-second cut', async ({ page, baseURL }) => {
   await glide(page, page.getByRole('dialog').getByRole('heading').first(), 700)
   await scene.end(0.6)
 
-  // New: the loan readiness report, from the menu.
+  // New: the loan readiness report, from the menu. Off camera, the month the late upload reopened
+  // reconciles again first (a minute or two), so the report shows the books as they settle.
   await closeDrawer(page)
+  const token = await idToken(origin)
+  await expect
+    .poll(
+      async () => {
+        const res = await fetch(`${origin}/api/readiness`, { headers: { Authorization: `Bearer ${token}` } })
+        const body = (await res.json()) as { checks?: { id: string; status: string }[] }
+        return body.checks?.find((c) => c.id === 'RECONCILED')?.status
+      },
+      { timeout: 300_000, intervals: [5_000] },
+    )
+    .toBe('PASS')
+    .catch(() => undefined)
   await sleep(600)
   scene = new Scene(page, cdp, 'readiness')
   await scene.begin()

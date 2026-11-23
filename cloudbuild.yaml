@@ -10,8 +10,9 @@ steps:
       - '-c'
       - |
         set -euo pipefail
-        # pyright runs on a Node binary that needs libatomic, which the slim image lacks.
-        apt-get update -qq && apt-get install -y -qq --no-install-recommends libatomic1 >/dev/null
+        # pyright runs on Node. Debian's nodejs on PATH is used as is: pyright's own nodeenv download
+        # parses Node's release list and failed on a pre-release version on 23 Nov 2026.
+        apt-get update -qq && apt-get install -y -qq --no-install-recommends libatomic1 nodejs >/dev/null
         pip install --quiet uv
         cd backend
         uv sync --frozen

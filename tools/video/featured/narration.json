@@ -1,0 +1,124 @@
+{
+  "title": "Kredibel: your books, checked and ready for a lender",
+  "scriptDir": "meet-the-builders",
+  "maxSeconds": 90,
+  "maxMegabytes": 15,
+  "presenter": {
+    "name": "Muhammad Fadly Tanjung",
+    "role": "Team lead, Kredibel · Indonesia"
+  },
+  "voice": {
+    "name": "Charon",
+    "voice": "en-US-Chirp3-HD-Charon",
+    "languageCode": "en-US",
+    "project": "cloud-hack2skill",
+    "speakingRate": 1.1
+  },
+  "gapSeconds": 0.25,
+  "tailSeconds": 0.5,
+  "scenes": [
+    {
+      "id": "camera",
+      "kind": "camera",
+      "seconds": 10,
+      "shot": "On camera (recorded by the presenter): name, where they are from, the team.",
+      "sentences": [
+        {
+          "text": "Hi, I'm Muhammad Fadly Tanjung from Indonesia. With my team, I built Kredibel."
+        }
+      ]
+    },
+    {
+      "id": "problem",
+      "kind": "card",
+      "shot": "Card: a hundred documents a month; checking by hand takes days; one edited statement can hide fraud.",
+      "sentences": [
+        {
+          "text": "A small business gets about a hundred documents a month: statements, invoices and receipts."
+        },
+        {
+          "text": "Checking them by hand takes days, and one edited bank statement can hide fraud."
+        }
+      ]
+    },
+    {
+      "id": "intro",
+      "kind": "card",
+      "shot": "Card: the Kredibel logo and its promise.",
+      "sentences": [
+        {
+          "text": "Kredibel checks a business's own books, and shows the evidence behind every number."
+        }
+      ]
+    },
+    {
+      "id": "read",
+      "kind": "app",
+      "shot": "Production, demo account: a late invoice, a receipt photo and a copy of a statement uploaded; the copy is not read; the invoice is read and its total lit on the page.",
+      "sentences": [
+        {
+          "text": "Upload files in any order. A copy is spotted at once, and never counted twice."
+        },
+        {
+          "text": "Gemini reads every page, and code checks each value is printed where Gemini says it is."
+        }
+      ]
+    },
+    {
+      "id": "risk",
+      "kind": "app",
+      "shot": "Risk: August Critical; the evidence viewer lights the edited amount.",
+      "sentences": [
+        {
+          "text": "Each month reconciles itself, and what looks wrong comes with its evidence."
+        },
+        {
+          "text": "Here, an amount was edited in a PDF editor."
+        }
+      ]
+    },
+    {
+      "id": "readiness",
+      "kind": "app",
+      "shot": "New: Loan readiness from the menu; Not ready yet, the checks, the edited statement to fix first; the figures; printed without the menus.",
+      "sentences": [
+        {
+          "text": "New: the loan readiness report."
+        },
+        {
+          "text": "Before the owner applies for credit, Kredibel says if the books are ready to show a lender, and what to fix first."
+        },
+        {
+          "text": "Every figure comes from code. Print it, or save it as a PDF."
+        }
+      ]
+    },
+    {
+      "id": "tools",
+      "kind": "card",
+      "shot": "Card: the three Google AI tools and what each does.",
+      "sentences": [
+        {
+          "text": "Built with Google AI. Gemini on Vertex AI reads every page and explains each risk."
+        },
+        {
+          "text": "Document AI reads scans and receipt photos. And the Agent Development Kit runs every workflow on Cloud Run."
+        }
+      ]
+    },
+    {
+      "id": "close",
+      "kind": "card",
+      "shot": "Card: who it helps, and where to try it.",
+      "sentences": [
+        {
+          "text": "Kredibel helps small businesses, their accountants, and the lenders they apply to."
+        },
+        {
+          "text": "Try it at kredibel.app.",
+          "say": "Try it at kredibel dot app."
+        }
+      ]
+    }
+  ]
+}

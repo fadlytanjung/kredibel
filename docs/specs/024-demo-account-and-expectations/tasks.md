@@ -54,3 +54,9 @@
   the ledger), 295 of 310 bank lines matched automatically (95.2 %, 92.2 %, 98.0 %) and only the
   planted findings open; a reset copies it in about 40 s (records as stored, 64 file threads); a
   late July invoice reconciles August again; a model's guessed category gives way to its match.
+- [ ] **T024-11** The 90-second cut for Meet the Builders (Google Gen AI APAC Builder 2026, closes
+  26 Nov 2026): `make video-featured CAMERA=…` voices `tools/video/featured/narration.json`, records
+  it on production with the demo account (`frontend/tests/video/featured.spec.ts` on the recorder
+  shared with the 3-minute cut, `recorder.ts`), puts the presenter's own clip first under a name tag
+  and encodes it within 90 s and 15 MB (`edit.py --cut featured --camera`); the loan readiness
+  report (spec 025) is its new scene. Form answers and the post in `docs/submission/meet-the-builders/`.

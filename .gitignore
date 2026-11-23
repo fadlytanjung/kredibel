@@ -46,4 +46,6 @@ firebase-debug.log
 demo-pack/
 
 tools/video/out/
+tools/video/out-*/
 docs/submission/demo-video/*.mp4
+docs/submission/meet-the-builders/*.mp4

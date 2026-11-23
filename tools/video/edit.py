@@ -7,7 +7,13 @@ frame, at 30 fps under its narration; the scenes joined with short dissolves; th
 With --silent it cuts the recording made without captions (VIDEO_FRAMES=frames-silent) to the same
 timings, with no sound: kredibel-demo-silent.mp4 to dub over, and its .srt as the dubbing script.
 
-Usage: python3 tools/video/edit.py [--silent]
+With --cut NAME it cuts tools/video/out-NAME/ (narrate.py --cut, the recording with VIDEO_CUT=NAME)
+to docs/submission/<the plan's scriptDir>/kredibel-NAME.mp4, kept within the plan's maxSeconds and
+maxMegabytes (a high-quality master first, then a two-pass encode to the size). --camera PATH puts
+the presenter's own clip in the camera scene (fitted to 1920x1080, with the name tag the recording
+drew, out-NAME/name-tag.png); without it the scene shows the placeholder card, for a preview.
+
+Usage: python3 tools/video/edit.py [--silent] [--cut featured [--camera intro.mp4]]
 """
 
 from __future__ import annotations
@@ -25,6 +31,9 @@ FILM = ROOT / "docs" / "submission" / "demo-video"
 FPS = 30
 DISSOLVE = 0.5
 MAX_SECONDS = 180  # the team's limit: three minutes at most
+MAX_MEGABYTES: float | None = None
+CAMERA: Path | None = None
+AUDIO_KBPS = 128
 
 
 def run(*args: str) -> None:
@@ -57,7 +66,48 @@ def scene_clock(manifest: dict) -> tuple[list[tuple[float, str]], float]:
     return frames, v(manifest["end"])
 
 
+def build_camera(scene: dict, clip: Path) -> tuple[Path, float]:
+    """The presenter's own clip: 1920x1080 at 30 fps, its own voice, the name tag laid over it."""
+    scenes = OUT / "scenes"
+    scenes.mkdir(parents=True, exist_ok=True)
+    target = scenes / f"{scene['id']}.mp4"
+    tag = OUT / "name-tag.png"
+    fill = "scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,setsar=1"
+    fit = f"[0:v]fps={FPS},{fill}"
+    if tag.exists():
+        graph = (
+            f"{fit}[cam];[1:v]format=rgba,fade=t=in:st=0.8:d=0.5:alpha=1[tag];"
+            "[cam][tag]overlay=0:0:enable='gte(t,0.8)',format=yuv420p[v]"
+        )
+        inputs = ["-i", str(clip), "-loop", "1", "-i", str(tag)]
+    else:
+        graph = f"{fit},format=yuv420p[v]"
+        inputs = ["-i", str(clip)]
+    run(
+        *inputs,
+        *("-filter_complex", f"{graph};[0:a]aresample=48000,aformat=channel_layouts=mono[a]"),
+        *("-map", "[v]", "-map", "[a]", "-t", f"{probe(clip):.3f}"),
+        *("-c:v", "libx264", "-preset", "medium", "-crf", "16", "-c:a", "aac", "-b:a", "192k"),
+        str(target),
+    )
+    return target, probe(target)
+
+
+def fit_size(master: Path, film: Path, megabytes: float) -> None:
+    """Two passes to a bitrate that keeps the film under `megabytes` (5% kept for the container)."""
+    seconds = probe(master)
+    kbps = int(megabytes * 8000 * 0.95 / seconds) - AUDIO_KBPS
+    log = OUT / "x264-2pass"
+    common = ["-c:v", "libx264", "-preset", "slow", "-b:v", f"{kbps}k", "-pix_fmt", "yuv420p"]
+    run("-i", str(master), *common, "-pass", "1", "-passlogfile", str(log), "-an", "-f", "mp4",
+        "/dev/null")  # fmt: skip
+    run("-i", str(master), *common, "-pass", "2", "-passlogfile", str(log),
+        "-c:a", "aac", "-b:a", f"{AUDIO_KBPS}k", "-movflags", "+faststart", str(film))  # fmt: skip
+
+
 def build_scene(scene: dict, frames_dir: str, sound: bool) -> tuple[Path, float]:
+    if scene.get("kind") == "camera" and CAMERA is not None:
+        return build_camera(scene, CAMERA)
     folder = OUT / frames_dir / scene["id"]
     manifest = json.loads((folder / "manifest.json").read_text(encoding="utf-8"))
     frames, length = scene_clock(manifest)
@@ -114,10 +164,24 @@ def srt_time(t: float) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--silent", action="store_true", help="No captions, no sound: to dub over")
+    parser.add_argument("--cut", default="", help="A cut in tools/video/<cut>/ (e.g. featured)")
+    parser.add_argument("--camera", type=Path, help="The presenter's own clip for the camera scene")
     args = parser.parse_args()
+    global OUT, FILM, MAX_SECONDS, MAX_MEGABYTES, CAMERA
     frames_dir = "frames-silent" if args.silent else "frames"
     name = "kredibel-demo-silent" if args.silent else "kredibel-demo"
     sound = not args.silent
+    if args.cut:
+        plan = json.loads((HERE / args.cut / "narration.json").read_text(encoding="utf-8"))
+        OUT = HERE / f"out-{args.cut}"
+        FILM = ROOT / "docs" / "submission" / plan.get("scriptDir", args.cut)
+        MAX_SECONDS = int(plan.get("maxSeconds", MAX_SECONDS))
+        MAX_MEGABYTES = plan.get("maxMegabytes")
+        name = f"kredibel-{args.cut}" + ("-silent" if args.silent else "")
+        if args.camera:
+            CAMERA = args.camera.resolve()
+            if not CAMERA.exists():
+                raise SystemExit(f"no camera clip at {CAMERA}")
 
     timings = json.loads((OUT / "timings.json").read_text(encoding="utf-8"))["scenes"]
     # A scene recorded only on request (the Google onboarding needs VIDEO_OWNER_EMAIL) is left out.
@@ -157,18 +221,23 @@ def main() -> int:
         maps.append("-an")
     FILM.mkdir(parents=True, exist_ok=True)
     film = FILM / f"{name}.mp4"
+    master = OUT / f"{name}-master.mp4" if MAX_MEGABYTES else film
     run(
         *inputs,
         *("-filter_complex", ";".join(parts)),
         *maps,
-        *("-c:v", "libx264", "-preset", "slow", "-crf", "20", "-pix_fmt", "yuv420p"),
-        *("-movflags", "+faststart"),
-        str(film),
+        *("-c:v", "libx264", "-preset", "slow", "-crf", "18" if MAX_MEGABYTES else "20"),
+        *("-pix_fmt", "yuv420p", "-movflags", "+faststart"),
+        str(master),
     )
+    if MAX_MEGABYTES:
+        fit_size(master, film, float(MAX_MEGABYTES))
 
     # Captions for players that show them, from the narration's own timings.
     cues, n = [], 0
-    for scene, start in zip(timings, offsets, strict=False):
+    for scene, start, (_, length) in zip(timings, offsets, built, strict=False):
+        if scene.get("kind") == "camera":
+            scene = {**scene, "sentences": [{**scene["sentences"][0], "end": length - 0.5}]}
         for sentence in scene["sentences"]:
             n += 1
             begin, end = srt_time(start + sentence["start"]), srt_time(start + sentence["end"])
@@ -188,9 +257,10 @@ def main() -> int:
     size = film.stat().st_size / 1e6
     print(f"wrote {film.relative_to(ROOT)}: {int(length // 60)}:{length % 60:04.1f}, {size:.1f} MB")
     if length > MAX_SECONDS:
-        print(
-            f"over {MAX_SECONDS // 60}:00 by {length - MAX_SECONDS:.1f} s: shorten narration.json"
-        )
+        print(f"over {MAX_SECONDS} s by {length - MAX_SECONDS:.1f} s: shorten the narration")
+        return 1
+    if MAX_MEGABYTES and size > float(MAX_MEGABYTES):
+        print(f"over {MAX_MEGABYTES} MB: lower maxMegabytes a little and cut again")
         return 1
     return 0
 

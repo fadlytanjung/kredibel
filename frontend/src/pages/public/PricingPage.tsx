@@ -77,15 +77,6 @@ export function PricingPage() {
             <div className="pub-soon-grid">
               <div className="pub-soon">
                 <span className="ico">
-                  <Icon name="file-text" />
-                </span>
-                <div>
-                  <h3>{t('pricing.loanReadiness')}</h3>
-                  <p>{t('pricing.loanReadinessBody')}</p>
-                </div>
-              </div>
-              <div className="pub-soon">
-                <span className="ico">
                   <Icon name="bank" />
                 </span>
                 <div>

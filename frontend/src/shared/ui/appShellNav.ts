@@ -14,6 +14,7 @@ export type NavKey =
   | 'risk'
   | 'counterparties'
   | 'assistant'
+  | 'readiness'
   | 'labels'
   | 'runs'
   | 'settings'
@@ -69,6 +70,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
   // Hidden from the menus (16 Oct 2026, docs/11 §4.1); the pages stay for links from the books.
   { key: 'counterparties', path: '/counterparties', icon: 'users', group: 'insight', fab: true, hidden: true },
   { key: 'assistant', path: '/assistant', icon: 'sparkles', group: 'insight' },
+  { key: 'readiness', path: '/readiness', icon: 'book', group: 'insight', fab: true },
   {
     key: 'labels',
     path: '/labels',

@@ -10,6 +10,7 @@ from html import escape
 from icons import icon
 from screens import (
     COMMON_WORDS,
+    amount,
     DASH,
     LOCALES,
     RISK_WORDS,
@@ -20,6 +21,7 @@ from screens import (
     money_code,
     month_name,
     month_tabs,
+    period_range,
     seg,
     sev_badge,
     words,
@@ -744,6 +746,157 @@ def run() -> str:
     return shell("runs", topbar(rnw("title"), (rnw("title"),)), content, fab=False)
 
 
+# ------------------------------------------------------------------------------------------------
+# Loan readiness (spec 025, ADR-028), as pages/ReadinessPage.tsx from the shared fixture
+# ------------------------------------------------------------------------------------------------
+
+READY_WORDS = json.loads((LOCALES / "readiness.json").read_text(encoding="utf-8"))
+READY_FIX = json.loads((ROOT / "contracts/design/fixtures/readiness.json").read_text(encoding="utf-8"))
+READY_LEVEL = {"READY": ("clean", "shield-check"), "ALMOST_READY": ("medium", "circle-alert"), "NOT_READY": ("critical", "shield-x")}
+READY_STATUS = {"PASS": ("ok", "check-circle", "is-pass"), "WARN": ("wait", "circle-alert", "is-warn"), "FAIL": ("bad", "octagon-alert", "is-fail")}
+READY_SEV_ICON = {"CRITICAL": "octagon-alert", "HIGH": "triangle-alert", "MEDIUM": "circle-alert", "LOW": "info"}
+READY_DOC_ICON = {"BANK_STATEMENT": "bank", "RECEIPT": "receipt", "LEDGER_EXPORT": "book"}
+
+
+def rw(key: str, **params) -> str:
+    return words(READY_WORDS, key, **params)
+
+
+def ready_percent(rate: str | None, digits: int = 1) -> str:
+    """ReadinessPage's percent: 0.9516 reads 95.2%; a policy threshold 0.85 reads 85%."""
+    if rate is None:
+        return "—"
+    value = Decimal(rate) * 100
+    return f"{value:.{digits}f}%" if digits else f"{round(value)}%"
+
+
+def ready_money(value: dict | None) -> str:
+    return amount(value["amount"]) if value else "—"
+
+
+def ready_check_text(check: dict) -> str:
+    key = f"checks.{check['id']}"
+    threshold = ready_percent(check["threshold"], 0) if check["id"] == "RECONCILED" else check["threshold"]
+    facts = {"count": check["count"] or 0, "months": ", ".join(month_name(m) for m in check["months"]), "threshold": threshold}
+    if check["id"] == "CASH" and check["status"] == "WARN":
+        return rw(f"{key}.WARN_days", **facts) if facts["count"] > 0 else rw(f"{key}.WARN_net")
+    return rw(f"{key}.{check['status']}", **facts)
+
+
+def ready_action(check: dict) -> str:
+    if check["status"] == "PASS" or check["id"] == "FINDINGS":
+        return ""
+    href = {"HISTORY": "documents.html", "COVERAGE": "documents.html", "RECONCILED": "month.html", "REVIEW": "review.html", "CASH": "dashboard.html"}[check["id"]]
+    label = rw(f"checks.{check['id']}.action")
+    return f'<a class="link no-print" href="{href}">{label}{icon("chevron-right", "icon icon-sm")}</a>'
+
+
+def ready_check(check: dict) -> str:
+    line, ic, item = READY_STATUS[check["status"]]
+    findings = ""
+    if check["findings"]:
+        rows = []
+        for f in check["findings"]:
+            text = f"{month_name(f['month'])}: {f['title']}" if f["month"] else f["title"]
+            step = f'<span class="reason">{escape(f["nextStep"])}</span>' if f["nextStep"] else ""
+            rows.append(f'<li><a class="link" href="risk.html">{icon(READY_SEV_ICON.get(f["severity"], "circle-alert"), "icon icon-sm")}{escape(text)}</a>{step}</li>')
+        findings = f'<ul class="ready-findings">{"".join(rows)}</ul>'
+    return f"""<li class="ready-check {item}">
+      <span class="status-line {line}">{icon(ic, "icon icon-sm")}{rw("status." + check["status"])}</span>
+      <div class="ready-check-body"><h3>{rw(f"checks.{check['id']}.title")}</h3><p>{ready_check_text(check)}</p>{findings}{ready_action(check)}</div>
+    </li>"""
+
+
+def ready_figure(label: str, value: str, note: str, currency: str | None = None) -> str:
+    small = f"<small>{currency}</small>" if currency else ""
+    return f'<div><dt>{label}</dt><dd class="v">{small}{value}</dd><dd class="n">{note}</dd></div>'
+
+
+def readiness() -> str:
+    data = READY_FIX
+    cur = data["currency"]
+    tot = data["totals"]
+    months = [m["month"] for m in data["months"]]
+    badge_kind, badge_icon = READY_LEVEL[data["level"]]
+    open_checks = sum(1 for c in data["checks"] if c["status"] != "PASS")
+    headline = rw("headline.READY") if data["level"] == "READY" else rw(f"headline.{data['level']}", count=open_checks)
+    prepared = rw("prepared", workspace=data["workspace"], period=period_range(months), currency=cur,
+                  framework="US GAAP" if data["framework"] == "US_GAAP" else "IFRS", date=fmt_date(data["generatedAt"][:10]))
+    checks = "".join(ready_check(c) for c in data["checks"])
+    figures = "".join([
+        ready_figure(rw("figures.months"), str(tot["months"]), rw("figures.monthsNote", first=month_name(months[0]), last=month_name(months[-1]))),
+        ready_figure(rw("figures.averageIn"), ready_money(tot["averageIn"]), rw("figures.totalNote", total=ready_money(tot["moneyIn"])), cur),
+        ready_figure(rw("figures.averageOut"), ready_money(tot["averageOut"]), rw("figures.totalNote", total=ready_money(tot["moneyOut"])), cur),
+        ready_figure(rw("figures.averageNet"), ready_money(tot["averageNet"]), rw("figures.totalNote", total=ready_money(tot["net"])), cur),
+        ready_figure(rw("figures.matchedShare"), ready_percent(tot["matchedShare"]), rw("figures.matchedNote")),
+        ready_figure(rw("figures.closing"), ready_money(tot["closing"]), rw("figures.closingNote", month=month_name(months[-1])), cur),
+    ])
+    sev = RISK_WORDS["severity"]
+
+    def risk_badge(level: str | None) -> str:
+        return f'<span class="badge badge-{level.lower()}">{escape(sev[level])}</span>' if level else "—"
+
+    rows = "".join(f"""<tr>
+  <td><a class="link" href="month.html">{month_name(m["month"])}</a></td>
+  <td class="r">{ready_money(m["moneyIn"])}</td><td class="r">{ready_money(m["moneyOut"])}</td><td class="r hide-rt">{ready_money(m["net"])}</td>
+  <td class="r hide-rt">{ready_money(m["closing"])}</td><td class="r">{ready_percent(m["matchedShare"])}</td><td>{risk_badge(m["riskLevel"])}</td>
+</tr>""" for m in data["months"])
+    explained = "".join(
+        f'<li><div class="row"><strong>{month_name(m["month"])}</strong>{risk_badge(m["riskLevel"]) if m["riskLevel"] else ""}</div><p>{escape(m["explanation"])}</p></li>'
+        for m in data["months"] if m["explanation"])
+    clients = "".join(
+        f'<li class="hbar"><span>{escape(c["name"])}</span><span class="val">{ready_percent(c["share"])}</span>'
+        f'<span class="track"><i style="width:{ready_percent(c["share"])}"></i></span></li>' for c in data["clients"])
+    docs = "".join(f'<li>{icon(READY_DOC_ICON.get(d["type"], "file-text"), "icon icon-sm")}{rw("documents." + d["type"], count=d["count"])}</li>'
+                   for d in data["documents"])
+    content = f"""
+<div class="page ready-page">
+  <div class="page-head">
+    <div class="spread">
+      <div class="stack gap-2"><h1 class="type-title">{rw("title")}</h1><p>{rw("subtitle")}</p></div>
+      <button type="button" class="button button-primary no-print">{icon("download", "icon icon-sm")}{rw("print")}</button>
+    </div>
+  </div>
+  <section class="panel ready-verdict" aria-labelledby="ready-h">
+    <div class="ready-verdict-head">
+      <span class="badge badge-{badge_kind}">{icon(badge_icon)}{rw("level." + data["level"])}</span>
+      <h2 id="ready-h">{headline}</h2>
+      <p class="small muted">{prepared}</p>
+    </div>
+    <h3 class="ready-checks-title">{rw("checksTitle")}</h3>
+    <ul class="ready-checks">{checks}</ul>
+    <p class="ready-note small muted">{rw("notCredit")}</p>
+  </section>
+  <section class="ledger ready-glance" aria-labelledby="ready-fig-h">
+    <h2 id="ready-fig-h" class="type-h2">{rw("figuresTitle")}</h2>
+    <dl class="ledger-figures">{figures}</dl>
+  </section>
+  <section class="panel" aria-labelledby="ready-months-h">
+    <div class="panel-head"><h2 id="ready-months-h">{rw("monthsTitle")}</h2></div>
+    <div class="chart-table-wrap"><table class="data-table ready-table">
+      <thead><tr><th>{rw("columns.month")}</th><th class="r">{rw("columns.moneyIn")}</th><th class="r">{rw("columns.moneyOut")}</th><th class="r hide-rt">{rw("columns.net")}</th>
+        <th class="r hide-rt">{rw("columns.closing")}</th><th class="r">{rw("columns.matched")}</th><th>{rw("columns.risk")}</th></tr></thead>
+      <tbody>{rows}</tbody>
+    </table></div>
+  </section>
+  <section class="panel" aria-labelledby="ready-explained-h">
+    <div class="panel-head"><div class="stack gap-1"><h2 id="ready-explained-h">{rw("explainedTitle")}</h2><p class="small muted">{rw("explainedNote")}</p></div></div>
+    <ul class="ready-explained">{explained}</ul>
+  </section>
+  <div class="ready-split">
+    <section class="panel" aria-labelledby="ready-clients-h">
+      <div class="panel-head"><div class="stack gap-1"><h2 id="ready-clients-h">{rw("clientsTitle")}</h2><p class="small muted">{rw("clientsNote")}</p></div></div>
+      <ul class="ready-clients">{clients}</ul>
+    </section>
+    <section class="panel" aria-labelledby="ready-docs-h">
+      <div class="panel-head"><h2 id="ready-docs-h">{rw("documentsTitle")}</h2></div>
+      <ul class="ready-docs">{docs}</ul>
+    </section>
+  </div>
+</div>"""
+    return shell("readiness", topbar(rw("title"), (rw("title"),)), content)
+
+
 SCREENS_MORE = {
     "risk": ("Risk", risk),
     "clients": ("Clients and suppliers", clients),
@@ -752,6 +905,7 @@ SCREENS_MORE = {
     "label": ("Label", label),
     "runs": ("Runs", runs),
     "run": ("Run", run),
+    "readiness": ("Loan readiness", readiness),
 }
 NOTES_MORE = {
     "risk": "Findings grouped by month with their severity and status; each opens the evidence viewer.",
@@ -761,4 +915,5 @@ NOTES_MORE = {
     "label": "One label in a drawer over the list: the AI's proposal and the correction beside the page's extraction and provenance.",
     "runs": "Every document and month run in the shared table: calls, tokens, estimated cost, models and labels.",
     "run": "One run in a drawer over the list: its span waterfall from the stages and the inspector for one call.",
+    "readiness": "Spec 025: whether the books are ready to show a lender, the six checks with what to fix first, the figures a lender reads first, the months with their explained risk, the largest clients and what was read; prints without the app's menus.",
 }

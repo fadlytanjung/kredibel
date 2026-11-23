@@ -19,6 +19,7 @@ import { RiskPage } from '../pages/RiskPage'
 import { RunsContent } from '../pages/RunsPage'
 import { SettingsPage } from '../pages/SettingsPage'
 import { AppShell } from '../shared/ui'
+import { ReadinessContent } from '../pages/ReadinessPage'
 import { TransactionsContent } from '../pages/TransactionsPage'
 
 // The same sample as tools/design/mocks/shell.py.
@@ -160,6 +161,15 @@ export function TransactionsPreview() {
   return (
     <AppShell {...PREVIEW_PROPS} activePath="/transactions" onUpload={() => undefined}>
       <TransactionsContent basePath="/preview/transactions" />
+    </AppShell>
+  )
+}
+
+/** The loan readiness report inside the shell (spec 025); the tests serve its API data. */
+export function ReadinessPreview() {
+  return (
+    <AppShell {...PREVIEW_PROPS} activePath="/readiness" onUpload={() => undefined}>
+      <ReadinessContent />
     </AppShell>
   )
 }

@@ -12,10 +12,13 @@
 
 ## B. The page (P0)
 
-- [ ] **T025-03** Loan readiness page, nav item, print layout; fixture, mock, inventory and parity
-  spec; shell baselines. (AC-025-4, AC-025-5)
-- [ ] **T025-04** Plan and usage, the pricing page and `plans.v1.yaml`: no longer coming soon.
-  (AC-025-6)
+- [x] **T025-03** Loan readiness page, nav item, print layout; fixture, mock, inventory and parity
+  spec; shell baselines. (AC-025-4, AC-025-5) Built 23 Nov 2026: `ReadinessPage.tsx`,
+  `widgets/readiness`, `readiness.json` words, `readiness.html` mock, `ReadinessPage.test.tsx`,
+  `readiness.spec.ts` (outline equal to the mock at 390/834/1440, 360/1600 px, axe, print hides the
+  menus); 219 visual checks green after the shell baselines were recorded again.
+- [x] **T025-04** Plan and usage, the pricing page and `plans.v1.yaml`: no longer coming soon.
+  (AC-025-6) Built 23 Nov 2026: the free trial's first highlight names the report.
 
 ## C. Record (P1)
 

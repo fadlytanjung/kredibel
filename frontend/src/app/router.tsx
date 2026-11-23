@@ -47,6 +47,7 @@ const CounterpartyPage = lazy(() => import('../pages/CounterpartyPage').then((m)
 const LabelsPage = lazy(() => import('../pages/LabelsPage').then((m) => ({ default: m.LabelsPage })))
 const RunsPage = lazy(() => import('../pages/RunsPage').then((m) => ({ default: m.RunsPage })))
 const TransactionsPage = lazy(() => import('../pages/TransactionsPage').then((m) => ({ default: m.TransactionsPage })))
+const ReadinessPage = lazy(() => import('../pages/ReadinessPage').then((m) => ({ default: m.ReadinessPage })))
 const OnboardingPreview = lazy(() => import('./OnboardingPreview').then((m) => ({ default: m.OnboardingPreview })))
 const WelcomePreview = lazy(() => import('./OnboardingPreview').then((m) => ({ default: m.WelcomePreview })))
 const AssistantPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.AssistantPreview })))
@@ -56,6 +57,7 @@ const TourPreview = lazy(() => import('./TourPreview').then((m) => ({ default: m
 const MonthPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.MonthPreview })))
 const MonthsPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.MonthsPreview })))
 const TransactionsPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.TransactionsPreview })))
+const ReadinessPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.ReadinessPreview })))
 const ProfitLossPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.ProfitLossPreview })))
 const CounterpartiesPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.CounterpartiesPreview })))
 const CounterpartyPreview = lazy(() => import('./ShellPreview').then((m) => ({ default: m.CounterpartyPreview })))
@@ -209,6 +211,7 @@ const PROTECTED_ROUTES: { path: string; element: ReactNode }[] = [
   { path: '/months/:month', element: <MonthPage /> },
   { path: '/transactions', element: <TransactionsPage /> },
   { path: '/transactions/:txId', element: <TransactionsPage /> },
+  { path: '/readiness', element: <ReadinessPage /> },
   { path: '/review', element: <ReviewPage /> },
   { path: '/review/:itemId', element: <ReviewPage /> },
   { path: '/risk', element: <RiskPage /> },
@@ -262,6 +265,7 @@ export function AppRouter() {
         {PREVIEW_ROUTES && <Route path="/preview/welcome" element={<WelcomePreview />} />}
         {PREVIEW_ROUTES && <Route path="/preview/transactions" element={<TransactionsPreview />} />}
         {PREVIEW_ROUTES && <Route path="/preview/transactions/:txId" element={<TransactionsPreview />} />}
+        {PREVIEW_ROUTES && <Route path="/preview/readiness" element={<ReadinessPreview />} />}
         {PREVIEW_ROUTES && (
           <Route path="/preview/settings/:section" element={<SettingsPreview />} />
         )}

@@ -364,6 +364,16 @@ SCREEN_INVENTORY: dict[str, ScreenInfo] = {
         spec="024",
         notes="A row opens in the kit's drawer: its classes, reading, matched records (each opens its document), its statement and its month.",
     ),
+    "readiness": ScreenInfo(
+        slug="readiness",
+        title="Loan readiness",
+        route="/readiness",
+        status="IMPLEMENTED",
+        badge_label="Implemented",
+        badge_class="badge-clean",
+        spec="025",
+        notes="Whether the books are ready to show a lender (Ready, Almost ready, Not ready yet), the six checks with their evidence and what to do next, the figures, the months with their verified risk explanation, the largest clients and what was read; Print or save as PDF leaves out the menus. Without a read statement the page shows the shared empty state pointing to Documents. Parity: readiness.spec.ts.",
+    ),
     "tour": ScreenInfo(
         slug="tour",
         title="Guided tour",

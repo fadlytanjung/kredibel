@@ -108,6 +108,7 @@ they never set colours, font sizes or shadows ([`12`](12-design-system.md) §0).
 | Books | Risk | `/risk` | months at High or Critical with open findings, alert colour |
 | Insight | Clients and suppliers: not in the menus since 16 Oct 2026; the pages stay for links | `/counterparties` | — |
 | Insight | Assistant (P1) | `/assistant` | — |
+| Insight | Loan readiness (Readiness): whether the books are ready to show a lender, the checks with what to fix first, the figures and months; Print or save as PDF (spec 025) | `/readiness` | — |
 | AI quality | Labels (P1) | `/labels` | labels that need a check, neutral |
 | AI quality | Runs (P1, owner only) | `/runs` | — |
 | Footer | Profile: avatar, name and role; opens Settings (no separate Settings item) | `/settings/profile` | — |
@@ -116,7 +117,7 @@ The logo, the workspace switcher (one workspace in P0; its subtitle shows the ty
 accounting framework), the trial status and a global **Upload** action are always reachable: in the
 sidebar and top bar from 600 px, as the floating **Upload** button and the bottom navigation
 (Dashboard, Documents, Review, Risk, More) below 600 px. **More** opens a sheet with Reconciliation,
-Transactions, Assistant, Labels, Runs and Settings; `Esc` or a tap outside closes it.
+Transactions, Assistant, Loan readiness, Labels, Runs and Settings; `Esc` or a tap outside closes it.
 
 The sidebar foot has two rows and nothing else, so the labelled sidebar shows every item without
 scrolling in a window 768 px tall (below that only the navigation scrolls; the logo and the foot stay
@@ -765,7 +766,7 @@ suggested questions and composer of the welcome state with its mock at three wid
 | Profile | Type (read-only after onboarding), the accounting framework (**IFRS** or **US GAAP**, which sets the cash-flow classes; changing it reclassifies every month, AC-016-8), names, tax ID, address, industry, time zone; pending suggestions with evidence and **Accept** / **Reject**. Mock: `settings-profile.html` |
 | Bank accounts | Bank, masked number, holder, purpose; `Declared` or `Detected` (from an accepted suggestion) |
 | Language and formats | **English** (selected); other languages disabled with "Coming soon"; the workspace currency read-only with "Changing the currency is coming soon"; date format read-only |
-| Plan and usage | Trial hero (days left as a 30-cell track, end date, what happens after); usage meters from `contracts/plans.v1.yaml` (documents, pages read, AI use, month reconciliations today, members, assistant questions) that warn at 80%; plan cards **Free trial** (current), **Starter**, **Professional**, **Enterprise** with "Coming soon", no price and disabled buttons; coming-soon features **Loan readiness report** and **Bank feeds**. Nothing here starts a payment |
+| Plan and usage | Trial hero (days left as a 30-cell track, end date, what happens after); usage meters from `contracts/plans.v1.yaml` (documents, pages read, AI use, month reconciliations today, members, assistant questions) that warn at 80%; plan cards **Free trial** (current), **Starter**, **Professional**, **Enterprise** with "Coming soon", no price and disabled buttons; the coming-soon feature **Bank feeds** (the loan readiness report is built, spec 025). Nothing here starts a payment |
 | Members (P1) | Members with roles (owner, accountant, reviewer, viewer); invite by email; seats used |
 
 ### 6.10 Logo and brand

@@ -11,6 +11,7 @@ import monthsEn from './locales/en/months.json'
 import onboardingEn from './locales/en/onboarding.json'
 import counterpartiesEn from './locales/en/counterparties.json'
 import publicEn from './locales/en/public.json'
+import readinessEn from './locales/en/readiness.json'
 import reviewEn from './locales/en/review.json'
 import labelsEn from './locales/en/labels.json'
 import riskEn from './locales/en/risk.json'
@@ -31,6 +32,7 @@ void i18n.use(initReactI18next).init({
       months: monthsEn,
       onboarding: onboardingEn,
       public: publicEn,
+      readiness: readinessEn,
       counterparties: counterpartiesEn,
       review: reviewEn,
       risk: riskEn,

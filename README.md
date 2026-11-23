@@ -59,7 +59,8 @@ flowchart TB
    next steps; a grounding guard checks every number it writes.
 
 Around it: a **dashboard** with a money-flow Sankey and a profit and loss flow, a **free trial** for
-individuals and companies (paid tiers and a **loan readiness report** shown as coming soon), a
+individuals and companies (paid tiers shown as coming soon), a **loan readiness report** that tells the
+owner whether the checked books are ready to show a lender and what to fix first, a
 **Finance Assistant** that answers from your books' figures and quotes the pages of your documents it
 relied on (searched in Firestore vector search), **labels** people confirm or correct, a **Runs**
 page with every workflow's stages, models and cost, a **Transactions** table with each bank line's

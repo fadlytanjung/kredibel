@@ -34,7 +34,7 @@ plans:
       monthSignOff: true             # P1
       languages: [en]
     highlights:
-      - "Every feature of the prototype"
+      - "Every feature, the loan readiness report included"
       - "Team invites coming soon"
       - "400 pages read per month"
 
@@ -66,9 +66,6 @@ plans:
       - "Custom limits"
 
 comingSoonFeatures:
-  - id: loan_readiness_report
-    label: "Loan readiness report"
-    description: "A lender-ready summary of your verified months, built on the same checked data."
   - id: bank_feeds
     label: "Bank feeds"
     description: "Statements arrive by themselves instead of by upload."

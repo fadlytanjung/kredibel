@@ -438,5 +438,5 @@ is a launch condition for customers who require it ([ADR-022](adr/ADR-022-real-d
    Armor in front of a load balancer.
 5. **Model governance:** prompt and model versions recorded per run (already done), evaluations in
    the release process, match thresholds tuned on each customer's confirmed matches.
-6. **Loan readiness report:** a lender-ready summary built from verified months (coming soon in the
-   UI; [ADR-015](adr/ADR-015-scope-finance-workspace-not-loan-review.md)).
+6. **Loan readiness report:** built (spec 025, [ADR-028](adr/ADR-028-loan-readiness-is-the-owners-check.md)):
+   the owner's check of the reconciled months, computed on request; a link shared with a lender is next.

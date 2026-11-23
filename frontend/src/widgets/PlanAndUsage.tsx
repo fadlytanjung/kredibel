@@ -15,7 +15,6 @@ import { formatMoney } from '../shared/lib/formatMoney'
 const NEAR = 0.8
 
 const FEATURE_ICONS: Record<string, IconName> = {
-  loan_readiness_report: 'book',
   bank_feeds: 'bank',
 }
 

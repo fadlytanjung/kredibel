@@ -38,11 +38,6 @@ const CATALOG: PlanCatalog = {
   ],
   comingSoonFeatures: [
     {
-      id: 'loan_readiness_report',
-      label: 'Loan readiness report',
-      description: 'A bank-ready health pack export.',
-    },
-    {
       id: 'bank_feeds',
       label: 'Bank feeds',
       description: 'Automatic statement sync.',
@@ -107,7 +102,7 @@ describe('PlanAndUsage (AC-013-11)', () => {
     expect(screen.getByText('Professional')).toBeInTheDocument()
 
     const comingSoonBadges = screen.getAllByText('Coming soon')
-    expect(comingSoonBadges.length).toBeGreaterThanOrEqual(4) // Starter, Professional, Loan readiness, Bank feeds
+    expect(comingSoonBadges.length).toBeGreaterThanOrEqual(3) // Starter, Professional, Bank feeds (the loan readiness report is built, spec 025)
 
     // Buttons for coming-soon plans must be disabled (cannot start purchase)
     const disabledButtons = screen.getAllByRole('button', { name: 'Not available yet' })
@@ -117,7 +112,7 @@ describe('PlanAndUsage (AC-013-11)', () => {
     }
 
     // Coming-soon features
-    expect(screen.getByText('Loan readiness report')).toBeInTheDocument()
+    expect(screen.queryByText('Loan readiness report')).not.toBeInTheDocument()
     expect(screen.getByText('Bank feeds')).toBeInTheDocument()
   })
 

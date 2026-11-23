@@ -1,0 +1,124 @@
+{
+  "title": "Loan readiness",
+  "subtitle": "Your checked books, ready to show a lender. Kredibel tells you what to fix first.",
+  "print": "Print or save as PDF",
+  "loading": "Preparing the report...",
+  "prepared": "{{workspace}} · {{period}} · {{currency}}, {{framework}} · Prepared {{date}}",
+  "notCredit": "Your own check of your books, computed by code from the documents you uploaded. It is not a credit decision: the lender decides.",
+  "level": {
+    "READY": "Ready to show",
+    "ALMOST_READY": "Almost ready",
+    "NOT_READY": "Not ready yet"
+  },
+  "headline": {
+    "READY": "Your books are checked and ready to show a lender.",
+    "ALMOST_READY_one": "Settle {{count}} thing before you show a lender.",
+    "ALMOST_READY_other": "Settle {{count}} things before you show a lender.",
+    "NOT_READY_one": "Fix {{count}} thing before you show a lender.",
+    "NOT_READY_other": "Fix {{count}} things before you show a lender."
+  },
+  "status": {
+    "PASS": "Done",
+    "WARN": "To settle",
+    "FAIL": "To fix"
+  },
+  "checksTitle": "What a lender will check",
+  "checks": {
+    "HISTORY": {
+      "title": "Months of bank statements",
+      "PASS_one": "{{count}} month of statements, read and checked.",
+      "PASS_other": "{{count}} months of statements, read and checked.",
+      "WARN_one": "{{count}} month of statements. Lenders often ask for {{threshold}}: upload more.",
+      "WARN_other": "{{count}} months of statements. Lenders often ask for {{threshold}}: upload more.",
+      "FAIL_one": "Only {{count}} month of statements. Upload at least {{threshold}}.",
+      "FAIL_other": "Only {{count}} months of statements. Upload at least {{threshold}}.",
+      "action": "Upload statements"
+    },
+    "COVERAGE": {
+      "title": "Every month covered",
+      "PASS": "Every account has a statement for every month.",
+      "WARN_one": "The balance does not carry over between {{count}} pair of statements. Check that none is missing.",
+      "WARN_other": "The balance does not carry over between {{count}} pairs of statements. Check that none is missing.",
+      "FAIL": "A statement is missing for {{months}}. Upload it.",
+      "action": "Upload statements"
+    },
+    "RECONCILED": {
+      "title": "Months reconciled",
+      "PASS": "Every month is reconciled, with at least {{threshold}} of bank lines matched by Kredibel.",
+      "WARN": "{{months}}: not reconciled yet, or under {{threshold}} matched. Settle the bank lines Kredibel could not match.",
+      "action": "Open the month"
+    },
+    "FINDINGS": {
+      "title": "No open risks",
+      "PASS": "No critical or high risk is open.",
+      "WARN_one": "{{count}} high risk is open. Explain or resolve it first.",
+      "WARN_other": "{{count}} high risks are open. Explain or resolve them first.",
+      "FAIL_one": "{{count}} serious risk is open. Fix it before anyone relies on these books.",
+      "FAIL_other": "{{count}} serious risks are open. Fix them before anyone relies on these books."
+    },
+    "REVIEW": {
+      "title": "Decisions taken",
+      "PASS": "Nothing waits in the review queue: every figure is final.",
+      "WARN_one": "{{count}} decision waits in the review queue.",
+      "WARN_other": "{{count}} decisions wait in the review queue.",
+      "action": "Open the review queue"
+    },
+    "CASH": {
+      "title": "Cash flow",
+      "PASS": "More money came in than went out, and the balance never went below zero.",
+      "WARN_net": "More money went out than came in. Be ready to explain why.",
+      "WARN_days_one": "The balance went below zero on {{count}} day, in {{months}}. Be ready to explain it.",
+      "WARN_days_other": "The balance went below zero on {{count}} days, in {{months}}. Be ready to explain it.",
+      "action": "See the cash flow"
+    }
+  },
+  "figuresTitle": "At a glance",
+  "figures": {
+    "months": "Months covered",
+    "monthsNote": "{{first}} to {{last}}",
+    "averageIn": "Money in, a month",
+    "averageOut": "Money out, a month",
+    "averageNet": "Kept, a month",
+    "totalNote": "{{total}} in total",
+    "matchedShare": "Matched by Kredibel",
+    "matchedNote": "Bank lines matched to an invoice, receipt or the ledger",
+    "closing": "Closing balance",
+    "closingNote": "At the end of {{month}}"
+  },
+  "monthsTitle": "Month by month",
+  "columns": {
+    "month": "Month",
+    "moneyIn": "Money in",
+    "moneyOut": "Money out",
+    "net": "Net",
+    "closing": "Closing balance",
+    "matched": "Matched",
+    "risk": "Risk"
+  },
+  "explainedTitle": "Each month's risk, explained",
+  "explainedNote": "Written by Gemini from the month's findings and checked against them; every figure comes from code.",
+  "clientsTitle": "Largest clients",
+  "clientsNote": "Share of the period's money in",
+  "documentsTitle": "Read and checked",
+  "documents": {
+    "BANK_STATEMENT_one": "{{count}} bank statement",
+    "BANK_STATEMENT_other": "{{count}} bank statements",
+    "SALES_INVOICE_one": "{{count}} sales invoice",
+    "SALES_INVOICE_other": "{{count}} sales invoices",
+    "PURCHASE_INVOICE_one": "{{count}} purchase invoice",
+    "PURCHASE_INVOICE_other": "{{count}} purchase invoices",
+    "RECEIPT_one": "{{count}} receipt",
+    "RECEIPT_other": "{{count}} receipts",
+    "LEDGER_EXPORT_one": "{{count}} ledger export",
+    "LEDGER_EXPORT_other": "{{count}} ledger exports",
+    "OTHER_one": "{{count}} other document",
+    "OTHER_other": "{{count}} other documents",
+    "UNKNOWN_one": "{{count}} other document",
+    "UNKNOWN_other": "{{count}} other documents"
+  },
+  "empty": {
+    "title": "Nothing to show a lender yet",
+    "body": "Upload your bank statements. Once Kredibel has read and reconciled them, this page shows whether your books are ready.",
+    "action": "Go to Documents"
+  }
+}

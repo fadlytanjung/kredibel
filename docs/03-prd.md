@@ -117,7 +117,7 @@ items are visible in the UI and not built.
 
 ### 6.3 Coming soon and later (not built)
 
-**Loan readiness report** (shown as coming soon) · tuning Gemini on consented, verified labels
+Tuning Gemini on consented, verified labels
 ([ADR-016](adr/ADR-016-human-verified-labels-and-learning-loop.md)) · bank feeds · e-invoice (QR) validation ·
 currency conversion and documents in a second currency · accounting-tool connectors · more UI languages · paid plans and billing.
 
@@ -137,7 +137,8 @@ several entities · real customer data (P8).
   `COMPANY`), country (Indonesia; others coming soon), time zone; the free trial starts.
 - **FR-004** Plan limits from `contracts/plans.v1.yaml` are enforced by the server (documents and pages
   per month, file size, pages per file, seats, AI spend); the UI shows usage before a limit is hit.
-- **FR-005** Paid plans and the loan readiness report are listed as coming soon and cannot be selected.
+- **FR-005** Paid plans are listed as coming soon and cannot be selected (the loan readiness report is
+  built, FR-077).
 
 ### 7.2 Documents and duplicates
 
@@ -250,6 +251,11 @@ several entities · real customer data (P8).
   GAAP), from `contracts/policy/categories.v1.yaml`.
 - **FR-076** Every model and tool call of a run is recorded in BigQuery with its span, tokens and
   latency and joined to people's feedback; prompts and responses are recorded only with synthetic data.
+- **FR-077** The loan readiness report says whether the books are ready to show a lender (Ready, Almost
+  ready, Not ready yet) from six checks computed by code with the thresholds of
+  `contracts/policy/readiness.v1.yaml`, names the evidence and next step of each, shows the figures a
+  lender reads first and prints as a PDF; it is the owner's check, never a credit decision (spec 025,
+  [ADR-028](adr/ADR-028-loan-readiness-is-the-owners-check.md)).
 
 ## 8. Non-functional requirements
 

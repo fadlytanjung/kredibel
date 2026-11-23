@@ -18,6 +18,7 @@ NAV_BOOKS = [
 # Clients and suppliers are not in the menus (16 Oct 2026); clients.html stays as a page.
 NAV_INSIGHT = [
     ("assistant", "sparkles", "Assistant", "Assistant", "assistant.html", None),
+    ("readiness", "book", "Loan readiness", "Readiness", "readiness.html", None),
 ]
 NAV_AI = [
     ("labels", "tag", "Labels", "Labels", "labels.html", ("37", True)),
@@ -65,7 +66,7 @@ def bottom_nav(active: str) -> str:
         ("risk", "shield-alert", "Risk", "risk.html", "2"),
         ("more", "menu", "More", "#more", None),
     ]
-    in_more = active in {"months", "transactions", "clients", "assistant", "labels", "runs", "settings"}
+    in_more = active in {"months", "transactions", "clients", "assistant", "readiness", "labels", "runs", "settings"}
     out = []
     for key, ic, label, href, n in items:
         cur = ' aria-current="page"' if key == active or (key == "more" and in_more) else ""
@@ -77,7 +78,7 @@ def bottom_nav(active: str) -> str:
 def more_sheet() -> str:
     links = [
         ("reconcile", "Reconciliation", "month.html"), ("table", "Transactions", "transactions.html"),
-        ("sparkles", "Assistant", "assistant.html"), ("tag", "Labels", "labels.html"),
+        ("sparkles", "Assistant", "assistant.html"), ("book", "Loan readiness", "readiness.html"), ("tag", "Labels", "labels.html"),
         ("flow", "Runs", "runs.html"), ("sliders", "Settings", "plan-usage.html"),
         ("book", "Logo and brand", "brand.html"), ("dashboard", "All screens", "index.html"),
     ]

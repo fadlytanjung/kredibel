@@ -1937,7 +1937,7 @@ def plan_usage() -> str:
         btn = '<a class="button button-secondary button-block" href="#">See limits</a>' if current else '<button class="button button-block" disabled>Not available yet</button>'
         return f'<div class="{cls}"><div class="plan-head">{badge}<h3>{name}</h3><p class="muted small">{price}</p></div><ul>{lis}</ul><div class="plan-foot">{btn}</div></div>'
     plans = "".join([
-        plan("Free trial", "Free for 30 days", ["Every feature of the prototype", "Team invites coming soon", "400 pages read per month"], True),
+        plan("Free trial", "Free for 30 days", ["Every feature, the loan readiness report included", "Team invites coming soon", "400 pages read per month"], True),
         plan("Starter", "Pricing announced later", ["More documents and pages", "Up to 10 team members", "Email support"]),
         plan("Professional", "Pricing announced later", ["A second reader on every page", "Several workspaces for a firm", "Audit export"]),
         plan("Enterprise", "Contact us later", ["Processing in your region", "Single sign-on", "Custom limits"]),
@@ -1960,7 +1960,6 @@ def plan_usage() -> str:
         <div class="section-head"><h2 class="type-h2" id="plans-h">Plans</h2><p>Paid plans are not available yet. Nothing here can start a payment.</p></div>
         <div class="plans">{plans}</div>
         <div class="soon-features">
-          <div class="soon"><span class="ico">{icon("book")}</span><div><div class="row"><h3>Loan readiness report</h3><span class="badge badge-outline">Coming soon</span></div><p>A lender-ready summary of your verified months, built on the same checked data.</p></div></div>
           <div class="soon"><span class="ico">{icon("bank")}</span><div><div class="row"><h3>Bank feeds</h3><span class="badge badge-outline">Coming soon</span></div><p>Statements arrive by themselves instead of by upload.</p></div></div>
         </div>
       </section>

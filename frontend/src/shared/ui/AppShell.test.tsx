@@ -32,7 +32,7 @@ describe('AppShell (AC-001-16)', () => {
     const titles = within(main).getAllByRole('link').map((link) => link.getAttribute('title'))
     expect(titles).toEqual([
       'Dashboard', 'Documents', 'Reconciliation', 'Transactions', 'Review', 'Risk',
-      'Assistant', 'Labels', 'Runs',
+      'Assistant', 'Loan readiness', 'Labels', 'Runs',
     ])
     // Clients and suppliers are not in the menus (16 Oct 2026); the pages stay for links.
     expect(within(main).queryByRole('link', { name: /Clients/ })).toBeNull()

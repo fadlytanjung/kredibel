@@ -1,0 +1,246 @@
+{
+  "workspace": "Sunrise Coffee Roasters",
+  "currency": "IDR",
+  "framework": "IFRS",
+  "period": "all",
+  "generatedAt": "2026-11-23T09:30:00+00:00",
+  "level": "NOT_READY",
+  "checks": [
+    {
+      "id": "HISTORY",
+      "status": "WARN",
+      "months": [],
+      "count": 3,
+      "threshold": "6",
+      "findings": []
+    },
+    {
+      "id": "COVERAGE",
+      "status": "PASS",
+      "months": [],
+      "count": null,
+      "threshold": null,
+      "findings": []
+    },
+    {
+      "id": "RECONCILED",
+      "status": "PASS",
+      "months": [],
+      "count": 0,
+      "threshold": "0.85",
+      "findings": []
+    },
+    {
+      "id": "FINDINGS",
+      "status": "FAIL",
+      "months": [
+        "2026-08",
+        "2026-10"
+      ],
+      "count": 3,
+      "threshold": null,
+      "findings": [
+        {
+          "findingId": "fnd_a01_aug",
+          "code": "A01_RUNNING_BALANCE_BREAK",
+          "severity": "CRITICAL",
+          "title": "The running balance breaks after an edited amount",
+          "month": "2026-08",
+          "nextStep": "Ask the bank for the original statement or download it again from internet banking, and compare the highlighted row.",
+          "link": "/risk/fnd_a01_aug"
+        },
+        {
+          "findingId": "fnd_m04_aug",
+          "code": "M04_FONT_ANOMALY_IN_VALUES",
+          "severity": "CRITICAL",
+          "title": "One amount is printed in a different font",
+          "month": "2026-08",
+          "nextStep": "Compare the highlighted amount with the bank's own copy.",
+          "link": "/risk/fnd_m04_aug"
+        },
+        {
+          "findingId": "fnd_x08_oct",
+          "code": "X08_SUPPLIER_ACCOUNT_CHANGED",
+          "severity": "HIGH",
+          "title": "A supplier was paid into a new bank account",
+          "month": "2026-10",
+          "nextStep": "Confirm the new account with the supplier using a phone number you already have before paying again.",
+          "link": "/risk/fnd_x08_oct"
+        }
+      ]
+    },
+    {
+      "id": "REVIEW",
+      "status": "WARN",
+      "months": [],
+      "count": 20,
+      "threshold": null,
+      "findings": []
+    },
+    {
+      "id": "CASH",
+      "status": "PASS",
+      "months": [],
+      "count": 0,
+      "threshold": null,
+      "findings": []
+    }
+  ],
+  "totals": {
+    "months": 3,
+    "moneyIn": {
+      "amount": "2752950800.00",
+      "currency": "IDR"
+    },
+    "moneyOut": {
+      "amount": "2416044021.00",
+      "currency": "IDR"
+    },
+    "net": {
+      "amount": "336906779.00",
+      "currency": "IDR"
+    },
+    "averageIn": {
+      "amount": "917650266.67",
+      "currency": "IDR"
+    },
+    "averageOut": {
+      "amount": "805348007.00",
+      "currency": "IDR"
+    },
+    "averageNet": {
+      "amount": "112302259.67",
+      "currency": "IDR"
+    },
+    "matchedShare": "0.9516",
+    "closing": {
+      "amount": "685577819.00",
+      "currency": "IDR"
+    }
+  },
+  "months": [
+    {
+      "month": "2026-08",
+      "statementsPresent": 1,
+      "statementsExpected": 1,
+      "reconciled": true,
+      "moneyIn": {
+        "amount": "935420150.00",
+        "currency": "IDR"
+      },
+      "moneyOut": {
+        "amount": "871206880.00",
+        "currency": "IDR"
+      },
+      "net": {
+        "amount": "64213270.00",
+        "currency": "IDR"
+      },
+      "closing": {
+        "amount": "412884310.00",
+        "currency": "IDR"
+      },
+      "matchedShare": "0.9216",
+      "riskLevel": "CRITICAL",
+      "explanation": "August's statement was changed after the bank issued it: one amount on page 2 is printed in another font, and the running balance no longer adds up after it. Ask the bank for the original statement before relying on this month."
+    },
+    {
+      "month": "2026-09",
+      "statementsPresent": 1,
+      "statementsExpected": 1,
+      "reconciled": true,
+      "moneyIn": {
+        "amount": "812650400.00",
+        "currency": "IDR"
+      },
+      "moneyOut": {
+        "amount": "838904115.00",
+        "currency": "IDR"
+      },
+      "net": {
+        "amount": "-26253715.00",
+        "currency": "IDR"
+      },
+      "closing": {
+        "amount": "386630595.00",
+        "currency": "IDR"
+      },
+      "matchedShare": "0.9608",
+      "riskLevel": "MEDIUM",
+      "explanation": "Two invoices from a supplier Kredibel has not seen before are unpaid. Confirm with whoever ordered the goods that the supplier and the invoices are real before paying."
+    },
+    {
+      "month": "2026-10",
+      "statementsPresent": 1,
+      "statementsExpected": 1,
+      "reconciled": true,
+      "moneyIn": {
+        "amount": "1004880250.00",
+        "currency": "IDR"
+      },
+      "moneyOut": {
+        "amount": "705933026.00",
+        "currency": "IDR"
+      },
+      "net": {
+        "amount": "298947224.00",
+        "currency": "IDR"
+      },
+      "closing": {
+        "amount": "685577819.00",
+        "currency": "IDR"
+      },
+      "matchedShare": "0.9800",
+      "riskLevel": "HIGH",
+      "explanation": "A supplier was paid into a bank account that differs from the one on its earlier invoices. Confirm the new account with the supplier, using a phone number you already have, before paying again."
+    }
+  ],
+  "clients": [
+    {
+      "name": "Spice Route Restaurant",
+      "moneyIn": {
+        "amount": "502138200.00",
+        "currency": "IDR"
+      },
+      "share": "0.1824"
+    },
+    {
+      "name": "Hotel Braga Lestari",
+      "moneyIn": {
+        "amount": "313010500.00",
+        "currency": "IDR"
+      },
+      "share": "0.1137"
+    },
+    {
+      "name": "Dago Hills Cafe",
+      "moneyIn": {
+        "amount": "264558000.00",
+        "currency": "IDR"
+      },
+      "share": "0.0961"
+    }
+  ],
+  "documents": [
+    {
+      "type": "BANK_STATEMENT",
+      "count": 3
+    },
+    {
+      "type": "LEDGER_EXPORT",
+      "count": 1
+    },
+    {
+      "type": "PURCHASE_INVOICE",
+      "count": 77
+    },
+    {
+      "type": "RECEIPT",
+      "count": 102
+    },
+    {
+      "type": "SALES_INVOICE",
+      "count": 117
+    }
+  ]
+}

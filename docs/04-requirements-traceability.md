@@ -13,7 +13,7 @@
 | FR-002 | Workspace isolation (API and rules) | 001, 003, 013 | AC-001-4, AC-003-11, AC-013-1 | `tests/integration/test_org_isolation.py`, rules tests in the emulator |
 | FR-003 | Create a workspace for an individual or a company; free trial starts | 013 | AC-013-1…4 | `tests/unit/test_workspace_service.py`, `tests/integration/test_workspace_api.py` |
 | FR-004 | Plan limits enforced by the server; usage visible | 013, 003, 004 | AC-013-7…13, AC-003-3, AC-004-11 | `tests/unit/test_plans.py`, `tests/integration/test_entitlements.py` |
-| FR-005 | Paid plans and the loan readiness report shown as coming soon | 013 | AC-013-6, AC-013-11 | `test_plans.py`, `widgets/PlanAndUsage/*.test.tsx` |
+| FR-005 | Paid plans shown as coming soon (the loan readiness report is built, FR-077) | 013, 025 | AC-013-6, AC-013-11, AC-025-6 | `test_plans.py`, `test_workspace_api.py`, `widgets/PlanAndUsage.test.tsx` |
 | FR-010 | Upload PDF, images, CSV, XLSX within limits; pages split and triaged | 003 | AC-003-1…4 | `tests/unit/test_file_types.py`, `test_page_triage.py`, `test_document_service.py` |
 | FR-011 | Exact copies recorded, not read, not counted | 003 | AC-003-5, AC-003-6 | `test_document_service.py` |
 | FR-012 | Content duplicates held until a person decides | 006, 009 | AC-006-1…6, AC-009-9 | `tests/unit/test_duplicates.py`, `tests/scenarios/test_s3_duplicates.py` |
@@ -51,6 +51,7 @@
 | FR-074 | Every classification and categorization is a label a person can confirm or correct; people win (P1) | 016 | AC-016-1…7 | `tests/unit/test_labels.py` (property test over re-runs), `tests/integration/test_labels_api.py`, `pages/LabelsPage.test.tsx` |
 | FR-075 | Cash-flow class follows the workspace's framework (IFRS or US GAAP) | 016, 010 | AC-016-8, AC-010-12 | `tests/unit/test_categories.py`, `tests/unit/test_money_flow.py` |
 | FR-076 | Run history of every model and tool call, with feedback joined; content only with synthetic data (P1) | 017 | AC-017-2…7 | `tests/unit/test_settings_content_capture.py`, `tests/integration/test_run_events_api.py`, `pages/RunsPage.test.tsx` |
+| FR-077 | Loan readiness report: six checks by code, evidence and next steps, figures, print; not a credit decision | 025 | AC-025-1…6 | `tests/unit/test_readiness.py`, `tests/integration/test_readiness_api.py`, `pages/ReadinessPage.test.tsx`, `tests/visual/readiness.spec.ts` |
 
 ## 2. Non-functional requirements
 

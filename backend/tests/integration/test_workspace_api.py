@@ -88,7 +88,7 @@ async def test_ac013_6_plans_in_file_order_with_coming_soon_and_languages(h):
     assert [p["status"] for p in body["plans"]] == ["AVAILABLE"] + ["COMING_SOON"] * 3
     assert body["plans"][0]["limits"]["aiSpendUsdPerMonth"] == "5.00"
     assert "limits" not in body["plans"][1]
-    assert [f["id"] for f in body["comingSoonFeatures"]] == ["loan_readiness_report", "bank_feeds"]
+    assert [f["id"] for f in body["comingSoonFeatures"]] == ["bank_feeds"]  # spec 025
     assert {"code": "id", "label": "Bahasa Indonesia", "status": "coming_soon"} in body["languages"]
 
 

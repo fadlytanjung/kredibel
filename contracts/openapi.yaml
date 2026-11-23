@@ -1991,7 +1991,7 @@ components:
       type: object
       required: [id, label]
       properties:
-        id: { type: string, examples: [loan_readiness_report] }
+        id: { type: string, examples: [bank_feeds] }
         label: { type: string }
         description: { type: string }
     Language:

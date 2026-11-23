@@ -123,13 +123,17 @@ export async function ownerSession(origin: string, customToken: string): Promise
   return { key: `firebase:authUser:${key}:[DEFAULT]`, user: JSON.stringify(user) }
 }
 
-/** A fresh copy of the demo company (no goal yet, so the welcome question shows) with the tour seen. */
+/** A fresh copy of the demo company (no goal yet, so the welcome question shows) with the tour seen.
+ * VIDEO_RESET=0: the copy was made just before by scripts/demo_account.py (the API's reset takes close
+ * to Cloud Run's 60 s limit once a recording has added files); only the tour is marked seen. */
 export async function resetDemo(origin: string) {
-  const reset = await fetch(`${origin}/api/workspaces/demo/reset`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${await idToken(origin)}` },
-  })
-  expect(reset.status).toBe(200)
+  if (process.env.VIDEO_RESET !== '0') {
+    const reset = await fetch(`${origin}/api/workspaces/demo/reset`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${await idToken(origin)}` },
+    })
+    expect(reset.status).toBe(200)
+  }
   const fresh = await idToken(origin) // the new workspace's claims
   const tour = await fetch(`${origin}/api/me/tour`, { method: 'POST', headers: { Authorization: `Bearer ${fresh}` } })
   expect(tour.ok).toBe(true)

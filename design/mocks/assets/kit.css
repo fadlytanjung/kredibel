@@ -2726,6 +2726,7 @@ button.span-name:focus-visible { outline: 2px solid var(--k-color-focus-ring); o
 @media print {
   .side, .topbar, .dock, .more-sheet, .no-print { display: none !important; }
   body, .viewport, .app, .main { background: var(--k-color-bg-surface); min-height: 0; }
+  .app { display: block; }
   .ready-page { padding: 0; max-width: none; }
   .ready-page .panel, .ready-page .ledger-figures { break-inside: avoid; }
   .ready-page a { color: inherit; text-decoration: none; }

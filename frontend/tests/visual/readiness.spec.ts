@@ -70,4 +70,7 @@ test('AC-025-4: printed, the report leaves out the menus and the print button', 
   }
   await expect(page.getByRole('button', { name: 'Print or save as PDF' })).toBeHidden()
   await expect(page.getByRole('heading', { name: 'Month by month' })).toBeVisible()
+  // The report takes the page's width, not the hidden sidebar's column.
+  const width = page.viewportSize()?.width ?? 0
+  expect((await page.locator('#content').boundingBox())?.width ?? 0).toBeGreaterThan(width * 0.9)
 })

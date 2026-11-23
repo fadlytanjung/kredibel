@@ -124,7 +124,7 @@ function Report({ data }: { data: Readiness }) {
               period: periodText(monthList, t),
               currency: data.currency,
               framework: data.framework === 'US_GAAP' ? 'US GAAP' : 'IFRS',
-              date: formatDate(data.generatedAt.slice(0, 10)),
+              date: formatDate(data.generatedAt), // the viewer's own day, not UTC's
             })}
           </p>
         </div>

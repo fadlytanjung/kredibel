@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 import yaml
+
 from app.domain.readiness import (
     GapFact,
     MonthFacts,

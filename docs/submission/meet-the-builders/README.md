@@ -7,9 +7,9 @@
 | Field | Rule | Ours |
 |---|---|---|
 | **Challenge** | Pick from the list | The fraud and financial-risk challenge if it is listed (Kredibel's track in the AI Builder Cup was *BFSI: Intelligent Risk, Fraud & Financial Experiences*) |
-| **Demo video** | Google Drive link, "Anyone with the link"; at most 90 s and under 15 MB; **starts with you on camera** (name, where you are from), then the problem, the solution working, who it helps; names the Google AI tools | `kredibel-featured.mp4` in this folder (kept out of git), made by `make video-featured CAMERA=…`; script [`script.md`](script.md) |
-| **Google AI tools** | Three bullets, `Tool name: what it does in your project`, at most 1,024 characters | [below](#google-ai-tools-for-the-form) |
-| **Social post** | Public, on LinkedIn, YouTube, X, Instagram or Facebook, with **#Meetthebuilders** | Draft [below](#social-post) |
+| **Demo video** | Google Drive link, "Anyone with the link"; at most 90 s and under 15 MB; **starts with you on camera** (name, where you are from), then the problem, the solution working, who it helps; names the Google AI tools | <https://drive.google.com/file/d/1k10h-8Ald6meb9llqjBgijMR20kPL3WP/view?usp=sharing> (1:16, 13.8 MB, public; checked signed out 24 Nov 2026). Made by `make video-featured CAMERA=…`; script [`script.md`](script.md), captions [`kredibel-featured.srt`](kredibel-featured.srt) |
+| **Google AI tools** | Three bullets, `Tool name: what it does in your project`, at most 1,024 characters | [below](#the-form-field-by-field) |
+| **Social post** | Public, on LinkedIn, YouTube, X, Instagram or Facebook, with **#Meetthebuilders** | [The LinkedIn post](#the-linkedin-post) |
 | **Repository** | Consent to publish the GitHub repository | <https://github.com/fadlytanjung/kredibel> (public since October) |
 
 ## What is new since the AI Builder Cup
@@ -47,7 +47,15 @@ never a credit decision. Live at <https://kredibel.app/readiness> (demo account 
 The narration after your intro is an AI-generated voice (Google Cloud Text-to-Speech); say so in the
 post if the platform asks. All documents in the video are synthetic.
 
-## Google AI tools (for the form)
+## The form, field by field
+
+| Field | Paste |
+|---|---|
+| **Challenges** | The fraud, risk or financial-services option if listed (Kredibel is fintech: fraud and risk in a small business's books) |
+| **Demo Video Drive Link** | `https://drive.google.com/file/d/1k10h-8Ald6meb9llqjBgijMR20kPL3WP/view?usp=sharing` |
+| **Google AI Tools Used** | the three bullets below (600 characters; the limit is 1,024) |
+| **Link to Your Social Media Post** | the LinkedIn post's link, once posted |
+| **I consent to the GitHub Repo being published** | Yes (<https://github.com/fadlytanjung/kredibel> is public) |
 
 ```
 • Gemini on Vertex AI: reads every bank statement, invoice and receipt from the page image and its text, cites where each value is printed so code can check it, and explains each month's fraud risk and next steps in plain words.
@@ -55,33 +63,51 @@ post if the platform asks. All documents in the video are synthetic.
 • Agent Development Kit (ADK) on Cloud Run: runs each document and month as a traced workflow (read, verify, find copies and edits, reconcile, explain) and feeds the loan readiness report.
 ```
 
-(about 590 characters)
+## The LinkedIn post
 
-## Social post
-
-Post from your own account (LinkedIn works best for this audience); attach the video or a screenshot
-of the loan readiness page.
+Upload the video itself to the post (LinkedIn plays it in the feed, which a Drive link does not):
+`kredibel-featured.mp4`, then **Edit › Captions** with [`kredibel-featured.srt`](kredibel-featured.srt) and
+**Thumbnail** with [`linkedin-cover.png`](linkedin-cover.png) (1920x1080). Posting without the video, attach
+the cover image instead. Make the post **public** (Anyone), then copy its link (… › Copy link to post) for
+the form.
 
 ```
-Meet Kredibel: an AI finance workspace that checks a small business's own books, and now tells the owner whether those books are ready to show a lender.
+Meet Kredibel: your books, checked and ready for a lender. 🚀
 
-A small business handles about a hundred documents a month. Checking them by hand takes days, and one edited bank statement can hide fraud. Kredibel reads every page, reconciles every month, and shows the evidence behind every number. The new loan readiness report says what to fix before applying for credit.
+A small business handles about a hundred documents a month: bank statements, invoices, receipts. Checking them by hand takes days, and one edited bank statement can hide fraud. When the owner applies for a loan, someone has to check it all again.
+
+Kredibel is an AI finance workspace that checks a business's own books:
+✅ Gemini reads every page and cites where each value is printed; code checks it before it counts
+✅ Copies are caught at once and never counted twice
+✅ Every month reconciles itself: 95% of bank lines matched automatically on our demo company
+✅ What looks wrong comes with its evidence, like an amount edited in a PDF editor
+🆕 The loan readiness report says whether the books are ready to show a lender and what to fix first, then prints as a PDF
 
 Built with Google AI:
-• Gemini on Vertex AI reads each page and explains each risk
-• Document AI reads scans and receipt photos
-• Agent Development Kit runs the workflows on Cloud Run
+• Gemini on Vertex AI reads every page and explains each month's risk
+• Document AI reads scans and receipt photos so every value can be verified
+• Agent Development Kit runs every document and month as a traced workflow on Cloud Run
 
-Try it: https://kredibel.app (demo: demo@kredibel.app / Kredibel-Demo-2026)
-Code: https://github.com/fadlytanjung/kredibel
+▶️ 90-second demo: https://drive.google.com/file/d/1k10h-8Ald6meb9llqjBgijMR20kPL3WP/view?usp=sharing
+🌐 Try it: https://kredibel.app (demo account: demo@kredibel.app / Kredibel-Demo-2026)
+💻 Code: https://github.com/fadlytanjung/kredibel
 
-#Meetthebuilders #GoogleCloud #Gemini #BuildWithAI #FinTech #SmallBusiness
+Built with my team: Ibnu Habibie, Jabbar Ali Panggabean and Muhammad Arisandy Pratama.
+
+#Meetthebuilders #GoogleCloud #Gemini #GenAI #BuildWithAI #FinTech #SMEs #Indonesia
 ```
+
+Tag the teammates (type @ and their names) and, if you like, Google Cloud and Hack2skill. All data in the
+video and the cover is synthetic (Sunrise Coffee Roasters is not a real business); the narration after the
+intro is an AI voice (Google Cloud Text-to-Speech).
 
 ## Before pressing submit
 
-- [ ] `https://kredibel.app/api/health` answers with the deployed commit; `/readiness` opens for the demo account.
-- [ ] The video plays from the Drive link in a private window; at most 1:30; under 15 MB; you are on camera first.
-- [ ] The post is public and has #Meetthebuilders; its link pasted.
-- [ ] The repository is public.
-- [ ] Demo account reset after recording: `make demo-account DEMO_ACCOUNT_EMAIL=demo@kredibel.app DEMO_ACCOUNT_PASSWORD=…`.
+- [x] `https://kredibel.app/api/health` answers with the deployed commit (`fd5fb75`, 24 Nov 2026); `/readiness`
+      opens for the demo account (live check: welcome question, menu item, report, print width, 390 px).
+- [x] The video plays from the Drive link signed out; 1:16; 13.8 MB; you are on camera first, with your
+      name and where you are from. (Drive shares it as "Anyone with the link: Commenter"; Viewer is enough.)
+- [x] The repository is public.
+- [x] The demo account is a fresh copy (24 Nov 2026).
+- [ ] The LinkedIn post is public, has #Meetthebuilders, and its link is pasted in the form.
+- [ ] Challenge chosen; consent ticked; submitted before **26 Nov 2026, 01:29 IST (02:59 WIB)**.

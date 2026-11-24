@@ -52,4 +52,4 @@ docs/submission/meet-the-builders/*.mp4
 # The presenter's own recordings (personal data) stay out of git.
 docs/submission/meet-the-builders/*.m4a
 docs/submission/meet-the-builders/*.mov
-docs/submission/meet-the-builders/recording.conf
+docs/submission/meet-the-builders/*.conf

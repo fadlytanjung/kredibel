@@ -60,5 +60,5 @@
   shared with the 3-minute cut, `recorder.ts`), puts the presenter's own clip first under a name tag
   and encodes it within 90 s and 15 MB (`edit.py --cut featured --camera`); the loan readiness
   report (spec 025) is its new scene. Form answers and the post in `docs/submission/meet-the-builders/`.
-  Cut 24 Nov 2026 with the presenter's Zoom take (trimmed to 10.5 s, voice levelled to -16 LUFS, the
-  name tag over the call's own label): 1:19, 14.0 MB.
+  Cut 24 Nov 2026 with the presenter's Zoom take (name and where he is from, trimmed to 7.4 s, voice
+  levelled to -16 LUFS, the name tag over the call's own label): 1:16, 13.8 MB.

@@ -20,11 +20,11 @@
     {
       "id": "camera",
       "kind": "camera",
-      "seconds": 10.45,
+      "seconds": 7.4,
       "shot": "On camera (recorded by the presenter): name, where they are from, the team.",
       "sentences": [
         {
-          "text": "Hello, good afternoon. My name is Fadly Tanjung. With my team, I built Kredibel."
+          "text": "Hi, my name is Fadly Tanjung. I'm from Indonesia. With my team, I built Kredibel."
         }
       ]
     },

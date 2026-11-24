@@ -40,8 +40,8 @@ async function nameTag(page: import('@playwright/test').Page) {
     @font-face{font-family:"Archivo Variable";font-weight:100 900;font-stretch:62% 125%;
       src:url(${path.join(ROOT, 'design/mocks/assets/fonts/archivo-latin-wdth-normal.woff2')}) format("woff2-variations")}
     html,body{margin:0;width:1920px;height:1080px;background:transparent}
-    .tag{position:absolute;left:96px;bottom:96px;padding:22px 34px 24px 30px;border-radius:18px;background:rgba(22,33,43,.86);
-      border-left:8px solid #2E8B6A;color:#fff;font-family:"Archivo Variable",system-ui,sans-serif}
+    .tag{position:absolute;left:0;bottom:0;padding:26px 64px 30px 72px;border-radius:0 24px 0 0;background:#16212B;
+      border-top:6px solid #2E8B6A;color:#fff;font-family:"Archivo Variable",system-ui,sans-serif}
     .n{font-size:44px;font-weight:700;font-stretch:108%;letter-spacing:-.005em}
     .r{margin-top:6px;font-size:28px;color:rgba(255,255,255,.78)}
   </style></head><body><div class="tag"><div class="n">${esc(PLAN.presenter.name)}</div><div class="r">${esc(PLAN.presenter.role)}</div></div></body></html>`)
@@ -52,6 +52,7 @@ async function nameTag(page: import('@playwright/test').Page) {
 test('record the 90-second cut', async ({ page, baseURL }) => {
   const origin = baseURL ?? 'https://kredibel-app.web.app'
   await nameTag(page)
+  if (process.env.VIDEO_ONLY_TAG === '1') return // a new name tag for a new take, nothing recorded
   await resetDemo(origin)
   await page.context().addInitScript(overlay)
   const cdp = await page.context().newCDPSession(page)

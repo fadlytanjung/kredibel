@@ -1,0 +1,59 @@
+1
+00:00:00,300 --> 00:00:09,967
+Hello, good afternoon. My name is Fadly Tanjung. With my team, I built Kredibel.
+
+2
+00:00:09,967 --> 00:00:15,818
+A small business gets about a hundred documents a month: statements, invoices and receipts.
+
+3
+00:00:16,068 --> 00:00:20,718
+Checking them by hand takes days, and one edited bank statement can hide fraud.
+
+4
+00:00:20,878 --> 00:00:24,875
+Kredibel checks a business's own books, and shows the evidence behind every number.
+
+5
+00:00:25,047 --> 00:00:30,141
+Upload files in any order. A copy is spotted at once, and never counted twice.
+
+6
+00:00:30,391 --> 00:00:35,929
+Gemini reads every page, and code checks each value is printed where Gemini says it is.
+
+7
+00:00:36,913 --> 00:00:40,988
+Each month reconciles itself, and what looks wrong comes with its evidence.
+
+8
+00:00:41,238 --> 00:00:44,268
+Here, an amount was edited in a PDF editor.
+
+9
+00:00:45,027 --> 00:00:46,777
+New: the loan readiness report.
+
+10
+00:00:47,027 --> 00:00:52,618
+Before the owner applies for credit, Kredibel says if the books are ready to show a lender, and what to fix first.
+
+11
+00:00:52,868 --> 00:00:57,047
+Every figure comes from code. Print it, or save it as a PDF.
+
+12
+00:00:58,706 --> 00:01:05,080
+Built with Google AI. Gemini on Vertex AI reads every page and explains each risk.
+
+13
+00:01:05,330 --> 00:01:12,017
+Document AI reads scans and receipt photos. And the Agent Development Kit runs every workflow on Cloud Run.
+
+14
+00:01:12,206 --> 00:01:16,281
+Kredibel helps small businesses, their accountants, and the lenders they apply to.
+
+15
+00:01:16,531 --> 00:01:18,673
+Try it at kredibel.app.

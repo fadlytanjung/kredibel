@@ -7,13 +7,13 @@
 
 | Time | Scene | Shot | Voice-over |
 |---|---|---|---|
-| 0:00.0 | camera | On camera (recorded by the presenter): name, where they are from, the team. | Hi, I'm Muhammad Fadly Tanjung from Indonesia. With my team, I built Kredibel. |
-| 0:09.5 | problem | Card: a hundred documents a month; checking by hand takes days; one edited statement can hide fraud. | A small business gets about a hundred documents a month: statements, invoices and receipts. Checking them by hand takes days, and one edited bank statement can hide fraud. |
-| 0:20.3 | intro | Card: the Kredibel logo and its promise. | Kredibel checks a business's own books, and shows the evidence behind every number. |
-| 0:24.2 | read | Production, demo account: a late invoice, a receipt photo and a copy of a statement uploaded; the copy is not read; the invoice is read and its total lit on the page. | Upload files in any order. A copy is spotted at once, and never counted twice. Gemini reads every page, and code checks each value is printed where Gemini says it is. |
-| 0:35.1 | risk | Risk: August Critical; the evidence viewer lights the edited amount. | Each month reconciles itself, and what looks wrong comes with its evidence. Here, an amount was edited in a PDF editor. |
-| 0:42.5 | readiness | New: Loan readiness from the menu; Not ready yet, the checks, the edited statement to fix first; the figures; printed without the menus. | New: the loan readiness report. Before the owner applies for credit, Kredibel says if the books are ready to show a lender, and what to fix first. Every figure comes from code. Print it, or save it as a PDF. |
-| 0:54.5 | tools | Card: the three Google AI tools and what each does. | Built with Google AI. Gemini on Vertex AI reads every page and explains each risk. Document AI reads scans and receipt photos. And the Agent Development Kit runs every workflow on Cloud Run. |
-| 1:07.8 | close | Card: who it helps, and where to try it. | Kredibel helps small businesses, their accountants, and the lenders they apply to. Try it at kredibel.app. |
+| 0:00.0 | camera | On camera (recorded by the presenter): name, where they are from, the team. | Hello, good afternoon. My name is Fadly Tanjung. With my team, I built Kredibel. |
+| 0:09.9 | problem | Card: a hundred documents a month; checking by hand takes days; one edited statement can hide fraud. | A small business gets about a hundred documents a month: statements, invoices and receipts. Checking them by hand takes days, and one edited bank statement can hide fraud. |
+| 0:20.7 | intro | Card: the Kredibel logo and its promise. | Kredibel checks a business's own books, and shows the evidence behind every number. |
+| 0:24.7 | read | Production, demo account: a late invoice, a receipt photo and a copy of a statement uploaded; the copy is not read; the invoice is read and its total lit on the page. | Upload files in any order. A copy is spotted at once, and never counted twice. Gemini reads every page, and code checks each value is printed where Gemini says it is. |
+| 0:35.6 | risk | Risk: August Critical; the evidence viewer lights the edited amount. | Each month reconciles itself, and what looks wrong comes with its evidence. Here, an amount was edited in a PDF editor. |
+| 0:42.9 | readiness | New: Loan readiness from the menu; Not ready yet, the checks, the edited statement to fix first; the figures; printed without the menus. | New: the loan readiness report. Before the owner applies for credit, Kredibel says if the books are ready to show a lender, and what to fix first. Every figure comes from code. Print it, or save it as a PDF. |
+| 0:55.0 | tools | Card: the three Google AI tools and what each does. | Built with Google AI. Gemini on Vertex AI reads every page and explains each risk. Document AI reads scans and receipt photos. And the Agent Development Kit runs every workflow on Cloud Run. |
+| 1:08.3 | close | Card: who it helps, and where to try it. | Kredibel helps small businesses, their accountants, and the lenders they apply to. Try it at kredibel.app. |
 
-Total: about 1:14.8.
+Total: about 1:15.2.

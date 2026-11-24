@@ -211,15 +211,15 @@ video-silent: ## The demo video without captions or sound, to dub over (tools/vi
 	cd frontend && VIDEO_CAPTIONS=0 VIDEO_FRAMES=frames-silent VIDEO_OWNER_TOKEN="$$($(if $(VIDEO_OWNER_EMAIL),cd ../backend && uv run python -m scripts.custom_token --email $(VIDEO_OWNER_EMAIL),true))" npx playwright test -c playwright.video.config.ts tests/video/demo.spec.ts
 	python3 tools/video/edit.py --silent
 
-video-featured: ## The 90-second cut (tools/video/featured): voice it, record it on production with the demo account (resets it), cut it under 90 s and 15 MB; CAMERA=intro.mp4 puts the presenter's own clip first
+video-featured: ## The 90-second cut (tools/video/featured): voice it, record it on production with the demo account (resets it), cut it under 90 s and 15 MB; CAMERA=intro.mp4 puts the presenter's own clip first (CAMERA_FROM, CAMERA_TO: the seconds to keep)
 	cd backend && uv run python ../tools/video/narrate.py --cut featured
 	cd tools/synthetic && uv run kredibel-synth demo --shift-months 5 --per-month 100 --out out/demo-shift5 >/dev/null
 	cd backend && DEMO_TEMPLATE_ORG="$$(gcloud secrets versions access latest --secret=kredibel-env --project=$(PROJECT_ID) | sed -n 's/^DEMO_TEMPLATE_ORG=//p' | tr -d '"')" DEMO_ACCOUNT_EMAIL="$(or $(DEMO_ACCOUNT_EMAIL),demo@kredibel.app)" DEMO_ACCOUNT_PASSWORD="$(or $(DEMO_ACCOUNT_PASSWORD),Kredibel-Demo-2026)" uv run python -m scripts.demo_account
 	cd frontend && VIDEO_CUT=featured VIDEO_RESET=0 npx playwright test -c playwright.video.config.ts tests/video/featured.spec.ts
-	python3 tools/video/edit.py --cut featured $(if $(CAMERA),--camera "$(CAMERA)",)
+	python3 tools/video/edit.py --cut featured $(if $(CAMERA),--camera "$(CAMERA)",) $(if $(CAMERA_FROM),--camera-from $(CAMERA_FROM),) $(if $(CAMERA_TO),--camera-to $(CAMERA_TO),)
 
-video-featured-cut: ## Cut the 90-second film again from its recording, no new recording (CAMERA=intro.mp4 for the presenter's clip)
-	python3 tools/video/edit.py --cut featured $(if $(CAMERA),--camera "$(CAMERA)",)
+video-featured-cut: ## Cut the 90-second film again from its recording, no new recording (CAMERA=intro.mp4 for the presenter's clip, CAMERA_FROM and CAMERA_TO to trim it)
+	python3 tools/video/edit.py --cut featured $(if $(CAMERA),--camera "$(CAMERA)",) $(if $(CAMERA_FROM),--camera-from $(CAMERA_FROM),) $(if $(CAMERA_TO),--camera-to $(CAMERA_TO),)
 
 demo-account: ## Create or reset the public demo account (spec 024; DEMO_ACCOUNT_EMAIL=..., DEMO_ACCOUNT_PASSWORD=...)
 	cd backend && DEMO_ACCOUNT_EMAIL="$(DEMO_ACCOUNT_EMAIL)" DEMO_ACCOUNT_PASSWORD="$(DEMO_ACCOUNT_PASSWORD)" uv run python -m scripts.demo_account

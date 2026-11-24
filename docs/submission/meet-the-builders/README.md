@@ -33,7 +33,13 @@ never a credit decision. Live at <https://kredibel.app/readiness> (demo account 
    demo account first), puts your clip first with your name tag, and encodes the film under 90 s and
    15 MB (it stops with a message if either is exceeded). Without `CAMERA` the first scene is a
    placeholder card, for a preview. After a new take of the intro alone:
-   `make video-featured-cut CAMERA=…` (no new recording).
+   `make video-featured-cut CAMERA=… CAMERA_FROM=… CAMERA_TO=…` (no new recording; the two seconds
+   trim the take). The name tag covers a video call's own name label in the bottom-left corner.
+
+   The take of 24 Nov 2026 (a Zoom recording, 640x360, kept out of git):
+   `make video-featured-cut CAMERA=docs/submission/meet-the-builders/video1798972711.mp4 CAMERA_FROM=3.3 CAMERA_TO=13.75`
+   gives `kredibel-featured.mp4`, 1:19, 14.0 MB. It says the name but not where the presenter is from;
+   the name tag shows "Indonesia".
 3. **Upload** `docs/submission/meet-the-builders/kredibel-featured.mp4` to Google Drive, Share ›
    General access › **Anyone with the link** (Viewer), and paste the link in the form. Check the link
    in a private window: it must play without signing in.

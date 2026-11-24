@@ -33,6 +33,7 @@ DISSOLVE = 0.5
 MAX_SECONDS = 180  # the team's limit: three minutes at most
 MAX_MEGABYTES: float | None = None
 CAMERA: Path | None = None
+CAMERA_SPAN: tuple[float | None, float | None] = (None, None)  # seconds of the clip to keep
 AUDIO_KBPS = 128
 
 
@@ -74,19 +75,21 @@ def build_camera(scene: dict, clip: Path) -> tuple[Path, float]:
     tag = OUT / "name-tag.png"
     fill = "scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080,setsar=1"
     fit = f"[0:v]fps={FPS},{fill}"
+    start, end = CAMERA_SPAN
+    span = [*(["-ss", f"{start:.3f}"] if start else []), *(["-to", f"{end:.3f}"] if end else [])]
+    length = (end or probe(clip)) - (start or 0.0)
+    # The tag shows from the first frame: it also covers a video call's own name label there.
     if tag.exists():
-        graph = (
-            f"{fit}[cam];[1:v]format=rgba,fade=t=in:st=0.8:d=0.5:alpha=1[tag];"
-            "[cam][tag]overlay=0:0:enable='gte(t,0.8)',format=yuv420p[v]"
-        )
-        inputs = ["-i", str(clip), "-loop", "1", "-i", str(tag)]
+        graph = f"{fit}[cam];[1:v]format=rgba[tag];[cam][tag]overlay=0:0,format=yuv420p[v]"
+        inputs = [*span, "-i", str(clip), "-loop", "1", "-i", str(tag)]
     else:
         graph = f"{fit},format=yuv420p[v]"
-        inputs = ["-i", str(clip)]
+        inputs = [*span, "-i", str(clip)]
+    voice = "[0:a]aresample=48000,aformat=channel_layouts=mono,loudnorm=I=-16:TP=-1.5:LRA=11[a]"
     run(
         *inputs,
-        *("-filter_complex", f"{graph};[0:a]aresample=48000,aformat=channel_layouts=mono[a]"),
-        *("-map", "[v]", "-map", "[a]", "-t", f"{probe(clip):.3f}"),
+        *("-filter_complex", f"{graph};{voice}"),
+        *("-map", "[v]", "-map", "[a]", "-t", f"{length:.3f}"),
         *("-c:v", "libx264", "-preset", "medium", "-crf", "16", "-c:a", "aac", "-b:a", "192k"),
         str(target),
     )
@@ -166,8 +169,10 @@ def main() -> int:
     parser.add_argument("--silent", action="store_true", help="No captions, no sound: to dub over")
     parser.add_argument("--cut", default="", help="A cut in tools/video/<cut>/ (e.g. featured)")
     parser.add_argument("--camera", type=Path, help="The presenter's own clip for the camera scene")
+    parser.add_argument("--camera-from", type=float, help="Second of the clip where it starts")
+    parser.add_argument("--camera-to", type=float, help="Second of the clip where it ends")
     args = parser.parse_args()
-    global OUT, FILM, MAX_SECONDS, MAX_MEGABYTES, CAMERA
+    global OUT, FILM, MAX_SECONDS, MAX_MEGABYTES, CAMERA, CAMERA_SPAN
     frames_dir = "frames-silent" if args.silent else "frames"
     name = "kredibel-demo-silent" if args.silent else "kredibel-demo"
     sound = not args.silent
@@ -182,6 +187,7 @@ def main() -> int:
             CAMERA = args.camera.resolve()
             if not CAMERA.exists():
                 raise SystemExit(f"no camera clip at {CAMERA}")
+            CAMERA_SPAN = (args.camera_from, args.camera_to)
 
     timings = json.loads((OUT / "timings.json").read_text(encoding="utf-8"))["scenes"]
     # A scene recorded only on request (the Google onboarding needs VIDEO_OWNER_EMAIL) is left out.
